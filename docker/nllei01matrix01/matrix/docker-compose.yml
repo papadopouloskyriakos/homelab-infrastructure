@@ -1,0 +1,267 @@
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    network_mode: "host"
+#    ports:
+#      - "6666:6666"
+    volumes:
+      - /srv/matrix/nginx-conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /srv/matrix/synapse-data/tls/fullchain6.pem:/etc/letsencrypt/live/matrix.example.net/fullchain6.pem:ro
+      - /srv/matrix/synapse-data/tls/privkey6.pem:/etc/letsencrypt/live/matrix.example.net/privkey6.pem:ro
+      - /srv/matrix/nginx-logs:/var/log/nginx
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "{{.Name}}"
+    restart: unless-stopped
+
+  synapse:
+    image: ghcr.io/element-hq/synapse:latest
+#    image: matrixdotorg/synapse:v1.138.3
+#    image: matrixdotorg/synapse:v1.128.0
+#    image: matrixdotorg/synapse:v1.138.4
+#    image: matrixdotorg/synapse:v1.137.0
+    container_name: synapse
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    restart: unless-stopped
+    environment:
+      SYNAPSE_SERVER_NAME: matrix.example.net
+      SYNAPSE_REPORT_STATS: "no"
+      SYNAPSE_HTTP_PORT: "8008"
+      SYNAPSE_CONFIG_DIR: /data
+      SYNAPSE_DATA_DIR: /data
+      POSTGRES_PASSWORD: REDACTED_ffef1e87
+      TZ: Europe/Amsterdam
+      PUID: "991"
+      PGID: "991"
+    depends_on:
+      - postgres
+    network_mode: "host"
+#    ports:
+#      - "8008:8008"
+#      - "8448:8448"
+    volumes:
+      - /srv/matrix/synapse-data:/data
+      - /srv/matrix/synapse-media_store:/media_store
+      - /srv/matrix/matrix-hookshot/registration.yml:/data/matrix-hookshot/registration.yml:ro
+      - /srv/matrix-as-mm/config/registration.yaml:/data/registration.yml:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fSs", "http://localhost:8008/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "{{.Name}}"
+
+  synapse-admin:
+    container_name: synapse-admin
+    hostname: synapse-admin
+    image: awesometechnologies/synapse-admin:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+#    extra_hosts:
+#      - "matrix.example.net:127.0.0.1"
+#      - "matrix:127.0.0.1"
+    network_mode: "host"
+#    ports:
+#      - "8080:80"
+    restart: unless-stopped
+    depends_on:
+      - synapse
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "{{.Name}}"
+
+  element-web:
+    image: vectorim/element-web:latest
+    container_name: element-web
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    network_mode: "host"
+#    ports:
+#      - "8080:80"
+    volumes:
+      - /srv/matrix/element-app/config.json:/app/config.json:ro
+      - /srv/matrix/element-app/config.matrix.example.net.json:/app/config.matrix.example.net.json:ro
+      - /srv/matrix/element-nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+    environment:
+      - ELEMENT_WEB_PORT=8088
+      - DEFAULT_HOMESERVER_URL=https://matrix.example.net
+      - ENABLE_REGISTRATION=true
+    restart: unless-stopped
+    depends_on:
+      - synapse
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "{{.Name}}"
+
+  matrix-hookshot:
+###    image: halfshot/matrix-hookshot:main
+    image: halfshot/matrix-hookshot:hs-update-bot-sdk-0.7.1-element.7
+    container_name: matrix-hookshot
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    restart: unless-stopped
+    network_mode: "host"
+###    ports:
+###      - "9993:9993"    # Homeserver port
+###      - "9000:9000"    # Webhook port
+###      - "9002:9002"    # Metrics port
+    volumes:
+      - /srv/matrix/matrix-hookshot/config.yml:/data/config.yml
+      - /srv/matrix/matrix-hookshot/registration.yml:/data/registration.yml
+      - /srv/matrix/matrix-hookshot/passkey.pem:/data/passkey.pem
+      - /srv/matrix/hookshot-cryptostore:/data/cryptostore
+    depends_on:
+      - hookshot-redis
+      - synapse
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "{{.Name}}"
+
+  hookshot-redis:
+    image: redis:latest
+    container_name: hookshot-redis
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    restart: unless-stopped
+    network_mode: "host"
+#    ports:
+#      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - /srv/matrix/hookshot-redis:/data
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "{{.Name}}"
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    restart: unless-stopped
+    network_mode: "host"
+    environment:
+      POSTGRES_DB: synapse
+      POSTGRES_USER: synapse
+      POSTGRES_PASSWORD: REDACTED_ffef1e87
+    volumes:
+      - /srv/matrix/postgres-data:/var/lib/postgresql/data
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "{{.Name}}"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflare-tunnel
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    network_mode: "host"
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=REDACTED
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "{{.Name}}"
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: crowdsec
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    restart: unless-stopped
+    network_mode: "host"
+#  ports:
+#    - 127.0.0.1:8080:8080
+    environment:
+      COLLECTIONS: "crowdsecurity/nginx"
+      GID: "${GID-1000}"
+#  depends_on:
+#    - "reverse-proxy"
+    volumes:
+      - /srv/matrix/crowdsec-acquis/acquis.yaml:/etc/crowdsec/acquis.yaml
+      - /srv/matrix/crowdsec-logs:/var/log/nginx
+      - /srv/matrix/crowdsec-db:/var/lib/crowdsec/data/
+      - /srv/matrix/crowdsec-config:/etc/crowdsec/
+      - /var/log/docker/containers.log:/var/log/containers.log:ro
+      - /srv/matrix/nginx-logs/access.log:/var/log/access.log:ro
+      - /srv/matrix/nginx-logs/error.log:/var/log/error.log:ro
+    healthcheck:
+      test: ["CMD", "cscli", "config", "show"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "{{.Name}}"
+
+  custom-bouncer:
+    image: crowdsecurity/custom-bouncer:v0.0.19
+    container_name: custom-bouncer
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    restart: unless-stopped
+    network_mode: "host"
+#    entrypoint: /bin/sh -c "apk add --no-cache docker-cli && /entrypoint.sh"
+#    entrypoint: /bin/sh -c "apk add --no-cache docker-cli && crowdsec-custom-bouncer -c /crowdsec-custom-bouncer.yaml"
+#    entrypoint: ["/bin/sh", "-c", "apk add --no-cache docker-cli && /usr/local/bin/crowdsec-custom-bouncer -c /crowdsec-custom-bouncer.yaml"]
+#    entrypoint: ["/bin/sh", "-c", "apk add --no-cache docker-cli && /crowdsec-custom-bouncer -c /crowdsec-custom-bouncer.yaml"]
+    entrypoint: ["/bin/sh", "-c", "apk add --no-cache docker-cli jq && /crowdsec-custom-bouncer -c /crowdsec-custom-bouncer.yaml"]
+    volumes:
+      - /srv/matrix/crowdsec-config/bouncers/crowdsec-custom-bouncer.yaml:/crowdsec-custom-bouncer.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /srv/matrix/crowdsec-scripts/custom-script:/custom-script:ro
+      - /srv/matrix/custom-bouncer-log:/var/log/:rw
+      - /srv/matrix/custom-bouncer-flag/flag:/flag:rw
+    depends_on:
+      crowdsec:
+        condition: service_healthy
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "{{.Name}}"
+
+  watchtower:
+    image: containrrr/watchtower
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "30"
+    container_name: watchtower
+    environment:
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_LABEL_ENABLE: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    network_mode: "host"
+    restart: unless-stopped
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "{{.Name}}"
