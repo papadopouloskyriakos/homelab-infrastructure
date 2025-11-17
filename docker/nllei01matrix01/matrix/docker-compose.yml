@@ -108,6 +108,46 @@ services:
         syslog-address: "udp://127.0.0.1:514"
         tag: "{{.Name}}"
 
+  ntfy:
+    image: binwiederhier/ntfy
+    container_name: ntfy
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    command:
+      - serve
+      - --config=/etc/ntfy/server.yml
+    environment:
+      - TZ=UTC    # optional: set desired timezone
+      - NTFY_BASE_URL=https://matrix.example.net
+      - NTFY_LISTEN_HTTP=0.0.0.0:8880
+      - NTFY_BEHIND_PROXY=true
+      - NTFY_PROXY_FORWARDED_HEADER=X-Forwarded-For
+      - NTFY_PROXY_TRUSTED_HOSTS=127.0.0.1,10.0.X.X,10.0.X.X
+#      - NTFY_AUTH_DEFAULT_ACCESS=deny-all
+#      - NTFY_VISITOR_REQUEST_LIMIT_BURST=60
+#      - NTFY_VISITOR_REQUEST_LIMIT_REPLENISH=5s
+#      - NTFY_VISITOR_MESSAGE_DAILY_LIMIT=100
+#    user: UID:GID # optional: replace with your own user/group or uid/gid
+    volumes:
+      - /var/cache/ntfy:/var/cache/ntfy
+      - /srv/matrix/ntfy-etc:/etc/ntfy
+    network_mode: host
+#    ports:
+#      - 80:80
+    healthcheck: # optional: remember to adapt the host:port to your environment
+        test: ["CMD-SHELL", "wget -q --tries=1 http://localhost:8880/v1/health -O - | grep -Eo '\"healthy\"\\s*:\\s*true' || exit 1"]
+        interval: 60s
+        timeout: 10s
+        retries: 3
+        start_period: 40s
+    restart: unless-stopped
+    init: true # needed, if healthcheck is used. Prevents zombie processes
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "{{.Name}}"
+
   matrix-hookshot:
 ###    image: halfshot/matrix-hookshot:main
     image: halfshot/matrix-hookshot:hs-update-bot-sdk-0.7.1-element.7
