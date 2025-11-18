@@ -1,6 +1,6 @@
 services:
   nginx:
-    image: nginx:latest
+    image: nginx:${NGINX_VERSION}
     container_name: nginx
     network_mode: "host"
 #    ports:
@@ -19,7 +19,7 @@ services:
     restart: unless-stopped
 
   mas:
-    image: ghcr.io/element-hq/matrix-authentication-service:latest
+    image: ghcr.io/element-hq/matrix-authentication-service:${MAS_VERSION}
     container_name: mas
     restart: unless-stopped
     network_mode: host
@@ -38,11 +38,7 @@ services:
         tag: "mas"
 
   synapse:
-    image: ghcr.io/element-hq/synapse:latest
-#    image: matrixdotorg/synapse:v1.138.3
-#    image: matrixdotorg/synapse:v1.128.0
-#    image: matrixdotorg/synapse:v1.138.4
-#    image: matrixdotorg/synapse:v1.137.0
+    image: ghcr.io/element-hq/synapse:${SYNAPSE_VERSION}
     container_name: synapse
     restart: unless-stopped
     environment:
@@ -106,7 +102,7 @@ services:
   synapse-admin:
     container_name: synapse-admin
     hostname: synapse-admin
-    image: awesometechnologies/synapse-admin:latest
+    image: awesometechnologies/synapse-admin:${SYNAPSE_ADMIN_VERSION}
     network_mode: "host"
 #    ports:
 #      - "8080:80"
@@ -120,7 +116,7 @@ services:
         tag: "{{.Name}}"
 
   element-web:
-    image: vectorim/element-web:latest
+    image: vectorim/element-web:${ELEMENT_WEB_VERSION}
     container_name: element-web
     network_mode: "host"
 #    ports:
@@ -144,7 +140,7 @@ services:
         tag: "{{.Name}}"
 
   ntfy:
-    image: binwiederhier/ntfy
+    image: binwiederhier/ntfy:${NTFY_VERSION}
     container_name: ntfy
     command:
       - serve
@@ -182,8 +178,7 @@ services:
         tag: "{{.Name}}"
 
   matrix-hookshot:
-###    image: halfshot/matrix-hookshot:main
-    image: halfshot/matrix-hookshot:hs-update-bot-sdk-0.7.1-element.7
+    image: halfshot/matrix-hookshot:${HOOKSHOT_VERSION}
     container_name: matrix-hookshot
     restart: unless-stopped
     network_mode: "host"
@@ -206,7 +201,7 @@ services:
         tag: "{{.Name}}"
 
   hookshot-redis:
-    image: redis:latest
+    image: redis:${REDIS_VERSION}
     container_name: hookshot-redis
     restart: unless-stopped
     network_mode: "host"
@@ -222,7 +217,7 @@ services:
         tag: "{{.Name}}"
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:${POSTGRES_VERSION}
     container_name: postgres
     restart: unless-stopped
     network_mode: "host"
@@ -239,7 +234,7 @@ services:
         tag: "{{.Name}}"
 
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflared:${CLOUDFLARED_VERSION}
     container_name: cloudflare-tunnel
     network_mode: "host"
     restart: unless-stopped
@@ -253,7 +248,7 @@ services:
         tag: "{{.Name}}"
 
   crowdsec:
-    image: crowdsecurity/crowdsec:latest
+    image: crowdsecurity/crowdsec:${CROWDSEC_VERSION}
     container_name: crowdsec
     restart: unless-stopped
     network_mode: "host"
@@ -284,14 +279,10 @@ services:
         tag: "{{.Name}}"
 
   custom-bouncer:
-    image: crowdsecurity/custom-bouncer:v0.0.19
+    image: crowdsecurity/custom-bouncer:${CUSTOM_BOUNCER_VERSION}
     container_name: custom-bouncer
     restart: unless-stopped
     network_mode: "host"
-#    entrypoint: /bin/sh -c "apk add --no-cache docker-cli && /entrypoint.sh"
-#    entrypoint: /bin/sh -c "apk add --no-cache docker-cli && crowdsec-custom-bouncer -c /crowdsec-custom-bouncer.yaml"
-#    entrypoint: ["/bin/sh", "-c", "apk add --no-cache docker-cli && /usr/local/bin/crowdsec-custom-bouncer -c /crowdsec-custom-bouncer.yaml"]
-#    entrypoint: ["/bin/sh", "-c", "apk add --no-cache docker-cli && /crowdsec-custom-bouncer -c /crowdsec-custom-bouncer.yaml"]
     entrypoint: ["/bin/sh", "-c", "apk add --no-cache docker-cli jq && /crowdsec-custom-bouncer -c /crowdsec-custom-bouncer.yaml"]
     volumes:
       - /srv/matrix/crowdsec-config/bouncers/crowdsec-custom-bouncer.yaml:/crowdsec-custom-bouncer.yaml:ro
