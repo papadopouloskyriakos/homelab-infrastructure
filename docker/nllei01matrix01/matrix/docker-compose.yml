@@ -2,8 +2,6 @@ services:
   nginx:
     image: nginx:latest
     container_name: nginx
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     network_mode: "host"
 #    ports:
 #      - "6666:6666"
@@ -23,8 +21,6 @@ services:
   mas:
     image: ghcr.io/element-hq/matrix-authentication-service:latest
     container_name: mas
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     restart: unless-stopped
     network_mode: host
     depends_on:
@@ -48,8 +44,6 @@ services:
 #    image: matrixdotorg/synapse:v1.138.4
 #    image: matrixdotorg/synapse:v1.137.0
     container_name: synapse
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     restart: unless-stopped
     environment:
       SYNAPSE_SERVER_NAME: matrix.example.net
@@ -113,11 +107,6 @@ services:
     container_name: synapse-admin
     hostname: synapse-admin
     image: awesometechnologies/synapse-admin:latest
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-#    extra_hosts:
-#      - "matrix.example.net:127.0.0.1"
-#      - "matrix:127.0.0.1"
     network_mode: "host"
 #    ports:
 #      - "8080:80"
@@ -133,8 +122,6 @@ services:
   element-web:
     image: vectorim/element-web:latest
     container_name: element-web
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     network_mode: "host"
 #    ports:
 #      - "8080:80"
@@ -142,9 +129,7 @@ services:
       - /srv/matrix/element-app/config.json:/app/config.json:ro
       - /srv/matrix/element-app/config.matrix.example.net.json:/app/config.matrix.example.net.json:ro
       - /srv/matrix/element-nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
-      - /srv/matrix/element-app/custom-backgrounds:/app/custom-backgrounds:ro
-      - /srv/matrix/element-app/custom-theme.css:/app/bundles/custom-theme.css:ro
-      - /srv/matrix/element-app/index.html:/app/index.html:ro
+      - /srv/matrix/element-app/lake.jpg:/app/themes/element/img/backgrounds/lake.jpg:ro
     environment:
       - ELEMENT_WEB_PORT=8088
       - DEFAULT_HOMESERVER_URL=https://matrix.example.net
@@ -161,8 +146,6 @@ services:
   ntfy:
     image: binwiederhier/ntfy
     container_name: ntfy
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     command:
       - serve
       - --config=/etc/ntfy/server.yml
@@ -202,8 +185,6 @@ services:
 ###    image: halfshot/matrix-hookshot:main
     image: halfshot/matrix-hookshot:hs-update-bot-sdk-0.7.1-element.7
     container_name: matrix-hookshot
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     restart: unless-stopped
     network_mode: "host"
 ###    ports:
@@ -227,8 +208,6 @@ services:
   hookshot-redis:
     image: redis:latest
     container_name: hookshot-redis
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     restart: unless-stopped
     network_mode: "host"
 #    ports:
@@ -262,8 +241,6 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflare-tunnel
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     network_mode: "host"
     restart: unless-stopped
     command: tunnel run
@@ -278,8 +255,6 @@ services:
   crowdsec:
     image: crowdsecurity/crowdsec:latest
     container_name: crowdsec
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     restart: unless-stopped
     network_mode: "host"
 #  ports:
@@ -311,8 +286,6 @@ services:
   custom-bouncer:
     image: crowdsecurity/custom-bouncer:v0.0.19
     container_name: custom-bouncer
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     restart: unless-stopped
     network_mode: "host"
 #    entrypoint: /bin/sh -c "apk add --no-cache docker-cli && /entrypoint.sh"
@@ -329,22 +302,6 @@ services:
     depends_on:
       crowdsec:
         condition: service_healthy
-    logging:
-      driver: "syslog"
-      options:
-        syslog-address: "udp://127.0.0.1:514"
-        tag: "{{.Name}}"
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: watchtower
-    environment:
-      WATCHTOWER_CLEANUP: "true"
-      WATCHTOWER_LABEL_ENABLE: "true"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    network_mode: "host"
-    restart: unless-stopped
     logging:
       driver: "syslog"
       options:
