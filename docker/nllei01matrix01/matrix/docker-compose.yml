@@ -9,6 +9,7 @@ services:
 #      - "6666:6666"
     volumes:
       - /srv/matrix/nginx-conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /srv/matrix/mas-assets/assets:/usr/share/nginx/mas-assets:ro
       - /srv/matrix/synapse-data/tls/fullchain6.pem:/etc/letsencrypt/live/matrix.example.net/fullchain6.pem:ro
       - /srv/matrix/synapse-data/tls/privkey6.pem:/etc/letsencrypt/live/matrix.example.net/privkey6.pem:ro
       - /srv/matrix/nginx-logs:/var/log/nginx
@@ -18,6 +19,27 @@ services:
         syslog-address: "udp://127.0.0.1:514"
         tag: "{{.Name}}"
     restart: unless-stopped
+
+  mas:
+    image: ghcr.io/element-hq/matrix-authentication-service:latest
+    container_name: mas
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - postgres
+    volumes:
+      - /srv/matrix/synapse-data/homeserver.yaml:/synapse/homeserver.yaml:ro
+      - /srv/matrix/mas-config/config.yaml:/config/config.yaml:ro
+      - /srv/matrix/mas-data:/data
+    environment:
+      MAS_CONFIG: /config/config.yaml
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "mas"
 
   synapse:
     image: ghcr.io/element-hq/synapse:latest
@@ -49,13 +71,38 @@ services:
       - /srv/matrix/synapse-data:/data
       - /srv/matrix/synapse-media_store:/media_store
       - /srv/matrix/matrix-hookshot/registration.yml:/data/matrix-hookshot/registration.yml:ro
-      - /srv/matrix-as-mm/config/registration.yaml:/data/registration.yml:ro
     healthcheck:
       test: ["CMD", "curl", "-fSs", "http://localhost:8008/health"]
       interval: 15s
       timeout: 5s
       retries: 3
       start_period: 5s
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "{{.Name}}"
+
+  matrix-commander:
+    image: matrixcommander/matrix-commander:latest
+    container_name: matrix-commander
+    network_mode: "host"
+    volumes:
+      - /srv/matrix/matrix-commander-data:/data
+    # Uncomment the command below to login and bootstrap cross-signing
+    # After first run, you can comment it out or change commands as needed
+#    command: >
+#      --login password
+#      --user-login @hookbot:matrix.example.net
+#      --password "REDACTED_fbcc8637"
+#      --homeserver https://matrix.example.net
+#      --store /data
+    stdin_open: true  # Equivalent to -i
+    tty: true         # Equivalent to -t
+    # This service is meant to be run manually when needed:
+    # docker-compose run --rm matrix-commander
+    profiles:
+      - tools  # Only starts when explicitly called with --profile tools
     logging:
       driver: "syslog"
       options:
@@ -95,6 +142,9 @@ services:
       - /srv/matrix/element-app/config.json:/app/config.json:ro
       - /srv/matrix/element-app/config.matrix.example.net.json:/app/config.matrix.example.net.json:ro
       - /srv/matrix/element-nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - /srv/matrix/element-app/custom-backgrounds:/app/custom-backgrounds:ro
+      - /srv/matrix/element-app/custom-theme.css:/app/bundles/custom-theme.css:ro
+      - /srv/matrix/element-app/index.html:/app/index.html:ro
     environment:
       - ELEMENT_WEB_PORT=8088
       - DEFAULT_HOMESERVER_URL=https://matrix.example.net
