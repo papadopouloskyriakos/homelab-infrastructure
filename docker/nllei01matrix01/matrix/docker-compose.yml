@@ -337,11 +337,6 @@ services:
 
   watchtower:
     image: containrrr/watchtower
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "30"
     container_name: watchtower
     environment:
       WATCHTOWER_CLEANUP: "true"
