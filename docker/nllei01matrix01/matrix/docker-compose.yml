@@ -80,6 +80,7 @@ services:
       - /srv/matrix/synapse-data:/data
       - /srv/matrix/synapse-media_store:/media_store
       - /srv/matrix/matrix-hookshot/registration.yml:/data/matrix-hookshot/registration.yml:ro
+      - /srv/matrix/matrix-as-mm-config/registration.yaml:/data/matrix-as-mm/registration.yml:ro
     healthcheck:
       test: ["CMD", "curl", "-fSs", "http://localhost:8008/health"]
       interval: 15s
