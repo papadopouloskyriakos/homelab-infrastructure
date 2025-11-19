@@ -12,7 +12,7 @@
   },
   
   "labels": ["renovate", "dependencies"],
-  "assignees": ["@your-gitlab-username"],
+  "assignees": ["@root"],
   
   "dependencyDashboard": true,
   "REDACTED_203b14db": "🤖 Renovate Dependency Dashboard",
