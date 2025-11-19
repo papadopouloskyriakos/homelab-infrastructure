@@ -1,3 +1,7 @@
+cd /srv/matrix
+
+# Update Dockerfile to copy from correct paths
+cat > Dockerfile << 'EOF'
 FROM ubuntu:22.04
 
 WORKDIR /app
@@ -13,22 +17,17 @@ RUN git clone https://github.com/mattermost-community/matrix-as-mm.git .
 RUN npm ci
 RUN npm run build
 
-COPY MatrixClient.js.backup /app/build/matrix/MatrixClient.js
-COPY AppService.js.backup /app/build/matrix/AppService.js
-COPY MattermostUserStore.js.backup /app/build/mattermost/MattermostUserStore.js
-COPY MattermostHandler.js.backup /app/build/mattermost/MattermostHandler.js
-COPY MatrixUserStore.js.backup /app/build/matrix/MatrixUserStore.js
-COPY MatrixHandler.js.backup /app/build/matrix/MatrixHandler.js
-
-
-# Copy your completed config.yaml only
-COPY matrix-as-mm-config/config.yaml.correct /config/config.yaml
+# Copy patched files from correct locations
+COPY matrix-as-mm-src/MatrixClient.js.backup /app/build/matrix/MatrixClient.js
+COPY matrix-as-mm-src/MattermostUserStore.js.backup /app/build/mattermost/MattermostUserStore.js
+COPY matrix-as-mm-src/MattermostHandler.js.backup /app/build/mattermost/MattermostHandler.js
+COPY matrix-as-mm-src/MatrixUserStore.js.backup /app/build/matrix/MatrixUserStore.js
+COPY matrix-as-mm-src/MatrixHandler.js.backup /app/build/matrix/MatrixHandler.js
 
 EXPOSE 9995
-
-VOLUME /config /logs /db
 
 # Entrypoint
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+EOF
