@@ -1,3 +1,56 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json"
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  
+  "timezone": "Europe/Amsterdam",
+  "schedule": ["after 10pm on sunday"],
+  
+  "docker-compose": {
+    "enabled": true,
+    "fileMatch": ["(^|/)docker-compose\\.ya?ml$"],
+    "pinDigests": false
+  },
+  
+  "labels": ["renovate", "dependencies"],
+  "assignees": ["@your-gitlab-username"],
+  
+  "dependencyDashboard": true,
+  "REDACTED_203b14db": "🤖 Renovate Dependency Dashboard",
+  
+  "packageRules": [
+    {
+      "description": "Critical Matrix services",
+      "matchDatasources": ["docker"],
+      "matchPackagePatterns": ["synapse", "matrix-authentication", "postgres"],
+      "labels": ["renovate", "critical"],
+      "commitMessagePrefix": "🔒 [CRITICAL]",
+      "automerge": false
+    },
+    {
+      "description": "Frontend services",
+      "matchPackagePatterns": ["element-web", "synapse-admin"],
+      "labels": ["renovate", "frontend"],
+      "commitMessagePrefix": "🎨"
+    },
+    {
+      "description": "Security services",
+      "matchPackagePatterns": ["crowdsec"],
+      "labels": ["renovate", "security"],
+      "commitMessagePrefix": "🔐"
+    },
+    {
+      "description": "Major updates",
+      "matchUpdateTypes": ["major"],
+      "labels": ["renovate", "major-update"],
+      "commitMessagePrefix": "⚠️ [MAJOR]"
+    }
+  ],
+  
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security", "vulnerability"]
+  },
+  
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2
 }
