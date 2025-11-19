@@ -18,6 +18,25 @@ services:
         tag: "{{.Name}}"
     restart: unless-stopped
 
+  matrix-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: matrix-bridge
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - /srv/matrix/matrix-as-mm-config:/config:ro
+      - /srv/matrix/matrix-as-mm-logs:/app/logs
+    depends_on:
+      - postgres
+      - synapse
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "matrix-bridge"
+
   mas:
     image: ghcr.io/element-hq/matrix-authentication-service:${MAS_VERSION}
     container_name: mas
