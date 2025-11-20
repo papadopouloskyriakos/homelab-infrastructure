@@ -1,93 +1,407 @@
-# production
+***REMOVED*** Configuration Management Pipeline
 
+Automated GitLab CI/CD pipeline for safely managing Proxmox LXC and VM configurations with validation, backups, and rollback capabilities.
 
+## Features
 
-## Getting started
+✅ **Configuration Validation** - Validates configs before deployment  
+✅ **Automatic Backups** - Creates timestamped backups before changes  
+✅ **Safe Deployment** - Graceful shutdown, replace config, verify startup  
+✅ **Rollback Protection** - Automatic rollback on failure  
+✅ **Manual Approval** - Requires manual trigger for deployments  
+✅ **Status Verification** - Checks VM/LXC health after deployment  
+✅ **Backup Retention** - Automatic cleanup of old backups  
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Pipeline Stages
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+### 1. Validate (`validate_proxmox_configs`)
 
-## Add your files
+- Detects changed `.conf` files
+- Validates VMID and type (lxc/qemu)
+- Checks host connectivity
+- Verifies configuration syntax
+- Shows configuration diff
+- Checks for required fields
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+**Triggers:** Automatically on config changes
+
+### 2. Deploy (`deploy_proxmox_configs`)
+
+Performs safe deployment with these steps:
+
+1. **Copy to temp** - Stage new config on Proxmox host
+2. **Check status** - Determine current VM/LXC state
+3. **Backup** - Save current config with timestamp
+4. **Shutdown** - Graceful shutdown (with force fallback)
+5. **Replace** - Swap configuration file
+6. **Startup** - Start VM/LXC if it was running
+7. **Verify** - Confirm successful startup
+8. **Rollback** - Automatic if any step fails
+
+**Triggers:** Manual approval required  
+**Environment:** Production
+
+### 3. Verify (`verify_deployments`)
+
+- Waits 10 seconds for services to stabilize
+- Checks final status of all deployed resources
+- Reports any issues
+
+**Triggers:** Automatically after successful deployment
+
+### 4. Cleanup (`cleanup_old_backups`)
+
+- Removes backups older than 30 days
+- Runs across all Proxmox hosts
+- Reports deletion statistics
+
+**Triggers:** Scheduled (configure in GitLab)
+
+## Repository Structure
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.example.net/infrastructure/nl/production.git
-git branch -M main
-git push -uf origin main
+infrastructure/
+├── pve/
+│   ├── nl-pve01/          ***REMOVED*** host 1
+│   │   ├── lxc/
+│   │   │   ├── 101000000.conf
+│   │   │   ├── 101020203.conf
+│   │   │   └── ...
+│   │   └── qemu/
+│   │       ├── 201000000.conf
+│   │       └── ...
+│   ├── nl-pve02/          ***REMOVED*** host 2
+│   │   └── ...
+│   └── ...
+├── .gitlab-ci.yml
+└── README.md
 ```
 
-## Integrate with your tools
+## Configuration Variables
 
-- [ ] [Set up project integrations](https://gitlab.example.net/infrastructure/nl/production/-/settings/integrations)
+Set these in GitLab CI/CD settings or modify in pipeline:
 
-## Collaborate with your team
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BACKUP_DIR` | `/var/lib/vz/backup/config-backups` | Backup storage location |
+| `TEMP_CONFIG_DIR` | `/tmp/pve-config-staging` | Staging directory |
+| `DEPLOYMENT_TIMEOUT` | `60` | Seconds to wait for startup |
+| `KEEP_BACKUPS_DAYS` | `30` | Backup retention period |
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+## Prerequisites
 
-## Test and Deploy
+### GitLab Setup
 
-Use the built-in continuous integration in GitLab.
+1. **SSH Key** - Base64-encoded private key in `.ssh/one_key.b64`
+   ```bash
+   base64 ~/.ssh/id_ed25519 > .ssh/one_key.b64
+   git add .ssh/one_key.b64
+   ```
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+2. **GitLab Runner** - Configured runner with Docker executor
 
-***
+3. **CI/CD Variables** (optional)
+   - Custom backup paths
+   - Custom timeouts
+   - Notification webhooks
 
-# Editing this README
+##***REMOVED*** Host Setup
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+1. **SSH Access** - Root SSH access with key authentication
+   ```bash
+   ssh-copy-id root@nl-pve01
+   ```
 
-## Suggestions for a good README
+2. **Backup Directory** - Ensure directory exists or pipeline creates it
+   ```bash
+   mkdir -p /var/lib/vz/backup/config-backups/{lxc,qemu}
+   ```
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+3. **Hostname Resolution** - Ensure hostnames resolve correctly
+   ```bash
+   # Test from GitLab runner
+   ping nl-pve01
+   ```
 
 ## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+
+### Making Configuration Changes
+
+1. **Edit configuration** in GitLab (web IDE or git clone)
+   ```bash
+   git clone <repo-url>
+   cd infrastructure
+   vim pve/nl-pve01/lxc/101000000.conf
+   ```
+
+2. **Commit and push** changes
+   ```bash
+   git add pve/nl-pve01/lxc/101000000.conf
+   git commit -m "Update LXC 101000000 memory allocation"
+   git push
+   ```
+
+3. **Pipeline runs automatically**
+   - Validation stage runs first
+   - If validation passes, deployment job waits for manual approval
+
+4. **Review and approve**
+   - Check pipeline validation output
+   - Review configuration diff
+   - Click "Play" button on deploy job
+
+5. **Monitor deployment**
+   - Watch job output in real-time
+   - Verify successful completion
+   - Check verification stage
+
+### Viewing Deployment History
+
+All deployments are tracked in GitLab:
+- Pipeline history: `CI/CD → Pipelines`
+- Deployment environments: `Deployments → Environments → Production`
+- Job logs: Click any pipeline → View job output
+
+### Accessing Backups
+
+Backups are stored on each Proxmox host:
+
+```bash
+# List all backups
+ssh root@nl-pve01 "ls -lh /var/lib/vz/backup/config-backups/lxc/"
+
+# Find backups for specific VMID
+ssh root@nl-pve01 "find /var/lib/vz/backup/config-backups -name '101000000_*'"
+
+# View a backup
+ssh root@nl-pve01 "cat /var/lib/vz/backup/config-backups/lxc/101000000_20250117_143022.conf"
+```
+
+### Manual Rollback
+
+If you need to manually rollback a configuration:
+
+1. **Find the backup**
+   ```bash
+   ssh root@nl-pve01 "ls -lt /var/lib/vz/backup/config-backups/lxc/ | grep 101000000"
+   ```
+
+2. **Stop the LXC/VM**
+   ```bash
+   ssh root@nl-pve01 "pct stop 101000000"
+   # or for VM:
+   ssh root@nl-pve01 "qm stop 201000000"
+   ```
+
+3. **Restore backup**
+   ```bash
+   ssh root@nl-pve01 "cp /var/lib/vz/backup/config-backups/lxc/101000000_20250117_143022.conf /etc/pve/lxc/101000000.conf"
+   ```
+
+4. **Start the LXC/VM**
+   ```bash
+   ssh root@nl-pve01 "pct start 101000000"
+   ```
+
+5. **Update GitLab repo** to match the restored config
+   ```bash
+   scp root@nl-pve01:/etc/pve/lxc/101000000.conf pve/nl-pve01/lxc/101000000.conf
+   git add pve/nl-pve01/lxc/101000000.conf
+   git commit -m "Rollback LXC 101000000 to previous config"
+   git push
+   ```
+
+## Troubleshooting
+
+### Validation Fails
+
+**Issue:** Configuration validation fails
+
+**Solutions:**
+- Check syntax errors in the config file
+- Ensure required fields are present (arch, ostype for LXC; memory for VMs)
+- Verify VMID exists on the target host
+- Check SSH connectivity to Proxmox host
+
+### Deployment Fails to Start
+
+**Issue:** VM/LXC won't start after config change
+
+**What happens:**
+- Pipeline automatically rolls back to previous config
+- Attempts to start with old config
+- Reports failure in job output
+
+**Solutions:**
+- Review the configuration changes
+- Check Proxmox task log: `Datacenter → Task History`
+- Verify hardware references (disks, networks) exist
+- Check resource availability (memory, storage)
+
+### Connection Timeout
+
+**Issue:** Cannot connect to Proxmox host
+
+**Solutions:**
+- Verify hostname resolution: `ping nl-pve01`
+- Check SSH key is correctly encoded in `.ssh/one_key.b64`
+- Ensure Proxmox host accepts SSH key auth
+- Check firewall rules on Proxmox host
+
+### Backup Directory Full
+
+**Issue:** Backup directory running out of space
+
+**Solutions:**
+- Reduce `KEEP_BACKUPS_DAYS` variable
+- Manually clean old backups:
+  ```bash
+  ssh root@nl-pve01 "find /var/lib/vz/backup/config-backups -type f -mtime +7 -delete"
+  ```
+- Schedule cleanup job more frequently
+- Use different backup location with more space
+
+## Best Practices
+
+### 1. Test in Development First
+
+- Create a dev Proxmox environment
+- Test configuration changes there first
+- Use the same pipeline structure
+
+### 2. Small, Incremental Changes
+
+- Make one config change at a time
+- Easier to identify issues
+- Faster rollback if needed
+
+### 3. Descriptive Commit Messages
+
+Good examples:
+```
+✅ Increase memory for LXC 101000000 from 2GB to 4GB
+✅ Add additional network interface to VM 201000000
+✅ Update CPU cores for LXC 101020203 to 4 cores
+```
+
+### 4. Review Configuration Diffs
+
+Always review the diff shown in the validation stage:
+- Understand what's changing
+- Verify no accidental changes
+- Check for typos
+
+### 5. Monitor After Deployment
+
+- Check services are running properly
+- Review logs for any issues
+- Verify connectivity to VM/LXC
+
+### 6. Regular Backup Cleanup
+
+- Schedule cleanup job weekly
+- Monitor backup directory size
+- Keep backups for critical systems longer
+
+## Advanced Configuration
+
+### Custom Validation Rules
+
+Add custom checks in the validation stage:
+
+```yaml
+# Add to validate_proxmox_configs script section
+# Check for specific naming conventions
+if ! echo "$file" | grep -qE 'pve/[a-z0-9]+/'; then
+  echo "❌ Invalid naming convention"
+  exit 1
+fi
+
+# Validate memory allocation
+if [ "$TYPE" = "lxc" ]; then
+  MEMORY=$(grep "^memory:" "$TEMP_CONFIG" | cut -d' ' -f2)
+  if [ "$MEMORY" -lt 512 ]; then
+    echo "⚠️  Warning: Memory less than 512MB"
+  fi
+fi
+```
+
+### Notifications
+
+Add Slack/Discord notifications:
+
+```yaml
+# Add to end of deploy_proxmox_configs script
+curl -X POST -H 'Content-type: application/json' \
+  --data "{\"text\":\"✅ Deployed $TYPE/$VMID on $HOSTNAME\"}" \
+  $SLACK_WEBHOOK_URL
+```
+
+### Pre-deployment Snapshots
+
+For VMs (not LXC), take snapshots before deployment:
+
+```yaml
+# Add before config replacement
+if [ "$TYPE" = "qemu" ]; then
+  echo "Creating pre-deployment snapshot..."
+  qm snapshot $VMID "pre-deploy-$(date +%Y%m%d_%H%M%S)"
+fi
+```
+
+## Security Considerations
+
+1. **SSH Key Protection**
+   - Use read-only deploy keys where possible
+   - Rotate keys regularly
+   - Base64 encoding is not encryption - consider using GitLab CI/CD variables with masking
+
+2. **Access Control**
+   - Limit who can approve deployments
+   - Use protected branches
+   - Enable merge request approvals
+
+3. **Audit Trail**
+   - All changes tracked in Git
+   - Pipeline logs retained
+   - Backup timestamps for forensics
+
+## Integration with AWX
+
+Your setup already uses AWX. You can trigger this pipeline from AWX playbooks:
+
+```yaml
+# AWX Playbook example
+- name: Trigger GitLab pipeline for Proxmox configs
+  uri:
+    url: "https://gitlab.example.net/api/v4/projects/{{ project_id }}/trigger/pipeline"
+    method: POST
+    body_format: json
+    body:
+      token: "{{ gitlab_trigger_token }}"
+      ref: "main"
+    status_code: 201
+```
+
+## Monitoring and Metrics
+
+Consider tracking:
+- Deployment success rate
+- Average deployment time
+- Number of rollbacks
+- Backup storage usage
+- Configuration changes per week
+
+Use GitLab CI/CD Analytics or integrate with Prometheus/Grafana.
 
 ## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+For issues or questions:
+1. Check pipeline job logs
+2. Review Proxmox task history
+3. Check this documentation
+4. Review GitLab CI/CD documentation
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Internal use only - Nuclearlighters Infrastructure
