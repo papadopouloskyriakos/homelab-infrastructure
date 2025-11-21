@@ -1,407 +1,495 @@
-***REMOVED*** Configuration Management Pipeline
+# 🏗️ Infrastructure Configuration Management
 
-Automated GitLab CI/CD pipeline for safely managing Proxmox LXC and VM configurations with validation, backups, and rollback capabilities.
+Automated GitLab CI/CD pipeline for managing Docker services, Proxmox VMs/LXC containers, and Cisco network device configurations.
 
-## Features
+> **⚡ Quick Start:** Make changes → Push → Pipeline validates → Approve deployment → Done
 
-✅ **Configuration Validation** - Validates configs before deployment  
-✅ **Automatic Backups** - Creates timestamped backups before changes  
-✅ **Safe Deployment** - Graceful shutdown, replace config, verify startup  
-✅ **Rollback Protection** - Automatic rollback on failure  
-✅ **Manual Approval** - Requires manual trigger for deployments  
-✅ **Status Verification** - Checks VM/LXC health after deployment  
-✅ **Backup Retention** - Automatic cleanup of old backups  
+---
 
-## Pipeline Stages
+## 📋 What This Pipeline Does
 
-### 1. Validate (`validate_proxmox_configs`)
+| System | What It Manages | Deployment Type |
+|--------|----------------|-----------------|
+| 🐳 **Docker** | Compose files, .env configs | Automatic on changes |
+| 🖥️ **Proxmox** | VM/LXC configurations | Manual approval |
+| 🌐 **Cisco** | Router/Switch/Firewall configs | Manual approval |
+| 🤖 **Renovate** | Dependency updates | Manual approval |
 
-- Detects changed `.conf` files
-- Validates VMID and type (lxc/qemu)
-- Checks host connectivity
-- Verifies configuration syntax
-- Shows configuration diff
-- Checks for required fields
+---
 
-**Triggers:** Automatically on config changes
-
-### 2. Deploy (`deploy_proxmox_configs`)
-
-Performs safe deployment with these steps:
-
-1. **Copy to temp** - Stage new config on Proxmox host
-2. **Check status** - Determine current VM/LXC state
-3. **Backup** - Save current config with timestamp
-4. **Shutdown** - Graceful shutdown (with force fallback)
-5. **Replace** - Swap configuration file
-6. **Startup** - Start VM/LXC if it was running
-7. **Verify** - Confirm successful startup
-8. **Rollback** - Automatic if any step fails
-
-**Triggers:** Manual approval required  
-**Environment:** Production
-
-### 3. Verify (`verify_deployments`)
-
-- Waits 10 seconds for services to stabilize
-- Checks final status of all deployed resources
-- Reports any issues
-
-**Triggers:** Automatically after successful deployment
-
-### 4. Cleanup (`cleanup_old_backups`)
-
-- Removes backups older than 30 days
-- Runs across all Proxmox hosts
-- Reports deletion statistics
-
-**Triggers:** Scheduled (configure in GitLab)
-
-## Repository Structure
+## 🗂️ Repository Structure
 
 ```
-infrastructure/
-├── pve/
-│   ├── nl-pve01/          ***REMOVED*** host 1
-│   │   ├── lxc/
-│   │   │   ├── 101000000.conf
-│   │   │   ├── 101020203.conf
-│   │   │   └── ...
-│   │   └── qemu/
-│   │       ├── 201000000.conf
-│   │       └── ...
-│   ├── nl-pve02/          ***REMOVED*** host 2
-│   │   └── ...
-│   └── ...
-├── .gitlab-ci.yml
-└── README.md
+production/
+├── docker/                          # Docker services
+│   ├── {hostname}/
+│   │   └── {project}/
+│   │       ├── docker-compose.yml
+│   │       └── .env
+│
+├── pve/                             ***REMOVED*** configs
+│   ├── {hostname}/
+│   │   ├── lxc/{vmid}.conf
+│   │   └── qemu/{vmid}.conf
+│
+├── network/
+│   └── oxidized/                    # Network device configs
+│       ├── Router/
+│       ├── Switch/
+│       ├── Firewall/
+│       ├── Access-Point/
+│       ├── PDU/
+│       └── UPS/
+│
+└── .gitlab-ci.yml                   # Pipeline definition
 ```
 
-## Configuration Variables
+---
 
-Set these in GitLab CI/CD settings or modify in pipeline:
+## 🚀 Deployment Workflows
+
+### 🐳 Docker Services
+
+**Triggers:** Changes to `docker/**/*`  
+**Approval:** Automatic (Manual for Renovate updates)
+
+```bash
+# 1. Edit compose file
+vim docker/nldocker01/immich/docker-compose.yml
+
+# 2. Commit and push
+git add docker/nldocker01/immich/
+git commit -m "Update Immich to use new config"
+git push
+
+# 3. Pipeline automatically deploys
+```
+
+**What happens:**
+- Files synced to target host via rsync
+- `docker compose pull` downloads new images
+- `docker compose up -d` applies changes
+- Old containers removed with `--remove-orphans`
+
+---
+
+### 🖥️ Proxmox VMs/Containers
+
+**Triggers:** Changes to `pve/**/*.conf`  
+**Approval:** Manual
+
+```bash
+# 1. Edit VM config
+vim pve/nl-pve01/lxc/101000000.conf
+
+# 2. Commit and push
+git add pve/nl-pve01/lxc/101000000.conf
+git commit -m "Increase memory for LXC 101000000"
+git push
+
+# 3. Review validation in pipeline
+# 4. Click "Deploy" button in GitLab
+```
+
+**Safety features:**
+✅ Automatic backup before deployment  
+✅ Graceful shutdown → replace config → restart  
+✅ Automatic rollback on failure  
+✅ Verification of successful startup  
+
+**Backups stored at:** `/var/lib/vz/backup/config-backups/`
+
+---
+
+### 🌐 Network Devices (Cisco)
+
+**Triggers:** Changes to `network/oxidized/**/*`  
+**Approval:** Manual  
+
+```bash
+# 1. Edit device config
+vim network/oxidized/Firewall/nlfw01
+
+# 2. Commit and push
+git add network/oxidized/Firewall/nlfw01
+git commit -m "Update firewall ACL rules"
+git push
+
+# 3. Review validation
+# 4. Click "Deploy" button
+```
+
+**What happens:**
+- 🔒 Creates deployment lock (prevents oxidized backup conflicts)
+- 📦 Ansible backs up running config
+- 🚀 Deploys new configuration
+- ✅ Verifies device connectivity
+- ⏳ 60-second settling period
+- 🔓 Removes deployment lock
+
+**⚠️ Important:**  
+- **Never commit** Oxidized bot backups manually
+- Pipeline skips commits with `[oxidized-backup]` tag
+- Oxidized bot automatically backs up configs hourly
+
+---
+
+## 🔐 Oxidized Integration
+
+### How It Works
+
+```
+Oxidized (hourly scrape)
+    ↓
+Detects changes
+    ↓
+Commits to Git with [oxidized-backup] tag
+    ↓
+Pipeline SKIPS (no deployment triggered)
+```
+
+### Deployment Lock System
+
+When **deploying** network configs:
+1. Pipeline creates `/tmp/ansible_deployment_lock`
+2. Oxidized backup detects lock and skips
+3. Pipeline completes and removes lock
+4. Next oxidized backup proceeds normally
+
+**This prevents backing up incomplete configs during deployment!**
+
+---
+
+## 🎯 Pipeline Stages
+
+### Stage 1: Validate
+- ✅ Syntax checking
+- ✅ File integrity
+- ✅ Host connectivity
+- ✅ Configuration diffs
+
+### Stage 2: Deploy
+- 🔒 Create deployment locks (Cisco only)
+- 💾 Backup current state
+- 🚀 Apply changes
+- ✅ Verify success
+- ↩️ Auto-rollback on failure
+
+### Stage 3: Verify
+- 🔍 Check service health
+- 📊 Verify reachability
+- 📝 Report status
+
+---
+
+## ⚙️ Configuration Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BACKUP_DIR` | `/var/lib/vz/backup/config-backups` | Backup storage location |
-| `TEMP_CONFIG_DIR` | `/tmp/pve-config-staging` | Staging directory |
-| `DEPLOYMENT_TIMEOUT` | `60` | Seconds to wait for startup |
-| `KEEP_BACKUPS_DAYS` | `30` | Backup retention period |
+| `PVE_BACKUP_DIR` | `/var/lib/vz/backup/config-backups` | Proxmox backup location |
+| `PVE_DEPLOYMENT_TIMEOUT` | `60` | Seconds to wait for VM/LXC startup |
+| `CISCO_BACKUP_DIR` | `/var/backups/cisco-configs` | Network config backups |
+| `DEPLOYMENT_LOCK_FILE` | `/tmp/ansible_deployment_lock` | Prevents oxidized conflicts |
 
-## Prerequisites
+---
 
-### GitLab Setup
+## 🔑 Prerequisites
 
-1. **SSH Key** - Base64-encoded private key in `.ssh/one_key.b64`
-   ```bash
-   base64 ~/.ssh/id_ed25519 > .ssh/one_key.b64
-   git add .ssh/one_key.b64
-   ```
-
-2. **GitLab Runner** - Configured runner with Docker executor
-
-3. **CI/CD Variables** (optional)
-   - Custom backup paths
-   - Custom timeouts
-   - Notification webhooks
-
-##***REMOVED*** Host Setup
-
-1. **SSH Access** - Root SSH access with key authentication
-   ```bash
-   ssh-copy-id root@nl-pve01
-   ```
-
-2. **Backup Directory** - Ensure directory exists or pipeline creates it
-   ```bash
-   mkdir -p /var/lib/vz/backup/config-backups/{lxc,qemu}
-   ```
-
-3. **Hostname Resolution** - Ensure hostnames resolve correctly
-   ```bash
-   # Test from GitLab runner
-   ping nl-pve01
-   ```
-
-## Usage
-
-### Making Configuration Changes
-
-1. **Edit configuration** in GitLab (web IDE or git clone)
-   ```bash
-   git clone <repo-url>
-   cd infrastructure
-   vim pve/nl-pve01/lxc/101000000.conf
-   ```
-
-2. **Commit and push** changes
-   ```bash
-   git add pve/nl-pve01/lxc/101000000.conf
-   git commit -m "Update LXC 101000000 memory allocation"
-   git push
-   ```
-
-3. **Pipeline runs automatically**
-   - Validation stage runs first
-   - If validation passes, deployment job waits for manual approval
-
-4. **Review and approve**
-   - Check pipeline validation output
-   - Review configuration diff
-   - Click "Play" button on deploy job
-
-5. **Monitor deployment**
-   - Watch job output in real-time
-   - Verify successful completion
-   - Check verification stage
-
-### Viewing Deployment History
-
-All deployments are tracked in GitLab:
-- Pipeline history: `CI/CD → Pipelines`
-- Deployment environments: `Deployments → Environments → Production`
-- Job logs: Click any pipeline → View job output
-
-### Accessing Backups
-
-Backups are stored on each Proxmox host:
+### 1. SSH Key Setup
 
 ```bash
-# List all backups
-ssh root@nl-pve01 "ls -lh /var/lib/vz/backup/config-backups/lxc/"
-
-# Find backups for specific VMID
-ssh root@nl-pve01 "find /var/lib/vz/backup/config-backups -name '101000000_*'"
-
-# View a backup
-ssh root@nl-pve01 "cat /var/lib/vz/backup/config-backups/lxc/101000000_20250117_143022.conf"
+# Pipeline uses base64-encoded SSH key
+base64 ~/.ssh/id_ed25519 > .ssh/one_key.b64
+git add .ssh/one_key.b64
+git commit -m "Add SSH key for deployments"
+git push
 ```
 
-### Manual Rollback
+### 2. Host SSH Access
 
-If you need to manually rollback a configuration:
-
-1. **Find the backup**
-   ```bash
-   ssh root@nl-pve01 "ls -lt /var/lib/vz/backup/config-backups/lxc/ | grep 101000000"
-   ```
-
-2. **Stop the LXC/VM**
-   ```bash
-   ssh root@nl-pve01 "pct stop 101000000"
-   # or for VM:
-   ssh root@nl-pve01 "qm stop 201000000"
-   ```
-
-3. **Restore backup**
-   ```bash
-   ssh root@nl-pve01 "cp /var/lib/vz/backup/config-backups/lxc/101000000_20250117_143022.conf /etc/pve/lxc/101000000.conf"
-   ```
-
-4. **Start the LXC/VM**
-   ```bash
-   ssh root@nl-pve01 "pct start 101000000"
-   ```
-
-5. **Update GitLab repo** to match the restored config
-   ```bash
-   scp root@nl-pve01:/etc/pve/lxc/101000000.conf pve/nl-pve01/lxc/101000000.conf
-   git add pve/nl-pve01/lxc/101000000.conf
-   git commit -m "Rollback LXC 101000000 to previous config"
-   git push
-   ```
-
-## Troubleshooting
-
-### Validation Fails
-
-**Issue:** Configuration validation fails
-
-**Solutions:**
-- Check syntax errors in the config file
-- Ensure required fields are present (arch, ostype for LXC; memory for VMs)
-- Verify VMID exists on the target host
-- Check SSH connectivity to Proxmox host
-
-### Deployment Fails to Start
-
-**Issue:** VM/LXC won't start after config change
-
-**What happens:**
-- Pipeline automatically rolls back to previous config
-- Attempts to start with old config
-- Reports failure in job output
-
-**Solutions:**
-- Review the configuration changes
-- Check Proxmox task log: `Datacenter → Task History`
-- Verify hardware references (disks, networks) exist
-- Check resource availability (memory, storage)
-
-### Connection Timeout
-
-**Issue:** Cannot connect to Proxmox host
-
-**Solutions:**
-- Verify hostname resolution: `ping nl-pve01`
-- Check SSH key is correctly encoded in `.ssh/one_key.b64`
-- Ensure Proxmox host accepts SSH key auth
-- Check firewall rules on Proxmox host
-
-### Backup Directory Full
-
-**Issue:** Backup directory running out of space
-
-**Solutions:**
-- Reduce `KEEP_BACKUPS_DAYS` variable
-- Manually clean old backups:
-  ```bash
-  ssh root@nl-pve01 "find /var/lib/vz/backup/config-backups -type f -mtime +7 -delete"
-  ```
-- Schedule cleanup job more frequently
-- Use different backup location with more space
-
-## Best Practices
-
-### 1. Test in Development First
-
-- Create a dev Proxmox environment
-- Test configuration changes there first
-- Use the same pipeline structure
-
-### 2. Small, Incremental Changes
-
-- Make one config change at a time
-- Easier to identify issues
-- Faster rollback if needed
-
-### 3. Descriptive Commit Messages
-
-Good examples:
-```
-✅ Increase memory for LXC 101000000 from 2GB to 4GB
-✅ Add additional network interface to VM 201000000
-✅ Update CPU cores for LXC 101020203 to 4 cores
+```bash
+# Ensure passwordless SSH to all hosts
+ssh root@nl-pve01     ***REMOVED***
+ssh root@nldocker01  # Docker
+ssh root@nlfw01.example.net  # Network devices
 ```
 
-### 4. Review Configuration Diffs
+### 3. GitLab Runner
 
-Always review the diff shown in the validation stage:
-- Understand what's changing
-- Verify no accidental changes
-- Check for typos
+- Runner with Docker executor
+- Network access to all infrastructure hosts
+- Ansible collections installed (automatic via pipeline)
 
-### 5. Monitor After Deployment
+---
 
-- Check services are running properly
-- Review logs for any issues
-- Verify connectivity to VM/LXC
+## 💡 Best Practices
 
-### 6. Regular Backup Cleanup
+### ✅ DO
 
-- Schedule cleanup job weekly
-- Monitor backup directory size
-- Keep backups for critical systems longer
+- ✅ Make small, incremental changes
+- ✅ Test in development environment first
+- ✅ Write descriptive commit messages
+- ✅ Review validation output before approving
+- ✅ Monitor deployments in real-time
 
-## Advanced Configuration
+### ❌ DON'T
 
-### Custom Validation Rules
+- ❌ Edit network configs during active deployments
+- ❌ Manually commit oxidized backups
+- ❌ Force-push to main branch
+- ❌ Deploy multiple changes to same device simultaneously
+- ❌ Skip validation warnings
 
-Add custom checks in the validation stage:
+---
 
+## 🆘 Troubleshooting
+
+### Deployment Failed
+
+**Check:**
+1. Pipeline job logs for error details
+2. Target host connectivity: `ssh root@{hostname}`
+3. Service logs on target host
+4. Backup files (automatic rollback may have occurred)
+
+### Oxidized Backup Triggered Pipeline
+
+**Issue:** Commits with `[oxidized-backup]` shouldn't trigger deploys
+
+**Fix:** Verify skip rule in `.gitlab-ci.yml`:
 ```yaml
-# Add to validate_proxmox_configs script section
-# Check for specific naming conventions
-if ! echo "$file" | grep -qE 'pve/[a-z0-9]+/'; then
-  echo "❌ Invalid naming convention"
-  exit 1
-fi
-
-# Validate memory allocation
-if [ "$TYPE" = "lxc" ]; then
-  MEMORY=$(grep "^memory:" "$TEMP_CONFIG" | cut -d' ' -f2)
-  if [ "$MEMORY" -lt 512 ]; then
-    echo "⚠️  Warning: Memory less than 512MB"
-  fi
-fi
+- if: '$CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
+  when: never
 ```
 
-### Notifications
+### Git Push Conflict
 
-Add Slack/Discord notifications:
+**Issue:** "non-fast-forward" error
 
-```yaml
-# Add to end of deploy_proxmox_configs script
-curl -X POST -H 'Content-type: application/json' \
-  --data "{\"text\":\"✅ Deployed $TYPE/$VMID on $HOSTNAME\"}" \
-  $SLACK_WEBHOOK_URL
+**Fix:**
+```bash
+git pull --rebase origin main
+git push origin main
 ```
 
-### Pre-deployment Snapshots
+### Deployment Lock Stuck
 
-For VMs (not LXC), take snapshots before deployment:
+**Issue:** "Deployment in progress" but no pipeline running
 
-```yaml
-# Add before config replacement
-if [ "$TYPE" = "qemu" ]; then
-  echo "Creating pre-deployment snapshot..."
-  qm snapshot $VMID "pre-deploy-$(date +%Y%m%d_%H%M%S)"
-fi
+**Fix:**
+```bash
+# On oxidized host
+rm /tmp/ansible_deployment_lock
 ```
 
-## Security Considerations
+---
 
-1. **SSH Key Protection**
-   - Use read-only deploy keys where possible
-   - Rotate keys regularly
-   - Base64 encoding is not encryption - consider using GitLab CI/CD variables with masking
+## 📊 Monitoring
 
-2. **Access Control**
-   - Limit who can approve deployments
-   - Use protected branches
-   - Enable merge request approvals
+### Check Deployment History
 
-3. **Audit Trail**
-   - All changes tracked in Git
-   - Pipeline logs retained
-   - Backup timestamps for forensics
+```bash
+# GitLab UI
+CI/CD → Pipelines → View jobs
 
-## Integration with AWX
-
-Your setup already uses AWX. You can trigger this pipeline from AWX playbooks:
-
-```yaml
-# AWX Playbook example
-- name: Trigger GitLab pipeline for Proxmox configs
-  uri:
-    url: "https://gitlab.example.net/api/v4/projects/{{ project_id }}/trigger/pipeline"
-    method: POST
-    body_format: json
-    body:
-      token: "{{ gitlab_trigger_token }}"
-      ref: "main"
-    status_code: 201
+# Recent deployments
+Deployments → Environments → Production
 ```
 
-## Monitoring and Metrics
+### View Backups
 
-Consider tracking:
-- Deployment success rate
-- Average deployment time
-- Number of rollbacks
-- Backup storage usage
-- Configuration changes per week
+```bash
+***REMOVED*** backups
+ssh root@nl-pve01 "ls -lh /var/lib/vz/backup/config-backups/"
 
-Use GitLab CI/CD Analytics or integrate with Prometheus/Grafana.
+# Cisco backups  
+ssh root@nlgitlab01 "ls -lh /var/backups/cisco-configs/"
 
-## Support
+# Oxidized git history
+cd /root/.config/oxidized/git_sync
+git log --oneline -20
+```
 
-For issues or questions:
-1. Check pipeline job logs
-2. Review Proxmox task history
-3. Check this documentation
-4. Review GitLab CI/CD documentation
+---
 
-## License
+## 🔄 Manual Rollback
 
-Internal use only - Nuclearlighters Infrastructure
+##***REMOVED*** VM/LXC
+
+```bash
+# 1. Find backup
+ssh root@nl-pve01 "ls -lt /var/lib/vz/backup/config-backups/lxc/ | grep 101000000"
+
+# 2. Stop container
+ssh root@nl-pve01 "pct stop 101000000"
+
+# 3. Restore config
+ssh root@nl-pve01 "cp /var/lib/vz/backup/config-backups/lxc/101000000_20250121_143022.conf /etc/pve/lxc/101000000.conf"
+
+# 4. Start container
+ssh root@nl-pve01 "pct start 101000000"
+
+# 5. Update Git to match
+scp root@nl-pve01:/etc/pve/lxc/101000000.conf pve/nl-pve01/lxc/
+git add pve/nl-pve01/lxc/101000000.conf
+git commit -m "Rollback LXC 101000000"
+git push
+```
+
+### Network Device
+
+```bash
+# 1. Find backup in Ansible backup dir
+ssh root@nlgitlab01 "ls -lt /var/backups/cisco-configs/ | grep nlfw01"
+
+# 2. Copy backup to network/oxidized/
+scp root@nlgitlab01:/var/backups/cisco-configs/nlfw01_1737469222.cfg network/oxidized/Firewall/nlfw01
+
+# 3. Commit and deploy
+git add network/oxidized/Firewall/nlfw01
+git commit -m "Rollback firewall to previous config"
+git push
+# Approve deployment in GitLab UI
+```
+
+---
+
+## 🔗 Useful Commands
+
+### Quick Health Check
+
+```bash
+# Check all Docker services
+for host in nldocker01; do
+  echo "=== $host ==="
+  ssh root@$host "docker ps --format 'table {{.Names}}\t{{.Status}}'"
+done
+
+# Check all Proxmox VMs/LXCs
+for host in nl-pve01; do
+  echo "=== $host ==="
+  ssh root@$host "pct list && qm list"
+done
+
+# Check network device reachability
+for device in nlfw01 nlrouter01 nlsw01; do
+  ping -c 1 ${device}.example.net && echo "✅ $device" || echo "❌ $device"
+done
+```
+
+### View Recent Changes
+
+```bash
+# Last 10 commits
+git log --oneline -10
+
+# Changes to specific system
+git log --oneline --follow -- docker/nldocker01/
+git log --oneline --follow -- pve/nl-pve01/lxc/101000000.conf
+git log --oneline --follow -- network/oxidized/Firewall/nlfw01
+
+# Filter out oxidized auto-backups
+git log --oneline --all --grep="\[oxidized-backup\]" --invert-grep
+```
+
+---
+
+## 🎓 Common Workflows
+
+### Update Docker Service
+
+```bash
+# Update image version in .env
+vim docker/nldocker01/immich/.env
+# Change: IMMICH_VERSION=v1.95.0 → IMMICH_VERSION=v1.96.0
+
+git add docker/nldocker01/immich/.env
+git commit -m "Update Immich to v1.96.0"
+git push
+
+# Pipeline auto-deploys
+```
+
+### Add New Network Interface to VM
+
+```bash
+# Edit config
+vim pve/nl-pve01/qemu/201000000.conf
+# Add: net1: virtio=XX:XX:XX:XX:XX:XX,bridge=vmbr1
+
+git add pve/nl-pve01/qemu/201000000.conf
+git commit -m "Add second NIC to VM 201000000"
+git push
+
+# Review → Approve in GitLab
+```
+
+### Update Firewall Rules
+
+```bash
+# Edit firewall config
+vim network/oxidized/Firewall/nlfw01
+
+# Add new ACL entries
+# access-list outside_in extended permit tcp any host 10.0.1.50 eq 443
+
+git add network/oxidized/Firewall/nlfw01
+git commit -m "Allow HTTPS to 10.0.1.50"
+git push
+
+# Review → Approve in GitLab
+```
+
+---
+
+## 🤖 Renovate Integration
+
+Renovate automatically creates MRs for dependency updates.
+
+**Workflow:**
+1. Renovate bot opens MR with version bump
+2. Pipeline validates changes
+3. Review changelog and test results
+4. Approve and merge MR
+5. Pipeline deploys automatically (or requires manual approval)
+
+**⚠️ Major version updates show warning - review carefully!**
+
+---
+
+## 🔒 Security Notes
+
+- SSH keys base64-encoded (not encrypted) - use GitLab masked variables for production
+- All deployments logged and auditable via Git history
+- Manual approval required for infrastructure changes
+- Automatic backups before all changes
+- Root SSH access required (ensure key rotation schedule)
+
+---
+
+## 📚 Additional Resources
+
+- [GitLab CI/CD Documentation](https://docs.gitlab.com/ee/ci/)
+- [Proxmox Configuration Reference](https://pve.proxmox.com/wiki/Manual:_pve-conf)
+- [Ansible Cisco Collections](https://docs.ansible.com/ansible/latest/collections/cisco/index.html)
+- [Docker Compose Documentation](https://docs.docker.com/compose/)
+
+---
+
+## 📞 Support
+
+**Issue?** Check pipeline logs first:
+1. Go to CI/CD → Pipelines
+2. Click failed pipeline
+3. View job output
+
+**Still stuck?**
+- Review this README
+- Check `/var/log/oxidized_backup.log` on oxidized host
+- Verify host connectivity
+- Check GitLab Runner status
+
+---
+
+**Last Updated:** 2025-11-21  
+**Pipeline Version:** 2.0 (with Oxidized integration)
