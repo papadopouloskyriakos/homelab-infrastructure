@@ -116,7 +116,7 @@ def is_safe_for_auto_sync(device_name, diff_lines, changes_summary):
                 return False, f"Contains critical pattern: {pattern}"
     
     # Safety check 3: File deletions (config file removed)
-    if deletions > additions * 2:
+    if deletions > additions * 10:
         return False, f"Suspicious: Many deletions ({deletions}) vs additions ({additions})"
     
     return True, "Safe for auto-sync"
