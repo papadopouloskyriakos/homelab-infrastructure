@@ -114,6 +114,14 @@ def discover_devices():
         device_type = device_type_dir.name
         
         for config_file in device_type_dir.iterdir():
+            # SKIP special files
+            if config_file.name in ['.gitkeep', '.gitignore', 'README.md']:
+                continue
+            
+            # SKIP hidden files
+            if config_file.name.startswith('.'):
+                continue
+                
             if config_file.is_file():
                 device_name = config_file.name
                 devices.append((device_type, device_name, config_file))
@@ -159,18 +167,18 @@ def detect_drift(auto_sync=False):
                 name, status, details = result
                 
                 if status == 'synced':
-                    icon = '✓'
+                    icon = 'OK'
                 elif status == 'drift':
-                    icon = '⚠'
+                    icon = 'DRIFT'
                 elif status == 'missing':
-                    icon = '?'
+                    icon = 'MISS'
                 else:
-                    icon = '✗'
+                    icon = 'ERROR'
                 
-                print(f"{icon} {name:20s} {status:10s} {details}")
+                print(f"{icon:6s} {name:20s} {status:10s} {details}")
                 
             except Exception as e:
-                print(f"✗ {device_name:20s} error      {str(e)[:50]}")
+                print(f"ERROR  {device_name:20s} error      {str(e)[:50]}")
     
     print("-" * 70)
     print()
@@ -184,10 +192,10 @@ def detect_drift(auto_sync=False):
     print("SUMMARY")
     print("=" * 70)
     print(f"Total devices:    {len(results)}")
-    print(f"✓ Synced:         {synced}")
-    print(f"⚠ Drift detected: {drifted}")
-    print(f"? Missing config: {missing}")
-    print(f"✗ Errors:         {errors}")
+    print(f"Synced:           {synced}")
+    print(f"Drift detected:   {drifted}")
+    print(f"Missing config:   {missing}")
+    print(f"Errors:           {errors}")
     print()
     
     # List drifted devices
@@ -219,10 +227,10 @@ def detect_drift(auto_sync=False):
     
     # Exit code
     if drifted > 0 or errors > 0:
-        print("⚠ Drift or errors detected - review required")
+        print("WARNING: Drift or errors detected - review required")
         return 1
     else:
-        print("✓ All devices in sync")
+        print("SUCCESS: All devices in sync")
         return 0
 
 if __name__ == "__main__":
