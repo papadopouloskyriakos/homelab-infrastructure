@@ -1,61 +1,6 @@
-! Cisco IOS XE Software, Version 17.09.05a
-! 
-! Image: Software: X86_64_LINUX_IOSD-UNIVERSALK9-M, 17.9.5a, RELEASE SOFTWARE (fc1)
-! Image: Compiled: Mon 12-Feb-24 12:05 by mcpre
-! Image: bootflash:isr4300-universalk9.17.09.05a.SPA.bin
-! Chassis type: ISR4321/K9
-! Memory: main 1653606K/3071K
-! Processor ID: FDO2151A35W
-! CPU: 1RU
-! Memory: nvram 32768K
-! Memory: flash 3125247K
-! 
-! VTP: VTP Version capable             : 1 to 3
-! VTP: VTP version running             : 1
-! VTP: VTP Domain Name                 : 
-! VTP: VTP Pruning Mode                : Disabled (Operationally Disabled)
-! VTP: VTP Traps Generation            : Disabled
-! VTP: Device ID                       : 247e.124d.ab80
-! VTP: Local updater ID is 10.0.X.X on interface Gi0/0/1 (first layer3 interface found)
-! VTP: Feature VLAN:
-! VTP: --------------
-! VTP: VTP Operating Mode                : Server
-! VTP: Maximum VLANs supported locally   : 64
-! VTP: Number of existing VLANs          : 5
-! VTP: Configuration Revision            : 0
-! VTP: MD5 digest                        : 0x57 0xCD 0x40 0x65 0x63 0x59 0x47 0xBD 
-! VTP:                                     0x56 0x9D 0x4A 0x3E 0xA5 0x69 0x35 0xBC 
-! 
-! 
-! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-! INFO: Please use "show license UDI" to get serial number for licensing.
-! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-! 
-! NAME: "Chassis", DESCR: "Cisco ISR4321 Chassis"
-! PID: ISR4321/K9        , VID: V04  , SN: FDO2151A35W
-! 
-! NAME: "Power Supply Module 0", DESCR: "110W AC Power Supply for Cisco ISR 4320"
-! PID: PWR-4320-AC       , VID:      , SN:            
-! 
-! NAME: "Fan Tray", DESCR: "Cisco ISR4320 Fan Assembly"
-! PID: ACS-4320-FANASSY  , VID:      , SN:            
-! 
-! NAME: "module 0", DESCR: "Cisco ISR4321 Built-In NIM controller"
-! PID: ISR4321/K9        , VID:      , SN:            
-! 
-! NAME: "NIM subslot 0/1", DESCR: "NIM-VAB-A - Multi-mode xDSL with VDSL bonding and ADSL1/2/2+ Annex A over POTS"
-! PID: NIM-VAB-A         , VID: V01  , SN: FOC21018WUN
-! 
-! NAME: "NIM subslot 0/0", DESCR: "Front Panel 2 ports Gigabitethernet Module"
-! PID: ISR4321-2x1GE     , VID: V01  , SN:            
-! 
-! NAME: "module R0", DESCR: "Cisco ISR4321 Route Processor"
-! PID: ISR4321/K9        , VID: V04  , SN: FDO214821P8
-! 
-! NAME: "module F0", DESCR: "Cisco ISR4321 Forwarding Processor"
-! PID: ISR4321/K9        , VID:      , SN:            
-! 
-! 
+Building configuration...
+
+Current configuration : 5760 bytes
 !
 ! Last configuration change at 00:46:47 CET Fri Nov 21 2025 by kyriakosp
 !
@@ -324,4 +269,3 @@ ntp server 2.pool.ntp.org
 !
 !
 end
-
