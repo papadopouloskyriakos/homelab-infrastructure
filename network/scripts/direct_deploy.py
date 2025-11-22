@@ -58,6 +58,7 @@ def direct_deploy(device_type, device_name, diff_yaml):
         'timeout': 120,
         'session_log': f'artifacts/direct_deploy_{device_name}_session.log',
         'fast_cli': False,  # More reliable for config changes
+        'read_timeout_override': 90,  # Increased timeout for slow devices
     }
     
     try:
@@ -76,11 +77,12 @@ def direct_deploy(device_type, device_name, diff_yaml):
         
         print(f"   SUCCESS: Backup saved to {backup_file}")
         
-        # Enter config mode
+        # Apply configuration changes
         print(f"[4/4] Applying configuration changes...")
-        output = conn.send_command("configure terminal")
         
-        # Apply each block
+        # Build complete command list with parents and lines
+        all_commands = []
+        
         for i, block in enumerate(diff_blocks, 1):
             parents = block.get('parents', [])
             lines = block.get('lines', [])
@@ -89,37 +91,42 @@ def direct_deploy(device_type, device_name, diff_yaml):
             if parents:
                 print(f"      Context: {' > '.join(parents)}")
             
-            # Enter parent context
-            for parent in parents:
-                output = conn.send_command(parent)
-                if 'Invalid' in output or 'Error' in output:
-                    print(f"      WARNING: {output}")
+            # Add parent context commands
+            all_commands.extend(parents)
             
-            # Apply lines
-            for line in lines:
-                output = conn.send_command(line)
-                if 'Invalid' in output or 'Error' in output:
-                    print(f"      WARNING on '{line}': {output}")
+            # Add the configuration lines
+            all_commands.extend(lines)
             
-            # Exit parent context
+            # Add exit commands to leave parent context
             for _ in parents:
-                conn.send_command("exit")
+                all_commands.append("exit")
         
-        # Exit config mode
-        conn.send_command("end")
-        print(f"   SUCCESS: Configuration applied")
+        # Apply all commands at once using send_config_set
+        if all_commands:
+            print(f"   Sending {len(all_commands)} total commands...")
+            output = conn.send_config_set(all_commands, exit_config_mode=True)
+            
+            # Check for errors in output
+            if 'Invalid' in output or 'Error' in output:
+                print(f"   WARNING: Possible errors detected in output")
+                print(f"   Review session log: artifacts/direct_deploy_{device_name}_session.log")
+            else:
+                print(f"   SUCCESS: Commands applied")
+        else:
+            print(f"   No commands to apply")
         
         # Save config
         print(f"   Saving configuration to NVRAM...")
         if device_type == 'Firewall':
-            save_output = conn.send_command("write memory")
+            save_output = conn.send_command_timing("write memory", read_timeout=60)
         else:
-            save_output = conn.send_command("write memory", expect_string=r"#")
+            save_output = conn.save_config()
         
-        if 'OK' in save_output or 'building configuration' in save_output.lower():
+        if 'OK' in save_output or 'building configuration' in save_output.lower() or '[OK]' in save_output:
             print(f"   SUCCESS: Configuration saved")
         else:
-            print(f"   WARNING: Unexpected save output: {save_output}")
+            print(f"   WARNING: Unexpected save output")
+            print(f"   Check session log for details")
         
         # Verify connectivity
         version_output = conn.send_command("show version | include uptime")
