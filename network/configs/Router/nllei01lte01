@@ -145,6 +145,7 @@ interface FastEthernet3
  no cdp enable
 !
 interface GigabitEthernet0
+ description MALAKA_ARKINTI_MOUNI
  no ip address
  shutdown
  duplex auto
