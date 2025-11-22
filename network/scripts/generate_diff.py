@@ -120,21 +120,20 @@ def generate_diff(device_type, device_name, config_file):
         
         log(f"  Diff lines: {len(diff)}")
         
-        # Extract only the additions (lines to configure)
-        # Using SIMPLIFIED structure - no parent/child hierarchy
-        # This avoids ciscoconfparse issues
+        # Process diff to extract additions and deletions
         additions = []
-        deletions = 0
+        deletions = []
         
         for line in diff:
             if line.startswith('@@') or line.startswith('+++') or line.startswith('---'):
                 continue
             
             if line.startswith('-'):
-                deletions += 1
-                continue
+                cmd = line[1:].strip()
+                if cmd and not cmd.startswith('!'):
+                    deletions.append(cmd)
             
-            if line.startswith('+'):
+            elif line.startswith('+'):
                 cmd = line[1:].strip()
                 if cmd and not cmd.startswith('!'):
                     additions.append(cmd)
@@ -142,38 +141,130 @@ def generate_diff(device_type, device_name, config_file):
         log(f"")
         log(f"DIFF ANALYSIS:")
         log(f"  Lines to add:    {len(additions)}")
-        log(f"  Lines to remove: {deletions}")
+        log(f"  Lines to remove: {len(deletions)}")
         
-        if deletions > 0:
+        # Detect changes vs separate operations
+        # A "change" is when the command prefix is the same but value differs
+        changes = []
+        pure_deletions = []
+        pure_additions = list(additions)  # Start with all additions
+        
+        for del_cmd in deletions:
+            # Extract command prefix (first few words)
+            del_parts = del_cmd.split()
+            if len(del_parts) < 2:
+                pure_deletions.append(del_cmd)
+                continue
+            
+            # Look for matching addition with same prefix
+            matched = False
+            for add_cmd in additions:
+                add_parts = add_cmd.split()
+                if len(add_parts) < 2:
+                    continue
+                
+                # Check if this is a change (same command, different value)
+                # Examples:
+                #   - "ip name-server 9.9.9.9" -> "ip name-server 1.1.1.1"
+                #   - "snmp-server host X" -> "snmp-server host Y"
+                if del_parts[0:2] == add_parts[0:2]:  # Same command prefix
+                    changes.append({
+                        'old': del_cmd,
+                        'new': add_cmd,
+                        'type': 'change'
+                    })
+                    pure_additions.remove(add_cmd)
+                    matched = True
+                    break
+            
+            if not matched:
+                pure_deletions.append(del_cmd)
+        
+        log(f"")
+        log(f"OPERATION BREAKDOWN:")
+        log(f"  Pure additions: {len(pure_additions)}")
+        log(f"  Pure deletions: {len(pure_deletions)}")
+        log(f"  Changes:        {len(changes)}")
+        
+        # Show detected changes
+        if changes:
             log(f"")
-            log(f"  WARNING: {deletions} lines will be removed")
-            log(f"  This indicates manual changes on the device")
+            log(f"  Detected changes (showing first 3):")
+            for i, change in enumerate(changes[:3], 1):
+                log(f"    {i}. OLD: {change['old'][:50]}")
+                log(f"       NEW: {change['new'][:50]}")
+        
+        # Convert deletions to "no" commands
+        deletion_commands = []
+        for cmd in pure_deletions:
+            # Special cases where we can't just prepend "no"
+            skip_patterns = [
+                'hostname',  # Can't "no hostname"
+                'end',
+                'exit',
+                '!',
+            ]
+            
+            # Check if this is a special command
+            if any(cmd.strip().startswith(pattern) for pattern in skip_patterns):
+                log(f"  SKIP deletion (special): {cmd[:60]}")
+                continue
+            
+            # Check if command already starts with "no"
+            if cmd.strip().startswith('no '):
+                # Invert: remove the "no" to re-enable
+                no_cmd = cmd.strip()[3:]  # Remove "no "
+                deletion_commands.append(no_cmd)
+            else:
+                # Normal case: prepend "no"
+                no_cmd = f"no {cmd}"
+                deletion_commands.append(no_cmd)
+        
+        # Process changes (delete old, add new)
+        change_commands = []
+        for change in changes:
+            # Add deletion of old value
+            old_cmd = change['old']
+            if not old_cmd.strip().startswith('no '):
+                change_commands.append(f"no {old_cmd}")
+            
+            # Add new value
+            change_commands.append(change['new'])
+        
+        # Build final command list: deletions, changes, then pure additions
+        all_commands = deletion_commands + change_commands + pure_additions
+        
+        log(f"")
+        log(f"COMMAND GENERATION:")
+        log(f"  Deletion 'no' commands: {len(deletion_commands)}")
+        log(f"  Change commands:        {len(change_commands)}")
+        log(f"  Addition commands:      {len(pure_additions)}")
+        log(f"  Total:                  {len(all_commands)}")
         
         # Create diff blocks
-        # Simple flat structure - all commands in one block
-        if not additions:
+        if not all_commands:
             log(f"")
             log(f"SUCCESS: No configuration changes needed")
             diff_blocks = []
         else:
             log(f"")
             log(f"DEPLOYMENT PLAN:")
-            log(f"  Total commands: {len(additions)}")
-            log(f"  Structure: Flat (no hierarchy)")
+            log(f"  Total commands: {len(all_commands)}")
+            log(f"  Order: Deletions → Changes → Additions")
             
-            # Show first few lines
+            # Show deployment preview
             log(f"")
-            log(f"  Preview (first 5 commands):")
-            for i, cmd in enumerate(additions[:5], 1):
-                preview = cmd[:60] + '...' if len(cmd) > 60 else cmd
+            log(f"  Deployment preview (first 5 commands):")
+            for i, cmd in enumerate(all_commands[:5], 1):
+                preview = cmd[:65] + '...' if len(cmd) > 65 else cmd
                 log(f"    {i}. {preview}")
-            if len(additions) > 5:
-                log(f"    ... and {len(additions) - 5} more")
+            if len(all_commands) > 5:
+                log(f"    ... and {len(all_commands) - 5} more commands")
             
-            # Create single block with all additions
+            # Create single block with all commands
             diff_blocks = [{
                 "parents": [],
-                "lines": additions
+                "lines": all_commands
             }]
         
         # Output YAML to stdout ONLY
