@@ -7,7 +7,3 @@ build_arg_defaults:
 dependencies:
   python: collections/requirements.txt
   galaxy: collections/requirements.yml
-
-additional_build_steps:
-  append_final:
-    - RUN echo "Cisco EE built $(date)" > /etc/cisco-ee-version.txt
