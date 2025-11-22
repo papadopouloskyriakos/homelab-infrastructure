@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
-Auto-Sync from Device with Safeguards
-Automatically syncs detected drift with safety checks
+Auto-Sync from Device - HOMELAB MODE
+Automatically syncs detected drift with minimal restrictions
 
-Enhanced with filtering to prevent false drift detection.
+PHILOSOPHY: Device is source of truth
+- Auto-approve almost everything
+- Only block catastrophic changes (config wipes)
+- Trust that device state is intentional
 
 Usage: auto_sync_drift.py [--dry-run]
 """
@@ -14,63 +17,55 @@ import subprocess
 from pathlib import Path
 from datetime import datetime
 
-# Safety thresholds
-MAX_CHANGES_AUTO_SYNC = 100  # Max lines changed for auto-sync
-MAX_DEVICES_AUTO_SYNC = 10   # Max devices to sync at once
-REQUIRE_APPROVAL_PATTERNS = [
-    'no shutdown',           # Interface state changes
-    'ip route',              # Routing changes
-    'access-list',           # ACL changes
-    # 'crypto',              # COMMENTED: Too broad, blocks firewall sync
-    'username',              # User management
-    'enable secret',         # Password changes
+# ============================================================================
+# HOMELAB MODE - RELAXED SAFETY SETTINGS
+# ============================================================================
+
+HOMELAB_MODE = True  # Set to False for production
+
+# Relaxed thresholds for homelab
+MAX_CHANGES_AUTO_SYNC = 500      # Much higher than production (was 100)
+MAX_DEVICES_AUTO_SYNC = 20       # More devices allowed (was 10)
+
+# Only block truly catastrophic patterns
+CATASTROPHIC_PATTERNS = [
+    # Only block obvious disasters
+    'no enable secret',           # Removing enable password
+    'no username',                # Removing ALL users (lockout risk)
 ]
+
+# Note: Removed overly restrictive patterns like 'username', 'crypto'
+# In homelab, these changes are normal and should auto-sync
 
 
 def filter_cisco_config(config_text):
     """
-    Remove dynamic/timestamp content that changes frequently
-    but doesn't represent actual configuration drift.
-    
-    This matches the filtering logic in sync_oxidized_gitlab.sh
-    and detect_drift.py to prevent false drift detection.
+    Remove dynamic/timestamp content that doesn't represent drift.
+    Matches Oxidized filtering to prevent false positives.
     """
     lines = config_text.splitlines()
     filtered_lines = []
     
-    # Patterns to skip entirely
     skip_patterns = [
-        # Timestamps
         r'Last configuration change at',
         r'NVRAM config last updated at',
         r'Configuration last modified by',
         r'Building configuration',
         r'Current configuration\s*:',
-        
-        # Crypto/hashes (change on every save)
         r'^Cryptochecksum:',
         r'^!\s*Cryptochecksum:',
-        
-        # NTP clock drift (changes constantly)
         r'^ntp clock-period',
-        
-        # Dynamic comment lines with timestamps
         r'^!\s*\d{2}:\d{2}:\d{2}',
-        
-        # Configuration headers with sizes/bytes
         r'^!\s*Last configuration change',
         r'^!\s*NVRAM config last',
     ]
     
     for line in lines:
-        # Remove trailing whitespace for consistent comparison
         line = line.rstrip()
         
-        # Skip empty comment lines
         if line.strip() == '!':
             continue
         
-        # Check skip patterns
         skip = False
         for pattern in skip_patterns:
             if re.search(pattern, line, re.IGNORECASE):
@@ -80,11 +75,9 @@ def filter_cisco_config(config_text):
         if skip:
             continue
         
-        # Filter "uptime" mentions (but keep interface descriptions)
         if 'uptime' in line.lower() and 'description' not in line.lower():
             continue
         
-        # Keep the line
         filtered_lines.append(line)
     
     return '\n'.join(filtered_lines)
@@ -92,49 +85,83 @@ def filter_cisco_config(config_text):
 
 def is_safe_for_auto_sync(device_name, diff_lines, changes_summary):
     """
-    Determine if drift is safe for automatic sync
+    HOMELAB MODE: Minimal safety checks
+    Only block obvious disasters, approve everything else
+    
     Returns: (safe, reason)
     """
     
-    # Extract change counts
+    # Parse change counts
     try:
         parts = changes_summary.split(',')
         additions = int(parts[0].split()[0]) if 'additions' in parts[0] else 0
         deletions = int(parts[1].split()[0]) if 'deletions' in parts[1] else 0
         total_changes = additions + deletions
     except:
-        return False, "Cannot parse change summary"
+        # Can't parse - be permissive in homelab
+        print(f"   NOTE: Cannot parse change summary, proceeding anyway (homelab mode)")
+        return True, "Homelab mode: Auto-approved"
     
-    # Safety check 1: Too many changes
-    if total_changes > MAX_CHANGES_AUTO_SYNC:
-        return False, f"Too many changes ({total_changes} > {MAX_CHANGES_AUTO_SYNC})"
+    if HOMELAB_MODE:
+        # HOMELAB MODE - VERY PERMISSIVE
+        
+        # Only block complete config wipes
+        if deletions > 200 and additions < 10:
+            return False, f"DANGER: Possible config wipe ({deletions} deletions, {additions} additions)"
+        
+        # Check for catastrophic patterns only
+        diff_text = '\n'.join(diff_lines).lower()
+        for pattern in CATASTROPHIC_PATTERNS:
+            if pattern.lower() in diff_text:
+                return False, f"DANGER: Catastrophic pattern detected: {pattern}"
+        
+        # Log noteworthy changes but ALLOW them
+        if 'username' in diff_text:
+            print(f"   NOTE: Username changes detected (allowed in homelab)")
+        
+        if total_changes > 100:
+            print(f"   NOTE: Large change detected: {additions} adds, {deletions} dels (allowed in homelab)")
+        
+        if deletions > additions * 10:
+            print(f"   NOTE: High deletion ratio: {deletions}/{additions} (allowed in homelab)")
+        
+        return True, "Homelab mode: Auto-approved"
     
-    # Safety check 2: Critical command patterns
-    for line in diff_lines:
-        for pattern in REQUIRE_APPROVAL_PATTERNS:
-            if pattern in line.lower():
+    else:
+        # PRODUCTION MODE - STRICT (for reference if you ever need it)
+        
+        if total_changes > 100:
+            return False, f"Too many changes ({total_changes} > 100)"
+        
+        diff_text = '\n'.join(diff_lines).lower()
+        
+        strict_patterns = [
+            'no shutdown',
+            'ip route', 
+            'access-list',
+            'username',
+            'enable secret',
+        ]
+        
+        for pattern in strict_patterns:
+            if pattern in diff_text:
                 return False, f"Contains critical pattern: {pattern}"
-    
-    # Safety check 3: File deletions (config file removed)
-    # RELAXED: Allow 10x more deletions for initial sync
-    if deletions > additions * 100:
-        return False, f"Suspicious: Many deletions ({deletions}) vs additions ({additions})"
-    
-    return True, "Safe for auto-sync"
+        
+        if deletions > additions * 10:
+            return False, f"Suspicious deletion ratio: {deletions}/{additions}"
+        
+        return True, "Safe for auto-sync"
 
 
 def auto_sync_device(device_type, device_name, dry_run=False):
     """
-    Automatically sync a single device with safety checks
+    Auto-sync a single device with homelab-friendly safety checks
     Returns: (success, action_taken, details)
     """
     
     print(f"\n{'='*70}")
     print(f"AUTO-SYNC: {device_name}")
     print(f"{'='*70}")
-    
-    # Import the sync script
-    sys.path.insert(0, 'network/scripts')
     
     try:
         # Fetch config from device
@@ -175,7 +202,7 @@ def auto_sync_device(device_type, device_name, dry_run=False):
         with open(config_path) as f:
             gitlab_config = f.read()
         
-        # CRITICAL: Filter both configs before comparison
+        # Filter both configs before comparison
         print(f"[2/5] Comparing configurations...")
         live_config_filtered = filter_cisco_config(live_config)
         gitlab_config_filtered = filter_cisco_config(gitlab_config)
@@ -215,10 +242,10 @@ def auto_sync_device(device_type, device_name, dry_run=False):
         # Show preview
         print(f"[4/5] Preview of changes:")
         print("-" * 70)
-        for i, line in enumerate(diff[:20], 1):
+        for i, line in enumerate(diff[:30], 1):
             print(f"   {line}")
-        if len(diff) > 20:
-            print(f"   ... and {len(diff) - 20} more lines")
+        if len(diff) > 30:
+            print(f"   ... and {len(diff) - 30} more lines")
         print("-" * 70)
         
         if dry_run:
@@ -226,56 +253,80 @@ def auto_sync_device(device_type, device_name, dry_run=False):
             print(f"Changes: {changes_summary}")
             return True, 'dry_run', 'Would have synced'
         
-        # Apply sync - COMMIT DIRECTLY TO MAIN (no branches in CI)
+        # Apply sync - COMMIT DIRECTLY TO MAIN
         print(f"[5/5] Auto-syncing to GitLab...")
         
-        # Update file with UNFILTERED live config (we want full config in GitLab)
+        # CRITICAL FIX: Ensure we're on main branch (not detached HEAD)
+        try:
+            subprocess.run(['git', 'checkout', 'main'], 
+                         check=True, 
+                         capture_output=True,
+                         text=True)
+        except subprocess.CalledProcessError as e:
+            print(f"   WARNING: Could not checkout main: {e.stderr}")
+            print(f"   Attempting to continue anyway...")
+        
+        # Update file with UNFILTERED live config
         with open(config_path, 'w') as f:
             f.write(live_config)
         
-        # Commit directly to main
-        timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-        commit_msg = f"""Auto-sync from device: {device_name}
+        # Commit message
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        commit_msg = f"""[AUTO-SYNC] {device_name}: {changes_summary}
 
-Drift detected and auto-synced with safety checks passed.
+Device state synced to GitLab (device is source of truth)
 
 Changes: {changes_summary}
-Safety check: {reason}
+Safety: {reason}
 Timestamp: {timestamp}
+Mode: Homelab auto-sync
 
-This change was automatically approved based on:
-- Change size within threshold ({MAX_CHANGES_AUTO_SYNC} lines)
-- No critical command patterns detected
-- Change ratio appears normal
-
-For audit: Review commit history and session logs if needed.
+Auto-approved based on homelab safety checks.
 """
         
-        # Add and commit
-        subprocess.run(['git', 'add', str(config_path)], check=True, capture_output=True)
-        subprocess.run(['git', 'commit', '-m', commit_msg], check=True, capture_output=True)
+        # Git operations with proper error handling
+        try:
+            # Add file
+            result = subprocess.run(
+                ['git', 'add', str(config_path)],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+            
+            # Commit
+            result = subprocess.run(
+                ['git', 'commit', '-m', commit_msg],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+            
+            # Push to main
+            result = subprocess.run(
+                ['git', 'push', 'origin', 'HEAD:main'],
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode == 0:
+                print(f"   SUCCESS: Auto-synced and pushed to main")
+                return True, 'auto_synced', f"Auto-synced: {changes_summary}"
+            else:
+                print(f"   ERROR: Failed to push")
+                print(f"   stderr: {result.stderr}")
+                return False, 'error', f"Failed to push: {result.stderr}"
+                
+        except subprocess.CalledProcessError as e:
+            print(f"   ERROR: Git command failed: {str(e)}")
+            if e.stderr:
+                print(f"   stderr: {e.stderr}")
+            return False, 'error', f"Git error: {str(e)}"
         
-        # Push directly to main (CI already has write access)
-        result = subprocess.run(
-            ['git', 'push', 'origin', 'HEAD:main'],
-            capture_output=True,
-            text=True
-        )
-        
-        if result.returncode == 0:
-            print(f"   SUCCESS: Auto-synced and pushed to main")
-            return True, 'auto_synced', f"Auto-synced: {changes_summary}"
-        else:
-            print(f"   ERROR: Failed to push to main")
-            print(f"   stdout: {result.stdout}")
-            print(f"   stderr: {result.stderr}")
-            return False, 'error', f"Failed to push: {result.stderr}"
-        
-    except subprocess.CalledProcessError as e:
-        print(f"   ERROR: Git command failed: {str(e)}")
-        return False, 'error', f"Git error: {str(e)}"
     except Exception as e:
         print(f"   ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False, 'error', str(e)
 
 
@@ -287,6 +338,11 @@ def auto_sync_all_drift(dry_run=False):
     print("=" * 70)
     print("AUTO-SYNC ALL DRIFTED DEVICES")
     print("=" * 70)
+    
+    if HOMELAB_MODE:
+        print("\n🏠 HOMELAB MODE: Relaxed safety checks enabled")
+        print("   Device state is source of truth")
+        print("   Auto-approving most changes\n")
     
     if dry_run:
         print("\nWARNING: DRY-RUN MODE - No changes will be made\n")
@@ -323,12 +379,12 @@ def auto_sync_all_drift(dry_run=False):
         print("SUCCESS: All devices in sync - nothing to do!")
         return 0
     
-    # Safety check: Too many devices
+    # Safety check: Too many devices (even homelab has limits)
     if len(drifted_devices) > MAX_DEVICES_AUTO_SYNC:
         print(f"WARNING: SAFETY LIMIT EXCEEDED")
         print(f"   Detected drift on {len(drifted_devices)} devices")
         print(f"   Auto-sync limit: {MAX_DEVICES_AUTO_SYNC} devices")
-        print(f"   Manual intervention required")
+        print(f"   This many changes at once is unusual - please review manually")
         print(f"\nDrifted devices:")
         for device_type, device_name, details in drifted_devices:
             print(f"   - {device_name}: {details}")
