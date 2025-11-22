@@ -1,21 +1,21 @@
 ---
-version: 1
-
-build_arg_defaults:
-  EE_BASE_IMAGE: quay.io/ansible/awx-ee:latest
+version: 3
 
 dependencies:
-  python: |
-    ciscoconfparse==1.9.41
-    dnspython==2.6.1
-    netmiko>=4.0.0
-    pyyaml>=6.0
-  galaxy: |
-    ---
+  python:
+    - ciscoconfparse==1.9.41
+    - dnspython==2.6.1
+    - netmiko>=4.0.0
+    - pyyaml>=6.0
+
+  galaxy:
     collections:
       - cisco.ios
       - cisco.asa
 
 additional_build_steps:
-  prepend_final: |
-    RUN echo "Cisco EE built $(date)" > /etc/cisco-ee-version.txt
+  prepend_final:
+    - RUN echo "Cisco EE built $(date)" > /etc/cisco-ee-version.txt
+
+build_arg_defaults:
+  EE_BASE_IMAGE: quay.io/ansible/awx-ee:latest
