@@ -1,5 +1,6 @@
-ciscoconfparse==1.9.41
-dnspython==2.6.1
+ciscoconfparse>=1.9.41
+dnspython>=2.6.1
 netmiko>=4.0.0
-pyyaml>=6.0
 paramiko>=3.0.0
+pyyaml>=6.0
+textfsm>=1.1.0
