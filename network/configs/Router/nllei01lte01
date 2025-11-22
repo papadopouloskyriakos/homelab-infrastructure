@@ -93,6 +93,7 @@ no ip bootp server
 ip domain name example.net
 ip name-server 1.1.1.1
 ip name-server 8.8.8.8
+ip name-server 8.8.4.4
 ip cef
 no ipv6 cef
 !
@@ -174,7 +175,7 @@ interface FastEthernet3
  no cdp enable
 !
 interface GigabitEthernet0
- description MALAKA_ARKINTI
+ description MALAKA_ARKINTI_MOUNI
  no ip address
  shutdown
  duplex auto
