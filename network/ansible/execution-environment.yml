@@ -6,8 +6,8 @@ build_arg_defaults:
 
 dependencies:
   python: collections/requirements.txt
-  galaxy: collections/requirements.yml  # ← Added subdirectory path
+  galaxy: collections/requirements.yml
 
 additional_build_steps:
-  prepend_final:
+  append_final:
     - RUN echo "Cisco EE built $(date)" > /etc/cisco-ee-version.txt
