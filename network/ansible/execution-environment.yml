@@ -1,28 +1,22 @@
 ---
 version: 3
 
-# Extend the official AWX EE (contains ansible-core + most collections)
-images:
-  base_image:
-    name: quay.io/ansible/awx-ee:latest
-
+# This is the ONLY correct top-level key for ansible-builder v3+
 dependencies:
-  # Python packages required by your custom scripts
   python:
     - ciscoconfparse==1.9.41
     - dnspython==2.6.1
-    - netmiko
-    - pyyaml
+    - netmiko>=4.0.0
+    - pyyaml>=6.0
 
-  # Cisco collections – baked in so you don’t need ansible-galaxy install at runtime
   galaxy:
     collections:
       - cisco.ios
       - cisco.asa
 
-# Optional: nice label so you know which version is running
+# Optional: extra build steps (labels, version file, etc.)
 additional_build_steps:
   prepend_final:
-    - RUN echo "Custom Cisco EE – built $(date)" > /etc/cisco-ee-build.txt
-    - LABEL maintainer="your-team@example.net"
-    - LABEL version="1.0"
+    - RUN echo "Cisco Custom EE – built on $(date)" > /etc/cisco-ee-build.txt
+    - LABEL maintainer="infrastructure@example.net"
+    - LABEL description="Custom EE for Cisco config validation & deployment"
