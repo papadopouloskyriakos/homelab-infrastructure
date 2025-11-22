@@ -160,12 +160,13 @@ interface FastEthernet0
  no cdp enable
 !
 interface FastEthernet1
- description LOLLOLLOLLOL
+ description LOLLOLLOLLOLLOL
  switchport access vlan 3
  no ip address
  no cdp enable
 !
 interface FastEthernet2
+ description LOLLOLLOLLOLLOL
  no ip address
  shutdown
  no cdp enable
