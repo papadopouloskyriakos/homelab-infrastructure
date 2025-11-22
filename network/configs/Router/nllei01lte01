@@ -1,40 +1,10 @@
-! Cisco IOS Software, C800 Software (C800-UNIVERSALK9-M), Version 15.6(1)T0a, RELEASE SOFTWARE (fc1)
-! 
-! Image: Software: C800-UNIVERSALK9-M, 15.6(1)T0a, RELEASE SOFTWARE (fc1)
-! Image: Compiled: Thu 03-Dec-15 14:44 by prod_rel_team
-! ROM Bootstrap: Version 15.4(3r)M1, RELEASE SOFTWARE (fc1)
-! Image: flash:c800-universalk9-mz.SPA.156-1.T0a.bin
-! Chassis type: C819G-LTE-MNA-K9
-! Memory: main 883788K/33715K
-! Processor ID: FJC2137L0GS
-! CPU: 
-! Memory: nvram 255K
-! 
-! VTP: VTP Version                     : 2
-! VTP: Configuration Revision          : 1
-! VTP: Maximum VLANs supported locally : 20
-! VTP: Number of existing VLANs        : 6
-! VTP: VTP Operating Mode              : Server
-! VTP: VTP Domain Name                 : 
-! VTP: VTP Pruning Mode                : Disabled
-! VTP: VTP V2 Mode                     : Disabled
-! VTP: VTP Traps Generation            : Enabled
-! VTP: MD5 digest                      : 0xFA 0xE7 0xB9 0xA0 0x0B 0x0A 0x3B 0x32 
-! VTP: Local updater ID is 10.0.X.X on interface Vl3 (lowest numbered VLAN interface found)
-! 
-! NAME: "C819G-LTE-MNA-K9", DESCR: "C819G-LTE-MNA-K9 chassis, Hw Serial#: FJC2137L0GS, Hw Revision: 6.0"
-! PID: C819G-LTE-MNA-K9  , VID: V01 , SN: FJC2137L0GS
-! 
-! NAME: "C819G4G Mother board on Slot 0", DESCR: "C819G4G Mother board"
-! PID: C819G-LTE-MNA-K9  , VID: V01 , SN: FOC213073T1
-! 
-! NAME: "Modem 0 on Cellular0", DESCR: "Sierra Wireless MC7354 4G-NA"
-! PID: MC7354            , VID: 1.0, SN: 352890070286487
-! 
-! 
+Building configuration...
+
   
+  
+Current configuration : 10391 bytes
 !
-! Last configuration change at 00:18:49 CET Fri Nov 21 2025 by kyriakosp
+! Last configuration change at 21:48:44 CET Sat Nov 22 2025 by kyriakosp
 !
 version 15.6
 no service pad
@@ -91,6 +61,8 @@ no ip source-route
 !
 no ip bootp server
 ip domain name example.net
+ip name-server 1.1.1.1
+ip name-server 8.8.4.4
 ip name-server 8.8.8.8
 ip cef
 no ipv6 cef
@@ -158,13 +130,11 @@ interface FastEthernet0
  no cdp enable
 !
 interface FastEthernet1
- description LOLLOLLOLLOLLOL
  switchport access vlan 3
  no ip address
  no cdp enable
 !
 interface FastEthernet2
- description LOLLOLLOLLOLLOL
  no ip address
  shutdown
  no cdp enable
@@ -175,6 +145,7 @@ interface FastEthernet3
  no cdp enable
 !
 interface GigabitEthernet0
+ description MALAKA_ARKINTI_MOUNI
  no ip address
  shutdown
  duplex auto
@@ -427,4 +398,3 @@ ntp server 0.pool.ntp.org
 !
 !
 end
-
