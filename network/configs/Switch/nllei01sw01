@@ -1,61 +1,6 @@
-! Cisco IOS XE Software, Version 16.12.12
-! 
-! Image: Software: CAT3K_CAA-UNIVERSALK9-M, 16.12.12, RELEASE SOFTWARE (fc2)
-! Image: Compiled: Thu 12-Sep-24 03:45 by mcpre
-! Image: flash:packages.conf
-! Chassis type: WS-C3850-12X48U
-! Memory: main 794817K/6147K
-! Processor ID: FCW2028C23D
-! CPU: MIPS
-! Memory: nvram 2048K
-! 
-! VTP: VTP Version capable             : 1 to 3
-! VTP: VTP version running             : 1
-! VTP: VTP Domain Name                 : 
-! VTP: VTP Pruning Mode                : Disabled
-! VTP: VTP Traps Generation            : Disabled
-! VTP: Device ID                       : 00a2.89b0.cc80
-! VTP: Local updater ID is 10.0.X.X on interface Vl10 (lowest numbered VLAN interface found)
-! VTP: Feature VLAN:
-! VTP: --------------
-! VTP: VTP Operating Mode                : Server
-! VTP: Maximum VLANs supported locally   : 1005
-! VTP: Number of existing VLANs          : 22
-! VTP: Configuration Revision            : 28
-! VTP: MD5 digest                        : 0xF1 0x93 0xE6 0x23 0x09 0x84 0x42 0xA0 
-! VTP:                                     0x3B 0xD3 0xE2 0xA7 0x66 0x4B 0x88 0xD0 
-! 
-! NAME: "c38xx Stack", DESCR: "c38xx Stack"
-! PID: WS-C3850-12X48UL-S, VID: V02  , SN: FCW2028C23D
-! 
-! NAME: "Switch 1", DESCR: "WS-C3850-12X48UL-S"
-! PID: WS-C3850-12X48UL-S, VID: V02  , SN: FCW2028C23D
-! 
-! NAME: "Switch 1 - Power Supply B", DESCR: "Switch 1 - Power Supply B"
-! PID: PWR-C1-1100WAC    , VID: V01  , SN: LIT20081356
-! 
-! NAME: "Switch 1 FRU Uplink Module 1", DESCR: "8x10G Uplink Module"
-! PID: C3850-NM-8-10G    , VID: V02  , SN: FOC23150AHG
-! 
-! NAME: "Te1/1/3", DESCR: "SFP-10GBase-SR"
-! PID: SFP-10G-SR          , VID: V03  , SN: CSY101O94448    
-! 
-! NAME: "Te1/1/4", DESCR: "SFP-10GBase-SR"
-! PID:                     , VID:      , SN: CSY101MC3228    
-! 
-! NAME: "Te1/1/5", DESCR: "SFP-10GBase-SR"
-! PID: SFP-10G-SR          , VID: V03  , SN: CSY101O94443    
-! 
-! NAME: "Te1/1/6", DESCR: "SFP-10GBase-SR"
-! PID: SFP-10G-SR          , VID: V03  , SN: CSY101O94439    
-! 
-! NAME: "Te1/1/7", DESCR: "SFP-10GBase-SR"
-! PID:                     , VID:      , SN: CSY101N76353    
-! 
-! NAME: "Te1/1/8", DESCR: "SFP-10GBase-SR"
-! PID: SFP-10G-SR          , VID: V03  , SN: CSY101O94519    
-! 
-! 
+Building configuration...
+
+Current configuration : 24595 bytes
 !
 ! Last configuration change at 19:13:56 CET Fri Nov 21 2025 by kyriakosp
 ! NVRAM config last updated at 19:13:57 CET Fri Nov 21 2025 by kyriakosp
@@ -989,4 +934,3 @@ ntp server 188.166.95.178
 !
 !
 end
-
