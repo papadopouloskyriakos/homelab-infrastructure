@@ -3,19 +3,25 @@ version: 3
 
 images:
   base_image:
-    name: quay.io/ansible/awx-ee:latest
+    name: quay.io/ansible/creator-ee:latest
 
 build_arg_defaults:
   ANSIBLE_GALAXY_CLI_COLLECTION_OPTS: '--ignore-certs'
   PKGMGR_PRESERVE_CACHE: 'always'
 
 dependencies:
-  python: collections/requirements.txt
-  galaxy: collections/requirements.yml
-  ansible_core:
-    package_pip: ansible-core>=2.15.0
-  ansible_runner:
-    package_pip: ansible-runner>=2.4.0
+  python: |
+    netmiko>=4.0.0
+    paramiko>=3.0.0
+    textfsm>=1.1.0
+  galaxy: |
+    collections:
+      - name: cisco.ios
+        version: ">=5.0.0"
+      - name: cisco.asa
+        version: ">=4.0.0"
+      - name: ansible.netcommon
+        version: ">=5.0.0"
   system: |
     git
     openssh-clients
@@ -23,6 +29,4 @@ dependencies:
 
 additional_build_steps:
   prepend_final:
-    - RUN pip3 install --no-cache-dir netmiko paramiko
-  append_final:
-    - RUN ansible-galaxy collection install cisco.ios cisco.asa --force
+    - RUN pip3 install --upgrade pip
