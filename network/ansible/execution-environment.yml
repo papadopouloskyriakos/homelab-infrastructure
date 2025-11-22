@@ -19,4 +19,4 @@ dependencies:
 
 additional_build_steps:
   prepend_final:
-    - RUN pip3 install --upgrade pip --break-system-packages --no-cache-dir
+    - RUN pip3 install --upgrade pip --no-cache-dir
