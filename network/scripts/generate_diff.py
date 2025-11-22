@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Hierarchical Diff Generator V2 - Uses diff context to preserve hierarchy
+Hierarchical Diff Generator V3 - Proper Hierarchical Parsing
+Uses ciscoconfparse to actually understand IOS command structure
 """
 import sys
 import os
-import difflib
 import yaml
-import re
 from pathlib import Path
+from collections import defaultdict
+from ciscoconfparse import CiscoConfParse
 
 # Disable logging
 import logging
@@ -24,87 +25,166 @@ def log(msg):
     """All logging to stderr only"""
     print(msg, file=sys.stderr, flush=True)
 
-def normalize_config(lines):
-    """Remove dynamic content"""
-    normalized = []
-    for line in lines:
-        line = line.rstrip()
-        skip_patterns = [
-            '!',
-            'Last configuration change',
-            'NVRAM config last updated',
-            'ntp clock-period',
-            'Configuration last modified',
-            'Cryptochecksum:',
-            'Current configuration :',
-            'Building configuration',
-            'uptime is',
-        ]
-        if any(pattern in line for pattern in skip_patterns):
-            continue
-        normalized.append(line)
-    return normalized
-
-def is_parent_command(line):
-    """Check if line is a parent (no leading whitespace)"""
-    return line and not line[0].isspace()
-
-def is_child_command(line):
-    """Check if line is a child (has leading whitespace)"""
-    return line and line[0].isspace()
-
-def parse_diff_with_context(diff_lines):
+def normalize_line(line):
     """
-    Parse unified diff and extract changes with their parent context
-    Returns: [(operation, parent, command), ...]
+    Remove dynamic content from a single line
+    Returns None if line should be skipped entirely
     """
-    changes = []
-    current_parent = None
+    line = line.rstrip()
     
-    for line in diff_lines:
-        # Skip diff metadata
-        if line.startswith('@@') or line.startswith('+++') or line.startswith('---'):
+    # Skip patterns
+    skip_patterns = [
+        '!',
+        'Last configuration change',
+        'NVRAM config last updated',
+        'ntp clock-period',
+        'Configuration last modified',
+        'Cryptochecksum:',
+        'Current configuration :',
+        'Building configuration',
+        'uptime is',
+    ]
+    
+    if any(pattern in line for pattern in skip_patterns):
+        return None
+    
+    return line
+
+def parse_config_hierarchy(config_lines):
+    """
+    Parse Cisco IOS config into hierarchical structure
+    Returns: {parent_cmd: [child_cmd1, child_cmd2, ...], ...}
+    Also returns global commands separately
+    """
+    
+    # Filter out dynamic lines
+    filtered_lines = []
+    for line in config_lines:
+        normalized = normalize_line(line)
+        if normalized is not None:
+            filtered_lines.append(normalized)
+    
+    # Parse with ciscoconfparse
+    parse = CiscoConfParse(filtered_lines, syntax='ios')
+    
+    hierarchy = defaultdict(list)
+    global_commands = []
+    
+    # Process all parent objects
+    for parent_obj in parse.find_objects(r'^[^\s]'):
+        parent_text = parent_obj.text
+        
+        # Get children
+        children = []
+        for child_obj in parent_obj.children:
+            children.append(child_obj.text.strip())
+        
+        if children:
+            # Has children - it's a hierarchical parent
+            hierarchy[parent_text] = children
+        else:
+            # No children - it's a global command
+            global_commands.append(parent_text)
+    
+    return hierarchy, global_commands
+
+def generate_diff_blocks(old_hierarchy, old_global, new_hierarchy, new_global):
+    """
+    Generate deployment blocks by comparing hierarchies
+    """
+    diff_blocks = []
+    
+    # =========================================================================
+    # 1. HANDLE GLOBAL COMMANDS
+    # =========================================================================
+    
+    old_global_set = set(old_global)
+    new_global_set = set(new_global)
+    
+    # Global deletions
+    global_deletions = old_global_set - new_global_set
+    if global_deletions:
+        deletion_cmds = []
+        for cmd in sorted(global_deletions):
+            if cmd.startswith('no '):
+                # Double negative - just add without "no"
+                deletion_cmds.append(cmd[3:])
+            else:
+                deletion_cmds.append(f"no {cmd}")
+        
+        diff_blocks.append({
+            "parents": [],
+            "lines": deletion_cmds,
+            "description": "Global deletions"
+        })
+    
+    # Global additions
+    global_additions = new_global_set - old_global_set
+    if global_additions:
+        diff_blocks.append({
+            "parents": [],
+            "lines": sorted(list(global_additions)),
+            "description": "Global additions"
+        })
+    
+    # =========================================================================
+    # 2. HANDLE HIERARCHICAL COMMANDS
+    # =========================================================================
+    
+    all_parents = set(old_hierarchy.keys()) | set(new_hierarchy.keys())
+    
+    for parent in sorted(all_parents):
+        old_children = set(old_hierarchy.get(parent, []))
+        new_children = set(new_hierarchy.get(parent, []))
+        
+        # Check if parent itself was deleted
+        if parent in old_hierarchy and parent not in new_hierarchy:
+            # Parent was deleted entirely
+            diff_blocks.append({
+                "parents": [],
+                "lines": [f"no {parent}"],
+                "description": f"Delete parent: {parent[:50]}"
+            })
             continue
         
-        # Context line (no +/-)
-        if line and line[0] not in ['+', '-', '@']:
-            # This is context - check if it's a parent
-            if is_parent_command(line):
-                current_parent = line.strip()
+        # Check if parent is new
+        if parent not in old_hierarchy and parent in new_hierarchy:
+            # Parent is new - add parent and all children
+            diff_blocks.append({
+                "parents": [parent],
+                "lines": sorted(list(new_children)),
+                "description": f"New parent: {parent[:50]}"
+            })
+            continue
         
-        # Deletion
-        elif line.startswith('-'):
-            cmd = line[1:]
-            if cmd.strip() and not cmd.startswith('!'):
-                if is_child_command(cmd):
-                    # Child command
-                    changes.append(('delete', current_parent, cmd.strip()))
-                else:
-                    # Global command
-                    changes.append(('delete', None, cmd.strip()))
-                    # Update parent for next context
-                    if is_parent_command(cmd):
-                        current_parent = cmd.strip()
+        # Parent exists in both - check for child changes
+        child_deletions = old_children - new_children
+        child_additions = new_children - old_children
         
-        # Addition
-        elif line.startswith('+'):
-            cmd = line[1:]
-            if cmd.strip() and not cmd.startswith('!'):
-                if is_child_command(cmd):
-                    # Child command
-                    changes.append(('add', current_parent, cmd.strip()))
+        if child_deletions or child_additions:
+            commands = []
+            
+            # Add deletions first
+            for child in sorted(child_deletions):
+                if child.startswith('no '):
+                    commands.append(child[3:])
                 else:
-                    # Global command
-                    changes.append(('add', None, cmd.strip()))
-                    # Update parent for next context
-                    if is_parent_command(cmd):
-                        current_parent = cmd.strip()
+                    commands.append(f"no {child}")
+            
+            # Then additions
+            commands.extend(sorted(list(child_additions)))
+            
+            diff_blocks.append({
+                "parents": [parent],
+                "lines": commands,
+                "description": f"Modify: {parent[:50]}"
+            })
     
-    return changes
+    return diff_blocks
 
 def generate_diff(device_type, device_name, config_file):
     """
-    Generate hierarchical diff with proper parent-child relationships
+    Generate hierarchical diff with proper config parsing
     """
     
     try:
@@ -112,14 +192,15 @@ def generate_diff(device_type, device_name, config_file):
         oxidized_backup = Path(f"network/oxidized/{device_type}/{device_name}")
         
         log("=" * 60)
-        log("HIERARCHICAL DIFF GENERATOR V2")
+        log("HIERARCHICAL DIFF GENERATOR V3")
+        log("Proper hierarchical parsing with ciscoconfparse")
         log("=" * 60)
         
         if not gitlab_config.exists():
             log(f"ERROR: GitLab config not found: {gitlab_config}")
             return 1
         
-        log(f"GitLab config: {gitlab_config} (exists)")
+        log(f"GitLab config: {gitlab_config}")
         log(f"Oxidized backup: {oxidized_backup}")
         
         # Read configs
@@ -128,8 +209,8 @@ def generate_diff(device_type, device_name, config_file):
         
         if not oxidized_backup.exists():
             log("INFO: No Oxidized backup - full deployment needed")
-            log("ERROR: Full deployment not yet implemented with hierarchical support")
-            log("Please create oxidized backup first or use manual deployment")
+            log("ERROR: Full deployment not yet implemented")
+            log("Please create oxidized backup first")
             return 1
         
         with open(oxidized_backup) as f:
@@ -137,135 +218,55 @@ def generate_diff(device_type, device_name, config_file):
         
         log(f"  GitLab:   {len(gitlab_lines)} lines")
         log(f"  Oxidized: {len(oxidized_lines)} lines")
+        log("")
         
-        # Normalize
-        gitlab_normalized = normalize_config(gitlab_lines)
-        oxidized_normalized = normalize_config(oxidized_lines)
+        # Parse both configs into hierarchical structures
+        log("Parsing configurations...")
+        old_hierarchy, old_global = parse_config_hierarchy(oxidized_lines)
+        new_hierarchy, new_global = parse_config_hierarchy(gitlab_lines)
         
-        # Generate diff WITH CONTEXT (n=5 gives us parent context)
-        log("Generating unified diff with context...")
-        diff = list(difflib.unified_diff(
-            oxidized_normalized,
-            gitlab_normalized,
-            lineterm='',
-            n=5  # Context lines to capture parent
-        ))
+        log(f"  Oxidized: {len(old_global)} global, {len(old_hierarchy)} hierarchical parents")
+        log(f"  GitLab:   {len(new_global)} global, {len(new_hierarchy)} hierarchical parents")
+        log("")
         
-        log(f"  Diff lines: {len(diff)}")
-        
-        # Parse diff to extract changes with parent context
-        changes = parse_diff_with_context(diff)
-        
-        log(f"")
-        log(f"PARSED CHANGES: {len(changes)}")
-        
-        # Group by (parent, operation)
-        groups = {}
-        for operation, parent, command in changes:
-            key = (parent, operation)
-            if key not in groups:
-                groups[key] = []
-            groups[key].append(command)
-        
-        # Show analysis
-        global_adds = len(groups.get((None, 'add'), []))
-        global_dels = len(groups.get((None, 'delete'), []))
-        
-        hierarchical_parents = set(p for (p, op) in groups.keys() if p is not None)
-        
-        log(f"")
-        log(f"OPERATION BREAKDOWN:")
-        log(f"  Global additions:  {global_adds}")
-        log(f"  Global deletions:  {global_dels}")
-        log(f"  Hierarchical contexts: {len(hierarchical_parents)}")
-        
-        if hierarchical_parents:
-            log(f"")
-            log(f"  Parent contexts:")
-            for parent in sorted(hierarchical_parents):
-                adds = len(groups.get((parent, 'add'), []))
-                dels = len(groups.get((parent, 'delete'), []))
-                log(f"    {parent[:50]}: {adds} adds, {dels} dels")
-        
-        # Build diff blocks
-        diff_blocks = []
-        
-        # Global deletions first
-        if (None, 'delete') in groups:
-            deletion_cmds = []
-            for cmd in groups[(None, 'delete')]:
-                if cmd.startswith('no '):
-                    # Invert double negative
-                    deletion_cmds.append(cmd[3:])
-                else:
-                    deletion_cmds.append(f"no {cmd}")
-            
-            if deletion_cmds:
-                diff_blocks.append({
-                    "parents": [],
-                    "lines": deletion_cmds
-                })
-        
-        # Global additions
-        if (None, 'add') in groups:
-            diff_blocks.append({
-                "parents": [],
-                "lines": groups[(None, 'add')]
-            })
-        
-        # Hierarchical blocks
-        for parent in sorted(hierarchical_parents):
-            commands = []
-            
-            # Deletions for this parent
-            if (parent, 'delete') in groups:
-                for cmd in groups[(parent, 'delete')]:
-                    if cmd.startswith('no '):
-                        commands.append(cmd[3:])
-                    else:
-                        commands.append(f"no {cmd}")
-            
-            # Additions for this parent
-            if (parent, 'add') in groups:
-                commands.extend(groups[(parent, 'add')])
-            
-            if commands:
-                diff_blocks.append({
-                    "parents": [parent],
-                    "lines": commands
-                })
+        # Generate diff blocks
+        log("Generating deployment blocks...")
+        diff_blocks = generate_diff_blocks(old_hierarchy, old_global, new_hierarchy, new_global)
         
         log("")
-        log(f"DEPLOYMENT PLAN:")
-        log(f"  Total blocks: {len(diff_blocks)}")
-        log(f"")
+        log(f"DEPLOYMENT PLAN: {len(diff_blocks)} blocks")
+        log("=" * 60)
         
         for i, block in enumerate(diff_blocks, 1):
             parents = block.get('parents', [])
             lines = block.get('lines', [])
+            desc = block.get('description', '')
+            
+            log("")
+            log(f"Block {i}: {desc}")
             if parents:
-                log(f"  Block {i}: [{parents[0][:40]}]")
-                for j, line in enumerate(lines[:3], 1):
-                    log(f"    {j}. {line[:60]}")
-                if len(lines) > 3:
-                    log(f"    ... and {len(lines) - 3} more")
+                log(f"  Context: {parents[0][:60]}")
             else:
-                log(f"  Block {i}: [GLOBAL]")
-                for j, line in enumerate(lines[:3], 1):
-                    log(f"    {j}. {line[:60]}")
-                if len(lines) > 3:
-                    log(f"    ... and {len(lines) - 3} more")
+                log(f"  Context: [GLOBAL]")
+            
+            log(f"  Commands: {len(lines)}")
+            for j, line in enumerate(lines[:5], 1):
+                log(f"    {j}. {line[:70]}")
+            if len(lines) > 5:
+                log(f"    ... and {len(lines) - 5} more")
         
         if not diff_blocks:
-            log("  No changes detected")
+            log("")
+            log("No changes detected")
         
-        # Output YAML
+        log("")
+        log("=" * 60)
+        
+        # Output YAML (to stdout)
         output = {"diff_blocks": diff_blocks}
         yaml.dump(output, sys.stdout, default_flow_style=False, sort_keys=False)
         sys.stdout.flush()
         
-        log("")
-        log("=" * 60)
         log("SUCCESS: Hierarchical diff generated")
         log("=" * 60)
         return 0
