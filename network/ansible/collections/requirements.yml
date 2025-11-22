@@ -1,8 +1,0 @@
----
-collections:
-  - name: cisco.ios
-    version: ">=5.0.0"
-  - name: cisco.asa
-    version: ">=4.0.0"
-  - name: ansible.netcommon
-    version: ">=5.0.0"
