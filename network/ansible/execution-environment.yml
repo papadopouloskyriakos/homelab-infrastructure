@@ -1,9 +1,26 @@
 ---
 version: 3
 
-build_arg_defaults:
-  EE_BASE_IMAGE: quay.io/ansible/awx-ee:latest
+images:
+  base_image:
+    name: quay.io/ansible/awx-ee:latest
 
 dependencies:
-  python: collections/requirements.txt
   galaxy: collections/requirements.yml
+  python: collections/requirements.txt
+  system: |
+    git
+    openssh-clients
+    sshpass
+
+additional_build_steps:
+  prepend_base:
+    - RUN pip3 install --upgrade pip setuptools
+  prepend_final:
+    - RUN pip3 install --no-cache-dir netmiko paramiko
+  append_final:
+    - RUN ansible-galaxy collection install cisco.ios cisco.asa --force
+
+build_arg_defaults:
+  ANSIBLE_GALAXY_CLI_COLLECTION_OPTS: '--ignore-certs'
+  PKGMGR_PRESERVE_CACHE: 'always'
