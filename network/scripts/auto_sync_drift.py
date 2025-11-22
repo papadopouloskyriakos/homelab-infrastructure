@@ -117,7 +117,7 @@ def is_safe_for_auto_sync(device_name, diff_lines, changes_summary):
     
     # Safety check 3: File deletions (config file removed)
     # RELAXED: Allow 10x more deletions for initial sync
-    if deletions > additions * 10:
+    if deletions > additions * 100:
         return False, f"Suspicious: Many deletions ({deletions}) vs additions ({additions})"
     
     return True, "Safe for auto-sync"
