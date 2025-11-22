@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """
-Intelligent Diff Generator
-Creates hierarchical parent/lines structure for Ansible deployment
-
-Output: YAML file with diff_blocks for cisco.ios.ios_config
+Intelligent Diff Generator - DIAGNOSTIC VERSION
+This version has extra safety to prevent stdout contamination
 """
 import sys
 import os
@@ -11,173 +9,132 @@ import difflib
 import yaml
 import re
 from pathlib import Path
-from ciscoconfparse import CiscoConfParse
 
-def normalize_config(lines):
-    """Remove dynamic content that changes frequently"""
-    normalized = []
-    for line in lines:
-        line = line.rstrip()
-        # Skip dynamic lines
-        skip_patterns = [
-            '!',
-            'Last configuration change',
-            'NVRAM config last updated',
-            'ntp clock-period',
-            'Configuration last modified',
-            'Cryptochecksum:',
-            'Current configuration :',
-            'Building configuration',
-            'uptime is',
-        ]
-        if any(pattern in line for pattern in skip_patterns):
-            continue
-        normalized.append(line)
-    return normalized
-
-def get_parent_context(line, config_parse):
-    """
-    Determine the parent context for a configuration line
-    using ciscoconfparse to understand hierarchy
-    """
-    try:
-        # Escape special regex characters in the line
-        escaped_line = re.escape(line)
-        
-        # Find the config object for this line
-        objs = config_parse.find_objects(f"^{escaped_line}$")
-        if not objs:
-            # Try without anchors
-            objs = config_parse.find_objects(escaped_line)
-        
-        if not objs:
-            return []
-        
-        obj = objs[0]
-        parents = []
-        
-        # Walk up the parent chain
-        current = obj.parent
-        while current and not current.is_global_config:
-            parents.insert(0, current.text.strip())
-            current = current.parent
-        
-        return parents
-    except Exception as e:
-        print(f"WARNING: Could not determine parent for line: {line[:60]}...", file=sys.stderr)
-        print(f"   Error: {str(e)}", file=sys.stderr)
-        return []
+# CRITICAL: Ensure all diagnostic output goes to stderr
+def log(msg):
+    """All logging goes to stderr, never stdout"""
+    print(msg, file=sys.stderr, flush=True)
 
 def generate_diff(device_type, device_name, config_file):
-    """
-    Generate intelligent diff between Oxidized backup and GitLab config
-    Returns diff in hierarchical structure for Ansible
-    """
+    """Generate diff and output ONLY to stdout"""
+    
     try:
+        # Import here to avoid any import-time stdout pollution
+        try:
+            from ciscoconfparse import CiscoConfParse
+            has_ciscoconfparse = True
+        except ImportError:
+            log("WARNING: ciscoconfparse not available")
+            has_ciscoconfparse = False
+        
         gitlab_config = Path(config_file)
         oxidized_backup = Path(f"network/oxidized/{device_type}/{device_name}")
         
+        log("=" * 60)
+        log(f"DIFF GENERATOR STARTED")
+        log("=" * 60)
+        
         # Check if GitLab config exists
         if not gitlab_config.exists():
-            print(f"ERROR: GitLab config not found: {gitlab_config}", file=sys.stderr)
+            log(f"ERROR: GitLab config not found: {gitlab_config}")
             return 1
         
-        print(f"[1/6] Checking for Oxidized backup...", file=sys.stderr)
-        print(f"   Path: {oxidized_backup}", file=sys.stderr)
+        log(f"GitLab config: {gitlab_config} (exists)")
+        log(f"Oxidized backup: {oxidized_backup}")
         
         # If no Oxidized backup exists, deploy entire config
         if not oxidized_backup.exists():
-            print(f"INFO: No Oxidized backup found - will deploy entire config", file=sys.stderr)
-            print(f"   This is normal for first deployment", file=sys.stderr)
+            log("INFO: No Oxidized backup - deploying full config")
             
             with open(gitlab_config) as f:
                 all_lines = [line.strip() for line in f if line.strip() and not line.startswith('!')]
             
-            # For first deployment, structure as simple blocks
-            diff_blocks = [{
-                "parents": [],
-                "lines": all_lines
-            }]
+            diff_blocks = [{"parents": [], "lines": all_lines}]
+            log(f"Full deployment: {len(all_lines)} lines")
             
-            print(f"[6/6] Full config deployment:", file=sys.stderr)
-            print(f"   Total lines: {len(all_lines)}", file=sys.stderr)
-            
+            # Output YAML to stdout ONLY
             output = {"diff_blocks": diff_blocks}
             yaml.dump(output, sys.stdout, default_flow_style=False, sort_keys=False)
+            sys.stdout.flush()
+            
+            log("SUCCESS: YAML written to stdout")
             return 0
         
-        # Read both configs
-        print(f"[2/6] Reading configs for comparison...", file=sys.stderr)
-        print(f"   GitLab:   {gitlab_config}", file=sys.stderr)
-        print(f"   Oxidized: {oxidized_backup}", file=sys.stderr)
-        
+        # Read configs
+        log("Reading configs...")
         with open(gitlab_config) as f:
             gitlab_lines = f.readlines()
         
         with open(oxidized_backup) as f:
             oxidized_lines = f.readlines()
         
-        print(f"[3/6] Config sizes:", file=sys.stderr)
-        print(f"   GitLab:   {len(gitlab_lines)} lines", file=sys.stderr)
-        print(f"   Oxidized: {len(oxidized_lines)} lines", file=sys.stderr)
+        log(f"GitLab: {len(gitlab_lines)} lines")
+        log(f"Oxidized: {len(oxidized_lines)} lines")
         
-        # Normalize for comparison
-        print(f"[4/6] Normalizing configs...", file=sys.stderr)
-        gitlab_normalized = normalize_config(gitlab_lines)
-        oxidized_normalized = normalize_config(oxidized_lines)
+        # Normalize
+        def normalize(lines):
+            normalized = []
+            for line in lines:
+                line = line.rstrip()
+                if any(p in line for p in ['!', 'Last configuration change', 'NVRAM config last updated',
+                                            'ntp clock-period', 'Cryptochecksum:', 'uptime is']):
+                    continue
+                normalized.append(line)
+            return normalized
         
-        print(f"   GitLab normalized:   {len(gitlab_normalized)} lines", file=sys.stderr)
-        print(f"   Oxidized normalized: {len(oxidized_normalized)} lines", file=sys.stderr)
+        gitlab_normalized = normalize(gitlab_lines)
+        oxidized_normalized = normalize(oxidized_lines)
         
-        # Parse the GitLab config to understand hierarchy
-        print(f"[5/6] Parsing GitLab config structure...", file=sys.stderr)
-        try:
-            parse = CiscoConfParse(gitlab_lines)
-            print(f"   SUCCESS: Parsed successfully", file=sys.stderr)
-        except Exception as e:
-            print(f"   WARNING: Parse error: {str(e)}", file=sys.stderr)
-            print(f"   Continuing with simplified structure...", file=sys.stderr)
-            parse = None
+        log(f"Normalized: GitLab={len(gitlab_normalized)}, Oxidized={len(oxidized_normalized)}")
         
-        # Generate unified diff
-        print(f"[6/6] Generating diff...", file=sys.stderr)
+        # Parse
+        parse = None
+        if has_ciscoconfparse:
+            try:
+                parse = CiscoConfParse(gitlab_lines)
+                log("Config parsed successfully")
+            except Exception as e:
+                log(f"Parse warning: {str(e)}")
+        
+        # Diff
         diff = list(difflib.unified_diff(
             oxidized_normalized,
             gitlab_normalized,
             lineterm='',
-            n=0  # No context lines (we'll handle hierarchy ourselves)
+            n=0
         ))
         
-        print(f"   Diff lines: {len(diff)}", file=sys.stderr)
+        log(f"Diff generated: {len(diff)} lines")
         
-        # Extract only the additions (lines to configure)
+        # Extract additions
         diff_blocks = []
         current_block = {"parents": [], "lines": []}
-        additions_count = 0
-        deletions_count = 0
+        additions = 0
         
         for line in diff:
             if line.startswith('@@') or line.startswith('+++') or line.startswith('---'):
                 continue
             
-            if line.startswith('-'):
-                deletions_count += 1
-                continue
-            
             if line.startswith('+'):
-                additions_count += 1
-                # This is a line to add
+                additions += 1
                 cmd = line[1:].strip()
                 if not cmd or cmd.startswith('!'):
                     continue
                 
-                # Get parent context for this line (only if parse succeeded)
-                if parse:
-                    parents = get_parent_context(cmd, parse)
-                else:
-                    parents = []
+                parents = []
+                if parse and has_ciscoconfparse:
+                    try:
+                        escaped = re.escape(cmd)
+                        objs = parse.find_objects(f"^{escaped}$")
+                        if objs:
+                            obj = objs[0]
+                            current = obj.parent
+                            while current and not current.is_global_config:
+                                parents.insert(0, current.text.strip())
+                                current = current.parent
+                    except:
+                        pass
                 
-                # If parents changed, start a new block
                 if parents != current_block["parents"]:
                     if current_block["lines"]:
                         diff_blocks.append(current_block.copy())
@@ -185,75 +142,37 @@ def generate_diff(device_type, device_name, config_file):
                 else:
                     current_block["lines"].append(cmd)
         
-        # Add the last block
         if current_block["lines"]:
             diff_blocks.append(current_block)
         
-        # Report diff statistics
-        print(f"", file=sys.stderr)
-        print(f"DIFF ANALYSIS:", file=sys.stderr)
-        print(f"   Lines to add:    {additions_count}", file=sys.stderr)
-        print(f"   Lines to remove: {deletions_count}", file=sys.stderr)
+        log(f"Additions: {additions}")
+        log(f"Blocks: {len(diff_blocks)}")
         
-        if deletions_count > 0:
-            print(f"", file=sys.stderr)
-            print(f"   WARNING: {deletions_count} lines will be removed", file=sys.stderr)
-            print(f"   This indicates manual changes on the device", file=sys.stderr)
-        
-        # If no diff blocks, configs are identical
-        if not diff_blocks:
-            print(f"", file=sys.stderr)
-            print(f"SUCCESS: No configuration changes needed", file=sys.stderr)
-            print(f"   GitLab config matches Oxidized backup", file=sys.stderr)
-            diff_blocks = []
-        else:
-            print(f"", file=sys.stderr)
-            print(f"DEPLOYMENT BLOCKS: {len(diff_blocks)}", file=sys.stderr)
-            for i, block in enumerate(diff_blocks, 1):
-                print(f"", file=sys.stderr)
-                print(f"   Block {i}:", file=sys.stderr)
-                if block['parents']:
-                    print(f"     Parents: {block['parents']}", file=sys.stderr)
-                else:
-                    print(f"     Parents: [global config]", file=sys.stderr)
-                print(f"     Lines: {len(block['lines'])} commands", file=sys.stderr)
-                # Show first few lines
-                for j, line in enumerate(block['lines'][:3], 1):
-                    print(f"       {j}. {line[:60]}{'...' if len(line) > 60 else ''}", file=sys.stderr)
-                if len(block['lines']) > 3:
-                    print(f"       ... and {len(block['lines']) - 3} more", file=sys.stderr)
-        
-        # Output YAML for Ansible (MUST be clean, no ANSI codes!)
+        # Output YAML to stdout ONLY
         output = {"diff_blocks": diff_blocks}
         yaml.dump(output, sys.stdout, default_flow_style=False, sort_keys=False)
+        sys.stdout.flush()
         
-        print(f"", file=sys.stderr)
-        print(f"SUCCESS: Diff generation complete", file=sys.stderr)
+        log("=" * 60)
+        log("SUCCESS: YAML generation complete")
+        log("=" * 60)
         return 0
         
     except Exception as e:
-        print(f"", file=sys.stderr)
-        print(f"ERROR in generate_diff:", file=sys.stderr)
-        print(f"   {str(e)}", file=sys.stderr)
+        log("=" * 60)
+        log(f"ERROR: {str(e)}")
+        log("=" * 60)
         import traceback
         traceback.print_exc(file=sys.stderr)
         return 1
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
-        print("Usage: generate_diff.py <device_type> <device_name> <config_file>", file=sys.stderr)
-        print("Example: generate_diff.py Switch nlsw01 network/configs/Switch/nlsw01", file=sys.stderr)
+        log("Usage: generate_diff.py <device_type> <device_name> <config_file>")
         sys.exit(1)
     
     device_type = sys.argv[1]
     device_name = sys.argv[2]
     config_file = sys.argv[3]
     
-    try:
-        exit_code = generate_diff(device_type, device_name, config_file)
-        sys.exit(exit_code)
-    except Exception as e:
-        print(f"FATAL ERROR: {str(e)}", file=sys.stderr)
-        import traceback
-        traceback.print_exc(file=sys.stderr)
-        sys.exit(1)
+    sys.exit(generate_diff(device_type, device_name, config_file))
