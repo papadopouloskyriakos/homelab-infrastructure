@@ -1,0 +1,429 @@
+! Cisco IOS Software, C800 Software (C800-UNIVERSALK9-M), Version 15.6(1)T0a, RELEASE SOFTWARE (fc1)
+! 
+! Image: Software: C800-UNIVERSALK9-M, 15.6(1)T0a, RELEASE SOFTWARE (fc1)
+! Image: Compiled: Thu 03-Dec-15 14:44 by prod_rel_team
+! ROM Bootstrap: Version 15.4(3r)M1, RELEASE SOFTWARE (fc1)
+! Image: flash:c800-universalk9-mz.SPA.156-1.T0a.bin
+! Chassis type: C819G-LTE-MNA-K9
+! Memory: main 883788K/33715K
+! Processor ID: FJC2137L0GS
+! CPU: 
+! Memory: nvram 255K
+! 
+! VTP: VTP Version                     : 2
+! VTP: Configuration Revision          : 1
+! VTP: Maximum VLANs supported locally : 20
+! VTP: Number of existing VLANs        : 6
+! VTP: VTP Operating Mode              : Server
+! VTP: VTP Domain Name                 : 
+! VTP: VTP Pruning Mode                : Disabled
+! VTP: VTP V2 Mode                     : Disabled
+! VTP: VTP Traps Generation            : Enabled
+! VTP: MD5 digest                      : 0xFA 0xE7 0xB9 0xA0 0x0B 0x0A 0x3B 0x32 
+! VTP: Local updater ID is 10.0.X.X on interface Vl3 (lowest numbered VLAN interface found)
+! 
+! NAME: "C819G-LTE-MNA-K9", DESCR: "C819G-LTE-MNA-K9 chassis, Hw Serial#: FJC2137L0GS, Hw Revision: 6.0"
+! PID: C819G-LTE-MNA-K9  , VID: V01 , SN: FJC2137L0GS
+! 
+! NAME: "C819G4G Mother board on Slot 0", DESCR: "C819G4G Mother board"
+! PID: C819G-LTE-MNA-K9  , VID: V01 , SN: FOC213073T1
+! 
+! NAME: "Modem 0 on Cellular0", DESCR: "Sierra Wireless MC7354 4G-NA"
+! PID: MC7354            , VID: 1.0, SN: 352890070286487
+! 
+! 
+  
+!
+! Last configuration change at 00:18:49 CET Fri Nov 21 2025 by kyriakosp
+!
+version 15.6
+no service pad
+service timestamps debug datetime msec
+service timestamps log datetime msec localtime show-timezone
+service password-encryption
+!
+hostname nl-lte01
+!
+boot-start-marker
+boot-end-marker
+!
+!
+logging discriminator OVERTEMP severity drops 3 facility drops FAN mnemonics drops TEMP_SENSOR_OVERTEMP 
+logging buffered discriminator OVERTEMP 100000
+logging rate-limit 100 except warnings
+logging console discriminator OVERTEMP
+logging monitor discriminator OVERTEMP
+!
+no aaa new-model
+ethernet lmi ce
+clock timezone CET 1 0
+clock summer-time CEST recurring last Sun Mar 2:00 last Sun Oct 3:00
+!
+crypto pki trustpoint TP-self-signed-1956934832
+ enrollment selfsigned
+ subject-name cn=IOS-Self-Signed-Certificate-1956934832
+ revocation-check none
+ rsakeypair TP-self-signed-1956934832
+!
+!
+crypto pki certificate chain TP-self-signed-1956934832
+!
+!
+!
+!
+!
+no ip source-route
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+
+
+!
+!
+!
+!
+no ip bootp server
+ip domain name example.net
+ip name-server 1.1.1.1
+ip name-server 6.6.7.7
+ip cef
+no ipv6 cef
+!
+!
+!
+!
+!
+multilink bundle-name authenticated
+!
+!
+chat-script lte "" "AT!CALL" TIMEOUT 20 "OK"
+!
+!
+!
+!
+!
+license udi pid C819G-LTE-MNA-K9 sn FJC2137L0GS
+!
+!
+username kyriakosp privilege 15 secret 5 $1$45SJ$9H.G6LijzFj4D0Fi/ldhS.
+!
+!
+!
+!
+!
+controller Cellular 0
+ lte modem link-recovery rssi onset-threshold -110
+ lte modem link-recovery monitor-timer 20
+ lte modem link-recovery wait-timer 10
+ lte modem link-recovery debounce-count 6
+no cdp run
+!
+! 
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+interface Cellular0
+ ip address negotiated
+ ip access-group INTERNET-IN in
+ ip nat outside
+ ip virtual-reassembly in
+ encapsulation slip
+ dialer in-band
+ dialer idle-timeout 1800
+ dialer string lte
+ dialer-group 1
+ async mode interactive
+!
+interface Cellular1
+ no ip address
+ encapsulation slip
+ shutdown
+!
+interface FastEthernet0
+ switchport access vlan 3
+ no ip address
+ no cdp enable
+!
+interface FastEthernet1
+ switchport access vlan 3
+ no ip address
+ no cdp enable
+!
+interface FastEthernet2
+ no ip address
+ shutdown
+ no cdp enable
+!
+interface FastEthernet3
+ no ip address
+ shutdown
+ no cdp enable
+!
+interface GigabitEthernet0
+ no ip address
+ shutdown
+ duplex auto
+ speed auto
+ no cdp enable
+!
+interface Serial0
+ no ip address
+ shutdown
+ clock rate 2000000
+ no cdp enable
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+interface Vlan3
+ ip address 10.0.X.X 255.255.255.252
+ ip nat inside
+ no ip virtual-reassembly in
+ ip tcp adjust-mss 1452
+!
+no ip forward-protocol nd
+no ip http server
+no ip http secure-server
+!
+!
+ip nat inside source list NAT_ACL interface Cellular0 overload
+ip route 0.0.0.0 0.0.0.0 Cellular0
+ip route 10.0.X.X 255.255.255.0 10.0.X.X
+ip ssh version 2
+ip ssh dh min size 4096
+!
+ip access-list extended INTERNET-IN
+ remark ---start---
+ permit tcp any any established
+ remark ---start dns---
+ permit udp any eq domain any gt 1023
+ remark ---end dns---
+ remark ---start ping---
+ permit icmp any any echo-reply
+ permit icmp any any time-exceeded
+ permit icmp any any unreachable
+ permit icmp any any parameter-problem
+ permit icmp any any administratively-prohibited
+ remark ---end ping---
+ deny   icmp any any
+ deny   ip any any
+ remark ---end---
+ip access-list extended NAT_ACL
+ permit ip 10.0.X.X 0.0.0.255 any
+ permit ip 10.0.X.X 0.0.0.255 any
+ permit ip host 10.0.X.X any
+ permit icmp host 10.0.X.X any
+ permit icmp 10.0.X.X 0.0.0.255 any
+!
+ip access-list logging interval 10
+logging trap debugging
+logging host 10.0.X.X
+logging host 10.0.X.X
+dialer-list 1 protocol ip list 2222
+!
+snmp-server community uBnr@W9dKOu#7ifTdVbA RO
+snmp-server enable traps snmp authentication linkdown linkup coldstart warmstart
+snmp-server enable traps vrrp
+snmp-server enable traps pfr
+snmp-server enable traps flowmon
+snmp-server enable traps ds1
+snmp-server enable traps call-home message-send-fail server-fail
+snmp-server enable traps tty
+snmp-server enable traps eigrp
+snmp-server enable traps ospf state-change
+snmp-server enable traps ospf errors
+snmp-server enable traps ospf retransmit
+snmp-server enable traps ospf lsa
+snmp-server enable traps ospf cisco-specific state-change nssa-trans-change
+snmp-server enable traps ospf cisco-specific state-change shamlink interface
+snmp-server enable traps ospf cisco-specific state-change shamlink neighbor
+snmp-server enable traps ospf cisco-specific errors
+snmp-server enable traps ospf cisco-specific retransmit
+snmp-server enable traps ospf cisco-specific lsa
+snmp-server enable traps xgcp
+snmp-server enable traps license
+snmp-server enable traps dial
+snmp-server enable traps dsp card-status
+snmp-server enable traps dsp oper-state
+snmp-server enable traps dsp video-usage
+snmp-server enable traps dsp video-out-of-resource
+snmp-server enable traps stun
+snmp-server enable traps bstun
+snmp-server enable traps envmon
+snmp-server enable traps ethernet cfm cc mep-up mep-down cross-connect loop config
+snmp-server enable traps ethernet cfm crosscheck mep-missing mep-unknown service-up
+snmp-server enable traps flash insertion removal low-space
+snmp-server enable traps auth-framework sec-violation auth-fail
+snmp-server enable traps c3g
+snmp-server enable traps LTE
+snmp-server enable traps isdn call-information
+snmp-server enable traps isdn layer2
+snmp-server enable traps isdn chan-not-avail
+snmp-server enable traps isdn ietf
+snmp-server enable traps adslline
+snmp-server enable traps vdsl2line
+snmp-server enable traps mac-notification
+snmp-server enable traps energywise
+snmp-server enable traps trustsec-sxp conn-srcaddr-err msg-parse-err conn-config-err binding-err conn-up conn-down binding-expn-fail oper-nodeid-change binding-conflict
+snmp-server enable traps vstack
+snmp-server enable traps cisco-sys heartbeat
+snmp-server enable traps ethernet evc status create delete
+snmp-server enable traps cef resource-failure peer-state-change peer-fib-state-change inconsistency
+snmp-server enable traps dlsw
+snmp-server enable traps aaa_server
+snmp-server enable traps atm subif
+snmp-server enable traps bfd
+snmp-server enable traps bgp cbgp2
+snmp-server enable traps memory bufferpeak
+snmp-server enable traps cnpd
+snmp-server enable traps config-copy
+snmp-server enable traps config
+snmp-server enable traps config-ctid
+snmp-server enable traps entity-ext
+snmp-server enable traps entity
+snmp-server enable traps fru-ctrl
+snmp-server enable traps resource-policy
+snmp-server enable traps event-manager
+snmp-server enable traps frame-relay multilink bundle-mismatch
+snmp-server enable traps frame-relay
+snmp-server enable traps frame-relay subif
+snmp-server enable traps hsrp
+snmp-server enable traps ipmulticast
+snmp-server enable traps mempool
+snmp-server enable traps mpls traffic-eng
+snmp-server enable traps mpls fast-reroute protected
+snmp-server enable traps mpls rfc ldp
+snmp-server enable traps mpls ldp
+snmp-server enable traps msdp
+snmp-server enable traps mvpn
+snmp-server enable traps pim neighbor-change rp-mapping-change invalid-pim-message
+snmp-server enable traps cpu threshold
+snmp-server enable traps rsvp
+snmp-server enable traps ipsla
+snmp-server enable traps syslog
+snmp-server enable traps l2tun session
+snmp-server enable traps l2tun pseudowire status
+snmp-server enable traps vtp
+snmp-server enable traps pw vc
+snmp-server enable traps lisp
+snmp-server enable traps firewall serverstatus
+snmp-server enable traps ipmobile
+snmp-server enable traps ospfv3 state-change
+snmp-server enable traps ospfv3 errors
+snmp-server enable traps pki
+snmp-server enable traps nhrp nhs
+snmp-server enable traps nhrp nhc
+snmp-server enable traps nhrp nhp
+snmp-server enable traps nhrp quota-exceeded
+snmp-server enable traps waas 
+snmp-server enable traps gdoi gm-start-registration
+snmp-server enable traps gdoi gm-registration-complete
+snmp-server enable traps gdoi gm-re-register
+snmp-server enable traps gdoi gm-rekey-rcvd
+snmp-server enable traps gdoi gm-rekey-fail
+snmp-server enable traps gdoi ks-rekey-pushed
+snmp-server enable traps gdoi gm-incomplete-cfg
+snmp-server enable traps gdoi ks-no-rsa-keys
+snmp-server enable traps gdoi ks-new-registration
+snmp-server enable traps gdoi ks-reg-complete
+snmp-server enable traps gdoi ks-role-change
+snmp-server enable traps gdoi ks-gm-deleted
+snmp-server enable traps gdoi ks-peer-reachable
+snmp-server enable traps gdoi ks-peer-unreachable
+snmp-server enable traps ike policy add
+snmp-server enable traps ike policy delete
+snmp-server enable traps ike tunnel start
+snmp-server enable traps ike tunnel stop
+snmp-server enable traps ipsec cryptomap add
+snmp-server enable traps ipsec cryptomap delete
+snmp-server enable traps ipsec cryptomap attach
+snmp-server enable traps ipsec cryptomap detach
+snmp-server enable traps ipsec tunnel start
+snmp-server enable traps ipsec tunnel stop
+snmp-server enable traps ipsec too-many-sas
+snmp-server enable traps voice
+snmp-server enable traps dnis
+snmp-server enable traps ccme
+snmp-server enable traps srst
+snmp-server enable traps ethernet cfm alarm
+snmp-server enable traps mpls vpn
+snmp-server enable traps vrfmib vrf-up vrf-down vnet-trunk-up vnet-trunk-down
+snmp-server host 10.0.X.X version 2c uBnr@W9dKOu#7ifTdVbA 
+access-list 23 permit 10.0.X.X 0.0.0.255
+access-list 23 permit 10.0.X.X 0.0.0.255
+access-list 2222 permit ip 10.0.X.X 0.0.0.255 any
+access-list 2222 permit ip 10.0.X.X 0.0.0.255 any
+access-list 2222 permit icmp 10.0.X.X 0.0.0.255 any
+access-list 2222 permit icmp 10.0.X.X 0.0.0.255 any
+!
+control-plane
+!
+!
+!
+mgcp behavior rsip-range tgcp-only
+mgcp behavior comedia-role none
+mgcp behavior comedia-check-media-src disable
+mgcp behavior comedia-sdp-force disable
+!
+mgcp profile default
+!
+!
+!
+!
+!
+!
+!
+line con 0
+ login local
+ no modem enable
+line aux 0
+line 2
+ no activation-character
+ no exec
+ transport preferred none
+ transport input all
+ stopbits 1
+line 3
+ script dialer lte
+ no exec
+line 8
+ no exec
+line vty 0 4
+ access-class 23 in
+ exec-timeout 60 0
+ privilege level 15
+ login local
+ transport input ssh
+line vty 5 15
+ access-class 23 in
+ privilege level 15
+ login local
+ transport input ssh
+!
+scheduler allocate 20000 1000
+ntp logging
+ntp panic update
+ntp server 2.pool.ntp.org
+ntp server 1.pool.ntp.org
+ntp server 3.pool.ntp.org
+ntp server 0.pool.ntp.org
+!
+!
+!
+end
+
