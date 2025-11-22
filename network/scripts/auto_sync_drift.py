@@ -3,10 +3,13 @@
 Auto-Sync from Device with Safeguards
 Automatically syncs detected drift with safety checks
 
+Enhanced with filtering to prevent false drift detection.
+
 Usage: auto_sync_drift.py [--dry-run]
 """
 import sys
 import os
+import re
 import subprocess
 from pathlib import Path
 from datetime import datetime
@@ -22,6 +25,70 @@ REQUIRE_APPROVAL_PATTERNS = [
     'username',              # User management
     'enable secret',         # Password changes
 ]
+
+
+def filter_cisco_config(config_text):
+    """
+    Remove dynamic/timestamp content that changes frequently
+    but doesn't represent actual configuration drift.
+    
+    This matches the filtering logic in sync_oxidized_gitlab.sh
+    and detect_drift.py to prevent false drift detection.
+    """
+    lines = config_text.splitlines()
+    filtered_lines = []
+    
+    # Patterns to skip entirely
+    skip_patterns = [
+        # Timestamps
+        r'Last configuration change at',
+        r'NVRAM config last updated at',
+        r'Configuration last modified by',
+        r'Building configuration',
+        r'Current configuration\s*:',
+        
+        # Crypto/hashes (change on every save)
+        r'^Cryptochecksum:',
+        r'^!\s*Cryptochecksum:',
+        
+        # NTP clock drift (changes constantly)
+        r'^ntp clock-period',
+        
+        # Dynamic comment lines with timestamps
+        r'^!\s*\d{2}:\d{2}:\d{2}',
+        
+        # Configuration headers with sizes/bytes
+        r'^!\s*Last configuration change',
+        r'^!\s*NVRAM config last',
+    ]
+    
+    for line in lines:
+        # Remove trailing whitespace for consistent comparison
+        line = line.rstrip()
+        
+        # Skip empty comment lines
+        if line.strip() == '!':
+            continue
+        
+        # Check skip patterns
+        skip = False
+        for pattern in skip_patterns:
+            if re.search(pattern, line, re.IGNORECASE):
+                skip = True
+                break
+        
+        if skip:
+            continue
+        
+        # Filter "uptime" mentions (but keep interface descriptions)
+        if 'uptime' in line.lower() and 'description' not in line.lower():
+            continue
+        
+        # Keep the line
+        filtered_lines.append(line)
+    
+    return '\n'.join(filtered_lines)
+
 
 def is_safe_for_auto_sync(device_name, diff_lines, changes_summary):
     """
@@ -53,6 +120,7 @@ def is_safe_for_auto_sync(device_name, diff_lines, changes_summary):
         return False, f"Suspicious: Many deletions ({deletions}) vs additions ({additions})"
     
     return True, "Safe for auto-sync"
+
 
 def auto_sync_device(device_type, device_name, dry_run=False):
     """
@@ -106,13 +174,17 @@ def auto_sync_device(device_type, device_name, dry_run=False):
         with open(config_path) as f:
             gitlab_config = f.read()
         
-        # Generate diff
+        # CRITICAL: Filter both configs before comparison
         print(f"[2/5] Comparing configurations...")
+        live_config_filtered = filter_cisco_config(live_config)
+        gitlab_config_filtered = filter_cisco_config(gitlab_config)
+        
+        # Generate diff
         import difflib
         
         diff = list(difflib.unified_diff(
-            gitlab_config.splitlines(),
-            live_config.splitlines(),
+            gitlab_config_filtered.splitlines(),
+            live_config_filtered.splitlines(),
             fromfile='gitlab',
             tofile='device',
             lineterm=''
@@ -167,7 +239,7 @@ def auto_sync_device(device_type, device_name, dry_run=False):
         
         subprocess.run(['git', 'checkout', '-b', branch_name], check=True, capture_output=True)
         
-        # Update file
+        # Update file with UNFILTERED live config (we want full config in GitLab)
         with open(config_path, 'w') as f:
             f.write(live_config)
         
@@ -252,6 +324,7 @@ For audit: Review session logs if needed.
     except Exception as e:
         print(f"   ERROR: {str(e)}")
         return False, 'error', str(e)
+
 
 def auto_sync_all_drift(dry_run=False):
     """
@@ -349,6 +422,7 @@ def auto_sync_all_drift(dry_run=False):
         print("   Use sync_from_device.py for blocked devices")
     
     return 0 if errors == 0 else 1
+
 
 if __name__ == "__main__":
     dry_run = '--dry-run' in sys.argv
