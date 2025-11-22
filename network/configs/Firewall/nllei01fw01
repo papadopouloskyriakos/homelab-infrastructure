@@ -1,0 +1,1747 @@
+! 
+! Cisco Adaptive Security Appliance Software Version 9.16(4) 
+! SSP Operating System Version 2.10(1.217)
+! Device Manager Version 7.20(1)
+! 
+! Compiled on Tue 11-Oct-22 16:31 GMT by builders
+! System image file is "disk0:/asa9-16-4-lfbff-k8.SPA"
+! Config file at boot was "startup-config"
+! 
+! 
+! Hardware:   ASA5508, 8192 MB RAM, CPU Atom C2000 series 2000 MHz, 1 CPU (8 cores)
+! Internal ATA Compact Flash, 8000MB
+! BIOS Flash M25P64 @ 0xfed01000, 16384KB
+! 
+! Encryption hardware device : Cisco ASA Crypto on-board accelerator (revision 0x1)
+!                              Number of accelerators: 1
+! 
+!  1: Ext: GigabitEthernet1/1  : address is 7079.b344.9a0a, irq 255
+!  2: Ext: GigabitEthernet1/2  : address is 7079.b344.9a0b, irq 255
+!  3: Ext: GigabitEthernet1/3  : address is 7079.b344.9a0c, irq 255
+!  4: Ext: GigabitEthernet1/4  : address is 7079.b344.9a0d, irq 255
+!  5: Ext: GigabitEthernet1/5  : address is 7079.b344.9a0e, irq 255
+!  6: Ext: GigabitEthernet1/6  : address is 7079.b344.9a0f, irq 255
+!  7: Ext: GigabitEthernet1/7  : address is 7079.b344.9a10, irq 255
+!  8: Ext: GigabitEthernet1/8  : address is 7079.b344.9a11, irq 255
+!  9: Int: Internal-Data1/1    : address is 7079.b344.9a09, irq 255
+! 10: Int: Internal-Data1/2    : address is 0000.0001.0002, irq 0
+! 11: Int: Internal-Control1/1 : address is 0000.0001.0001, irq 0
+! 12: Int: Internal-Data1/3    : address is 0000.0001.0003, irq 0
+! 13: Ext: Management1/1       : address is 7079.b344.9a09, irq 0
+! 14: Int: Internal-Data1/4    : address is 0000.0100.0001, irq 0
+! 
+! Licensed features for this platform:
+! Maximum Physical Interfaces       : Unlimited      perpetual
+! Maximum VLANs                     : 50             perpetual
+! Inside Hosts                      : Unlimited      perpetual
+! Failover                          : Active/Active  perpetual
+! Encryption-DES                    : Enabled        perpetual
+! Encryption-3DES-AES               : Enabled        perpetual
+! Security Contexts                 : 2              perpetual
+! Carrier                           : Disabled       perpetual
+! AnyConnect Premium Peers          : 4              perpetual
+! AnyConnect Essentials             : Disabled       perpetual
+! Other VPN Peers                   : 100            perpetual
+! Total VPN Peers                   : 100            perpetual
+! AnyConnect for Mobile             : Disabled       perpetual
+! AnyConnect for Cisco VPN Phone    : Disabled       perpetual
+! Advanced Endpoint Assessment      : Disabled       perpetual
+! Shared License                    : Disabled       perpetual
+! Total TLS Proxy Sessions          : 320            perpetual
+! Botnet Traffic Filter             : Disabled       perpetual
+! Cluster                           : Disabled       perpetual
+! VPN Load Balancing                : Enabled        perpetual
+! 
+! Serial Number: JAD221904R4
+! Running Permanent Activation Key: 0x870df778 0xd4ab949a 0x94b30d00 0xba586010 0x0a083eaa 
+! Configuration register is 0x1
+! FPGA UPGRADE Version      : 3.0
+! FPGA GOLDEN Version       : 3.0
+! ROMMON Version            : 1.1.18
+! Image type                : Release
+! Key Version               : A
+! Name: "Chassis", DESCR: "ASA 5508-X with FirePOWER services, 8GE, AC, DES"
+! PID: ASA5508           , VID: V06     , SN: JMX2221G3BZ
+! 
+!
+ASA Version 9.16(4) 
+!
+terminal width 511
+hostname nlfw01
+domain-name example.net
+enable password 8Ry2YjIyt7RRXU24 encrypted
+service-module 1 keepalive-timeout 4
+service-module 1 keepalive-counter 6
+service-module sfr keepalive-timeout 4
+service-module sfr keepalive-counter 6
+names
+no mac-address auto
+
+!
+interface GigabitEthernet1/1
+ shutdown
+ no nameif
+ no security-level
+ no ip address
+!
+interface GigabitEthernet1/2
+ shutdown
+ no nameif
+ no security-level
+ no ip address
+!
+interface GigabitEthernet1/3
+ shutdown
+ no nameif
+ no security-level
+ no ip address
+!
+interface GigabitEthernet1/4
+ description *** Connection to nlsw01 | Port 21
+ channel-group 1 mode active
+ no nameif
+ no security-level
+ no ip address
+!
+interface GigabitEthernet1/5
+ description *** Connection to nlsw01 | Port 23
+ channel-group 1 mode active
+ no nameif
+ no security-level
+ no ip address
+!
+interface GigabitEthernet1/6
+ description *** Connection to nlsw01 | Port 25
+ channel-group 1 mode active
+ no nameif
+ no security-level
+ no ip address
+!
+interface GigabitEthernet1/7
+ description *** Connection to nlsw01 | Port 27
+ channel-group 1 mode active
+ no nameif
+ no security-level
+ no ip address
+!
+interface GigabitEthernet1/8
+ shutdown
+ no nameif
+ no security-level
+ no ip address
+!
+interface Management1/1
+ management-only
+ shutdown
+ no nameif
+ no security-level
+ no ip address
+!
+interface Port-channel1
+ description *** Connection to nlsw01 | Po1 ***
+ lacp max-bundle 8
+ nameif Po1
+ security-level 100
+ no ip address
+!
+interface Port-channel1.1
+ shutdown
+ no vlan
+ no nameif
+ no security-level
+ no ip address
+!
+interface Port-channel1.2
+ vlan 2
+ nameif outside_xs4all
+ security-level 0
+ pppoe client vpdn group XS4ALL
+ pppoe client route distance 10
+ ip address pppoe setroute 
+!
+interface Port-channel1.3
+ vlan 3
+ nameif outside_lte
+ security-level 0
+ ip address 10.0.X.X 255.255.255.252 
+!
+interface Port-channel1.4
+ shutdown
+ vlan 4
+ nameif outside_freedom_tv
+ security-level 0
+ no ip address
+!
+interface Port-channel1.5
+ vlan 5
+ nameif inside_iot
+ security-level 30
+ ip address 10.0.X.X 255.255.255.192 
+!
+interface Port-channel1.6
+ vlan 6
+ nameif outside_freedom
+ security-level 0
+ pppoe client vpdn group Freedom
+ ip address pppoe setroute 
+!
+interface Port-channel1.7
+ description Cust: Room B
+ vlan 7
+ nameif inside_room_b
+ security-level 40
+ ip address 10.0.X.X 255.255.255.224 
+!
+interface Port-channel1.8
+ description Cust: Room C
+ vlan 8
+ nameif inside_room_c
+ security-level 40
+ ip address 10.0.X.X 255.255.255.224 
+!
+interface Port-channel1.9
+ description Cust: Room D
+ vlan 9
+ nameif inside_room_d
+ security-level 40
+ ip address 10.0.X.X 255.255.255.224 
+!
+interface Port-channel1.10
+ vlan 10
+ nameif inside_mgmt
+ security-level 100
+ ip address 10.0.X.X 255.255.255.0 
+!
+interface Port-channel1.11
+ description Cust: Room A
+ vlan 11
+ nameif inside_room_a
+ security-level 40
+ ip address 10.0.X.X 255.255.255.224 
+!
+interface Port-channel1.12
+ vlan 12
+ nameif inside_cctv
+ security-level 90
+ ip address 10.0.X.X 255.255.255.240 
+!
+interface Port-channel1.13
+ vlan 13
+ nameif inside_guest
+ security-level 20
+ ip address 10.0.X.X 255.255.255.240 
+!
+interface Port-channel1.14
+ vlan 14
+ nameif dmz_vpn01
+ security-level 0
+ ip address 10.0.X.X 255.255.255.248 
+!
+interface Port-channel1.18
+ vlan 18
+ nameif inside_servers01
+ security-level 90
+ ip address 10.0.X.X 255.255.255.224 
+!
+interface Port-channel1.19
+ vlan 19
+ nameif inside_servers02
+ security-level 90
+ ip address 10.0.X.X 255.255.255.224 
+!
+interface Port-channel1.20
+ vlan 20
+ nameif dmz_servers01
+ security-level 0
+ ip address 10.0.X.X 255.255.255.224 
+!
+interface Port-channel1.21
+ vlan 21
+ nameif dmz_servers02
+ security-level 0
+ ip address 10.0.X.X 255.255.255.224 
+!
+interface Port-channel1.22
+ vlan 22
+ nameif dmz_servers03
+ security-level 0
+ ip address 10.0.X.X 255.255.255.224 
+!
+interface Port-channel1.87
+ vlan 87
+ nameif inside_corosync
+ security-level 100
+ ip address 10.0.X.X 255.255.255.248 
+!
+interface Port-channel1.88
+ vlan 88
+ nameif inside_nfs
+ security-level 100
+ ip address 10.0.X.X 255.255.255.224 
+!
+boot system disk0:/asa9-16-4-lfbff-k8.SPA
+ftp mode passive
+clock timezone CET 1
+clock summer-time CEST recurring last Sun Mar 2:00 last Sun Oct 3:00
+dns domain-lookup outside_freedom
+dns domain-lookup inside_mgmt
+dns server-group DefaultDNS
+ name-server 1.1.1.1 outside_freedom
+ name-server 8.8.8.8 outside_freedom
+ name-server 10.0.X.X inside_mgmt
+ domain-name example.net
+same-security-traffic permit inter-interface
+same-security-traffic permit intra-interface
+object network PUBLIC_xs4all
+ host 145.53.163.13
+object network PUBLIC_inalan
+ host 91.211.213.72
+object network GR-Cisco_C819G
+ host 10.0.X.X
+object network inside_mgmt-network-24
+ subnet 10.0.X.X 255.255.255.0
+object network inside_room_a-network-27
+ subnet 10.0.X.X 255.255.255.224
+object network obj_any_lte
+ subnet 0.0.0.0 0.0.0.0
+object network GR-SPOCK[wireless]
+ host 10.0.X.X
+object network oas01-443
+ host 10.0.X.X
+object service https
+ service tcp destination eq https 
+object network kyriakosp[nloas01]
+ host 10.0.X.X
+object network GR-alcatel
+ host 10.0.X.X
+object network nl_oas_vpn_pool_01
+ subnet 10.0.X.X 255.255.255.240
+object network GR-pihole01
+ host 10.0.X.X
+object network GR-oas01
+ host 10.0.X.X
+object network inside_cctv-network-24
+ subnet 10.0.X.X 255.255.255.0
+object network oas02-444
+ host 10.0.X.X
+object network oas03-445
+ host 10.0.X.X
+object network kyriakosp[nloas02]
+ host 10.0.X.X
+object network kyriakosp[nloas03]
+ host 10.0.X.X
+object network makisp[groas01]
+ host 10.0.X.X
+object network marthap[groas01]
+ host 10.0.X.X
+object network dimitrisd[groas02]
+ host 10.0.X.X
+object network vangelism[groas02]
+ host 10.0.X.X
+object network nlsynology01
+ host 10.0.X.X
+object network nl_oas_vpn_pool_02
+ subnet 10.0.X.X 255.255.255.240
+object network nl_oas_vpn_pool_03
+ subnet 10.0.X.X 255.255.255.240
+object network dmz_servers02-srv01
+ host 10.0.X.X
+ description dimitrisd
+object network dmz_servers03-srv01
+ host 10.0.X.X
+ description vangelism
+object network GR-talos
+ host 10.0.X.X
+object network GR-nms01
+ host 10.0.X.X
+object network Yuboto
+ host 213.144.173.77
+object network GR-filesrv01
+ host 10.0.X.X
+object network NAT_inside_neapoli
+ subnet 10.0.X.X 255.255.255.224
+object network NAT_inside_servers01
+ subnet 10.0.X.X 255.255.255.224
+object network NAT_inside_guest
+ subnet 10.0.X.X 255.255.255.240
+object network NAT_inside_cctv
+ subnet 10.0.X.X 255.255.255.240
+object network NAT_inside_iot
+ subnet 10.0.X.X 255.255.255.224
+object network PUBLIC_dmz_servers01
+ host 45.138.55.153
+object network NAT_dmz_servers01
+ subnet 10.0.X.X 255.255.255.224
+object network PUBLIC_dmz_vpn01
+ host 45.138.55.154
+object network PUBLIC_dmz_servers02
+ host 45.138.52.48
+object network NAT_dmz_servers02
+ subnet 10.0.X.X 255.255.255.224
+object network PUBLIC_dmz_servers03
+ host 45.138.52.48
+object network NAT_dmz_servers03
+ subnet 10.0.X.X 255.255.255.248
+object network dmz_servers03-srv01-444-tcp
+ host 10.0.X.X
+object network dmz_servers03-srv01-80-tcp
+ host 10.0.X.X
+object network adyen_vpn_server_01
+ host 147.12.26.81
+object network adyen_vpn_server_02
+ host 147.12.26.80
+object network smtps.adyen.com
+ host 185.101.196.38
+object network mb-kyriakos
+ host 10.0.X.X
+object network adyen_vpn_server_03
+ host 147.12.31.81
+object network adyen_vpn_server_04
+ host 147.12.31.80
+object network GR-FLANEUS[wireless]
+ host 10.0.X.X
+object network groas01
+ host 10.0.X.X
+object network groas02
+ host 10.0.X.X
+object network groas03
+ host 10.0.X.X
+object network grupsnmc01
+ host 10.0.X.X
+object network wan1-dhmas.dyndns.org
+ fqdn v4 wan1-dhmas.dyndns.org
+object network wan2-dhmas.dyndns.org
+ fqdn v4 wan2-dhmas.dyndns.org
+object network wan3-dhmas.dyndns.org
+ fqdn v4 wan3-dhmas.dyndns.org
+object network wan4-dhmas.dyndns.org
+ fqdn v4 wan4-dhmas.dyndns.org
+object network wan5-dhmas.dyndns.org
+ fqdn v4 wan5-dhmas.dyndns.org
+object network wan6-dhmas.dyndns.org
+ fqdn v4 wan6-dhmas.dyndns.org
+object network wan7-dhmas.dyndns.org
+ fqdn v4 wan7-dhmas.dyndns.org
+object network wan8-dhmas.dyndns.org
+ fqdn v4 wan8-dhmas.dyndns.org
+object network wan01.freeddns.org
+ fqdn v4 wan01.freeddns.org
+ description [kyriakosp] Samsung Galaxy S21
+object network wan02.freeddns.org
+ fqdn v4 wan02.freeddns.org
+ description [ellizg] Samsung Galaxy M33
+object network wan03.freeddns.org
+ fqdn v4 wan03.freeddns.org
+ description [kyriakosp] SPOCK
+object network wan04.freeddns.org
+ fqdn v4 wan04.freeddns.org
+ description [ellizg] MacBook
+object network wan05.freeddns.org
+ fqdn v4 wan05.freeddns.org
+ description [makisp] Smartphone
+object network wan06.freeddns.org
+ fqdn v4 wan06.freeddns.org
+ description [marthap] Smartphone
+object network wan07.freeddns.org
+ fqdn v4 wan07.freeddns.org
+ description [makisp] Tablet
+object network 127.0.0.1
+ host 127.0.0.1
+object network wan08.freeddns.org
+ fqdn v4 wan08.freeddns.org
+ description [marthap] Tablet
+object network panthere.duckdns.org
+ fqdn v4 panthere.duckdns.org
+object network iqom2.dyndns.org
+ fqdn v4 iqom2.dyndns.org
+object network pantheremobile.duckdns.org
+ fqdn v4 pantheremobile.duckdns.org
+object network nlmattermost01
+ host 10.0.X.X
+object network grnc01-80-tcp
+ host 10.0.X.X
+object network grnc01-443-tcp
+ host 10.0.X.X
+object network grnc01
+ host 10.0.X.X
+object network nlnpm01-80-tcp
+ host 10.0.X.X
+object network nlnpm01-443-tcp
+ host 10.0.X.X
+object network synology-web
+ host 10.0.X.X
+object network synology-syncthing-web
+ host 10.0.X.X
+object network synology-syncthing-data
+ host 10.0.X.X
+object network nl-pve02-web
+ host 10.0.X.X
+object network vspock-rdp
+ host 10.0.X.X
+object network nlsearxng01-80-tcp
+ host 10.0.X.X
+object network nlsearxng01-443-tcp
+ host 10.0.X.X
+object network PUBLIC_freedom_MAIN
+ host 45.138.52.48
+object network PUBLIC_freedom_SUBNET_01
+ host 45.138.55.153
+object network PUBLIC_freedom_SUBNET_02
+ host 45.138.55.154
+object network PUBLIC_freedom_SUBNET_03
+ host 45.138.55.155
+object network PUBLIC_freedom_SUBNET_04
+ host 45.138.55.156
+object network PUBLIC_freedom_SUBNET_05
+ host 45.138.55.157
+object network PUBLIC_freedom_SUBNET_06
+ host 45.138.55.158
+object network PUBLIC_inside_room_a
+ host 45.138.55.155
+object network NAT_inside_room_a
+ subnet 10.0.X.X 255.255.255.224
+object network PUBLIC_inside_room_b
+ host 45.138.55.156
+object network NAT_inside_room_b
+ subnet 10.0.X.X 255.255.255.224
+object network PUBLIC_inside_room_c
+ host 45.138.55.157
+object network NAT_inside_room_c
+ subnet 10.0.X.X 255.255.255.224
+object network PUBLIC_inside_room_d
+ host 45.138.55.158
+object network NAT_inside_room_d
+ subnet 10.0.X.X 255.255.255.224
+object network nlplex01
+ host 10.0.X.X
+object network MARIA_GEORGIADOU_INALAN
+ fqdn v4 mewmewmewmew.mooo.com
+object network plex_sino_01
+ host 154.57.9.129
+object network nlpihole02
+ host 10.0.X.X
+object network nloas01
+ host 10.0.X.X
+object network nloas02
+ host 10.0.X.X
+object network nloas03
+ host 10.0.X.X
+object network nlsmtp-gpg01
+ host 10.0.X.X
+object network nlpqd01
+ fqdn v4 wan09.freeddns.org
+object network nllobechat01-80-tcp
+ host 10.0.X.X
+object network nllobechat01-443-tcp
+ host 10.0.X.X
+object network nloas01-443-tcp
+ host 10.0.X.X
+object network wan09.freeddns.org
+ fqdn v4 wan09.freeddns.org
+ description nlpqd01
+object network NAT_dmz_vpn01
+ subnet 10.0.X.X 255.255.255.248
+object network elliz[nloas01]
+ host 10.0.X.X
+object network nl-pve02-ssh
+ host 10.0.X.X
+object network nlsmtp-gpg01-smtp
+ host 10.0.X.X
+object network grsyslogng01
+ host 10.0.X.X
+object network grlte01
+ host 10.0.X.X
+object network GR_network-inside_nfs
+ subnet 10.0.X.X 255.255.255.224
+object network grpihole01
+ host 10.0.X.X
+object network nloas02-888-tcp
+ host 10.0.X.X
+object network nloas03-999-udp
+ host 10.0.X.X
+object network elliz[nloas02]
+ host 10.0.X.X
+object network elliz[nloas03]
+ host 10.0.X.X
+object network nl-lte01
+ host 10.0.X.X
+object network nlsyslogng01
+ host 10.0.X.X
+object network gr_oas_vpn_pool_01
+ subnet 10.0.X.X 255.255.255.240
+object network gr_oas_vpn_pool_02
+ subnet 10.0.X.X 255.255.255.240
+object network gr_oas_vpn_pool_03
+ subnet 10.0.X.X 255.255.255.240
+object network obj-10.0.X.X
+ subnet 10.0.X.X 255.255.255.0
+object network wan10.freeddns.org
+ fqdn v4 wan10.freeddns.org
+ description grpikvm01
+object network nlsmtp-dkim01
+ host 10.0.X.X
+object network gropenobserve01
+ host 10.0.X.X
+object network ollama
+ host 10.0.X.X
+object network nlunify01
+ host 10.0.X.X
+object network wan11.freeddns.org
+ fqdn v4 wan11.freeddns.org
+ description George Zafeiridis
+object network georgez[nloas03]
+ host 10.0.X.X
+object network nlhaproxy01
+ host 10.0.X.X
+object network nlhaproxy02
+ host 10.0.X.X
+object network papaniil.ddns.net
+ fqdn v4 papaniil.ddns.net
+object network nlnpm01-xs4all-80-tcp
+ host 10.0.X.X
+object network nlnpm01-xs4all-443-tcp
+ host 10.0.X.X
+object network nloas02-xs4all-888-tcp
+ host 10.0.X.X
+object network nloas03-xs4all-999-udp
+ host 10.0.X.X
+object network nln8n01
+ host 10.0.X.X
+object network nlfreeipa01
+ host 10.0.X.X
+object network grfreeipa01
+ host 10.0.X.X
+object network panthere.dedyn.io
+ fqdn v4 panthere.dedyn.io
+object network nllyrion01
+ host 10.0.X.X
+object network nlfcksns01
+ host 10.0.X.X
+object network nlfcksns02
+ host 10.0.X.X
+object network nlfcksns03
+ host 10.0.X.X
+object network nlfcksns04
+ host 10.0.X.X
+object network nlfcksns05
+ host 10.0.X.X
+object network nlfcksns06
+ host 10.0.X.X
+object network nlsonosplayfive01
+ host 10.0.X.X
+object network nlfcksns07
+ host 10.0.X.X
+object network nlcl01iot01
+ host 10.0.X.X
+object network nlcl01iot02
+ host 10.0.X.X
+object network nlcl01iot00
+ host 10.0.X.X
+object network nlsftpgo01
+ host 10.0.X.X
+object network nlsftpgo01-2022-tcp
+ host 10.0.X.X
+object network sorotos.cloudns.nz
+ fqdn v4 sorotos.cloudns.nz
+object network nlhpb01-3478-tcp
+ host 10.0.X.X
+object network nlhpb01-3478-udp
+ host 10.0.X.X
+object network nlsynapse01
+ host 10.0.X.X
+object-group network S2S_LEI_GRP_inside_mgmt
+ network-object 10.0.X.X 255.255.255.0
+object-group network S2S_LEI_GRP_inside_room_a
+ network-object 10.0.X.X 255.255.255.224
+object-group network gr_oas_vpn_pool_XX
+ network-object object gr_oas_vpn_pool_01
+ network-object object gr_oas_vpn_pool_02
+ network-object object gr_oas_vpn_pool_03
+object-group network gr_all_subnets
+ network-object 10.0.X.X 255.255.255.224
+ network-object 10.0.X.X 255.255.255.252
+ network-object 10.0.X.X 255.255.255.248
+ network-object 10.0.X.X 255.255.255.240
+ network-object 10.0.X.X 255.255.255.224
+ network-object 10.0.X.X 255.255.255.240
+ network-object 10.0.X.X 255.255.255.224
+ network-object 10.0.X.X 255.255.255.224
+ network-object 10.0.X.X 255.255.255.248
+ network-object 10.0.X.X 255.255.255.248
+ network-object 10.0.X.X 255.255.255.0
+ network-object 10.0.X.X 255.255.255.248
+ network-object object GR_network-inside_nfs
+ group-object gr_oas_vpn_pool_XX
+object-group network S2S_LEI_GRP_inside_cctv
+ network-object 10.0.X.X 255.255.255.0
+object-group network S2S_SKG_GRP_inside_mgmt
+ network-object 10.0.X.X 255.255.255.0
+object-group network S2S_SKG_GRP_inside_neapoli
+ network-object 10.0.X.X 255.255.255.224
+object-group network S2S_SKG_GRP_inside_cctv
+ network-object 10.0.X.X 255.255.255.240
+object-group network S2S_SKG_GRP_inside_servers01
+ network-object 10.0.X.X 255.255.255.224
+object-group network S2S_SKG_GRP_dmz_servers01
+ network-object 10.0.X.X 255.255.255.224
+object-group network S2S_SKG_GRP_dmz_vpn01
+ network-object 10.0.X.X 255.255.255.248
+object-group network S2S_SKG_GRP_oas_vpn01
+ network-object 10.0.X.X 255.255.255.240
+object-group network kyriakosp[oasXX]
+ network-object object kyriakosp[nloas01]
+ network-object object kyriakosp[nloas02]
+ network-object object kyriakosp[nloas03]
+object-group network S2S_SKG_GRP_oas_vpn02
+ network-object 10.0.X.X 255.255.255.240
+object-group network S2S_SKG_GRP_oas_vpn03
+ network-object 10.0.X.X 255.255.255.240
+object-group network parents[oas01]
+ network-object object makisp[groas01]
+ network-object object marthap[groas01]
+object-group network S2S_LEI_GRP_inside_corosync
+ network-object 10.0.X.X 255.255.255.248
+object-group network S2S_LEI_GRP_inside_nfs
+ network-object 10.0.X.X 255.255.255.224
+object-group network nl_oas_vpn_pool_XX
+ network-object object nl_oas_vpn_pool_01
+ network-object object nl_oas_vpn_pool_02
+ network-object object nl_oas_vpn_pool_03
+object-group network nl_all_subnets
+ group-object S2S_LEI_GRP_inside_cctv
+ group-object S2S_LEI_GRP_inside_mgmt
+ group-object S2S_LEI_GRP_inside_room_a
+ group-object S2S_LEI_GRP_inside_corosync
+ group-object S2S_LEI_GRP_inside_nfs
+ group-object nl_oas_vpn_pool_XX
+ network-object 10.0.X.X 255.255.255.248
+object-group protocol TCPUDP
+ protocol-object udp
+ protocol-object tcp
+object-group service Adyen_VPN udp
+ port-object eq 1197
+ port-object eq 1198
+ port-object eq 1199
+ port-object eq 1200
+object-group network USR_DIMITRISD_PUBLIC_IP_ADDRESSES
+ network-object object wan1-dhmas.dyndns.org
+ network-object object wan2-dhmas.dyndns.org
+ network-object object wan3-dhmas.dyndns.org
+ network-object object wan4-dhmas.dyndns.org
+ network-object object wan5-dhmas.dyndns.org
+ network-object object wan6-dhmas.dyndns.org
+ network-object object wan7-dhmas.dyndns.org
+ network-object object wan8-dhmas.dyndns.org
+object-group network USR_KYRIAKOSP_PUBLIC_IP_ADDRESSES
+ network-object object wan01.freeddns.org
+ network-object object wan02.freeddns.org
+ network-object object wan03.freeddns.org
+ network-object object wan04.freeddns.org
+ network-object object wan05.freeddns.org
+ network-object object wan06.freeddns.org
+ network-object object wan07.freeddns.org
+ network-object object wan08.freeddns.org
+ network-object object wan09.freeddns.org
+ network-object object wan10.freeddns.org
+ network-object object wan11.freeddns.org
+object-group network USR_VANGELISM_PUBLIC_IP_ADDRESSES
+ network-object object iqom2.dyndns.org
+ network-object object panthere.duckdns.org
+ network-object object pantheremobile.duckdns.org
+object-group network WHITELIST_GR_PUBLIC_SUBNETS
+ network-object object PUBLIC_inalan
+object-group network WHITELIST_KYRIAKOS
+ group-object USR_KYRIAKOSP_PUBLIC_IP_ADDRESSES
+ group-object WHITELIST_GR_PUBLIC_SUBNETS
+ network-object object papaniil.ddns.net
+ network-object object panthere.dedyn.io
+ network-object object PUBLIC_xs4all
+ network-object object sorotos.cloudns.nz
+object-group network WHITELIST_OAS
+ group-object WHITELIST_KYRIAKOS
+ network-object object MARIA_GEORGIADOU_INALAN
+object-group network WHITELIST_PLEX
+ group-object WHITELIST_KYRIAKOS
+ network-object object plex_sino_01
+ network-object object MARIA_GEORGIADOU_INALAN
+object-group network S2S_SKG_GRP_inside_nfs
+ network-object object GR_network-inside_nfs
+object-group network S2S_SKG_GRP_inside_corosync
+ network-object 10.0.X.X 255.255.255.248
+object-group network nloasXX
+ network-object object nloas01
+ network-object object nloas02
+ network-object object nloas03
+object-group network elliz[nloasXX]
+ network-object object elliz[nloas01]
+ network-object object elliz[nloas02]
+ network-object object elliz[nloas03]
+object-group service otlp tcp
+ port-object range 5080 5081
+ port-object eq https
+object-group network georgez[nloasXX]
+ network-object object georgez[nloas03]
+object-group network eu-nlgr-freeipa01
+ network-object object grfreeipa01
+ network-object object nlfreeipa01
+object-group network nlfcksns
+ network-object object nlfcksns01
+ network-object object nlfcksns02
+ network-object object nlfcksns03
+ network-object object nlfcksns04
+ network-object object nlfcksns05
+ network-object object nlfcksns06
+ network-object object nllyrion01
+ network-object object nlfcksns07
+object-group network nlcl01iotXX
+ network-object object nlcl01iot00
+ network-object object nlcl01iot01
+ network-object object nlcl01iot02
+object-group network whitelist_shun_nlgr_all_subnets
+ group-object gr_all_subnets
+ group-object nl_all_subnets
+object-group network BLACKLIST_FAIL2BAN
+ network-object host 185.156.46.108
+access-list inside_cctv_access_in extended permit tcp object nlunify01 object nln8n01 eq 5678 
+access-list inside_cctv_access_in extended permit tcp object nlunify01 object nlsmtp-gpg01 eq smtp 
+access-list inside_cctv_access_in extended permit object-group TCPUDP object nlunify01 object-group eu-nlgr-freeipa01 eq domain 
+access-list inside_cctv_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
+access-list inside_cctv_access_in extended deny tcp any any eq smtp 
+access-list inside_cctv_access_in extended permit udp any any eq ntp 
+access-list inside_cctv_access_in extended permit icmp any any echo-reply 
+access-list inside_cctv_access_in extended permit ip any any inactive 
+access-list inside_cctv_access_in extended permit icmp any any 
+access-list inside_cctv_access_in extended deny ip any any 
+access-list inside_cctv_access_in extended deny icmp any any 
+access-list outside_xs4all_access_in remark [Nginx Proxy Manager]
+access-list outside_xs4all_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlnpm01-xs4all-80-tcp eq www 
+access-list outside_xs4all_access_in remark [Nginx Proxy Manager]
+access-list outside_xs4all_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlnpm01-xs4all-443-tcp eq https 
+access-list outside_xs4all_access_in extended permit tcp object-group WHITELIST_OAS object nloas02-xs4all-888-tcp eq 888 
+access-list outside_xs4all_access_in extended permit udp object-group WHITELIST_OAS object nloas03-xs4all-999-udp eq 999 
+access-list outside_xs4all_access_in extended deny ip object-group BLACKLIST_FAIL2BAN any 
+access-list outside_xs4all_access_in extended deny icmp object-group BLACKLIST_FAIL2BAN any 
+access-list outside_xs4all_access_in extended deny ip any any 
+access-list outside_xs4all_access_in extended deny icmp any any 
+access-list global_access extended deny icmp any any 
+access-list inside_guest_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
+access-list inside_guest_access_in extended deny tcp any any eq smtp 
+access-list inside_guest_access_in extended deny ip any object-group nl_all_subnets 
+access-list inside_guest_access_in extended deny icmp any object-group nl_all_subnets 
+access-list inside_guest_access_in extended deny ip any object-group gr_all_subnets 
+access-list inside_guest_access_in extended deny icmp any object-group gr_all_subnets 
+access-list inside_guest_access_in extended permit ip 10.0.X.X 255.255.255.240 any 
+access-list inside_guest_access_in extended permit icmp 10.0.X.X 255.255.255.240 any 
+access-list inside_guest_access_in extended deny ip any any 
+access-list inside_guest_access_in extended deny icmp any any 
+access-list inside_servers01_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
+access-list inside_servers01_access_in extended deny tcp any any eq smtp 
+access-list inside_servers01_access_in extended permit ip any any 
+access-list inside_servers01_access_in extended permit icmp any any 
+access-list inside_servers01_access_in extended deny ip any any 
+access-list inside_servers01_access_in extended deny icmp any any 
+access-list inside_servers02_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
+access-list inside_servers02_access_in extended deny tcp any any eq smtp 
+access-list inside_servers02_access_in extended permit ip any any 
+access-list inside_servers02_access_in extended permit icmp any any 
+access-list inside_servers02_access_in extended deny ip any any 
+access-list inside_servers02_access_in extended deny icmp any any 
+access-list outside_freedom_tv_access_in extended deny ip object-group BLACKLIST_FAIL2BAN any 
+access-list outside_freedom_tv_access_in extended deny icmp object-group BLACKLIST_FAIL2BAN any 
+access-list outside_freedom_tv_access_in extended deny ip any any 
+access-list outside_freedom_tv_access_in extended deny icmp any any 
+access-list dmz_vpn01_access_in extended permit tcp any object gropenobserve01 object-group otlp 
+access-list dmz_vpn01_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
+access-list dmz_vpn01_access_in extended deny tcp any any eq smtp 
+access-list dmz_vpn01_access_in extended permit tcp object-group parents[oas01] object nlsynology01 eq 5001 
+access-list dmz_vpn01_access_in extended permit udp object-group parents[oas01] object nlpihole02 eq domain 
+access-list dmz_vpn01_access_in extended permit tcp object-group georgez[nloasXX] object nlnpm01-80-tcp eq www 
+access-list dmz_vpn01_access_in extended permit tcp object-group georgez[nloasXX] object nlnpm01-443-tcp eq https 
+access-list dmz_vpn01_access_in extended permit tcp object-group georgez[nloasXX] object nlhaproxy01 eq https 
+access-list dmz_vpn01_access_in extended permit tcp object-group georgez[nloasXX] object nlhaproxy02 eq https 
+access-list dmz_vpn01_access_in extended permit udp object-group georgez[nloasXX] object nlpihole02 eq domain 
+access-list dmz_vpn01_access_in extended permit ip object-group georgez[nloasXX] 10.0.X.X 255.255.255.0 inactive 
+access-list dmz_vpn01_access_in extended permit ip object-group elliz[nloasXX] 10.0.X.X 255.255.255.0 
+access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX] object-group S2S_SKG_GRP_inside_mgmt 
+access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX] object-group S2S_SKG_GRP_inside_servers01 
+access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX] object-group S2S_SKG_GRP_dmz_vpn01 
+access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX] 10.0.X.X 255.255.255.0 
+access-list dmz_vpn01_access_in extended permit udp object-group nloasXX object nlpihole02 eq domain 
+access-list dmz_vpn01_access_in extended permit udp object-group nloasXX object grpihole01 eq domain 
+access-list dmz_vpn01_access_in extended deny ip any object-group nl_all_subnets 
+access-list dmz_vpn01_access_in extended deny icmp any object-group nl_all_subnets 
+access-list dmz_vpn01_access_in extended deny ip any object-group gr_all_subnets 
+access-list dmz_vpn01_access_in extended deny icmp any object-group gr_all_subnets 
+access-list dmz_vpn01_access_in extended permit ip any any 
+access-list dmz_vpn01_access_in extended permit icmp any any 
+access-list dmz_vpn01_access_in extended deny ip any any 
+access-list dmz_vpn01_access_in extended deny icmp any any 
+access-list inside_iot_access_in extended deny ip object nlsonosplayfive01 any 
+access-list inside_iot_access_in extended permit tcp object-group nlfcksns object-group nlcl01iotXX eq 8123 inactive 
+access-list inside_iot_access_in extended permit object-group TCPUDP object-group nlfcksns object nlpihole02 eq domain inactive 
+access-list inside_iot_access_in extended permit object-group TCPUDP object-group nlfcksns object grpihole01 eq domain inactive 
+access-list inside_iot_access_in extended permit object-group TCPUDP object nllyrion01 object nlsynology01 eq nfs inactive 
+access-list inside_iot_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
+access-list inside_iot_access_in extended deny tcp any any eq smtp 
+access-list inside_iot_access_in extended deny ip any object-group nl_all_subnets 
+access-list inside_iot_access_in extended deny icmp any object-group nl_all_subnets 
+access-list inside_iot_access_in extended deny ip any object-group gr_all_subnets 
+access-list inside_iot_access_in extended deny icmp any object-group gr_all_subnets 
+access-list inside_iot_access_in extended permit ip 10.0.X.X 255.255.255.0 any 
+access-list inside_iot_access_in extended permit icmp 10.0.X.X 255.255.255.0 any 
+access-list inside_iot_access_in extended deny ip any any 
+access-list inside_iot_access_in extended deny icmp any any 
+access-list dmz_servers01_access_in extended permit tcp any object nlnpm01-443-tcp eq https 
+access-list dmz_servers01_access_in extended permit tcp any object ollama eq https 
+access-list dmz_servers01_access_in extended permit object-group TCPUDP any any eq domain 
+access-list dmz_servers01_access_in extended permit object-group TCPUDP any object nlpihole02 eq domain 
+access-list dmz_servers01_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
+access-list dmz_servers01_access_in extended deny tcp any any eq smtp 
+access-list dmz_servers01_access_in extended deny ip any object-group nl_all_subnets 
+access-list dmz_servers01_access_in extended deny icmp any object-group nl_all_subnets 
+access-list dmz_servers01_access_in extended deny ip any object-group gr_all_subnets 
+access-list dmz_servers01_access_in extended deny icmp any object-group gr_all_subnets 
+access-list dmz_servers01_access_in extended permit ip any any 
+access-list dmz_servers01_access_in extended permit icmp any any 
+access-list dmz_servers01_access_in extended deny ip any any 
+access-list dmz_servers01_access_in extended deny icmp any any 
+access-list outside_lte_access_in extended permit udp object nl-lte01 object nlsynology01 eq tftp 
+access-list outside_lte_access_in extended permit udp object nl-lte01 object nlsyslogng01 eq syslog 
+access-list outside_lte_access_in extended deny ip object-group BLACKLIST_FAIL2BAN any 
+access-list outside_lte_access_in extended deny icmp object-group BLACKLIST_FAIL2BAN any 
+access-list outside_lte_access_in extended deny ip any any 
+access-list outside_lte_access_in extended deny icmp any any 
+access-list outside_freedom_cryptomap_01 extended permit ip object-group S2S_LEI_GRP_inside_mgmt object-group S2S_SKG_GRP_inside_mgmt 
+access-list outside_freedom_cryptomap_02 extended permit ip object-group S2S_LEI_GRP_inside_mgmt object-group S2S_SKG_GRP_inside_neapoli 
+access-list outside_freedom_cryptomap_03 extended permit ip object-group S2S_LEI_GRP_inside_mgmt object-group S2S_SKG_GRP_inside_cctv 
+access-list outside_freedom_cryptomap_04 extended permit ip object-group S2S_LEI_GRP_inside_mgmt object-group S2S_SKG_GRP_inside_servers01 
+access-list outside_freedom_cryptomap_05 extended permit ip object-group S2S_LEI_GRP_inside_mgmt object-group S2S_SKG_GRP_dmz_servers01 
+access-list outside_freedom_cryptomap_06 extended permit ip object-group S2S_LEI_GRP_inside_mgmt object-group S2S_SKG_GRP_dmz_vpn01 
+access-list outside_freedom_cryptomap_07 extended permit ip object-group S2S_LEI_GRP_inside_mgmt object-group S2S_SKG_GRP_oas_vpn01 
+access-list outside_freedom_cryptomap_08 extended permit ip object-group S2S_LEI_GRP_inside_mgmt object-group S2S_SKG_GRP_oas_vpn02 
+access-list outside_freedom_cryptomap_09 extended permit ip object-group S2S_LEI_GRP_inside_mgmt object-group S2S_SKG_GRP_oas_vpn03 
+access-list outside_freedom_cryptomap_10 extended permit ip object-group S2S_LEI_GRP_inside_room_a object-group S2S_SKG_GRP_inside_mgmt 
+access-list outside_freedom_cryptomap_11 extended permit ip object-group S2S_LEI_GRP_inside_room_a object-group S2S_SKG_GRP_inside_neapoli 
+access-list outside_freedom_cryptomap_12 extended permit ip object-group S2S_LEI_GRP_inside_room_a object-group S2S_SKG_GRP_inside_cctv 
+access-list outside_freedom_cryptomap_13 extended permit ip object-group S2S_LEI_GRP_inside_room_a object-group S2S_SKG_GRP_inside_servers01 
+access-list outside_freedom_cryptomap_14 extended permit ip object-group S2S_LEI_GRP_inside_room_a object-group S2S_SKG_GRP_dmz_servers01 
+access-list outside_freedom_cryptomap_15 extended permit ip object-group S2S_LEI_GRP_inside_room_a object-group S2S_SKG_GRP_dmz_vpn01 
+access-list outside_freedom_cryptomap_16 extended permit ip object-group S2S_LEI_GRP_inside_room_a object-group S2S_SKG_GRP_oas_vpn01 
+access-list outside_freedom_cryptomap_17 extended permit ip object-group S2S_LEI_GRP_inside_room_a object-group S2S_SKG_GRP_oas_vpn02 
+access-list outside_freedom_cryptomap_18 extended permit ip object-group S2S_LEI_GRP_inside_room_a object-group S2S_SKG_GRP_oas_vpn03 
+access-list outside_freedom_cryptomap_19 extended permit ip object-group S2S_LEI_GRP_inside_cctv object-group S2S_SKG_GRP_inside_mgmt 
+access-list outside_freedom_cryptomap_20 extended permit ip object-group S2S_LEI_GRP_inside_cctv object-group S2S_SKG_GRP_inside_neapoli 
+access-list outside_freedom_cryptomap_21 extended permit ip object-group S2S_LEI_GRP_inside_cctv object-group S2S_SKG_GRP_inside_cctv 
+access-list outside_freedom_cryptomap_22 extended permit ip object-group S2S_LEI_GRP_inside_cctv object-group S2S_SKG_GRP_inside_servers01 
+access-list outside_freedom_cryptomap_23 extended permit ip object-group S2S_LEI_GRP_inside_cctv object-group S2S_SKG_GRP_dmz_servers01 
+access-list outside_freedom_cryptomap_24 extended permit ip object-group S2S_LEI_GRP_inside_cctv object-group S2S_SKG_GRP_dmz_vpn01 
+access-list outside_freedom_cryptomap_25 extended permit ip object-group S2S_LEI_GRP_inside_cctv object-group S2S_SKG_GRP_oas_vpn01 
+access-list outside_freedom_cryptomap_26 extended permit ip object-group S2S_LEI_GRP_inside_cctv object-group S2S_SKG_GRP_oas_vpn02 
+access-list outside_freedom_cryptomap_27 extended permit ip object-group S2S_LEI_GRP_inside_cctv object-group S2S_SKG_GRP_oas_vpn03 
+access-list dmz_servers02_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
+access-list dmz_servers02_access_in extended deny tcp any any eq smtp 
+access-list dmz_servers02_access_in extended deny ip any object-group nl_all_subnets 
+access-list dmz_servers02_access_in extended deny icmp any object-group nl_all_subnets 
+access-list dmz_servers02_access_in extended deny ip any object-group gr_all_subnets 
+access-list dmz_servers02_access_in extended deny icmp any object-group gr_all_subnets 
+access-list dmz_servers02_access_in extended permit ip any any 
+access-list dmz_servers02_access_in extended permit icmp any any 
+access-list dmz_servers02_access_in extended deny ip any any 
+access-list dmz_servers02_access_in extended deny icmp any any 
+access-list dmz_servers03_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
+access-list dmz_servers03_access_in extended deny tcp any any eq smtp 
+access-list dmz_servers03_access_in extended deny ip any object-group nl_all_subnets 
+access-list dmz_servers03_access_in extended deny icmp any object-group nl_all_subnets 
+access-list dmz_servers03_access_in extended deny ip any object-group gr_all_subnets 
+access-list dmz_servers03_access_in extended deny icmp any object-group gr_all_subnets 
+access-list dmz_servers03_access_in extended permit ip any any 
+access-list dmz_servers03_access_in extended permit icmp any any 
+access-list dmz_servers03_access_in extended deny ip any any 
+access-list dmz_servers03_access_in extended deny icmp any any 
+access-list inside_room_a_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
+access-list inside_room_a_access_in extended deny tcp any any eq smtp 
+access-list inside_room_a_access_in extended permit ip any any 
+access-list inside_room_a_access_in extended permit icmp any any 
+access-list inside_room_a_access_in extended deny ip any any 
+access-list inside_room_a_access_in extended deny icmp any any 
+access-list SPOCK[wireless]-THROTTLE-UP-ACL extended permit ip object GR-SPOCK[wireless] any inactive 
+access-list SPOCK[wireless]-THROTTLE-DOWN-ACL extended permit ip any object GR-SPOCK[wireless] inactive 
+access-list dmz_servers02-srv01-THROTTLE-DOWN-ACL extended permit ip any object dmz_servers02-srv01 inactive 
+access-list GUEST-THROTTLE-DOWN-ACL extended permit ip any any inactive 
+access-list global_mpc extended permit ip any any 
+access-list inside_mgmt_access_in extended permit tcp object nlsmtp-dkim01 any eq smtp 
+access-list inside_mgmt_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
+access-list inside_mgmt_access_in extended deny tcp any any eq smtp 
+access-list inside_mgmt_access_in extended permit ip any any 
+access-list inside_mgmt_access_in extended permit icmp any any 
+access-list inside_mgmt_access_in extended deny ip any any 
+access-list inside_mgmt_access_in extended deny icmp any any 
+access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlhpb01-3478-tcp eq 3478 
+access-list outside_freedom_access_in extended permit udp object-group WHITELIST_KYRIAKOS object nlhpb01-3478-udp eq 3478 
+access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlsftpgo01-2022-tcp eq 2022 
+access-list outside_freedom_access_in remark [ALLOW WHITELIST_KYRIAKOS TO SMTP TO nlsmtp-gpg01]
+access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlsmtp-gpg01-smtp eq smtp 
+access-list outside_freedom_access_in remark [Nginx Proxy Manager]
+access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlnpm01-80-tcp eq www 
+access-list outside_freedom_access_in remark [Nginx Proxy Manager]
+access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlnpm01-443-tcp eq https 
+access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_OAS object nloas01-443-tcp eq https 
+access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_OAS object nloas02-888-tcp eq 888 
+access-list outside_freedom_access_in extended permit udp object-group WHITELIST_OAS object nloas03-999-udp eq 999 
+access-list outside_freedom_access_in extended deny ip object-group BLACKLIST_FAIL2BAN any 
+access-list outside_freedom_access_in extended deny icmp object-group BLACKLIST_FAIL2BAN any 
+access-list outside_freedom_access_in extended deny ip any any 
+access-list outside_freedom_access_in extended deny icmp any any 
+access-list pbr_acl extended permit ip host 10.0.X.X any 
+access-list pbr_acl extended permit ip host 10.0.X.X any4 
+access-list inside_room_b_access_in extended deny tcp any any eq smtp 
+access-list inside_room_b_access_in extended deny ip any object-group nl_all_subnets 
+access-list inside_room_b_access_in extended deny icmp any object-group nl_all_subnets 
+access-list inside_room_b_access_in extended deny ip any object-group gr_all_subnets 
+access-list inside_room_b_access_in extended deny icmp any object-group gr_all_subnets 
+access-list inside_room_b_access_in extended permit ip 10.0.X.X 255.255.255.224 any 
+access-list inside_room_b_access_in extended permit icmp 10.0.X.X 255.255.255.224 any 
+access-list inside_room_b_access_in extended deny ip any any 
+access-list inside_room_b_access_in extended deny icmp any any 
+access-list inside_room_c_access_in extended deny tcp any any eq smtp 
+access-list inside_room_c_access_in extended deny ip any object-group nl_all_subnets 
+access-list inside_room_c_access_in extended deny icmp any object-group nl_all_subnets 
+access-list inside_room_c_access_in extended deny ip any object-group gr_all_subnets 
+access-list inside_room_c_access_in extended deny icmp any object-group gr_all_subnets 
+access-list inside_room_c_access_in extended permit ip 10.0.X.X 255.255.255.224 any 
+access-list inside_room_c_access_in extended permit icmp 10.0.X.X 255.255.255.224 any 
+access-list inside_room_c_access_in extended deny ip any any 
+access-list inside_room_c_access_in extended deny icmp any any 
+access-list inside_room_d_access_in extended deny tcp any any eq smtp 
+access-list inside_room_d_access_in extended deny ip any object-group nl_all_subnets 
+access-list inside_room_d_access_in extended deny icmp any object-group nl_all_subnets 
+access-list inside_room_d_access_in extended deny ip any object-group gr_all_subnets 
+access-list inside_room_d_access_in extended deny icmp any object-group gr_all_subnets 
+access-list inside_room_d_access_in extended permit ip 10.0.X.X 255.255.255.224 any 
+access-list inside_room_d_access_in extended permit icmp 10.0.X.X 255.255.255.224 any 
+access-list inside_room_d_access_in extended deny ip any any 
+access-list inside_room_d_access_in extended deny icmp any any 
+access-list outside_freedom_cryptomap_28 extended permit ip object-group S2S_LEI_GRP_inside_mgmt object-group S2S_SKG_GRP_inside_nfs 
+access-list outside_freedom_cryptomap_29 extended permit ip object-group S2S_LEI_GRP_inside_mgmt object-group S2S_SKG_GRP_inside_corosync 
+access-list outside_freedom_cryptomap_30 extended permit ip object-group S2S_LEI_GRP_inside_nfs object-group S2S_SKG_GRP_inside_nfs 
+access-list outside_freedom_cryptomap_31 extended permit ip object-group S2S_LEI_GRP_inside_corosync object-group S2S_SKG_GRP_inside_corosync 
+access-list outside_freedom_cryptomap_32 extended permit ip object-group S2S_LEI_GRP_inside_nfs object-group S2S_SKG_GRP_inside_mgmt 
+access-list outside_freedom_cryptomap_33 extended permit ip object-group S2S_LEI_GRP_inside_corosync object-group S2S_SKG_GRP_inside_mgmt 
+access-list inside_corosync_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
+access-list inside_corosync_access_in extended deny tcp any any eq smtp 
+access-list inside_corosync_access_in extended permit ip any any 
+access-list inside_corosync_access_in extended permit icmp any any 
+access-list inside_corosync_access_in extended deny ip any any 
+access-list inside_corosync_access_in extended deny icmp any any 
+access-list inside_nfs_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
+access-list inside_nfs_access_in extended deny tcp any any eq smtp 
+access-list inside_nfs_access_in extended permit ip any any 
+access-list inside_nfs_access_in extended permit icmp any any 
+access-list inside_nfs_access_in extended deny ip any any 
+access-list inside_nfs_access_in extended deny icmp any any 
+!
+tcp-map mptcp-tm
+  tcp-options range 30 30 allow
+!
+tcp-map tcp-mss-map
+!
+pager lines 24
+logging enable
+logging timestamp
+logging list email-alerts level emergencies
+logging list email-alerts message 605005
+logging list email-alerts message 772004
+logging list email-alerts message 113021
+logging list email-alerts message 611101
+logging list email-alerts message 606002
+logging list email-alerts message 772002
+logging list email-alerts message 308001
+logging list email-alerts message 605004
+logging list email-alerts message 606001
+logging list email-alerts message 315011
+logging list email-alerts message 611102
+logging list email-alerts message 752016
+logging list email-alerts message 411001
+logging list email-alerts message 411002
+logging list email-alerts message 750007
+logging list email-alerts message 622001
+logging list email-alerts message 750006
+logging buffer-size 8192
+logging asdm-buffer-size 500
+logging trap informational
+logging asdm informational
+logging mail email-alerts
+logging from-address nfizegmd@mxmx.email
+logging recipient-address nfizegmd@mxmx.email level emergencies
+logging host inside_mgmt 10.0.X.X
+logging host inside_mgmt 10.0.X.X
+logging host inside_mgmt 10.0.X.X
+logging rate-limit dynamic block 10 messagelimit 10
+flow-export destination inside_mgmt 10.0.X.X 2055
+flow-export destination inside_mgmt 10.0.X.X 2055
+flow-export destination inside_mgmt 10.0.X.X 2055
+flow-export destination inside_mgmt 10.0.X.X 9995
+flow-export template timeout-rate 1
+mtu Po1 1500
+mtu outside_xs4all 1492
+mtu outside_lte 1500
+mtu outside_freedom_tv 1500
+mtu inside_iot 1500
+mtu outside_freedom 1492
+mtu inside_room_b 1500
+mtu inside_room_c 1500
+mtu inside_room_d 1500
+mtu inside_mgmt 1500
+mtu inside_room_a 1500
+mtu inside_cctv 1500
+mtu inside_guest 1500
+mtu dmz_vpn01 1500
+mtu inside_servers01 1500
+mtu inside_servers02 1500
+mtu dmz_servers01 1500
+mtu dmz_servers02 1500
+mtu dmz_servers03 1500
+mtu inside_corosync 1500
+mtu inside_nfs 1500
+ip verify reverse-path interface outside_xs4all
+ip verify reverse-path interface outside_lte
+ip verify reverse-path interface outside_freedom_tv
+ip verify reverse-path interface outside_freedom
+no failover
+no failover wait-disable
+no monitor-interface outside_xs4all
+no monitor-interface outside_lte
+no monitor-interface outside_freedom_tv
+no monitor-interface inside_iot
+no monitor-interface outside_freedom
+no monitor-interface inside_room_b
+no monitor-interface inside_room_c
+no monitor-interface inside_room_d
+no monitor-interface inside_mgmt
+no monitor-interface inside_room_a
+no monitor-interface inside_cctv
+no monitor-interface inside_guest
+no monitor-interface dmz_vpn01
+no monitor-interface inside_servers01
+no monitor-interface inside_servers02
+no monitor-interface dmz_servers01
+no monitor-interface dmz_servers02
+no monitor-interface dmz_servers03
+no monitor-interface inside_corosync
+no monitor-interface inside_nfs
+no monitor-interface service-module 
+icmp unreachable rate-limit 1 burst-size 1
+asdm image disk0:/asdm-7201.bin
+asdm history enable
+arp timeout 14400
+arp permit-nonconnected
+arp rate-limit 16384
+nat (inside_mgmt,outside_xs4all) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_inside_mgmt S2S_SKG_GRP_inside_mgmt no-proxy-arp route-lookup
+nat (inside_mgmt,outside_xs4all) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_inside_neapoli S2S_SKG_GRP_inside_neapoli no-proxy-arp route-lookup
+nat (inside_mgmt,outside_xs4all) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_inside_cctv S2S_SKG_GRP_inside_cctv no-proxy-arp route-lookup
+nat (inside_mgmt,outside_xs4all) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_inside_servers01 S2S_SKG_GRP_inside_servers01 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_xs4all) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_dmz_servers01 S2S_SKG_GRP_dmz_servers01 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_xs4all) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_dmz_vpn01 S2S_SKG_GRP_dmz_vpn01 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_xs4all) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_oas_vpn01 S2S_SKG_GRP_oas_vpn01 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_xs4all) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_oas_vpn02 S2S_SKG_GRP_oas_vpn02 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_xs4all) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_oas_vpn03 S2S_SKG_GRP_oas_vpn03 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_xs4all) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_inside_nfs S2S_SKG_GRP_inside_nfs no-proxy-arp route-lookup
+nat (inside_mgmt,outside_xs4all) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_inside_corosync S2S_SKG_GRP_inside_corosync no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_inside_cctv S2S_SKG_GRP_inside_cctv no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_inside_servers01 S2S_SKG_GRP_inside_servers01 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_dmz_servers01 S2S_SKG_GRP_dmz_servers01 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_dmz_vpn01 S2S_SKG_GRP_dmz_vpn01 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_oas_vpn01 S2S_SKG_GRP_oas_vpn01 no-proxy-arp route-lookup
+nat (inside_cctv,outside_freedom) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_inside_mgmt S2S_SKG_GRP_inside_mgmt no-proxy-arp route-lookup
+nat (inside_cctv,outside_freedom) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_inside_neapoli S2S_SKG_GRP_inside_neapoli no-proxy-arp route-lookup
+nat (inside_cctv,outside_freedom) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_inside_cctv S2S_SKG_GRP_inside_cctv no-proxy-arp route-lookup
+nat (inside_cctv,outside_freedom) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_inside_servers01 S2S_SKG_GRP_inside_servers01 no-proxy-arp route-lookup
+nat (inside_cctv,outside_freedom) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_dmz_servers01 S2S_SKG_GRP_dmz_servers01 no-proxy-arp route-lookup
+nat (inside_cctv,outside_freedom) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_dmz_vpn01 S2S_SKG_GRP_dmz_vpn01 no-proxy-arp route-lookup
+nat (inside_cctv,outside_freedom) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_oas_vpn01 S2S_SKG_GRP_oas_vpn01 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_oas_vpn02 S2S_SKG_GRP_oas_vpn02 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_oas_vpn03 S2S_SKG_GRP_oas_vpn03 no-proxy-arp route-lookup
+nat (inside_cctv,outside_freedom) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_oas_vpn02 S2S_SKG_GRP_oas_vpn02 no-proxy-arp route-lookup
+nat (inside_cctv,outside_freedom) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_oas_vpn03 S2S_SKG_GRP_oas_vpn03 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_inside_neapoli S2S_SKG_GRP_inside_neapoli no-proxy-arp route-lookup
+nat (inside_room_a,outside_freedom) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_inside_mgmt S2S_SKG_GRP_inside_mgmt no-proxy-arp route-lookup
+nat (inside_room_a,outside_freedom) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_inside_neapoli S2S_SKG_GRP_inside_neapoli no-proxy-arp route-lookup
+nat (inside_room_a,outside_freedom) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_inside_cctv S2S_SKG_GRP_inside_cctv no-proxy-arp route-lookup
+nat (inside_room_a,outside_freedom) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_inside_servers01 S2S_SKG_GRP_inside_servers01 no-proxy-arp route-lookup
+nat (inside_room_a,outside_freedom) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_dmz_servers01 S2S_SKG_GRP_dmz_servers01 no-proxy-arp route-lookup
+nat (inside_room_a,outside_freedom) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_dmz_vpn01 S2S_SKG_GRP_dmz_vpn01 no-proxy-arp route-lookup
+nat (inside_room_a,outside_freedom) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_oas_vpn01 S2S_SKG_GRP_oas_vpn01 no-proxy-arp route-lookup
+nat (inside_room_a,outside_freedom) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_oas_vpn02 S2S_SKG_GRP_oas_vpn02 no-proxy-arp route-lookup
+nat (inside_room_a,outside_freedom) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_oas_vpn03 S2S_SKG_GRP_oas_vpn03 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_inside_mgmt S2S_SKG_GRP_inside_mgmt no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_inside_nfs S2S_SKG_GRP_inside_nfs no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_inside_corosync S2S_SKG_GRP_inside_corosync no-proxy-arp route-lookup
+nat (inside_nfs,outside_freedom) source static S2S_LEI_GRP_inside_nfs S2S_LEI_GRP_inside_nfs destination static S2S_SKG_GRP_inside_nfs S2S_SKG_GRP_inside_nfs no-proxy-arp route-lookup
+nat (inside_corosync,outside_freedom) source static S2S_LEI_GRP_inside_corosync S2S_LEI_GRP_inside_corosync destination static S2S_SKG_GRP_inside_corosync S2S_SKG_GRP_inside_corosync no-proxy-arp route-lookup
+nat (inside_nfs,outside_freedom) source static S2S_LEI_GRP_inside_nfs S2S_LEI_GRP_inside_nfs destination static S2S_SKG_GRP_inside_mgmt S2S_SKG_GRP_inside_mgmt no-proxy-arp route-lookup
+nat (inside_corosync,outside_freedom) source static S2S_LEI_GRP_inside_corosync S2S_LEI_GRP_inside_corosync destination static S2S_SKG_GRP_inside_mgmt S2S_SKG_GRP_inside_mgmt no-proxy-arp route-lookup
+!
+object network NAT_dmz_servers01
+ nat (dmz_servers01,outside_freedom) dynamic PUBLIC_dmz_servers01
+object network nlnpm01-80-tcp
+ nat (inside_mgmt,outside_freedom) static interface service tcp www www 
+object network nlnpm01-443-tcp
+ nat (inside_mgmt,outside_freedom) static interface service tcp https https 
+object network NAT_inside_room_a
+ nat (inside_room_a,outside_freedom) dynamic PUBLIC_inside_room_a
+object network NAT_inside_room_b
+ nat (inside_room_b,outside_freedom) dynamic PUBLIC_inside_room_b
+object network NAT_inside_room_c
+ nat (inside_room_c,outside_freedom) dynamic PUBLIC_inside_room_c
+object network NAT_inside_room_d
+ nat (inside_room_d,outside_freedom) dynamic PUBLIC_inside_room_d
+object network nloas01-443-tcp
+ nat (dmz_vpn01,outside_freedom) static PUBLIC_dmz_vpn01 service tcp https https 
+object network NAT_dmz_vpn01
+ nat (dmz_vpn01,outside_freedom) dynamic PUBLIC_dmz_vpn01
+object network nlsmtp-gpg01-smtp
+ nat (inside_mgmt,outside_freedom) static interface service tcp smtp smtp 
+object network nloas02-888-tcp
+ nat (dmz_vpn01,outside_freedom) static PUBLIC_dmz_vpn01 service tcp 888 888 
+object network nloas03-999-udp
+ nat (dmz_vpn01,outside_freedom) static PUBLIC_dmz_vpn01 service udp 999 999 
+object network nlnpm01-xs4all-80-tcp
+ nat (inside_mgmt,outside_xs4all) static interface service tcp www www 
+object network nlnpm01-xs4all-443-tcp
+ nat (inside_mgmt,outside_xs4all) static interface service tcp https https 
+object network nloas02-xs4all-888-tcp
+ nat (dmz_vpn01,outside_xs4all) static interface service tcp 888 888 
+object network nloas03-xs4all-999-udp
+ nat (dmz_vpn01,outside_xs4all) static interface service udp 999 999 
+object network nlsftpgo01-2022-tcp
+ nat (inside_mgmt,outside_freedom) static interface service tcp 2022 2022 
+object network nlhpb01-3478-tcp
+ nat (inside_mgmt,outside_freedom) static interface service tcp 3478 3478 
+object network nlhpb01-3478-udp
+ nat (inside_mgmt,outside_freedom) static interface service udp 3478 3478 
+!
+nat (dmz_servers01,outside_xs4all) after-auto source dynamic any interface
+nat (inside_mgmt,outside_xs4all) after-auto source dynamic any interface
+nat (inside_mgmt,outside_freedom) after-auto source dynamic any interface
+nat (inside_mgmt,outside_lte) after-auto source dynamic any interface
+nat (outside_lte,inside_mgmt) after-auto source dynamic any interface
+nat (inside_cctv,outside_freedom) after-auto source dynamic any interface
+nat (inside_iot,outside_xs4all) after-auto source dynamic any interface
+nat (inside_iot,outside_freedom) after-auto source dynamic any interface
+nat (inside_guest,outside_freedom) after-auto source dynamic any interface
+access-group outside_xs4all_access_in in interface outside_xs4all
+access-group outside_lte_access_in in interface outside_lte
+access-group outside_freedom_tv_access_in in interface outside_freedom_tv
+access-group inside_iot_access_in in interface inside_iot
+access-group outside_freedom_access_in in interface outside_freedom
+access-group inside_room_b_access_in in interface inside_room_b
+access-group inside_room_c_access_in in interface inside_room_c
+access-group inside_room_d_access_in in interface inside_room_d
+access-group inside_mgmt_access_in in interface inside_mgmt
+access-group inside_room_a_access_in in interface inside_room_a
+access-group inside_cctv_access_in in interface inside_cctv
+access-group inside_guest_access_in in interface inside_guest
+access-group dmz_vpn01_access_in in interface dmz_vpn01
+access-group inside_servers01_access_in in interface inside_servers01
+access-group inside_servers02_access_in in interface inside_servers02
+access-group dmz_servers01_access_in in interface dmz_servers01
+access-group dmz_servers02_access_in in interface dmz_servers02
+access-group dmz_servers03_access_in in interface dmz_servers03
+access-group inside_corosync_access_in in interface inside_corosync
+access-group inside_nfs_access_in in interface inside_nfs
+access-group global_access global
+!
+route-map pbr_map permit 10
+ match ip address pbr_acl
+ match ip route-source pbr_acl
+ set ip next-hop 10.0.X.X
+
+!
+route outside_lte 0.0.0.0 0.0.0.0 10.0.X.X 20
+route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
+route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
+route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
+timeout xlate 3:00:00
+timeout pat-xlate 0:00:30
+timeout conn 1:00:00 half-closed 0:10:00 udp 0:02:00 sctp 0:02:00 icmp 0:00:02
+timeout sunrpc 0:10:00 h323 0:05:00 h225 1:00:00 mgcp 0:05:00 mgcp-pat 0:05:00
+timeout sip 0:30:00 sip_media 0:02:00 sip-invite 0:03:00 sip-disconnect 0:02:00
+timeout sip-provisional-media 0:02:00 uauth 0:05:00 absolute
+timeout tcp-proxy-reassembly 0:01:00
+timeout floating-conn 0:00:00
+timeout conn-holddown 0:00:15
+timeout igp stale-route 0:01:10
+user-identity default-domain LOCAL
+aaa authentication enable console LOCAL 
+aaa authentication http console LOCAL 
+aaa authentication serial console LOCAL 
+aaa authentication ssh console LOCAL 
+aaa authentication login-history
+http server enable 444
+http server idle-timeout 60
+http 10.0.X.X 255.255.255.0 inside_mgmt
+snmp-server host inside_mgmt 10.0.X.X community uBnr@W9dKOu#7ifTdVbAi!k$=XKr9X version 2c
+snmp-server host inside_mgmt 10.0.X.X community uBnr@W9dKOu#7ifTdVbAi!k$=XKr9X version 2c
+no snmp-server location
+no snmp-server contact
+sysopt connection tcpmss 1452
+sla monitor 1
+ type echo protocol ipIcmpEcho 91.211.213.72 interface outside_freedom
+ frequency 10
+sla monitor schedule 1 life forever start-time now
+service sw-reset-button
+crypto ipsec ikev2 ipsec-proposal TSET
+ protocol esp encryption aes-256 aes-192
+ protocol esp integrity sha-1
+crypto ipsec ikev2 ipsec-proposal AES256
+ protocol esp encryption aes-256
+ protocol esp integrity sha-1
+crypto ipsec ikev2 ipsec-proposal AES192
+ protocol esp encryption aes-192
+ protocol esp integrity sha-1
+crypto ipsec ikev2 ipsec-proposal AES
+ protocol esp encryption aes
+ protocol esp integrity sha-1
+crypto ipsec ikev2 ipsec-proposal 3DES
+ protocol esp encryption aes
+ protocol esp integrity sha-1
+crypto ipsec ikev2 ipsec-proposal DES
+ protocol esp encryption aes
+ protocol esp integrity sha-1
+crypto ipsec profile IPSEC_PROFILE
+ set ikev2 ipsec-proposal TSET
+crypto ipsec security-association pmtu-aging 10
+crypto ipsec df-bit clear-df outside_xs4all
+crypto ipsec df-bit clear-df outside_freedom
+crypto map outside_freedom_map 1 match address outside_freedom_cryptomap_01
+crypto map outside_freedom_map 1 set peer 91.211.213.72 
+crypto map outside_freedom_map 1 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 2 match address outside_freedom_cryptomap_02
+crypto map outside_freedom_map 2 set peer 91.211.213.72 
+crypto map outside_freedom_map 2 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 3 match address outside_freedom_cryptomap_03
+crypto map outside_freedom_map 3 set peer 91.211.213.72 
+crypto map outside_freedom_map 3 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 4 match address outside_freedom_cryptomap_04
+crypto map outside_freedom_map 4 set peer 91.211.213.72 
+crypto map outside_freedom_map 4 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 5 match address outside_freedom_cryptomap_05
+crypto map outside_freedom_map 5 set peer 91.211.213.72 
+crypto map outside_freedom_map 5 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 6 match address outside_freedom_cryptomap_06
+crypto map outside_freedom_map 6 set peer 91.211.213.72 
+crypto map outside_freedom_map 6 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 7 match address outside_freedom_cryptomap_07
+crypto map outside_freedom_map 7 set peer 91.211.213.72 
+crypto map outside_freedom_map 7 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 8 match address outside_freedom_cryptomap_08
+crypto map outside_freedom_map 8 set peer 91.211.213.72 
+crypto map outside_freedom_map 8 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 9 match address outside_freedom_cryptomap_09
+crypto map outside_freedom_map 9 set peer 91.211.213.72 
+crypto map outside_freedom_map 9 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 10 match address outside_freedom_cryptomap_10
+crypto map outside_freedom_map 10 set peer 91.211.213.72 
+crypto map outside_freedom_map 10 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 11 match address outside_freedom_cryptomap_11
+crypto map outside_freedom_map 11 set peer 91.211.213.72 
+crypto map outside_freedom_map 11 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 12 match address outside_freedom_cryptomap_12
+crypto map outside_freedom_map 12 set peer 91.211.213.72 
+crypto map outside_freedom_map 12 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 13 match address outside_freedom_cryptomap_13
+crypto map outside_freedom_map 13 set peer 91.211.213.72 
+crypto map outside_freedom_map 13 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 14 match address outside_freedom_cryptomap_14
+crypto map outside_freedom_map 14 set peer 91.211.213.72 
+crypto map outside_freedom_map 14 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 15 match address outside_freedom_cryptomap_15
+crypto map outside_freedom_map 15 set peer 91.211.213.72 
+crypto map outside_freedom_map 15 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 16 match address outside_freedom_cryptomap_16
+crypto map outside_freedom_map 16 set peer 91.211.213.72 
+crypto map outside_freedom_map 16 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 17 match address outside_freedom_cryptomap_17
+crypto map outside_freedom_map 17 set peer 91.211.213.72 
+crypto map outside_freedom_map 17 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 18 match address outside_freedom_cryptomap_18
+crypto map outside_freedom_map 18 set peer 91.211.213.72 
+crypto map outside_freedom_map 18 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 19 match address outside_freedom_cryptomap_19
+crypto map outside_freedom_map 19 set peer 91.211.213.72 
+crypto map outside_freedom_map 19 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 20 match address outside_freedom_cryptomap_20
+crypto map outside_freedom_map 20 set peer 91.211.213.72 
+crypto map outside_freedom_map 20 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 21 match address outside_freedom_cryptomap_21
+crypto map outside_freedom_map 21 set peer 91.211.213.72 
+crypto map outside_freedom_map 21 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 22 match address outside_freedom_cryptomap_22
+crypto map outside_freedom_map 22 set peer 91.211.213.72 
+crypto map outside_freedom_map 22 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 23 match address outside_freedom_cryptomap_23
+crypto map outside_freedom_map 23 set peer 91.211.213.72 
+crypto map outside_freedom_map 23 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 24 match address outside_freedom_cryptomap_24
+crypto map outside_freedom_map 24 set peer 91.211.213.72 
+crypto map outside_freedom_map 24 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 25 match address outside_freedom_cryptomap_25
+crypto map outside_freedom_map 25 set peer 91.211.213.72 
+crypto map outside_freedom_map 25 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 26 match address outside_freedom_cryptomap_26
+crypto map outside_freedom_map 26 set peer 91.211.213.72 
+crypto map outside_freedom_map 26 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 27 match address outside_freedom_cryptomap_27
+crypto map outside_freedom_map 27 set peer 91.211.213.72 
+crypto map outside_freedom_map 27 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 28 match address outside_freedom_cryptomap_28
+crypto map outside_freedom_map 28 set peer 91.211.213.72 
+crypto map outside_freedom_map 28 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 29 match address outside_freedom_cryptomap_29
+crypto map outside_freedom_map 29 set peer 91.211.213.72 
+crypto map outside_freedom_map 29 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 30 match address outside_freedom_cryptomap_30
+crypto map outside_freedom_map 30 set peer 91.211.213.72 
+crypto map outside_freedom_map 30 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 31 match address outside_freedom_cryptomap_31
+crypto map outside_freedom_map 31 set peer 91.211.213.72 
+crypto map outside_freedom_map 31 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 32 match address outside_freedom_cryptomap_32
+crypto map outside_freedom_map 32 set peer 91.211.213.72 
+crypto map outside_freedom_map 32 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 33 match address outside_freedom_cryptomap_33
+crypto map outside_freedom_map 33 set peer 91.211.213.72 
+crypto map outside_freedom_map 33 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map interface outside_freedom
+crypto map outside_xs4all_map 1 match address outside_freedom_cryptomap_01
+crypto map outside_xs4all_map 1 set peer 91.211.213.72 
+crypto map outside_xs4all_map 1 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 2 match address outside_freedom_cryptomap_02
+crypto map outside_xs4all_map 2 set peer 91.211.213.72 
+crypto map outside_xs4all_map 2 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 3 match address outside_freedom_cryptomap_03
+crypto map outside_xs4all_map 3 set peer 91.211.213.72 
+crypto map outside_xs4all_map 3 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 4 match address outside_freedom_cryptomap_04
+crypto map outside_xs4all_map 4 set peer 91.211.213.72 
+crypto map outside_xs4all_map 4 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 5 match address outside_freedom_cryptomap_05
+crypto map outside_xs4all_map 5 set peer 91.211.213.72 
+crypto map outside_xs4all_map 5 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 6 match address outside_freedom_cryptomap_06
+crypto map outside_xs4all_map 6 set peer 91.211.213.72 
+crypto map outside_xs4all_map 6 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 7 match address outside_freedom_cryptomap_07
+crypto map outside_xs4all_map 7 set peer 91.211.213.72 
+crypto map outside_xs4all_map 7 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 8 match address outside_freedom_cryptomap_08
+crypto map outside_xs4all_map 8 set peer 91.211.213.72 
+crypto map outside_xs4all_map 8 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 9 match address outside_freedom_cryptomap_09
+crypto map outside_xs4all_map 9 set peer 91.211.213.72 
+crypto map outside_xs4all_map 9 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 10 match address outside_freedom_cryptomap_10
+crypto map outside_xs4all_map 10 set peer 91.211.213.72 
+crypto map outside_xs4all_map 10 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 11 match address outside_freedom_cryptomap_11
+crypto map outside_xs4all_map 11 set peer 91.211.213.72 
+crypto map outside_xs4all_map 11 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 12 match address outside_freedom_cryptomap_12
+crypto map outside_xs4all_map 12 set peer 91.211.213.72 
+crypto map outside_xs4all_map 12 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 13 match address outside_freedom_cryptomap_13
+crypto map outside_xs4all_map 13 set peer 91.211.213.72 
+crypto map outside_xs4all_map 13 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 14 match address outside_freedom_cryptomap_14
+crypto map outside_xs4all_map 14 set peer 91.211.213.72 
+crypto map outside_xs4all_map 14 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 15 match address outside_freedom_cryptomap_15
+crypto map outside_xs4all_map 15 set peer 91.211.213.72 
+crypto map outside_xs4all_map 15 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 16 match address outside_freedom_cryptomap_16
+crypto map outside_xs4all_map 16 set peer 91.211.213.72 
+crypto map outside_xs4all_map 16 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 17 match address outside_freedom_cryptomap_17
+crypto map outside_xs4all_map 17 set peer 91.211.213.72 
+crypto map outside_xs4all_map 17 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 18 match address outside_freedom_cryptomap_18
+crypto map outside_xs4all_map 18 set peer 91.211.213.72 
+crypto map outside_xs4all_map 18 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 19 match address outside_freedom_cryptomap_19
+crypto map outside_xs4all_map 19 set peer 91.211.213.72 
+crypto map outside_xs4all_map 19 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 20 match address outside_freedom_cryptomap_20
+crypto map outside_xs4all_map 20 set peer 91.211.213.72 
+crypto map outside_xs4all_map 20 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 21 match address outside_freedom_cryptomap_21
+crypto map outside_xs4all_map 21 set peer 91.211.213.72 
+crypto map outside_xs4all_map 21 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 22 match address outside_freedom_cryptomap_22
+crypto map outside_xs4all_map 22 set peer 91.211.213.72 
+crypto map outside_xs4all_map 22 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 23 match address outside_freedom_cryptomap_23
+crypto map outside_xs4all_map 23 set peer 91.211.213.72 
+crypto map outside_xs4all_map 23 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 24 match address outside_freedom_cryptomap_24
+crypto map outside_xs4all_map 24 set peer 91.211.213.72 
+crypto map outside_xs4all_map 24 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 25 match address outside_freedom_cryptomap_25
+crypto map outside_xs4all_map 25 set peer 91.211.213.72 
+crypto map outside_xs4all_map 25 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 26 match address outside_freedom_cryptomap_26
+crypto map outside_xs4all_map 26 set peer 91.211.213.72 
+crypto map outside_xs4all_map 26 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 27 match address outside_freedom_cryptomap_27
+crypto map outside_xs4all_map 27 set peer 91.211.213.72 
+crypto map outside_xs4all_map 27 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 28 match address outside_freedom_cryptomap_28
+crypto map outside_xs4all_map 28 set peer 91.211.213.72 
+crypto map outside_xs4all_map 28 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 29 match address outside_freedom_cryptomap_29
+crypto map outside_xs4all_map 29 set peer 91.211.213.72 
+crypto map outside_xs4all_map 29 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 30 match address outside_freedom_cryptomap_30
+crypto map outside_xs4all_map 30 set peer 91.211.213.72 
+crypto map outside_xs4all_map 30 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 31 match address outside_freedom_cryptomap_31
+crypto map outside_xs4all_map 31 set peer 91.211.213.72 
+crypto map outside_xs4all_map 31 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 32 match address outside_freedom_cryptomap_32
+crypto map outside_xs4all_map 32 set peer 91.211.213.72 
+crypto map outside_xs4all_map 32 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 33 match address outside_freedom_cryptomap_33
+crypto map outside_xs4all_map 33 set peer 91.211.213.72 
+crypto map outside_xs4all_map 33 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map interface outside_xs4all
+crypto ca trustpool policy
+crypto isakmp nat-traversal 10
+crypto ikev2 policy 1
+ encryption aes-256
+ integrity sha512
+ group 14
+ prf sha512
+ lifetime seconds 86400
+crypto ikev2 enable outside_xs4all
+crypto ikev2 enable outside_freedom
+crypto ikev2 fragmentation mtu 1200
+!
+track 1 rtr 1 reachability
+telnet timeout 5
+ssh stricthostkeycheck
+ssh timeout 60
+ssh version 2
+ssh cipher encryption high
+ssh key-exchange group ecdh-sha2-nistp256
+ssh 10.0.X.X 255.255.255.0 inside_mgmt
+console timeout 0
+vpdn group Freedom request dialout pppoe
+vpdn group Freedom localname fake@freedom.nl
+vpdn group Freedom ppp authentication pap
+vpdn group XS4ALL request dialout pppoe
+vpdn group XS4ALL localname fb7360@xs4all.nl
+vpdn group XS4ALL ppp authentication pap
+vpdn username fb7360@xs4all.nl password kpn store-local
+vpdn username fake@freedom.nl password 1234 
+
+dhcpd address 10.0.X.X-10.0.X.X inside_iot
+dhcpd dns 1.1.1.1 8.8.8.8 interface inside_iot
+dhcpd enable inside_iot
+dhcpd reserve-address 10.0.X.X 5c2f.af02.ed56 inside_iot
+dhcpd reserve-address 10.0.X.X 5c2f.af04.b1fa inside_iot
+dhcpd reserve-address 10.0.X.X 3c39.e72f.816a inside_iot
+dhcpd reserve-address 10.0.X.X 00d0.2dc0.0298 inside_iot
+dhcpd reserve-address 10.0.X.X 18b4.30b6.9dd0 inside_iot
+dhcpd reserve-address 10.0.X.X 18b4.30b6.9127 inside_iot
+dhcpd reserve-address 10.0.X.X 18b4.30b6.93ae inside_iot
+dhcpd reserve-address 10.0.X.X 18b4.30b6.7fff inside_iot
+dhcpd reserve-address 10.0.X.X 18b4.30b6.a21d inside_iot
+dhcpd reserve-address 10.0.X.X 18b4.30b6.a0b6 inside_iot
+dhcpd reserve-address 10.0.X.X 1800.db08.e12e inside_iot
+dhcpd reserve-address 10.0.X.X e8c1.d705.fabc inside_iot
+dhcpd reserve-address 10.0.X.X 84f3.eb86.c7d8 inside_iot
+dhcpd reserve-address 10.0.X.X bcdd.c285.cd74 inside_iot
+dhcpd reserve-address 10.0.X.X 1052.1c00.9385 inside_iot
+dhcpd reserve-address 10.0.X.X 6001.9455.60c9 inside_iot
+dhcpd reserve-address 10.0.X.X 84cc.a89b.d233 inside_iot
+dhcpd reserve-address 10.0.X.X 84f3.eb46.6709 inside_iot
+dhcpd reserve-address 10.0.X.X b4e6.2d19.8677 inside_iot
+dhcpd reserve-address 10.0.X.X ecfa.bc1b.5c09 inside_iot
+dhcpd reserve-address 10.0.X.X 84f3.eb46.640d inside_iot
+dhcpd reserve-address 10.0.X.X 3c61.05ee.6b5b inside_iot
+dhcpd reserve-address 10.0.X.X 5c01.3b88.00f8 inside_iot
+dhcpd reserve-address 10.0.X.X e4b3.23ea.d790 inside_iot
+dhcpd reserve-address 10.0.X.X 001d.c084.79a0 inside_iot
+dhcpd reserve-address 10.0.X.X b8e9.372e.25d0 inside_iot
+!
+dhcpd address 10.0.X.X-10.0.X.X inside_room_b
+dhcpd dns 185.93.175.43 185.232.98.76 interface inside_room_b
+dhcpd enable inside_room_b
+!
+dhcpd address 10.0.X.X-10.0.X.X inside_room_c
+dhcpd dns 185.93.175.43 185.232.98.76 interface inside_room_c
+dhcpd enable inside_room_c
+!
+dhcpd address 10.0.X.X-10.0.X.X inside_room_d
+dhcpd dns 185.93.175.43 185.232.98.76 interface inside_room_d
+dhcpd enable inside_room_d
+!
+dhcpd address 10.0.X.X-10.0.X.X inside_mgmt
+dhcpd dns 10.0.X.X interface inside_mgmt
+dhcpd domain example.net interface inside_mgmt
+dhcpd enable inside_mgmt
+dhcpd reserve-address 10.0.X.X 2ccf.677b.9682 inside_mgmt
+dhcpd reserve-address 10.0.X.X d83a.dd9c.55f9 inside_mgmt
+dhcpd reserve-address 10.0.X.X 2ccf.6728.2cdd inside_mgmt
+dhcpd reserve-address 10.0.X.X 2ccf.6792.f4d3 inside_mgmt
+dhcpd reserve-address 10.0.X.X 2ccf.6792.dfc5 inside_mgmt
+dhcpd reserve-address 10.0.X.X 2ccf.6792.f4b9 inside_mgmt
+dhcpd reserve-address 10.0.X.X 2ccf.6793.a93b inside_mgmt
+dhcpd reserve-address 10.0.X.X 3c91.80bd.ba67 inside_mgmt
+dhcpd reserve-address 10.0.X.X e8d5.2b4e.a838 inside_mgmt
+dhcpd reserve-address 10.0.X.X 08f9.e06d.b457 inside_mgmt
+dhcpd reserve-address 10.0.X.X 08d1.f96b.b4a8 inside_mgmt
+dhcpd reserve-address 10.0.X.X 28d0.434f.e889 inside_mgmt
+dhcpd reserve-address 10.0.X.X 20f8.3b09.57d2 inside_mgmt
+dhcpd reserve-address 10.0.X.X 3c84.27ca.8f1c inside_mgmt
+dhcpd reserve-address 10.0.X.X 142b.2fa1.3ef4 inside_mgmt
+dhcpd reserve-address 10.0.X.X 004b.12ed.7d6b inside_mgmt
+dhcpd reserve-address 10.0.X.X 0400.6e8d.b48b inside_mgmt
+dhcpd reserve-address 10.0.X.X 28a0.6b9d.e928 inside_mgmt
+dhcpd reserve-address 10.0.X.X 2800.af37.7825 inside_mgmt
+dhcpd reserve-address 10.0.X.X a0b7.65ef.0ea3 inside_mgmt
+dhcpd reserve-address 10.0.X.X e86b.ea30.4b7c inside_mgmt
+dhcpd reserve-address 10.0.X.X 2829.867f.3e90 inside_mgmt
+dhcpd reserve-address 10.0.X.X 1c5a.6be8.3fa6 inside_mgmt
+dhcpd reserve-address 10.0.X.X 542a.a2ce.318e inside_mgmt
+dhcpd reserve-address 10.0.X.X 14b1.c800.6c63 inside_mgmt
+dhcpd reserve-address 10.0.X.X d83a.dddf.d3e7 inside_mgmt
+dhcpd reserve-address 10.0.X.X d83a.dddf.d3e6 inside_mgmt
+dhcpd reserve-address 10.0.X.X 0004.4bcc.85de inside_mgmt
+dhcpd reserve-address 10.0.X.X 0004.4bcc.85e0 inside_mgmt
+dhcpd reserve-address 10.0.X.X 8887.172c.aaad inside_mgmt
+dhcpd reserve-address 10.0.X.X b48c.9d7d.3577 inside_mgmt
+dhcpd reserve-address 10.0.X.X f8e4.3b2e.085e inside_mgmt
+dhcpd reserve-address 10.0.X.X 3035.add8.6cb8 inside_mgmt
+dhcpd reserve-address 10.0.X.X 388f.3029.4d96 inside_mgmt
+dhcpd reserve-address 10.0.X.X 94e6.f75e.2112 inside_mgmt
+dhcpd reserve-address 10.0.X.X 98e7.43d3.7ebe inside_mgmt
+dhcpd reserve-address 10.0.X.X f402.2845.fb0d inside_mgmt
+!
+dhcpd address 10.0.X.X-10.0.X.X inside_room_a
+dhcpd dns 185.93.175.43 185.232.98.76 interface inside_room_a
+dhcpd enable inside_room_a
+dhcpd reserve-address 10.0.X.X 3842.0b9c.83e6 inside_room_a
+dhcpd reserve-address 10.0.X.X 3842.0b9c.7ef2 inside_room_a
+dhcpd reserve-address 10.0.X.X 3842.0b9a.11f0 inside_room_a
+dhcpd reserve-address 10.0.X.X 3842.0b9a.11c8 inside_room_a
+dhcpd reserve-address 10.0.X.X 3842.0b9c.568e inside_room_a
+dhcpd reserve-address 10.0.X.X 3842.0b9c.5b14 inside_room_a
+!
+dhcpd address 10.0.X.X-10.0.X.X inside_cctv
+dhcpd dns 185.93.175.43 185.232.98.76 interface inside_cctv
+dhcpd enable inside_cctv
+dhcpd reserve-address 10.0.X.X f492.bf86.f8db inside_cctv
+dhcpd reserve-address 10.0.X.X 68d7.9ae2.d2f7 inside_cctv
+dhcpd reserve-address 10.0.X.X 1c61.b4bf.ab89 inside_cctv
+dhcpd reserve-address 10.0.X.X 28ee.52e4.0cda inside_cctv
+dhcpd reserve-address 10.0.X.X e4c3.2a2c.1c50 inside_cctv
+!
+dhcpd address 10.0.X.X-10.0.X.X inside_guest
+dhcpd dns 185.93.175.43 185.232.98.76 interface inside_guest
+dhcpd enable inside_guest
+!
+dhcprelay timeout 60
+threat-detection basic-threat
+threat-detection scanning-threat shun except object-group whitelist_shun_nlgr_all_subnets
+threat-detection statistics
+threat-detection statistics tcp-intercept rate-interval 30 burst-rate 400 average-rate 200
+ntp server 86.59.80.170
+ntp server 148.251.69.59
+group-policy GroupPolicy_91.211.213.72 internal
+group-policy GroupPolicy_91.211.213.72 attributes
+ vpn-tunnel-protocol ikev2 
+dynamic-access-policy-record DfltAccessPolicy
+username kyriakosp password $sha512$5000$qBRNGIz3vGWx/x35gkNAmQ==$PKqQ77xYqjZyH26vwXI+lA== pbkdf2 privilege 15
+tunnel-group 91.211.213.72 type ipsec-l2l
+tunnel-group 91.211.213.72 general-attributes
+ default-group-policy GroupPolicy_91.211.213.72
+tunnel-group 91.211.213.72 ipsec-attributes
+ isakmp keepalive threshold 10 retry 5
+ ikev2 remote-authentication pre-shared-key gXveTE|XF+o"y|.d`6YD9zKgMJb$si-%<p0:k^uqGB|/5l;f``Xnu--4`@iV=dpf6SqHI1(2id8kLp_I5jgJSNT7mdS3@Hy\ZG
+ ikev2 local-authentication pre-shared-key x%umgBb]hs"7jS}wVQ1CF43HtPts-YM\!h@b@0`Aqx'3+d@o}8xNlQo'3LZ,wvve5qnF6g{#>i'tWDp}*/n,(LMEPRZ*Av0t&^
+!
+class-map global-class
+ match access-list global_mpc
+class-map mptcp-cm
+ match any
+class-map GUEST-THROTTLE-DOWN-CM
+ match access-list GUEST-THROTTLE-DOWN-ACL
+class-map inspection_default
+ match default-inspection-traffic
+class-map SPOCK[wireless]-THROTTLE-UP-CM
+ match access-list SPOCK[wireless]-THROTTLE-UP-ACL
+class-map dmz_servers02-srv01-THROTTLE-DOWN-CM
+ match access-list dmz_servers02-srv01-THROTTLE-DOWN-ACL
+class-map SPOCK[wireless]-THROTTLE-DOWN-CM
+ match access-list SPOCK[wireless]-THROTTLE-DOWN-ACL
+!
+!
+policy-map type inspect dns preset_dns_map
+ parameters
+  message-length maximum client auto
+  message-length maximum 512
+  no tcp-inspection
+policy-map mptcp-pm
+ class mptcp-cm
+  set connection advanced-options mptcp-tm
+policy-map global_policy
+ description elastiflow
+ class inspection_default
+  inspect dns preset_dns_map 
+  inspect ftp 
+  inspect h323 h225 
+  inspect h323 ras 
+  inspect rsh 
+  inspect rtsp 
+  inspect esmtp 
+  inspect sqlnet 
+  inspect skinny 
+  inspect sunrpc 
+  inspect xdmcp 
+  inspect netbios 
+  inspect tftp 
+  inspect ip-options 
+  inspect snmp 
+  inspect sip  
+  inspect icmp 
+  inspect icmp error 
+ class global-class
+ class class-default
+  user-statistics accounting
+  set connection advanced-options mptcp-tm
+  flow-export event-type all destination 10.0.X.X 10.0.X.X 10.0.X.X 10.0.X.X
+policy-map SPOCK[wireless]-THROTTLE-DOWN-PM
+ class SPOCK[wireless]-THROTTLE-DOWN-CM
+  police input 33000000 16500
+policy-map dmz_servers02-srv01-THROTTLE-DOWN-PM
+ class dmz_servers02-srv01-THROTTLE-DOWN-CM
+  police input 33000000 16500
+policy-map GUEST-THROTTLE-DOWN-PM
+ class GUEST-THROTTLE-DOWN-CM
+  police input 32000000 16000
+policy-map SPOCK[wireless]-THROTTLE-UP-PM
+ class SPOCK[wireless]-THROTTLE-UP-CM
+  police output 1000000 2000
+!
+service-policy global_policy global
+smtp-server 10.0.X.X 10.0.X.X
+prompt hostname context 
+no call-home reporting anonymous
+hpm topN enable
+event manager applet dailybackup
+ description "Backup the nlfw01 at midnight"
+ event timer absolute time 0:58:00
+ action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
+ output none
+Cryptochecksum:8ac1ec0b35ccfed1b10e9560ed22aa53
+
