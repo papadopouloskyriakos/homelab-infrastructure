@@ -5,7 +5,7 @@ build_arg_defaults:
   EE_BASE_IMAGE: quay.io/ansible/awx-ee:latest
 
 dependencies:
-  python: requirements.txt
+  python: collections/requirements.txt
   galaxy: collections/requirements.yml  # ← Added subdirectory path
 
 additional_build_steps:
