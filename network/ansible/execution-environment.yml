@@ -1,22 +1,22 @@
 ---
 version: 3
 
-# This is the ONLY correct top-level key for ansible-builder v3+
 dependencies:
   python:
     - ciscoconfparse==1.9.41
     - dnspython==2.6.1
     - netmiko>=4.0.0
     - pyyaml>=6.0
-
   galaxy:
     collections:
-      - cisco.ios
-      - cisco.asa
+      - name: cisco.ios
+      - name: cisco.asa
 
-# Optional: extra build steps (labels, version file, etc.)
 additional_build_steps:
   prepend_final:
     - RUN echo "Cisco Custom EE – built on $(date)" > /etc/cisco-ee-build.txt
     - LABEL maintainer="infrastructure@example.net"
     - LABEL description="Custom EE for Cisco config validation & deployment"
+
+build_arg_defaults:
+  EE_BASE_IMAGE: "quay.io/ansible/awx-ee:latest"
