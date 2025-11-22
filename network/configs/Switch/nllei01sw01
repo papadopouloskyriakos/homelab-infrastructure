@@ -1,0 +1,992 @@
+! Cisco IOS XE Software, Version 16.12.12
+! 
+! Image: Software: CAT3K_CAA-UNIVERSALK9-M, 16.12.12, RELEASE SOFTWARE (fc2)
+! Image: Compiled: Thu 12-Sep-24 03:45 by mcpre
+! Image: flash:packages.conf
+! Chassis type: WS-C3850-12X48U
+! Memory: main 794817K/6147K
+! Processor ID: FCW2028C23D
+! CPU: MIPS
+! Memory: nvram 2048K
+! 
+! VTP: VTP Version capable             : 1 to 3
+! VTP: VTP version running             : 1
+! VTP: VTP Domain Name                 : 
+! VTP: VTP Pruning Mode                : Disabled
+! VTP: VTP Traps Generation            : Disabled
+! VTP: Device ID                       : 00a2.89b0.cc80
+! VTP: Local updater ID is 10.0.X.X on interface Vl10 (lowest numbered VLAN interface found)
+! VTP: Feature VLAN:
+! VTP: --------------
+! VTP: VTP Operating Mode                : Server
+! VTP: Maximum VLANs supported locally   : 1005
+! VTP: Number of existing VLANs          : 22
+! VTP: Configuration Revision            : 28
+! VTP: MD5 digest                        : 0xF1 0x93 0xE6 0x23 0x09 0x84 0x42 0xA0 
+! VTP:                                     0x3B 0xD3 0xE2 0xA7 0x66 0x4B 0x88 0xD0 
+! 
+! NAME: "c38xx Stack", DESCR: "c38xx Stack"
+! PID: WS-C3850-12X48UL-S, VID: V02  , SN: FCW2028C23D
+! 
+! NAME: "Switch 1", DESCR: "WS-C3850-12X48UL-S"
+! PID: WS-C3850-12X48UL-S, VID: V02  , SN: FCW2028C23D
+! 
+! NAME: "Switch 1 - Power Supply B", DESCR: "Switch 1 - Power Supply B"
+! PID: PWR-C1-1100WAC    , VID: V01  , SN: LIT20081356
+! 
+! NAME: "Switch 1 FRU Uplink Module 1", DESCR: "8x10G Uplink Module"
+! PID: C3850-NM-8-10G    , VID: V02  , SN: FOC23150AHG
+! 
+! NAME: "Te1/1/3", DESCR: "SFP-10GBase-SR"
+! PID: SFP-10G-SR          , VID: V03  , SN: CSY101O94448    
+! 
+! NAME: "Te1/1/4", DESCR: "SFP-10GBase-SR"
+! PID:                     , VID:      , SN: CSY101MC3228    
+! 
+! NAME: "Te1/1/5", DESCR: "SFP-10GBase-SR"
+! PID: SFP-10G-SR          , VID: V03  , SN: CSY101O94443    
+! 
+! NAME: "Te1/1/6", DESCR: "SFP-10GBase-SR"
+! PID: SFP-10G-SR          , VID: V03  , SN: CSY101O94439    
+! 
+! NAME: "Te1/1/7", DESCR: "SFP-10GBase-SR"
+! PID:                     , VID:      , SN: CSY101N76353    
+! 
+! NAME: "Te1/1/8", DESCR: "SFP-10GBase-SR"
+! PID: SFP-10G-SR          , VID: V03  , SN: CSY101O94519    
+! 
+! 
+!
+! Last configuration change at 19:13:56 CET Fri Nov 21 2025 by kyriakosp
+! NVRAM config last updated at 19:13:57 CET Fri Nov 21 2025 by kyriakosp
+!
+version 16.12
+no service pad
+service tcp-keepalives-in
+service tcp-keepalives-out
+service timestamps debug datetime msec localtime show-timezone
+service timestamps log datetime msec localtime show-timezone
+service password-encryption
+service sequence-numbers
+no service dhcp
+service call-home
+service unsupported-transceiver
+no platform punt-keepalive disable-kernel-core
+platform management port rate-limt-enabled
+!
+hostname nlsw01
+!
+!
+vrf definition Mgmt-vrf
+ !
+ address-family ipv4
+ exit-address-family
+ !
+ address-family ipv6
+ exit-address-family
+!
+logging count
+logging buffered 1048576 warnings
+logging console warnings
+no logging monitor
+enable secret 9 $14$jLjD$k62A5XJGlN0RvE$.2L18HX2sCSv5CPduELAhrbeZxugzYOULzEFkzDXFEk
+!
+aaa new-model
+!
+!
+aaa authentication login default local
+!
+!
+!
+!
+!
+!
+aaa session-id common
+clock timezone CET 1 0
+clock summer-time CEST recurring last Sun Mar 2:00 last Sun Oct 3:00
+switch 1 provision ws-c3850-12x48u
+!
+!
+!
+!
+call-home
+ ! If contact email address in call-home is configured as sch-smart-licensing@cisco.com
+ ! the email address configured in Cisco Smart License Portal will be used as contact email address to send SCH notifications.
+ contact-email-addr sch-smart-licensing@cisco.com
+ profile "CiscoTAC-1"
+  active
+  destination transport-method http
+  no destination transport-method email
+no ip source-route
+!
+!
+!
+!
+!
+ip name-server 10.0.X.X 10.0.X.X
+ip domain name example.net
+!
+!
+!
+login block-for 100 attempts 2 within 100
+login delay 10
+login on-failure log
+login on-success log
+!
+!
+!
+!
+!
+no device-tracking logging theft
+!
+crypto pki trustpoint SLA-TrustPoint
+ enrollment pkcs12
+ revocation-check crl
+!
+!
+crypto pki certificate chain SLA-TrustPoint
+ certificate ca 01
+  30820321 30820209 A0030201 02020101 300D0609 2A864886 F70D0101 0B050030 
+  32310E30 0C060355 040A1305 43697363 6F312030 1E060355 04031317 43697363 
+  6F204C69 63656E73 696E6720 526F6F74 20434130 1E170D31 33303533 30313934 
+  3834375A 170D3338 30353330 31393438 34375A30 32310E30 0C060355 040A1305 
+  43697363 6F312030 1E060355 04031317 43697363 6F204C69 63656E73 696E6720 
+  526F6F74 20434130 82012230 0D06092A 864886F7 0D010101 05000382 010F0030 
+  82010A02 82010100 A6BCBD96 131E05F7 145EA72C 2CD686E6 17222EA1 F1EFF64D 
+  CBB4C798 212AA147 C655D8D7 9471380D 8711441E 1AAF071A 9CAE6388 8A38E520 
+  1C394D78 462EF239 C659F715 B98C0A59 5BBB5CBD 0CFEBEA3 700A8BF7 D8F256EE 
+  4AA4E80D DB6FD1C9 60B1FD18 FFC69C96 6FA68957 A2617DE7 104FDC5F EA2956AC 
+  7390A3EB 2B5436AD C847A2C5 DAB553EB 69A9A535 58E9F3E3 C0BD23CF 58BD7188 
+  68E69491 20F320E7 948E71D7 AE3BCC84 F10684C7 4BC8E00F 539BA42B 42C68BB7 
+  C7479096 B4CB2D62 EA2F505D C7B062A4 6811D95B E8250FC4 5D5D5FB8 8F27D191 
+  C55F0D76 61F9A4CD 3D992327 A8BB03BD 4E6D7069 7CBADF8B DF5F4368 95135E44 
+  DFC7C6CF 04DD7FD1 02030100 01A34230 40300E06 03551D0F 0101FF04 04030201 
+  06300F06 03551D13 0101FF04 05300301 01FF301D 0603551D 0E041604 1449DC85 
+  4B3D31E5 1B3E6A17 606AF333 3D3B4C73 E8300D06 092A8648 86F70D01 010B0500 
+  03820101 00507F24 D3932A66 86025D9F E838AE5C 6D4DF6B0 49631C78 240DA905 
+  604EDCDE FF4FED2B 77FC460E CD636FDB DD44681E 3A5673AB 9093D3B1 6C9E3D8B 
+  D98987BF E40CBD9E 1AECA0C2 2189BB5C 8FA85686 CD98B646 5575B146 8DFC66A8 
+  467A3DF4 4D565700 6ADF0F0D CF835015 3C04FF7C 21E878AC 11BA9CD2 55A9232C 
+  7CA7B7E6 C1AF74F6 152E99B7 B1FCF9BB E973DE7F 5BDDEB86 C71E3B49 1765308B 
+  5FB0DA06 B92AFE7F 494E8A9E 07B85737 F3A58BE1 1A48A229 C37C1E69 39F08678 
+  80DDCD16 D6BACECA EEBC7CF9 8428787B 35202CDC 60E4616A B623CDBD 230E3AFB 
+  418616A9 4093E049 4D10AB75 27E86F73 932E35B5 8862FDAE 0275156F 719BB2F0 
+  D697DF7F 28
+  	quit
+!
+!
+port-channel load-balance src-dst-ip
+license boot level ipbasek9
+!
+!
+diagnostic bootup level minimal
+!
+spanning-tree mode pvst
+spanning-tree extend system-id
+memory free low-watermark processor 79468
+!
+no errdisable detect cause gbic-invalid
+errdisable recovery cause udld
+errdisable recovery cause bpduguard
+errdisable recovery cause security-violation
+errdisable recovery cause channel-misconfig
+errdisable recovery cause pagp-flap
+errdisable recovery cause dtp-flap
+errdisable recovery cause link-flap
+errdisable recovery cause sfp-config-mismatch
+errdisable recovery cause gbic-invalid
+errdisable recovery cause l2ptguard
+errdisable recovery cause psecure-violation
+errdisable recovery cause port-mode-failure
+errdisable recovery cause dhcp-rate-limit
+errdisable recovery cause pppoe-ia-rate-limit
+errdisable recovery cause mac-limit
+errdisable recovery cause storm-control
+errdisable recovery cause inline-power
+errdisable recovery cause arp-inspection
+errdisable recovery cause link-monitor-failure
+errdisable recovery cause oam-remote-failure
+errdisable recovery cause loopback
+errdisable recovery cause psp
+errdisable recovery cause mrp-miscabling
+errdisable recovery interval 30
+username kyriakosp privilege 15 secret 9 $9$urvzv1JKjiFCqk$8Vqzd3r/cxeORhLS9ukiBtHTVtdBbSfIUfLrtbYqqfM
+!
+redundancy
+ mode sso
+!
+!
+!
+!
+!
+transceiver type all
+ monitoring
+!
+!
+class-map match-any system-cpp-police-topology-control
+  description Topology control
+class-map match-any system-cpp-police-sw-forward
+  description Sw forwarding, L2 LVX data, LOGGING
+class-map match-any system-cpp-default
+  description EWLC control, EWLC data, Inter FED 
+class-map match-any system-cpp-police-sys-data
+  description Learning cache ovfl, High Rate App, Exception, EGR Exception, NFL SAMPLED DATA, RPF Failed
+class-map match-any system-cpp-police-punt-webauth
+  description Punt Webauth
+class-map match-any system-cpp-police-l2lvx-control
+  description L2 LVX control packets
+class-map match-any system-cpp-police-forus
+  description Forus Address resolution and Forus traffic
+class-map match-any system-cpp-police-multicast-end-station
+  description MCAST END STATION
+class-map match-any system-cpp-police-multicast
+  description Transit Traffic and MCAST Data
+class-map match-any system-cpp-police-l2-control
+  description L2 control
+class-map match-any system-cpp-police-dot1x-auth
+  description DOT1X Auth
+class-map match-any system-cpp-police-data
+  description ICMP redirect, ICMP_GEN and BROADCAST
+class-map match-any system-cpp-police-stackwise-virt-control
+  description Stackwise Virtual
+class-map match-any non-client-nrt-class
+class-map match-any system-cpp-police-routing-control
+  description Routing control and Low Latency
+class-map match-any system-cpp-police-protocol-snooping
+  description Protocol snooping
+class-map match-any system-cpp-police-dhcp-snooping
+  description DHCP snooping
+class-map match-any system-cpp-police-system-critical
+  description System Critical and Gold Pkt
+!
+policy-map system-cpp-policy
+!
+! 
+!
+!
+!
+!
+!
+!
+!
+!
+!
+interface Port-channel1
+ description *** Connection to nlfw01 | TRUNK | 4 Gbps | Po1 ***
+ switchport mode trunk
+ switchport nonegotiate
+ load-interval 30
+!
+interface Port-channel2
+ description *** Connection to nl-nas01 | VLAN 10 | 2 Gbps | Bond 1 ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ spanning-tree portfast
+!
+interface Port-channel3
+ description *** Connection to nl-pve03 | TRUNK | 20 Gbps | bond0 ***
+ switchport mode trunk
+ load-interval 30
+!
+interface Port-channel5
+ description *** Connection to nlsyno02 | VLAN 10 | 4 Gbps | Bond 1 ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ spanning-tree portfast
+!
+interface Port-channel6
+ description *** Connection to nl-nas01 | VLAN 88 | 20 Gbps | Bond 2 ***
+ switchport access vlan 88
+ switchport mode access
+ load-interval 30
+ spanning-tree portfast
+!
+interface Port-channel7
+ description *** Connection to nl-pve01 | TRUNK | 20 Gbps | bond0 ***
+ switchport mode trunk
+ load-interval 30
+!
+interface GigabitEthernet0/0
+ description Administratively_Down
+ vrf forwarding Mgmt-vrf
+ no ip address
+ shutdown
+ speed 1000
+ no negotiation auto
+!
+interface GigabitEthernet1/0/1
+ description *** Connection to room-a, tv #1 | Canon MG6150 | Patch. 1 ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ no cdp enable
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/2
+ description *** Connection to room-a, tv #2 | NVIDIA SHIELD TV | Patch. 2 ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ no cdp enable
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/3
+ description *** Connection to room-a, desk #1, current 10m extension | On-Board | Patch. 3 ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ no cdp enable
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/4
+ description *** Connection to room-a, desk #2 | On-Board | Patch. 4 ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ no cdp enable
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/5
+ description *** Connection to room-a, ceiling | AIR-CAP3702I-E-K9 - nlap02 | Patch. 5 | PoE ***
+ switchport trunk native vlan 10
+ switchport trunk allowed vlan 5,7-13
+ switchport mode trunk
+ switchport nonegotiate
+ load-interval 30
+ spanning-tree link-type point-to-point
+!
+interface GigabitEthernet1/0/6
+ description *** Connection to sh-corr. downstairs, ceiling | AIR-CAP3702I-E-K9 - nlap01 | Patch. 6 | PoE ***
+ switchport trunk native vlan 10
+ switchport trunk allowed vlan 5,7-13
+ switchport mode trunk
+ switchport nonegotiate
+ load-interval 30
+ spanning-tree link-type point-to-point
+!
+interface GigabitEthernet1/0/7
+ description *** Connection to sh-corr. upstairs, ceiling | AIR-CAP3702I-E-K9 - nlap03 | Patch. 7 | PoE ***
+ switchport trunk native vlan 10
+ switchport trunk allowed vlan 5,7-13
+ switchport mode trunk
+ switchport nonegotiate
+ load-interval 30
+ spanning-tree link-type point-to-point
+!
+interface GigabitEthernet1/0/8
+ description *** Connection to room-d, ceiling | AIR-CAP3702I-E-K9 - nlap04 | Patch. 8 | PoE ***
+ switchport trunk native vlan 10
+ switchport trunk allowed vlan 5,7-13
+ switchport mode trunk
+ switchport nonegotiate
+ load-interval 30
+ spanning-tree link-type point-to-point
+!
+interface GigabitEthernet1/0/9
+ description *** Connection to room-c, wall | Patch. 9 ***
+ switchport access vlan 8
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ no cdp enable
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/10
+ description *** Connection to room-b, wall | Patch. 10 ***
+ switchport access vlan 7
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ no cdp enable
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/11
+ description *** Connection to room-d, wall | Patch. 11 ***
+ switchport access vlan 9
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ no cdp enable
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/12
+ description *** Connection to Raspberry Pi 5 | nlpqd01 | 1 Gbps | Port 1GbE | PoE ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ no cdp enable
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/13
+ description Administratively_Down_RACK_BLOCKED
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+ power inline never
+!
+interface GigabitEthernet1/0/14
+ description Administratively_Down_RACK_BLOCKED
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+ power inline never
+!
+interface GigabitEthernet1/0/15
+ description Administratively_Down_RACK_BLOCKED
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+ power inline never
+!
+interface GigabitEthernet1/0/16
+ description Administratively_Down_RACK_BLOCKED
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+ power inline never
+!
+interface GigabitEthernet1/0/17
+ description *** Connection to TubesZB CC2652P7 | 100 Mbps | PoE ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ no cdp enable
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/18
+ description Administratively_Down
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+ power inline never
+!
+interface GigabitEthernet1/0/19
+ description Administratively_Down
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+ power inline never
+!
+interface GigabitEthernet1/0/20
+ description Administratively_Down
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+ power inline never
+!
+interface GigabitEthernet1/0/21
+ description *** Connection to nlfw01 | 1 Gbps | Port 4 ***
+ switchport mode trunk
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ speed 1000
+ duplex full
+ no cdp enable
+ channel-group 1 mode active
+!
+interface GigabitEthernet1/0/22
+ description Administratively_Down
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+ power inline never
+!
+interface GigabitEthernet1/0/23
+ description *** Connection to nlfw01 | 1 Gbps | Port 5 ***
+ switchport mode trunk
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ speed 1000
+ duplex full
+ no cdp enable
+ channel-group 1 mode active
+!
+interface GigabitEthernet1/0/24
+ description *** Connection to UniFi Cloud Key G2 Plus | 1 Gbps | PoE ***
+ switchport access vlan 12
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ no cdp enable
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/25
+ description *** Connection to nlfw01 | 1 Gbps | Port 6 ***
+ switchport mode trunk
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ speed 1000
+ duplex full
+ no cdp enable
+ channel-group 1 mode active
+!
+interface GigabitEthernet1/0/26
+ description *** Connection to Enphsase Envoy-S-Standard-EU | 100 Mbps ***
+ switchport access vlan 5
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ no cdp enable
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/27
+ description *** Connection to nlfw01 | 1 Gbps | Port 7 ***
+ switchport mode trunk
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ speed 1000
+ duplex full
+ no cdp enable
+ channel-group 1 mode active
+!
+interface GigabitEthernet1/0/28
+ description *** Connection to nl-lte01 | 100 Mbps | Port FE0 | Active ***
+ switchport access vlan 3
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ no cdp enable
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/29
+ description *** Connection to Synology DS1513+ | 1 Gbps | Port LAN 1 ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ channel-group 5 mode active
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/30
+ description *** Connection to nl-lte01 | 100 Mbps | Port FE1 | Standby ***
+ switchport access vlan 3
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ shutdown
+ power inline never
+ no cdp enable
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/31
+ description *** Connection to DELL Precision 3680 | AMT | 1 Gbps | Port 2.5G ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ speed 1000
+ duplex full
+ no cdp enable
+ storm-control broadcast level 5.00
+ storm-control multicast level 5.00
+ storm-control action shutdown
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+!
+interface GigabitEthernet1/0/32
+ description *** Connection to Cisco ISR4321 | Gi0/0/0 | PPPoE ***
+ switchport access vlan 10
+ switchport mode trunk
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ speed 1000
+ duplex full
+ no cdp enable
+ storm-control broadcast level 5.00
+ storm-control multicast level 5.00
+ storm-control action shutdown
+ spanning-tree bpduguard enable
+!
+interface GigabitEthernet1/0/33
+ description *** Connection to Synology DS1513+ | 1 Gbps | Port LAN 2 ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ channel-group 5 mode active
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/34
+ description *** Connection to Cisco ISR4321 | Gi0/0/1 | mgmt ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ no cdp enable
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/35
+ description *** Connection to SLZB-MR1 | 100 Mbps | PoE ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ no cdp enable
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/36
+ description *** Connection to Freedom Internet | Genexis XGS-PON ONT | 1 Gbps | PoE ***
+ switchport trunk allowed vlan 4,6
+ switchport mode trunk
+ switchport nonegotiate
+ no cdp enable
+!
+interface TenGigabitEthernet1/0/37
+ description *** Connection to APC Switched Rack PDU AP7922 | 100 Mbps ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ speed 1000
+ duplex full
+ no cdp enable
+ spanning-tree portfast
+!
+interface TenGigabitEthernet1/0/38
+ description *** Connection to Synology DS1621+ | 1 Gbps | Port LAN 1 ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ channel-group 2 mode active
+ spanning-tree portfast
+!
+interface TenGigabitEthernet1/0/39
+ description *** Connection to Synology DS1621+ | 1 Gbps | Port LAN 2 ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ channel-group 2 mode active
+ spanning-tree portfast
+!
+interface TenGigabitEthernet1/0/40
+ description *** Connection to APC Switched Rack PDU AP7922 | 100 Mbps ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ no cdp enable
+ spanning-tree portfast
+!
+interface TenGigabitEthernet1/0/41
+ description *** Connection to APC UPS Network Management card AP9631 | 100 Mbps ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ no cdp enable
+ spanning-tree portfast
+!
+interface TenGigabitEthernet1/0/42
+ description *** Connection to APC Smart-UPS SMT1500IC (SmartConnect) | 100 Mbps ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ no cdp enable
+ spanning-tree portfast
+!
+interface TenGigabitEthernet1/0/43
+ description Administratively_Down
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+ power inline never
+!
+interface TenGigabitEthernet1/0/44
+ description Administratively_Down
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+ power inline never
+!
+interface TenGigabitEthernet1/0/45
+ description *** Connection to Synology DS1513+ | 1 Gbps | Port LAN 3 ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ channel-group 5 mode active
+ spanning-tree portfast
+!
+interface TenGigabitEthernet1/0/46
+ description *** Connection to Synology DS1513+ | 1 Gbps | Port LAN 4 ***
+ switchport access vlan 10
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ channel-group 5 mode active
+ spanning-tree portfast
+!
+interface TenGigabitEthernet1/0/47
+ description *** Connection to Synology DS1621+ | Corosync | 1 Gbps | Port LAN 3 ***
+ switchport access vlan 87
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ spanning-tree portfast
+!
+interface TenGigabitEthernet1/0/48
+ description *** Connection to Synology DS1621+ | dmz_vpn01 | 1 Gbps | Port LAN 4 ***
+ switchport access vlan 14
+ switchport mode access
+ switchport nonegotiate
+ load-interval 30
+ power inline never
+ spanning-tree portfast
+!
+interface GigabitEthernet1/1/1
+ description Administratively_Down
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+!
+interface GigabitEthernet1/1/2
+ description Administratively_Down
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+!
+interface GigabitEthernet1/1/3
+ description Administratively_Down
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+!
+interface GigabitEthernet1/1/4
+ description Administratively_Down
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+!
+interface TenGigabitEthernet1/1/1
+ description Administratively_Down
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+ speed 10000
+!
+interface TenGigabitEthernet1/1/2
+ description Administratively_Down
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+ speed 10000
+!
+interface TenGigabitEthernet1/1/3
+ description *** Connection to MINISFORUM MS-01 S1290 | TRUNK | 10 Gbps | enp110s0 Port 10G ***
+ switchport mode trunk
+ load-interval 30
+ no cdp enable
+ channel-group 7 mode active
+!
+interface TenGigabitEthernet1/1/4
+ description *** Connection to MINISFORUM MS-01 S1290 | TRUNK | 10 Gbps | enp1s0f1 Port 10G ***
+ switchport mode trunk
+ load-interval 30
+ no cdp enable
+ channel-group 7 mode active
+!
+interface TenGigabitEthernet1/1/5
+ description *** Connection to DELL Precision 3680 | TRUNK | 10 Gbps | Port 10G ***
+ switchport mode trunk
+ load-interval 30
+ no cdp enable
+ channel-group 3 mode active
+!
+interface TenGigabitEthernet1/1/6
+ description *** Connection to DELL Precision 3680 | TRUNK | 10 Gbps | Port 10G ***
+ switchport mode trunk
+ load-interval 30
+ no cdp enable
+ channel-group 3 mode active
+!
+interface TenGigabitEthernet1/1/7
+ description *** Connection to Synology DS1621+ | 10 Gbps | LAN 5(1) Port 10G ***
+ switchport access vlan 88
+ switchport mode access
+ load-interval 30
+ no cdp enable
+ channel-group 6 mode active
+!
+interface TenGigabitEthernet1/1/8
+ description *** Connection to Synology DS1621+ | 10 Gbps | LAN 6(2) Port 10G ***
+ switchport access vlan 88
+ switchport mode access
+ load-interval 30
+ no cdp enable
+ channel-group 6 mode active
+!
+interface FortyGigabitEthernet1/1/1
+ description Administratively_Down
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+!
+interface FortyGigabitEthernet1/1/2
+ description Administratively_Down
+ switchport access vlan 99
+ switchport trunk native vlan 99
+ shutdown
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+interface Vlan2
+ description *** outside_xs4all ***
+ no ip address
+!
+interface Vlan3
+ description *** outside_lte ***
+ no ip address
+!
+interface Vlan4
+ description *** outside_freedom_tv ***
+ no ip address
+!
+interface Vlan5
+ description *** inside_iot ***
+ no ip address
+!
+interface Vlan6
+ description *** outside_freedom ***
+ no ip address
+!
+interface Vlan7
+ description *** inside_room_b ***
+ no ip address
+!
+interface Vlan8
+ description *** inside_room_c ***
+ no ip address
+!
+interface Vlan9
+ description *** inside_room_d ***
+ no ip address
+!
+interface Vlan10
+ description *** inside_mgmt ***
+ ip address 10.0.X.X 255.255.255.0
+ no ip redirects
+ no ip unreachables
+ no ip proxy-arp
+!
+interface Vlan11
+ description *** inside_room_a ***
+ no ip address
+!
+interface Vlan12
+ description *** inside_cctv ***
+ no ip address
+!
+interface Vlan13
+ description *** inside_guest ***
+ no ip address
+!
+interface Vlan14
+ description *** dmz_vpn01 ***
+ no ip address
+!
+interface Vlan20
+ description *** dmz_servers01 ***
+ no ip address
+!
+interface Vlan87
+ description *** inside_corosync ***
+ no ip address
+!
+interface Vlan88
+ description *** inside_nfs ***
+ no ip address
+!
+interface Vlan99
+ description *** admin_down ***
+ no ip address
+ shutdown
+!
+ip default-gateway 10.0.X.X
+ip forward-protocol nd
+no ip http server
+ip http authentication local
+no ip http secure-server
+ip ssh authentication-retries 2
+ip ssh source-interface Vlan10
+ip ssh version 2
+!
+!
+logging host 10.0.X.X
+logging host 10.0.X.X
+ip access-list standard 99
+!
+!
+snmp-server community uBnr@W9dKOu#7ifTdVbAi!k$=XKr9X RO 99
+snmp-server host 10.0.X.X version 2c uBnr@W9dKOu#7ifTdVbAi!k$=XKr9X 
+!
+!
+!
+control-plane
+ service-policy input system-cpp-policy
+!
+!
+line con 0
+ stopbits 1
+line aux 0
+ stopbits 1
+line vty 0 4
+ exec-timeout 60 0
+ privilege level 15
+ length 0
+ transport input ssh
+line vty 5 15
+ transport input ssh
+!
+ntp logging
+ntp server 164.92.216.152
+ntp server 188.166.95.178
+!
+!
+!
+!
+!
+!
+end
+
