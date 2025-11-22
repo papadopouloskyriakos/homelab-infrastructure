@@ -6,7 +6,7 @@ build_arg_defaults:
 
 dependencies:
   python: requirements.txt
-  galaxy: requirements.yml
+  galaxy: collections/requirements.yml  # ← Added subdirectory path
 
 additional_build_steps:
   prepend_final:
