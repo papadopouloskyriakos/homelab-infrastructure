@@ -11,6 +11,7 @@ dependencies:
     netmiko>=4.0.0
     pyyaml>=6.0
   galaxy: |
+    ---
     collections:
       - cisco.ios
       - cisco.asa
