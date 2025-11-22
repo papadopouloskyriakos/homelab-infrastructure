@@ -10,18 +10,8 @@ build_arg_defaults:
   PKGMGR_PRESERVE_CACHE: 'always'
 
 dependencies:
-  python: |
-    netmiko>=4.0.0
-    paramiko>=3.0.0
-    textfsm>=1.1.0
-  galaxy: |
-    collections:
-      - name: cisco.ios
-        version: ">=5.0.0"
-      - name: cisco.asa
-        version: ">=4.0.0"
-      - name: ansible.netcommon
-        version: ">=5.0.0"
+  python: collections/requirements.txt
+  galaxy: collections/requirements.yml
   system: |
     git
     openssh-clients
@@ -29,4 +19,4 @@ dependencies:
 
 additional_build_steps:
   prepend_final:
-    - RUN pip3 install --upgrade pip
+    - RUN pip3 install --upgrade pip --break-system-packages --no-cache-dir
