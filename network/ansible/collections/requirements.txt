@@ -1,3 +1,0 @@
-netmiko>=4.0.0
-paramiko>=3.0.0
-textfsm>=1.1.0
