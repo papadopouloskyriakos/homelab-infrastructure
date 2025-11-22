@@ -92,7 +92,7 @@ no ip source-route
 no ip bootp server
 ip domain name example.net
 ip name-server 1.1.1.1
-ip name-server 6.6.6.6
+ip name-server 7.7.7.7
 ip cef
 no ipv6 cef
 !
