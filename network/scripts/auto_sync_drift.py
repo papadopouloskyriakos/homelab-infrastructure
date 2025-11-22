@@ -12,8 +12,8 @@ from pathlib import Path
 from datetime import datetime
 
 # Safety thresholds
-MAX_CHANGES_AUTO_SYNC = 50  # Max lines changed for auto-sync
-MAX_DEVICES_AUTO_SYNC = 50   # Max devices to sync at once
+MAX_CHANGES_AUTO_SYNC = 10  # Max lines changed for auto-sync
+MAX_DEVICES_AUTO_SYNC = 1   # Max devices to sync at once
 REQUIRE_APPROVAL_PATTERNS = [
     'no shutdown',           # Interface state changes
     'ip route',              # Routing changes
