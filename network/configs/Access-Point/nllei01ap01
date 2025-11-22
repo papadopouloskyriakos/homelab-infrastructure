@@ -1,20 +1,8 @@
-! Cisco IOS Software, C3700 Software (AP3G2-K9W7-M), Version 15.3(3)JPK, RELEASE SOFTWARE (fc1)
-! 
-! Image: Software: AP3G2-K9W7-M, 15.3(3)JPK, RELEASE SOFTWARE (fc1)
-! Image: Compiled: Tue 24-Nov-20 03:58 by prod_rel_team
-! Image: flash:/ap3g2-k9w7-mx.153-3.JPK/ap3g2-k9w7-xx.153-3.JPK
-! Chassis type: AIR-SAP3702I-E-K9
-! Memory: main 376814K/134656K
-! Processor ID: FCW1932NPN8
-! CPU: PowerPC, PowerPC CPU at 800Mhz, revision number 0x2151
-! 
-! VTP: show vtp status
-! 
-! NAME: "AP3700", DESCR: "Cisco Aironet 3700 Series (IEEE 802.11ac) Access Point"
-! PID: AIR-CAP3702I-E-K9 , VID: V04, SN: FCW1932NPN8
-! 
-! 
+Building configuration...
+
+Current configuration : 11174 bytes
 !
+! No configuration change since last restart
 version 15.3
 no service pad
 service tcp-keepalives-in
@@ -480,4 +468,3 @@ sntp logging
 sntp server 164.92.216.152
 sntp server 188.166.95.178
 end
-
