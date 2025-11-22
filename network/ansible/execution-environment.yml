@@ -10,12 +10,14 @@ dependencies:
 
   galaxy:
     collections:
-      - cisco.ios
-      - cisco.asa
+      - name: cisco.ios
+      - name: cisco.asa
 
 additional_build_steps:
   prepend_final:
-    - RUN echo "Cisco EE built $(date)" > /etc/cisco-ee-version.txt
+    - RUN echo "Cisco Custom EE – built on $(date)" > /etc/cisco-ee-build.txt
+    - LABEL maintainer="infrastructure@example.net"
+    - LABEL description="Custom EE for Cisco config validation & deployment"
 
 build_arg_defaults:
   EE_BASE_IMAGE: quay.io/ansible/awx-ee:latest
