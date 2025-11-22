@@ -3,35 +3,82 @@
 Drift Detection - Check all devices for config drift
 Compares GitLab vs Live configs and reports discrepancies
 
+Enhanced with comprehensive filtering to prevent false drift detection
+from timestamps, checksums, and other dynamic content.
+
 Usage: detect_drift.py [--auto-sync]
 """
 import sys
 import os
+import re
 import yaml
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from netmiko import ConnectHandler
 
-def normalize_config(config_text):
-    """Remove dynamic lines for comparison"""
-    lines = []
+
+def filter_cisco_config(config_text):
+    """
+    Remove dynamic/timestamp content that changes frequently
+    but doesn't represent actual configuration drift.
+    
+    This matches the filtering logic in sync_oxidized_gitlab.sh
+    to prevent false drift detection.
+    """
+    lines = config_text.splitlines()
+    filtered_lines = []
+    
+    # Patterns to skip entirely
     skip_patterns = [
-        '!',
-        'Last configuration change',
-        'NVRAM config last updated',
-        'ntp clock-period',
-        'Configuration last modified',
-        'Cryptochecksum:',
-        'Current configuration :',
-        'Building configuration',
-        'uptime is',
+        # Timestamps
+        r'Last configuration change at',
+        r'NVRAM config last updated at',
+        r'Configuration last modified by',
+        r'Building configuration',
+        r'Current configuration\s*:',
+        
+        # Crypto/hashes (change on every save)
+        r'^Cryptochecksum:',
+        r'^!\s*Cryptochecksum:',
+        
+        # NTP clock drift (changes constantly)
+        r'^ntp clock-period',
+        
+        # Dynamic comment lines with timestamps
+        r'^!\s*\d{2}:\d{2}:\d{2}',
+        
+        # Configuration headers with sizes/bytes
+        r'^!\s*Last configuration change',
+        r'^!\s*NVRAM config last',
     ]
     
-    for line in config_text.splitlines():
-        if not any(pattern in line for pattern in skip_patterns):
-            lines.append(line.rstrip())
+    for line in lines:
+        # Remove trailing whitespace for consistent comparison
+        line = line.rstrip()
+        
+        # Skip empty comment lines
+        if line.strip() == '!':
+            continue
+        
+        # Check skip patterns
+        skip = False
+        for pattern in skip_patterns:
+            if re.search(pattern, line, re.IGNORECASE):
+                skip = True
+                break
+        
+        if skip:
+            continue
+        
+        # Filter "uptime" mentions (but keep interface descriptions)
+        if 'uptime' in line.lower() and 'description' not in line.lower():
+            continue
+        
+        # Keep the line
+        filtered_lines.append(line)
     
-    return '\n'.join(lines)
+    return '\n'.join(filtered_lines)
+
 
 def check_device_drift(device_type, device_name, gitlab_config_path):
     """
@@ -73,18 +120,19 @@ def check_device_drift(device_type, device_name, gitlab_config_path):
         with open(gitlab_config_path) as f:
             gitlab_config = f.read()
         
-        # Normalize and compare
-        live_normalized = normalize_config(live_config)
-        gitlab_normalized = normalize_config(gitlab_config)
+        # CRITICAL: Filter both configs before comparison
+        live_config_filtered = filter_cisco_config(live_config)
+        gitlab_config_filtered = filter_cisco_config(gitlab_config)
         
-        if live_normalized == gitlab_normalized:
+        # Compare filtered configs
+        if live_config_filtered == gitlab_config_filtered:
             return device_name, 'synced', 'No drift detected'
         
         # Calculate drift size
         import difflib
         diff = list(difflib.unified_diff(
-            gitlab_normalized.splitlines(),
-            live_normalized.splitlines(),
+            gitlab_config_filtered.splitlines(),
+            live_config_filtered.splitlines(),
             lineterm=''
         ))
         
@@ -95,6 +143,7 @@ def check_device_drift(device_type, device_name, gitlab_config_path):
         
     except Exception as e:
         return device_name, 'error', str(e)[:100]
+
 
 def discover_devices():
     """
@@ -127,6 +176,7 @@ def discover_devices():
                 devices.append((device_type, device_name, config_file))
     
     return devices
+
 
 def detect_drift(auto_sync=False):
     """Main drift detection function"""
@@ -232,6 +282,7 @@ def detect_drift(auto_sync=False):
     else:
         print("SUCCESS: All devices in sync")
         return 0
+
 
 if __name__ == "__main__":
     auto_sync = '--auto-sync' in sys.argv
