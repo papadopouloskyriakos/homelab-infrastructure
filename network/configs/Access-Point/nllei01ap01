@@ -1,0 +1,483 @@
+! Cisco IOS Software, C3700 Software (AP3G2-K9W7-M), Version 15.3(3)JPK, RELEASE SOFTWARE (fc1)
+! 
+! Image: Software: AP3G2-K9W7-M, 15.3(3)JPK, RELEASE SOFTWARE (fc1)
+! Image: Compiled: Tue 24-Nov-20 03:58 by prod_rel_team
+! Image: flash:/ap3g2-k9w7-mx.153-3.JPK/ap3g2-k9w7-xx.153-3.JPK
+! Chassis type: AIR-SAP3702I-E-K9
+! Memory: main 376814K/134656K
+! Processor ID: FCW1932NPN8
+! CPU: PowerPC, PowerPC CPU at 800Mhz, revision number 0x2151
+! 
+! VTP: show vtp status
+! 
+! NAME: "AP3700", DESCR: "Cisco Aironet 3700 Series (IEEE 802.11ac) Access Point"
+! PID: AIR-CAP3702I-E-K9 , VID: V04, SN: FCW1932NPN8
+! 
+! 
+!
+version 15.3
+no service pad
+service tcp-keepalives-in
+service tcp-keepalives-out
+service timestamps debug datetime localtime
+service timestamps log datetime localtime
+service password-encryption
+!
+hostname nlap01
+!
+!
+logging buffered 16386
+logging rate-limit 100 except warnings
+no logging console
+no logging monitor
+enable secret 5 $1$EWGM$o11shM7VqYJnnBB73jgmW.
+!
+no aaa new-model
+clock timezone CET 1 0
+clock summer-time CEST recurring last Sun Mar 2:00 last Sun Oct 3:00
+clock save interval 8
+no ip source-route
+no ip cef
+ip domain name example.net
+ip name-server 10.0.X.X
+ip name-server 10.0.X.X
+!
+!
+!
+!
+dot11 mbssid
+dot11 pause-time 100
+dot11 association mac-list 700
+dot11 syslog
+!
+dot11 ssid Ziggo1BC23AD
+   vlan 5
+   authentication open 
+   authentication key-management wpa
+   mbssid guest-mode
+   wpa-psk ascii 7 130036142B5E5C0A7A227F3016231746145B02001709550357314E425A1B0E520052054F0E5E21
+!
+dot11 ssid Ziggo2JE42VC
+   vlan 13
+   authentication open 
+   authentication key-management wpa
+   mbssid guest-mode
+   wpa-psk ascii 7 0104210C0F3A4B2D1F14442C3A58133A3D1B240E727E32
+!
+dot11 ssid Ziggo3HY82TS
+   vlan 12
+   authentication open 
+   authentication key-management wpa
+   mbssid guest-mode
+   wpa-psk ascii 7 003151135501372F0013085203290E395925203E1F69317969090B1C35521F0B665276187A2239
+!
+dot11 ssid Ziggo4BJ31ZE
+   vlan 10
+   authentication open 
+   authentication key-management wpa
+   mbssid guest-mode
+   wpa-psk ascii 7 053B375C096C7B19301212515F150C2B0B010A24743625083B5432177C70400D5D08355561
+!
+dot11 ssid Ziggo5GC18PV
+   vlan 11
+   authentication open 
+   authentication key-management wpa
+   mbssid guest-mode
+   wpa-psk ascii 7 03305E2F551F026C425C1C0D56031F3850383A71387005
+!
+dot11 ssid Ziggo6BS49NF
+   vlan 7
+   authentication open 
+   authentication key-management wpa
+   mbssid guest-mode
+   wpa-psk ascii 7 01341324405F161D6F5A1A1925372C2F5247577E0F070E
+!
+dot11 ssid Ziggo7UR94EZ
+   vlan 8
+   authentication open 
+   authentication key-management wpa
+   mbssid guest-mode
+   wpa-psk ascii 7 07376219660F2C1D43165E5914142D341C643F02301F38234B
+!
+dot11 ssid Ziggo9WQ75HD
+   vlan 9
+   authentication open 
+   authentication key-management wpa
+   mbssid guest-mode
+   wpa-psk ascii 7 01323F037F134B1E02446C4A013D56325905311939160D
+!
+!
+!
+no ipv6 cef
+!
+!
+username kyriakosp privilege 15 secret 5 $1$uoME$av2TWcGPHI/hCvEu3YpfF.
+!
+!
+bridge irb
+!
+!
+!
+interface Dot11Radio0
+ no ip address
+ no ip unreachables
+ no ip proxy-arp
+ no ip route-cache
+ no logging event link-status
+ logging event subif-link-status
+ !
+ encryption mode ciphers aes-ccm 
+ !
+ encryption vlan 5 mode ciphers aes-ccm 
+ !
+ encryption vlan 7 mode ciphers aes-ccm 
+ !
+ encryption vlan 8 mode ciphers aes-ccm 
+ !
+ encryption vlan 9 mode ciphers aes-ccm 
+ !
+ encryption vlan 10 mode ciphers aes-ccm 
+ !
+ encryption vlan 12 mode ciphers aes-ccm 
+ !
+ encryption vlan 11 mode ciphers aes-ccm 
+ !
+ encryption vlan 13 mode ciphers aes-ccm 
+ !
+ broadcast-key change 3600
+ !
+ !
+ ssid Ziggo1BC23AD
+ !
+ ssid Ziggo2JE42VC
+ !
+ ssid Ziggo3HY82TS
+ !
+ ssid Ziggo4BJ31ZE
+ !
+ ssid Ziggo5GC18PV
+ !
+ ssid Ziggo6BS49NF
+ !
+ ssid Ziggo7UR94EZ
+ !
+ ssid Ziggo9WQ75HD
+ !
+ antenna gain 0
+ speed  basic-1.0 basic-2.0 basic-5.5 basic-11.0 basic-6.0 basic-9.0 basic-12.0 basic-18.0 basic-24.0 basic-36.0 basic-48.0 basic-54.0 m0. m1. m2. m3. m4. m5. m6. m7. m8. m9. m10. m11. m12. m13. m14. m15.
+ station-role root access-point
+ no cdp enable
+!
+interface Dot11Radio0.5
+ encapsulation dot1Q 5
+ no ip route-cache
+ bridge-group 5
+ bridge-group 5 subscriber-loop-control
+ bridge-group 5 spanning-disabled
+ bridge-group 5 block-unknown-source
+ no bridge-group 5 source-learning
+ no bridge-group 5 unicast-flooding
+!
+interface Dot11Radio0.7
+ encapsulation dot1Q 7
+ no ip route-cache
+ bridge-group 7
+ bridge-group 7 subscriber-loop-control
+ bridge-group 7 spanning-disabled
+ bridge-group 7 block-unknown-source
+ no bridge-group 7 source-learning
+ no bridge-group 7 unicast-flooding
+!
+interface Dot11Radio0.8
+ encapsulation dot1Q 8
+ no ip route-cache
+ bridge-group 8
+ bridge-group 8 subscriber-loop-control
+ bridge-group 8 spanning-disabled
+ bridge-group 8 block-unknown-source
+ no bridge-group 8 source-learning
+ no bridge-group 8 unicast-flooding
+!
+interface Dot11Radio0.9
+ encapsulation dot1Q 9
+ no ip route-cache
+ bridge-group 9
+ bridge-group 9 subscriber-loop-control
+ bridge-group 9 spanning-disabled
+ bridge-group 9 block-unknown-source
+ no bridge-group 9 source-learning
+ no bridge-group 9 unicast-flooding
+!
+interface Dot11Radio0.10
+ encapsulation dot1Q 10 native
+ no ip route-cache
+ bridge-group 1
+ bridge-group 1 subscriber-loop-control
+ bridge-group 1 spanning-disabled
+ bridge-group 1 block-unknown-source
+ no bridge-group 1 source-learning
+ no bridge-group 1 unicast-flooding
+!
+interface Dot11Radio0.11
+ encapsulation dot1Q 11
+ no ip route-cache
+ bridge-group 11
+ bridge-group 11 subscriber-loop-control
+ bridge-group 11 spanning-disabled
+ bridge-group 11 block-unknown-source
+ no bridge-group 11 source-learning
+ no bridge-group 11 unicast-flooding
+!
+interface Dot11Radio0.12
+ encapsulation dot1Q 12
+ no ip route-cache
+ bridge-group 12
+ bridge-group 12 subscriber-loop-control
+ bridge-group 12 spanning-disabled
+ bridge-group 12 block-unknown-source
+ no bridge-group 12 source-learning
+ no bridge-group 12 unicast-flooding
+!
+interface Dot11Radio0.13
+ encapsulation dot1Q 13
+ no ip route-cache
+ bridge-group 13
+ bridge-group 13 subscriber-loop-control
+ bridge-group 13 spanning-disabled
+ bridge-group 13 block-unknown-source
+ no bridge-group 13 source-learning
+ no bridge-group 13 unicast-flooding
+!
+interface Dot11Radio1
+ no ip address
+ no ip unreachables
+ no ip proxy-arp
+ no ip route-cache
+ no logging event link-status
+ logging event subif-link-status
+ !
+ encryption mode ciphers aes-ccm 
+ !
+ encryption vlan 5 mode ciphers aes-ccm 
+ !
+ encryption vlan 7 mode ciphers aes-ccm 
+ !
+ encryption vlan 8 mode ciphers aes-ccm 
+ !
+ encryption vlan 9 mode ciphers aes-ccm 
+ !
+ encryption vlan 10 mode ciphers aes-ccm 
+ !
+ encryption vlan 12 mode ciphers aes-ccm 
+ !
+ encryption vlan 11 mode ciphers aes-ccm 
+ !
+ encryption vlan 13 mode ciphers aes-ccm 
+ !
+ broadcast-key change 3600
+ !
+ !
+ ssid Ziggo1BC23AD
+ !
+ ssid Ziggo2JE42VC
+ !
+ ssid Ziggo3HY82TS
+ !
+ ssid Ziggo4BJ31ZE
+ !
+ ssid Ziggo6BS49NF
+ !
+ ssid Ziggo7UR94EZ
+ !
+ ssid Ziggo9WQ75HD
+ !
+ antenna gain 0
+ peakdetect
+ no dfs band block
+ speed  basic-6.0 basic-9.0 basic-12.0 basic-18.0 basic-24.0 basic-36.0 basic-48.0 basic-54.0 m0. m1. m2. m3. m4. m5. m6. m7. m8. m9. m10. m11. m12. m13. m14. m15. m16. m17. m18. m19. m20. m21. m22. m23. a1ss9 a2ss9 a3ss9
+ channel width 40-below
+ channel dfs
+ station-role root access-point
+ no cdp enable
+!
+interface Dot11Radio1.5
+ encapsulation dot1Q 5
+ no ip route-cache
+ bridge-group 5
+ bridge-group 5 subscriber-loop-control
+ bridge-group 5 spanning-disabled
+ bridge-group 5 block-unknown-source
+ no bridge-group 5 source-learning
+ no bridge-group 5 unicast-flooding
+!
+interface Dot11Radio1.7
+ encapsulation dot1Q 7
+ no ip route-cache
+ bridge-group 7
+ bridge-group 7 subscriber-loop-control
+ bridge-group 7 spanning-disabled
+ bridge-group 7 block-unknown-source
+ no bridge-group 7 source-learning
+ no bridge-group 7 unicast-flooding
+!
+interface Dot11Radio1.8
+ encapsulation dot1Q 8
+ no ip route-cache
+ bridge-group 8
+ bridge-group 8 subscriber-loop-control
+ bridge-group 8 spanning-disabled
+ bridge-group 8 block-unknown-source
+ no bridge-group 8 source-learning
+ no bridge-group 8 unicast-flooding
+!
+interface Dot11Radio1.9
+ encapsulation dot1Q 9
+ no ip route-cache
+ bridge-group 9
+ bridge-group 9 subscriber-loop-control
+ bridge-group 9 spanning-disabled
+ bridge-group 9 block-unknown-source
+ no bridge-group 9 source-learning
+ no bridge-group 9 unicast-flooding
+!
+interface Dot11Radio1.10
+ encapsulation dot1Q 10 native
+ no ip route-cache
+ bridge-group 1
+ bridge-group 1 subscriber-loop-control
+ bridge-group 1 spanning-disabled
+ bridge-group 1 block-unknown-source
+ no bridge-group 1 source-learning
+ no bridge-group 1 unicast-flooding
+!
+interface Dot11Radio1.11
+ encapsulation dot1Q 11
+ no ip route-cache
+ bridge-group 11
+ bridge-group 11 subscriber-loop-control
+ bridge-group 11 spanning-disabled
+ bridge-group 11 block-unknown-source
+ no bridge-group 11 source-learning
+ no bridge-group 11 unicast-flooding
+!
+interface Dot11Radio1.12
+ encapsulation dot1Q 12
+ no ip route-cache
+ bridge-group 12
+ bridge-group 12 subscriber-loop-control
+ bridge-group 12 spanning-disabled
+ bridge-group 12 block-unknown-source
+ no bridge-group 12 source-learning
+ no bridge-group 12 unicast-flooding
+!
+interface Dot11Radio1.13
+ encapsulation dot1Q 13
+ no ip route-cache
+ bridge-group 13
+ bridge-group 13 subscriber-loop-control
+ bridge-group 13 spanning-disabled
+ bridge-group 13 block-unknown-source
+ no bridge-group 13 source-learning
+ no bridge-group 13 unicast-flooding
+!
+interface GigabitEthernet0
+ no ip address
+ no ip route-cache
+ duplex auto
+ speed auto
+!
+interface GigabitEthernet0.5
+ encapsulation dot1Q 5
+ no ip route-cache
+ bridge-group 5
+ bridge-group 5 spanning-disabled
+ no bridge-group 5 source-learning
+!
+interface GigabitEthernet0.7
+ encapsulation dot1Q 7
+ no ip route-cache
+ bridge-group 7
+ bridge-group 7 spanning-disabled
+ no bridge-group 7 source-learning
+!
+interface GigabitEthernet0.8
+ encapsulation dot1Q 8
+ no ip route-cache
+ bridge-group 8
+ bridge-group 8 spanning-disabled
+ no bridge-group 8 source-learning
+!
+interface GigabitEthernet0.9
+ encapsulation dot1Q 9
+ no ip route-cache
+ bridge-group 9
+ bridge-group 9 spanning-disabled
+ no bridge-group 9 source-learning
+!
+interface GigabitEthernet0.10
+ encapsulation dot1Q 10 native
+ no ip route-cache
+ bridge-group 1
+ bridge-group 1 spanning-disabled
+ no bridge-group 1 source-learning
+!
+interface GigabitEthernet0.11
+ encapsulation dot1Q 11
+ no ip route-cache
+ bridge-group 11
+ bridge-group 11 spanning-disabled
+ no bridge-group 11 source-learning
+!
+interface GigabitEthernet0.12
+ encapsulation dot1Q 12
+ no ip route-cache
+ bridge-group 12
+ bridge-group 12 spanning-disabled
+ no bridge-group 12 source-learning
+!
+interface GigabitEthernet0.13
+ encapsulation dot1Q 13
+ no ip route-cache
+ bridge-group 13
+ bridge-group 13 spanning-disabled
+ no bridge-group 13 source-learning
+!
+interface BVI1
+ mac-address ecbd.1d35.9b20
+ ip address 10.0.X.X 255.255.255.0
+ no ip route-cache
+!
+ip default-gateway 10.0.X.X
+no ip forward-protocol nd
+no ip http server
+no ip http secure-server
+ip http help-path http://www.cisco.com/warp/public/779/smbiz/prodconfig/help/eag
+ip ssh authentication-retries 2
+ip ssh rsa keypair-name nlap01
+ip ssh version 2
+!
+logging trap debugging
+logging host 10.0.X.X
+logging host 10.0.X.X
+!
+snmp-server community uBnr@W9dKOu#7ifTdVbAi!k$=XKr9X RO
+snmp-server host 10.0.X.X version 2c uBnr@W9dKOu#7ifTdVbAi!k$=XKr9X 
+access-list 700 deny   1068.3f78.644e   0000.0000.0000
+access-list 700 permit 0000.0000.0000   ffff.ffff.ffff
+bridge 1 route ip
+!
+!
+!
+line con 0
+ no activation-character
+line vty 0 4
+ exec-timeout 60 0
+ login local
+ length 0
+ transport input ssh
+!
+sntp logging
+sntp server 164.92.216.152
+sntp server 188.166.95.178
+end
+
