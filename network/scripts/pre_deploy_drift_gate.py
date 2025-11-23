@@ -23,82 +23,9 @@ from pathlib import Path
 from datetime import datetime
 from netmiko import ConnectHandler
 
-class DynamicContentFilter:
-    """Filter dynamic content that changes frequently but isn't meaningful"""
-    
-    def __init__(self):
-        self.patterns = [
-            # Configuration metadata
-            r'^!\s*Last configuration change at .*',
-            r'^!\s*NVRAM config last updated at .*',
-            r'^!\s*Configuration last modified by .*',
-            
-            # Current configuration byte count (CHANGES FREQUENTLY)
-            r'^!\s*Current configuration\s*:\s*\d+\s*bytes.*',
-            r'^Current configuration\s*:\s*\d+\s*bytes.*',
-            
-            # Timestamps
-            r'^!\s*\d{2}:\d{2}:\d{2}\.\d+ [A-Z]+ [A-Za-z]+ [A-Za-z]+ \d+ \d{4}',
-            
-            # Crypto checksums
-            r'^!\s*Cryptochecksum:.*',
-            r'^Cryptochecksum:.*',
-            
-            # NTP clock period (drifts over time)
-            r'^ntp clock-period\s+\d+',
-            
-            # Uptime information
-            r'.*uptime is.*',
-            r'.*\d+ years?,.*weeks?,.*days?,.*hours?,.*minutes?',
-            
-            # Building configuration messages
-            r'^Building configuration.*',
-            r'^Current configuration.*',
-            
-            # Version boot timestamps
-            r'^!\s*Image:.*Compiled.*',
-            
-            # Show command output headers
-            r'^\s*show\s+.*',
-            
-            # Empty lines and standalone comments
-            r'^!\s*$',
-            r'^\s*$',
-        ]
-        
-        self.compiled_patterns = [re.compile(p, re.IGNORECASE) for p in self.patterns]
-    
-    def is_dynamic_line(self, line):
-        """Check if line contains dynamic content"""
-        for pattern in self.compiled_patterns:
-            if pattern.match(line):
-                return True
-        return False
-    
-    def filter_config(self, config_text):
-        """
-        Filter dynamic content from configuration
-        
-        Returns:
-            Filtered config as string
-        """
-        filtered_lines = []
-        
-        for line in config_text.split('\n'):
-            # Remove trailing whitespace
-            line = line.rstrip()
-            
-            # Skip dynamic lines
-            if self.is_dynamic_line(line):
-                continue
-            
-            # Skip empty lines
-            if not line.strip():
-                continue
-            
-            filtered_lines.append(line)
-        
-        return '\n'.join(filtered_lines)
+# Import the comprehensive dynamic content filter
+sys.path.insert(0, os.path.dirname(__file__))
+from filter_dynamic_content import DynamicContentFilter
 
 class DriftGate:
     """Pre-deployment drift detection gate"""
