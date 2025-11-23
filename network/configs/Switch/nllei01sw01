@@ -251,7 +251,7 @@ interface Port-channel7
  load-interval 30
 !
 interface GigabitEthernet0/0
- description Administratively_Down
+ description Administratively_Down_LOL
  vrf forwarding Mgmt-vrf
  no ip address
  shutdown
