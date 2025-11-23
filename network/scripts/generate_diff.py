@@ -344,7 +344,17 @@ def generate_deployment_diff(device_type, device_name, gitlab_config_file):
         current_config = generator.load_oxidized_backup(device_type, device_name)
     
     if not current_config:
-        print("ERROR: Could not fetch current config from device or Oxidized", file=sys.stderr)
+        error_msg = "Could not fetch current config from device or Oxidized"
+        print(f"ERROR: {error_msg}", file=sys.stderr)
+        
+        # Output error in JSON format
+        error_output = {
+            "diff_blocks": [],
+            "error": error_msg,
+            "device_name": device_name,
+            "device_type": device_type
+        }
+        print(json.dumps(error_output, indent=2))
         sys.exit(1)
     
     print("", file=sys.stderr)
@@ -368,36 +378,50 @@ def generate_deployment_diff(device_type, device_name, gitlab_config_file):
 
 def main():
     """Main entry point"""
-    if len(sys.argv) != 4:
-        print("Usage: generate_diff.py <device_type> <device_name> <gitlab_config_file>", file=sys.stderr)
-        print("", file=sys.stderr)
-        print("Arguments:", file=sys.stderr)
-        print("  device_type        - Device type (Router/Switch/Firewall/Access-Point)", file=sys.stderr)
-        print("  device_name        - Device hostname (e.g., nl-lte01)", file=sys.stderr)
-        print("  gitlab_config_file - Path to GitLab config file", file=sys.stderr)
-        print("", file=sys.stderr)
-        print("Example:", file=sys.stderr)
-        print("  generate_diff.py Router nl-lte01 network/configs/Router/nl-lte01", file=sys.stderr)
-        print("", file=sys.stderr)
-        sys.exit(1)
-    
-    device_type = sys.argv[1]
-    device_name = sys.argv[2]
-    gitlab_config_file = sys.argv[3]
-    
-    # Validate device type
-    valid_types = ['Router', 'Switch', 'Firewall', 'Access-Point']
-    if device_type not in valid_types:
-        print(f"ERROR: Invalid device type: {device_type}", file=sys.stderr)
-        print(f"Valid types: {', '.join(valid_types)}", file=sys.stderr)
-        sys.exit(1)
-    
     try:
+        if len(sys.argv) != 4:
+            print("Usage: generate_diff.py <device_type> <device_name> <gitlab_config_file>", file=sys.stderr)
+            print("", file=sys.stderr)
+            print("Arguments:", file=sys.stderr)
+            print("  device_type        - Device type (Router/Switch/Firewall/Access-Point)", file=sys.stderr)
+            print("  device_name        - Device hostname (e.g., nl-lte01)", file=sys.stderr)
+            print("  gitlab_config_file - Path to GitLab config file", file=sys.stderr)
+            print("", file=sys.stderr)
+            print("Example:", file=sys.stderr)
+            print("  generate_diff.py Router nl-lte01 network/configs/Router/nl-lte01", file=sys.stderr)
+            print("", file=sys.stderr)
+            # Output empty diff blocks as valid JSON
+            print(json.dumps({"diff_blocks": [], "error": "Invalid arguments"}))
+            sys.exit(1)
+        
+        device_type = sys.argv[1]
+        device_name = sys.argv[2]
+        gitlab_config_file = sys.argv[3]
+        
+        # Validate device type
+        valid_types = ['Router', 'Switch', 'Firewall', 'Access-Point']
+        if device_type not in valid_types:
+            print(f"ERROR: Invalid device type: {device_type}", file=sys.stderr)
+            print(f"Valid types: {', '.join(valid_types)}", file=sys.stderr)
+            # Output empty diff blocks as valid JSON
+            print(json.dumps({"diff_blocks": [], "error": f"Invalid device type: {device_type}"}))
+            sys.exit(1)
+        
         generate_deployment_diff(device_type, device_name, gitlab_config_file)
+        
     except Exception as e:
+        # Always output valid JSON even on error
         print(f"ERROR: {str(e)}", file=sys.stderr)
         import traceback
         traceback.print_exc(file=sys.stderr)
+        
+        # Output error in JSON format
+        error_output = {
+            "diff_blocks": [],
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
+        print(json.dumps(error_output, indent=2))
         sys.exit(1)
 
 if __name__ == "__main__":
