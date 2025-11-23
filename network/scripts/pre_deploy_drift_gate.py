@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Pre-deployment drift detection gate.
-Creates MR only when actual drift detected.
+Compares device against last auto-sync commit.
 Exit codes: 0=no drift, 2=drift+MR created, 1=error
 """
 import sys
@@ -49,28 +49,41 @@ class DriftGate:
         conn = ConnectHandler(**device_params)
         config = conn.send_command("show running-config", read_timeout=120)
         conn.disconnect()
-        print(f"Fetched {len(config)} bytes", file=sys.stderr)
-        
-        # Show first few name-server lines for verification
-        ns_lines = [line for line in config.split('\n') if 'name-server' in line]
-        print(f"DEBUG: Device name-servers: {ns_lines[:5]}", file=sys.stderr)
-        
+        print(f"Fetched {len(config)} bytes from device", file=sys.stderr)
         return config
     
+    def find_last_autosync_commit(self, config_path):
+        """Find the last commit by GitLab CI Auto-Sync for this file"""
+        import subprocess
+        
+        # Get last commit by auto-sync for this specific file
+        result = subprocess.run(
+            ['git', 'log', '--all', '--author=GitLab CI Auto-Sync', '--format=%H', '-n', '1', '--', config_path],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode == 0 and result.stdout.strip():
+            commit_hash = result.stdout.strip()
+            print(f"Found last auto-sync commit: {commit_hash[:8]} for {config_path}", file=sys.stderr)
+            return commit_hash
+        
+        print(f"No auto-sync commit found for {config_path}, using HEAD", file=sys.stderr)
+        return 'HEAD'
+    
     def load_gitlab_config(self):
-        """Load GitLab config from BEFORE current commit"""
+        """Load GitLab config from last auto-sync commit"""
         import subprocess
         
         config_path = f"network/configs/{self.device_type}/{self.device_name}"
         
-        # Use CI_COMMIT_BEFORE_SHA to get version BEFORE user's commit
-        baseline_ref = os.getenv('CI_COMMIT_BEFORE_SHA', 'HEAD~1')
+        # Find last auto-sync commit for this file
+        baseline_ref = self.find_last_autosync_commit(config_path)
         
-        print(f"DEBUG: CI_COMMIT_BEFORE_SHA = {os.getenv('CI_COMMIT_BEFORE_SHA')}", file=sys.stderr)
-        print(f"DEBUG: Using baseline_ref = {baseline_ref}", file=sys.stderr)
-        print(f"DEBUG: Config path = {config_path}", file=sys.stderr)
+        print(f"Using baseline: {baseline_ref[:8] if len(baseline_ref) > 8 else baseline_ref}", file=sys.stderr)
         
-        # Try git show with previous version
+        # Try git show
         try:
             result = subprocess.run(
                 ['git', 'show', f'{baseline_ref}:{config_path}'],
@@ -79,23 +92,18 @@ class DriftGate:
                 timeout=10
             )
             if result.returncode == 0 and result.stdout:
-                print(f"Loaded baseline from {baseline_ref}:{config_path}", file=sys.stderr)
-                print(f"DEBUG: Baseline config size: {len(result.stdout)} bytes", file=sys.stderr)
-                
-                # Show first few name-server lines for verification
-                ns_lines = [line for line in result.stdout.split('\n') if 'name-server' in line]
-                print(f"DEBUG: Baseline name-servers: {ns_lines[:5]}", file=sys.stderr)
-                
+                print(f"Loaded baseline from {baseline_ref[:8]}:{config_path}", file=sys.stderr)
+                print(f"Baseline size: {len(result.stdout)} bytes", file=sys.stderr)
                 return result.stdout, config_path
         except Exception as e:
-            print(f"DEBUG: git show failed: {e}", file=sys.stderr)
+            print(f"ERROR: git show failed: {e}", file=sys.stderr)
         
         # Fallback to filesystem
         path = Path(config_path)
         if path.exists():
             with open(path) as f:
                 config = f.read()
-            print(f"Loaded GitLab config from filesystem", file=sys.stderr)
+            print(f"Loaded from filesystem (fallback)", file=sys.stderr)
             return config, config_path
         
         return None, None
@@ -132,7 +140,7 @@ class DriftGate:
         if create_response.status_code not in [200, 201]:
             raise Exception(f"Failed to create branch: {create_response.text}")
         
-        # Commit 1: Filter baseline (removes headers from GitLab file)
+        # Commit 1: Filter baseline
         print(f"Commit 1: Filtering baseline...", file=sys.stderr)
         commit1_response = requests.post(
             f"{self.gitlab_url}/api/v4/projects/{self.project_id}/repository/commits",
@@ -152,7 +160,7 @@ class DriftGate:
         if commit1_response.status_code not in [200, 201]:
             raise Exception(f"Commit 1 failed: {commit1_response.text}")
         
-        # Commit 2: Write live config (shows actual drift)
+        # Commit 2: Write live config
         print(f"Commit 2: Writing device config...", file=sys.stderr)
         commit2_response = requests.post(
             f"{self.gitlab_url}/api/v4/projects/{self.project_id}/repository/commits",
@@ -181,10 +189,12 @@ class DriftGate:
                 'source_branch': branch_name,
                 'target_branch': source_branch,
                 'title': f'Drift: Sync {self.device_name} from device',
-                'description': f'''Device has configuration changes not in GitLab.
+                'description': f'''Device has unreported SSH configuration changes.
+
+**Device differs from last auto-sync commit.**
 
 Review changes and merge if device config is correct.
-If GitLab is correct, close this MR and revert device changes.
+If changes are unwanted, close this MR and revert device changes via SSH.
 ''',
                 'REDACTED_dae379fc': True
             },
@@ -200,7 +210,8 @@ If GitLab is correct, close this MR and revert device changes.
     
     def check_drift(self):
         """Main drift detection workflow"""
-        print(f"\nChecking drift: {self.device_name}", file=sys.stderr)
+        print(f"\nDrift gate: {self.device_name}", file=sys.stderr)
+        print("Comparing device to last auto-sync commit", file=sys.stderr)
         
         try:
             live_config = self.fetch_live_config()
@@ -211,35 +222,28 @@ If GitLab is correct, close this MR and revert device changes.
         gitlab_config, gitlab_path = self.load_gitlab_config()
         
         if not gitlab_config:
-            print("No GitLab baseline (new device)", file=sys.stderr)
+            print("No GitLab baseline found (new device)", file=sys.stderr)
             return 0
         
         # Compare filtered configs
-        print("Comparing configs...", file=sys.stderr)
+        print("Comparing filtered configs...", file=sys.stderr)
         are_equal, live_filtered, gitlab_filtered = self.filter.compare_configs(
             live_config, gitlab_config
         )
         
-        # Debug: Show filtered name-servers
-        gitlab_ns = [line for line in gitlab_filtered.split('\n') if 'name-server' in line]
-        live_ns = [line for line in live_filtered.split('\n') if 'name-server' in line]
-        print(f"DEBUG: After filtering:", file=sys.stderr)
-        print(f"DEBUG:   GitLab filtered name-servers: {gitlab_ns[:5]}", file=sys.stderr)
-        print(f"DEBUG:   Device filtered name-servers: {live_ns[:5]}", file=sys.stderr)
-        
         if are_equal:
-            print("No drift detected", file=sys.stderr)
+            print("No drift detected - device matches last auto-sync", file=sys.stderr)
             return 0
         
         # Drift detected
-        print("DRIFT DETECTED", file=sys.stderr)
+        print("DRIFT DETECTED - device differs from last auto-sync", file=sys.stderr)
         
         import difflib
         diff = list(difflib.unified_diff(
             gitlab_filtered.split('\n'),
             live_filtered.split('\n'),
-            fromfile='GitLab',
-            tofile='Device',
+            fromfile='Last Auto-Sync',
+            tofile='Device Now',
             lineterm=''
         ))
         
