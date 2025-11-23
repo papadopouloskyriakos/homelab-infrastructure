@@ -17,39 +17,30 @@ import os
 from pathlib import Path
 from netmiko import ConnectHandler
 
+# Import centralized filter
+sys.path.insert(0, os.path.dirname(__file__))
+from filter_dynamic_content import DynamicContentFilter
+
 class DriftDetector:
     """Detect configuration drift between devices and GitLab"""
     
     def __init__(self):
         self.drift_found = False
+        self.filter = DynamicContentFilter()  # Use centralized filter
     
     def normalize_config(self, config):
         """
         Normalize config for comparison (remove dynamic content)
+        Uses centralized DynamicContentFilter for consistency
         """
+        # Use the centralized filter
+        filtered = self.filter.filter_config(config)
+        
+        # Remove empty lines and pure comments
         lines = []
-        
-        dynamic_patterns = [
-            'Last configuration change at',
-            'NVRAM config last updated at',
-            'Cryptochecksum:',
-            'ntp clock-period',
-            'uptime is',
-            'Configuration last modified by',
-            'building configuration',
-            'Current configuration :',
-        ]
-        
-        for line in config.split('\n'):
-            # Skip dynamic content
-            if any(pattern in line for pattern in dynamic_patterns):
-                continue
-            
-            # Skip empty lines and pure comments
-            if not line.strip() or line.strip() == '!':
-                continue
-            
-            lines.append(line.rstrip())
+        for line in filtered.split('\n'):
+            if line.strip() and line.strip() != '!':
+                lines.append(line)
         
         return '\n'.join(lines)
     
