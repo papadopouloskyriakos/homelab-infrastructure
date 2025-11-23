@@ -13,8 +13,7 @@ Example: direct_deploy.py Switch nlsw01 artifacts/diffs/nlsw01_diff.yml
 """
 import sys
 import os
-import yaml
-import time
+import json
 from pathlib import Path
 from datetime import datetime
 from netmiko import ConnectHandler
@@ -25,7 +24,7 @@ class DeploymentError(Exception):
 
 def load_diff_file(diff_path):
     """
-    Load and validate diff YAML file
+    Load and validate diff JSON file
     Returns: dict with diff_blocks
     """
     if not Path(diff_path).exists():
@@ -33,7 +32,7 @@ def load_diff_file(diff_path):
     
     try:
         with open(diff_path) as f:
-            diff_data = yaml.safe_load(f)
+            diff_data = json.load(f)
         
         if not isinstance(diff_data, dict):
             raise DeploymentError("Invalid diff file format: not a dictionary")
@@ -43,8 +42,8 @@ def load_diff_file(diff_path):
         
         return diff_data
     
-    except yaml.YAMLError as e:
-        raise DeploymentError(f"Failed to parse YAML: {str(e)}")
+    except json.JSONDecodeError as e:
+        raise DeploymentError(f"Failed to parse JSON: {str(e)}")
 
 def build_command_sequence(block):
     """
