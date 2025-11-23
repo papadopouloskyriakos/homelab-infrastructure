@@ -54,7 +54,7 @@ class DriftGate:
             return None
     
     def load_gitlab_baseline_config(self):
-        """Load GitLab config from BEFORE current commit."""
+        """Load GitLab config from CURRENT commit (what we want to deploy)."""
         import subprocess
         
         possible_paths = [
@@ -62,19 +62,8 @@ class DriftGate:
             f"network/oxidized/{self.device_type}/{self.device_name}",
         ]
         
-        baseline_ref = os.getenv('CI_COMMIT_BEFORE_SHA', 'HEAD~1')
+        baseline_ref = "HEAD"
         
-        try:
-            result = subprocess.run(
-                ['git', 'rev-parse', '--verify', baseline_ref],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            if result.returncode != 0:
-                baseline_ref = 'main'
-        except:
-            baseline_ref = 'main'
         
         self.baseline_commit = baseline_ref
         
