@@ -1,14 +1,6 @@
 #!/usr/bin/env python3
 """
 Pre-deployment drift detection gate for Cisco devices.
-
-This script checks if a device has unreported manual changes (drift) by:
-1. Fetching live device configuration
-2. Comparing against GitLab baseline (BEFORE current commit)
-3. Creating drift sync MR if differences found
-4. Blocking deployment until drift is resolved
-
-Key fix: Creates drift branches from baseline commit, not current main.
 """
 import sys
 import os
@@ -62,12 +54,7 @@ class DriftGate:
             return None
     
     def load_gitlab_baseline_config(self):
-        """
-        Load GitLab config from BEFORE current commit (baseline for drift detection).
-        
-        This is critical: we must compare device state against the baseline BEFORE
-        the current commit, not against current main. Otherwise the MR will be backwards.
-        """
+        """Load GitLab config from BEFORE current commit."""
         import subprocess
         
         possible_paths = [
@@ -75,10 +62,8 @@ class DriftGate:
             f"network/oxidized/{self.device_type}/{self.device_name}",
         ]
         
-        # Get the baseline commit (before current changes)
         baseline_ref = os.getenv('CI_COMMIT_BEFORE_SHA', 'HEAD~1')
         
-        # Special case: if this is the first commit on a branch, use main
         try:
             result = subprocess.run(
                 ['git', 'rev-parse', '--verify', baseline_ref],
@@ -108,7 +93,6 @@ class DriftGate:
             except Exception as e:
                 continue
         
-        # Fallback: check if file exists in working directory
         for path_str in possible_paths:
             path = Path(path_str)
             if path.exists():
@@ -117,21 +101,17 @@ class DriftGate:
                 print(f"   Loaded GitLab config: {len(config)} bytes (new device)", file=sys.stderr)
                 return config
         
-        print(f"   WARNING: GitLab baseline not found for any path", file=sys.stderr)
+        print(f"   WARNING: GitLab baseline not found", file=sys.stderr)
         return None
     
     def compare_configs(self, live_config, gitlab_config):
-        """
-        Compare live device config against GitLab baseline.
-        
-        Returns: (has_drift, line_count, diff_lines)
-        """
+        """Compare live device config against GitLab baseline."""
         are_equal, live_filtered, gitlab_filtered = self.filter.compare_configs(
             live_config, gitlab_config
         )
         
         if are_equal:
-            return False, 0, None
+            return False, 0, None, live_filtered, gitlab_filtered
         
         import difflib
         live_lines = live_filtered.split('\n')
@@ -144,24 +124,23 @@ class DriftGate:
         ))
         
         if not diff:
-            return False, 0, None
+            return False, 0, None, live_filtered, gitlab_filtered
         
-        # Count actual changes (not headers)
         changes = [line for line in diff if line.startswith(('+', '-')) 
                    and not line.startswith(('+++', '---'))]
         total_changes = len(changes)
         
         if total_changes == 0:
-            return False, 0, None
+            return False, 0, None, live_filtered, gitlab_filtered
         
-        return True, total_changes, diff
+        return True, total_changes, diff, live_filtered, gitlab_filtered
     
-    def create_drift_merge_request(self, live_config, drift_diff, drift_lines_count):
+    def create_drift_merge_request(self, live_config_filtered, drift_diff, drift_lines_count):
         """
         Create MR to sync device drift.
         
-        CRITICAL: Branch must be created from baseline commit, not current main!
-        This ensures the MR correctly shows device -> baseline changes.
+        CRITICAL: Write FILTERED config to branch, not raw config!
+        This prevents MR from showing timestamp/header differences.
         """
         gitlab_url = os.getenv('CI_SERVER_URL', 'https://gitlab.example.net')
         project_id = os.getenv('CI_PROJECT_ID')
@@ -185,7 +164,6 @@ class DriftGate:
         api_url = f"{gitlab_url}/api/v4"
         headers = {'PRIVATE-TOKEN': gitlab_token}
         
-        # CRITICAL FIX: Create branch from baseline commit, not main
         base_ref = self.baseline_commit or 'main'
         print(f"   Branching from: {base_ref}", file=sys.stderr)
         
@@ -199,7 +177,6 @@ class DriftGate:
             print(f"   ERROR: Failed to create branch: {response.text}", file=sys.stderr)
             return None
         
-        # Find config file path in GitLab
         config_paths = [
             f"network/configs/{self.device_type}/{self.device_name}",
             f"network/oxidized/{self.device_type}/{self.device_name}",
@@ -220,14 +197,17 @@ class DriftGate:
             print(f"   ERROR: Could not find config in GitLab", file=sys.stderr)
             return None
         
-        # Write live device config to drift branch
+        # CRITICAL FIX: Write FILTERED config, not raw config
+        # This prevents MR from showing timestamp/header differences
+        print(f"   Writing filtered config ({len(live_config_filtered)} bytes)", file=sys.stderr)
+        
         response = requests.put(
             f"{api_url}/projects/{project_id}/repository/files/{gitlab_config_path.replace('/', '%2F')}",
             headers=headers,
             json={
                 'branch': branch_name,
-                'content': live_config,
-                'commit_message': f"Sync device drift: {self.device_name}\n\nDetected {drift_lines_count} lines of drift from baseline"
+                'content': live_config_filtered,
+                'commit_message': f"Sync device drift: {self.device_name}\n\nDetected {drift_lines_count} lines of drift from baseline\n\nNote: Dynamic content (timestamps, byte counts) filtered out"
             }
         )
         
@@ -235,12 +215,10 @@ class DriftGate:
             print(f"   ERROR: Failed to update file: {response.text}", file=sys.stderr)
             return None
         
-        # Save diff as artifact
         diff_file = f"drift_{self.device_name}.diff"
         with open(diff_file, 'w') as f:
             f.write('\n'.join(drift_diff))
         
-        # Create MR description
         mr_description = f"""## Configuration Drift Detected
 
 **Device:** `{self.device_name}` ({self.device_type})  
@@ -249,6 +227,8 @@ class DriftGate:
 
 ### What This MR Does
 This MR syncs the **live device configuration** into GitLab. The device has unreported manual changes that must be synced before your deployment can proceed.
+
+**Note:** Dynamic content (timestamps, byte counts, Building configuration headers) has been filtered out. This MR shows only actual configuration changes.
 
 ### Next Steps
 1. **Review this MR** - Check what changed on the device
@@ -268,7 +248,6 @@ See artifact `{diff_file}` for full diff.
 *This MR was automatically created by drift detection system.*
 """
         
-        # Create the merge request
         response = requests.post(
             f"{api_url}/projects/{project_id}/merge_requests",
             headers=headers,
@@ -296,32 +275,26 @@ See artifact `{diff_file}` for full diff.
         print(f"DRIFT GATE: {self.device_name}", file=sys.stderr)
         print(f"{'='*60}", file=sys.stderr)
         
-        # Step 1: Fetch live config
         print(f"\n[1/4] Fetching live device configuration...", file=sys.stderr)
         live_config = self.fetch_live_config()
         if not live_config:
             print(f"   ERROR: Could not fetch live config", file=sys.stderr)
             return 1
         
-        # Step 2: Load baseline config
         print(f"\n[2/4] Loading GitLab baseline configuration...", file=sys.stderr)
         gitlab_config = self.load_gitlab_baseline_config()
         if not gitlab_config:
             print(f"   WARNING: No GitLab baseline, allowing deployment (new device)", file=sys.stderr)
             return 0
         
-        # Step 3: Compare
         print(f"\n[3/4] Comparing configurations...", file=sys.stderr)
         print(f"   (Normalizing Oxidized format + filtering dynamic content)", file=sys.stderr)
         
-        # Show filtering stats
         live_lines_before = len(live_config.split('\n'))
         gitlab_lines_before = len(gitlab_config.split('\n'))
         
-        has_drift, drift_lines_count, drift_diff = self.compare_configs(live_config, gitlab_config)
+        has_drift, drift_lines_count, drift_diff, live_filtered, gitlab_filtered = self.compare_configs(live_config, gitlab_config)
         
-        # Calculate how many lines were filtered
-        _, live_filtered, gitlab_filtered = self.filter.compare_configs(live_config, gitlab_config)
         live_lines_after = len(live_filtered.split('\n'))
         gitlab_lines_after = len(gitlab_filtered.split('\n'))
         
@@ -339,11 +312,9 @@ See artifact `{diff_file}` for full diff.
         for line in drift_diff[:20]:
             print(f"   {line}", file=sys.stderr)
         
-        # Step 4: Create drift sync MR
         print(f"\n[4/4] Creating drift sync merge request...", file=sys.stderr)
-        mr_url = self.create_drift_merge_request(live_config, drift_diff, drift_lines_count)
+        mr_url = self.create_drift_merge_request(live_filtered, drift_diff, drift_lines_count)
         
-        # Report results
         print(f"\n{'='*60}", file=sys.stderr)
         print(f"RESULT: DRIFT DETECTED - DEPLOYMENT BLOCKED", file=sys.stderr)
         print(f"{'='*60}", file=sys.stderr)
