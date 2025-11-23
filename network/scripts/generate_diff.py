@@ -105,6 +105,10 @@ class ConfigParser:
             'group-policy ',
             'aaa ',
             'vrf definition ',
+            'dns server-group ',  # ASA DNS context
+            'dhcpd ',            # ASA DHCP context
+            'nat ',
+            'webvpn ',
         ]
         
         return any(line.startswith(keyword) for keyword in parent_keywords)
