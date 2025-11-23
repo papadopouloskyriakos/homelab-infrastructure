@@ -7,6 +7,8 @@ This script generates hierarchical diffs that include both additions and deletio
 Deletions are represented as "no <command>" statements. This enables true declarative
 configuration management where GitLab is the source of truth.
 
+The baseline is ALWAYS the live device config (Oxidized is not used).
+
 Usage: generate_diff.py <device_type> <device_name> <gitlab_config_file>
 
 Example: generate_diff.py Router nl-lte01 network/configs/Router/nl-lte01
@@ -18,28 +20,15 @@ import json
 from pathlib import Path
 from netmiko import ConnectHandler
 
+# Import dynamic content filter
+sys.path.insert(0, os.path.dirname(__file__))
+from filter_dynamic_content import DynamicContentFilter
+
 class ConfigParser:
     """Parse Cisco IOS/ASA configs into hierarchical structure"""
     
     def __init__(self):
-        self.dynamic_patterns = [
-            r'^! Last configuration change at .*',
-            r'^! NVRAM config last updated at .*',
-            r'^! Cryptochecksum:.*',
-            r'^ntp clock-period .*',
-            r'.*uptime is.*',
-            r'^! Configuration last modified by .*',
-            r'^.*building configuration.*',
-            r'^.*Current configuration :.*',
-            r'^.*NVRAM config.*',
-        ]
-    
-    def is_dynamic_line(self, line):
-        """Check if line contains dynamic content that should be ignored"""
-        for pattern in self.dynamic_patterns:
-            if re.match(pattern, line, re.IGNORECASE):
-                return True
-        return False
+        self.filter = DynamicContentFilter()
     
     def parse_config(self, config_text):
         """
@@ -48,19 +37,18 @@ class ConfigParser:
         Returns:
             List of dicts with 'parents' and 'lines' keys
         """
+        # Filter dynamic content first
+        filtered_config = self.filter.filter_config(config_text)
+        
         blocks = []
         current_parents = []
         current_lines = []
         
-        lines = config_text.split('\n')
+        lines = filtered_config.split('\n')
         
         for line in lines:
             # Skip empty lines and comments
             if not line.strip() or line.strip().startswith('!'):
-                continue
-            
-            # Skip dynamic content
-            if self.is_dynamic_line(line):
                 continue
             
             # Determine indentation level
@@ -116,6 +104,7 @@ class ConfigParser:
             'tunnel-group ',
             'group-policy ',
             'aaa ',
+            'vrf definition ',
         ]
         
         return any(line.startswith(keyword) for keyword in parent_keywords)
@@ -125,6 +114,7 @@ class DiffGenerator:
     
     def __init__(self):
         self.parser = ConfigParser()
+        self.filter = DynamicContentFilter()
     
     def normalize_line(self, line):
         """Normalize line for comparison (strip extra spaces, etc.)"""
@@ -133,6 +123,9 @@ class DiffGenerator:
     def fetch_device_config(self, device_type, device_name):
         """
         Fetch current running config from device
+        
+        This is the BASELINE for all comparisons.
+        Oxidized is no longer used.
         
         Returns:
             Config text as string
@@ -162,38 +155,19 @@ class DiffGenerator:
             'fast_cli': False,
         }
         
-        print(f"Connecting to {device_name}...", file=sys.stderr)
+        print(f"Fetching live config from {device_name}...", file=sys.stderr)
         
         try:
             conn = ConnectHandler(**device_params)
             config = conn.send_command("show running-config", read_timeout=120)
             conn.disconnect()
             
-            print(f"Successfully fetched config ({len(config)} bytes)", file=sys.stderr)
+            print(f"Successfully fetched live config ({len(config)} bytes)", file=sys.stderr)
             return config
         
         except Exception as e:
-            print(f"Failed to fetch from device: {str(e)}", file=sys.stderr)
-            print("Falling back to Oxidized backup...", file=sys.stderr)
-            return None
-    
-    def load_oxidized_backup(self, device_type, device_name):
-        """
-        Load config from Oxidized backup
-        
-        Returns:
-            Config text as string or None
-        """
-        oxidized_path = Path(f"network/oxidized/{device_type}/{device_name}")
-        
-        if not oxidized_path.exists():
-            return None
-        
-        with open(oxidized_path) as f:
-            config = f.read()
-        
-        print(f"Loaded Oxidized backup ({len(config)} bytes)", file=sys.stderr)
-        return config
+            print(f"ERROR: Failed to fetch from device: {str(e)}", file=sys.stderr)
+            raise
     
     def generate_diff(self, current_config, desired_config):
         """
@@ -202,7 +176,7 @@ class DiffGenerator:
         Returns:
             List of diff blocks with additions and deletions
         """
-        # Parse both configs
+        # Parse both configs (filter is applied inside parse_config)
         current_blocks = self.parser.parse_config(current_config)
         desired_blocks = self.parser.parse_config(desired_config)
         
@@ -317,7 +291,7 @@ def generate_deployment_diff(device_type, device_name, gitlab_config_file):
     """
     Main function to generate deployment diff
     
-    Outputs YAML to stdout
+    Outputs JSON to stdout
     """
     print(f"Generating diff for {device_name}...", file=sys.stderr)
     print(f"Device type: {device_type}", file=sys.stderr)
@@ -335,16 +309,13 @@ def generate_deployment_diff(device_type, device_name, gitlab_config_file):
     
     print(f"Loaded GitLab config ({len(desired_config)} bytes)", file=sys.stderr)
     
-    # Get current config from device or Oxidized
+    # Get current config from LIVE DEVICE (not Oxidized)
     generator = DiffGenerator()
     
-    current_config = generator.fetch_device_config(device_type, device_name)
-    
-    if not current_config:
-        current_config = generator.load_oxidized_backup(device_type, device_name)
-    
-    if not current_config:
-        error_msg = "Could not fetch current config from device or Oxidized"
+    try:
+        current_config = generator.fetch_device_config(device_type, device_name)
+    except Exception as e:
+        error_msg = f"Could not fetch current config from device: {str(e)}"
         print(f"ERROR: {error_msg}", file=sys.stderr)
         
         # Output error in JSON format
@@ -366,9 +337,12 @@ def generate_deployment_diff(device_type, device_name, gitlab_config_file):
     print(f"Generated {len(diff_blocks)} diff blocks", file=sys.stderr)
     print("", file=sys.stderr)
     
-    # Output JSON to stdout (easier than YAML, no quoting issues)
+    # Output JSON to stdout
     output = {
-        'diff_blocks': diff_blocks
+        'diff_blocks': diff_blocks,
+        'baseline': 'live_device',
+        'device_name': device_name,
+        'device_type': device_type
     }
     
     # Use JSON with proper formatting
@@ -389,6 +363,9 @@ def main():
             print("", file=sys.stderr)
             print("Example:", file=sys.stderr)
             print("  generate_diff.py Router nl-lte01 network/configs/Router/nl-lte01", file=sys.stderr)
+            print("", file=sys.stderr)
+            print("NOTE: This script uses the LIVE device config as baseline", file=sys.stderr)
+            print("      Oxidized is not used (it runs independently)", file=sys.stderr)
             print("", file=sys.stderr)
             # Output empty diff blocks as valid JSON
             print(json.dumps({"diff_blocks": [], "error": "Invalid arguments"}))
