@@ -287,7 +287,6 @@ dns domain-lookup outside_freedom
 dns domain-lookup inside_mgmt
 dns server-group DefaultDNS
  name-server 1.1.1.1 outside_freedom
- name-server 8.8.8.8 outside_freedom
  name-server 10.0.X.X inside_mgmt
  domain-name example.net
 same-security-traffic permit inter-interface
