@@ -1,374 +1,410 @@
 #!/usr/bin/env python3
 """
-Hierarchical Diff Generator V4 - Smart Baseline Selection
-Uses live device config as baseline, with fallbacks to Oxidized and Git
+Generate Hierarchical Configuration Diff
+Compares live device config with GitLab config to produce exact deployment changes
+
+This script generates hierarchical diffs that include both additions and deletions.
+Deletions are represented as "no <command>" statements. This enables true declarative
+configuration management where GitLab is the source of truth.
+
+Usage: generate_diff.py <device_type> <device_name> <gitlab_config_file>
+
+Example: generate_diff.py Router nl-lte01 network/configs/Router/nl-lte01
 """
 import sys
 import os
+import re
 import yaml
 from pathlib import Path
-from collections import defaultdict
-from ciscoconfparse import CiscoConfParse
+from netmiko import ConnectHandler
 
-# Disable logging
-import logging
-logging.basicConfig(level=logging.CRITICAL)
-
-try:
-    from loguru import logger
-    logger.remove()
-    logger.add(sys.stderr, level="CRITICAL")
-except ImportError:
-    pass
-
-def log(msg):
-    """All logging to stderr only"""
-    print(msg, file=sys.stderr, flush=True)
-
-def normalize_line(line):
-    """Remove dynamic content from a single line"""
-    line = line.rstrip()
+class ConfigParser:
+    """Parse Cisco IOS/ASA configs into hierarchical structure"""
     
-    skip_patterns = [
-        '!',
-        'Last configuration change',
-        'NVRAM config last updated',
-        'ntp clock-period',
-        'Configuration last modified',
-        'Cryptochecksum:',
-        'Current configuration :',
-        'Building configuration',
-        'uptime is',
-    ]
+    def __init__(self):
+        self.dynamic_patterns = [
+            r'^! Last configuration change at .*',
+            r'^! NVRAM config last updated at .*',
+            r'^! Cryptochecksum:.*',
+            r'^ntp clock-period .*',
+            r'.*uptime is.*',
+            r'^! Configuration last modified by .*',
+            r'^.*building configuration.*',
+            r'^.*Current configuration :.*',
+            r'^.*NVRAM config.*',
+        ]
     
-    if any(pattern in line for pattern in skip_patterns):
-        return None
+    def is_dynamic_line(self, line):
+        """Check if line contains dynamic content that should be ignored"""
+        for pattern in self.dynamic_patterns:
+            if re.match(pattern, line, re.IGNORECASE):
+                return True
+        return False
     
-    return line
-
-def parse_config_hierarchy(config_lines):
-    """
-    Parse Cisco IOS config into hierarchical structure
-    Returns: {parent_cmd: [child_cmd1, child_cmd2, ...], ...}
-    Also returns global commands separately
-    """
-    filtered_lines = []
-    for line in config_lines:
-        normalized = normalize_line(line)
-        if normalized is not None:
-            filtered_lines.append(normalized)
-    
-    parse = CiscoConfParse(filtered_lines, syntax='ios')
-    
-    hierarchy = defaultdict(list)
-    global_commands = []
-    
-    for parent_obj in parse.find_objects(r'^[^\s]'):
-        parent_text = parent_obj.text
-        children = []
-        for child_obj in parent_obj.children:
-            children.append(child_obj.text.strip())
+    def parse_config(self, config_text):
+        """
+        Parse config into hierarchical structure
         
-        if children:
-            hierarchy[parent_text] = children
-        else:
-            global_commands.append(parent_text)
-    
-    return hierarchy, global_commands
-
-def get_live_config(device_name, device_type):
-    """
-    Fetch current running-config directly from device
-    Returns: (success, config_lines, error_message)
-    """
-    try:
-        from netmiko import ConnectHandler
+        Returns:
+            List of dicts with 'parents' and 'lines' keys
+        """
+        blocks = []
+        current_parents = []
+        current_lines = []
         
+        lines = config_text.split('\n')
+        
+        for line in lines:
+            # Skip empty lines and comments
+            if not line.strip() or line.strip().startswith('!'):
+                continue
+            
+            # Skip dynamic content
+            if self.is_dynamic_line(line):
+                continue
+            
+            # Determine indentation level
+            indent = len(line) - len(line.lstrip())
+            
+            if indent == 0:
+                # Global command or new top-level block
+                
+                # Save previous block if exists
+                if current_parents or current_lines:
+                    blocks.append({
+                        'parents': list(current_parents),
+                        'lines': list(current_lines)
+                    })
+                    current_lines = []
+                
+                # Check if this is a parent command (creates context)
+                if self._is_parent_command(line.strip()):
+                    current_parents = [line.strip()]
+                else:
+                    # Global command
+                    current_parents = []
+                    current_lines = [line.strip()]
+            
+            else:
+                # Child command under parent
+                current_lines.append(line.strip())
+        
+        # Save final block
+        if current_parents or current_lines:
+            blocks.append({
+                'parents': list(current_parents),
+                'lines': list(current_lines)
+            })
+        
+        return blocks
+    
+    def _is_parent_command(self, line):
+        """Check if command creates a configuration context"""
+        parent_keywords = [
+            'interface ',
+            'router ',
+            'line ',
+            'class-map ',
+            'policy-map ',
+            'route-map ',
+            'access-list ',
+            'object-group ',
+            'object network ',
+            'object service ',
+            'crypto ',
+            'username ',
+            'tunnel-group ',
+            'group-policy ',
+            'aaa ',
+        ]
+        
+        return any(line.startswith(keyword) for keyword in parent_keywords)
+
+class DiffGenerator:
+    """Generate deployment diffs between current and desired configs"""
+    
+    def __init__(self):
+        self.parser = ConfigParser()
+    
+    def normalize_line(self, line):
+        """Normalize line for comparison (strip extra spaces, etc.)"""
+        return ' '.join(line.split())
+    
+    def fetch_device_config(self, device_type, device_name):
+        """
+        Fetch current running config from device
+        
+        Returns:
+            Config text as string
+        """
         username = os.getenv('CISCO_USER', 'kyriakosp')
         password = os.getenv('CISCO_PASSWORD')
         
         if not password:
-            return False, None, "CISCO_PASSWORD not set"
+            raise Exception("CISCO_PASSWORD environment variable not set")
         
-        if device_type == 'Firewall':
-            device_type_netmiko = 'cisco_asa'
-        else:
-            device_type_netmiko = 'cisco_ios'
+        # Determine Netmiko device type
+        netmiko_type_map = {
+            'Firewall': 'cisco_asa',
+            'Router': 'cisco_ios',
+            'Switch': 'cisco_ios',
+            'Access-Point': 'cisco_ios',
+        }
         
-        device = {
+        device_type_netmiko = netmiko_type_map.get(device_type, 'cisco_ios')
+        
+        device_params = {
             'device_type': device_type_netmiko,
             'host': f"{device_name}.example.net",
             'username': username,
             'password': password,
-            'timeout': 30,
-            'fast_cli': True,
+            'timeout': 120,
+            'fast_cli': False,
         }
         
-        log(f"   → Connecting to {device_name}...")
-        conn = ConnectHandler(**device)
+        print(f"Connecting to {device_name}...", file=sys.stderr)
         
-        log(f"   → Fetching running-config...")
-        running_config = conn.send_command("show running-config")
-        
-        conn.disconnect()
-        
-        config_lines = running_config.splitlines()
-        log(f"   → Retrieved {len(config_lines)} lines")
-        
-        return True, config_lines, None
-        
-    except Exception as e:
-        return False, None, str(e)
-
-def get_baseline_config(device_type, device_name, oxidized_backup_path):
-    """
-    Get baseline config using smart cascading strategy:
-    1. Live device config (preferred)
-    2. Oxidized backup (fallback)
-    3. Error if neither available
-    
-    Returns: (source, config_lines)
-    """
-    log("")
-    log("SMART BASELINE SELECTION")
-    log("-" * 60)
-    
-    # Try 1: Live device config
-    log("Attempting: Live device running-config")
-    success, config_lines, error = get_live_config(device_name, device_type)
-    
-    if success:
-        log("   ✓ SUCCESS: Using live device config as baseline")
-        log("   This ensures 100% accuracy regardless of Oxidized timing")
-        return "live", config_lines
-    else:
-        log(f"   ✗ Failed: {error}")
-    
-    # Try 2: Oxidized backup
-    log("")
-    log("Attempting: Oxidized backup")
-    if oxidized_backup_path.exists():
-        log(f"   ✓ Found: {oxidized_backup_path}")
-        with open(oxidized_backup_path) as f:
-            config_lines = f.readlines()
-        
-        log("   ⚠ WARNING: Using Oxidized backup as baseline")
-        log("   This may be out of sync if device was recently changed")
-        log(f"   Oxidized backup age: Check file timestamp")
-        
-        return "oxidized", config_lines
-    else:
-        log(f"   ✗ Not found: {oxidized_backup_path}")
-    
-    # No baseline available
-    log("")
-    log("ERROR: No baseline config available!")
-    log("Solutions:")
-    log("  1. Ensure device is reachable")
-    log("  2. Wait for Oxidized to scrape device")
-    log("  3. Manually create baseline config")
-    raise Exception("No baseline config available")
-
-def generate_diff_blocks(old_hierarchy, old_global, new_hierarchy, new_global):
-    """Generate deployment blocks by comparing hierarchies"""
-    diff_blocks = []
-    
-    # Global deletions
-    old_global_set = set(old_global)
-    new_global_set = set(new_global)
-    
-    global_deletions = old_global_set - new_global_set
-    if global_deletions:
-        deletion_cmds = []
-        for cmd in sorted(global_deletions):
-            if cmd.startswith('no '):
-                deletion_cmds.append(cmd[3:])
-            else:
-                deletion_cmds.append(f"no {cmd}")
-        
-        diff_blocks.append({
-            "parents": [],
-            "lines": deletion_cmds,
-            "description": "Global deletions"
-        })
-    
-    # Global additions
-    global_additions = new_global_set - old_global_set
-    if global_additions:
-        diff_blocks.append({
-            "parents": [],
-            "lines": sorted(list(global_additions)),
-            "description": "Global additions"
-        })
-    
-    # Hierarchical changes
-    all_parents = set(old_hierarchy.keys()) | set(new_hierarchy.keys())
-    
-    for parent in sorted(all_parents):
-        old_children = set(old_hierarchy.get(parent, []))
-        new_children = set(new_hierarchy.get(parent, []))
-        
-        # Parent deleted
-        if parent in old_hierarchy and parent not in new_hierarchy:
-            diff_blocks.append({
-                "parents": [],
-                "lines": [f"no {parent}"],
-                "description": f"Delete parent: {parent[:50]}"
-            })
-            continue
-        
-        # Parent added
-        if parent not in old_hierarchy and parent in new_hierarchy:
-            diff_blocks.append({
-                "parents": [parent],
-                "lines": sorted(list(new_children)),
-                "description": f"New parent: {parent[:50]}"
-            })
-            continue
-        
-        # Parent modified
-        child_deletions = old_children - new_children
-        child_additions = new_children - old_children
-        
-        if child_deletions or child_additions:
-            commands = []
+        try:
+            conn = ConnectHandler(**device_params)
+            config = conn.send_command("show running-config", read_timeout=120)
+            conn.disconnect()
             
-            for child in sorted(child_deletions):
-                if child.startswith('no '):
-                    commands.append(child[3:])
-                else:
-                    commands.append(f"no {child}")
-            
-            commands.extend(sorted(list(child_additions)))
-            
-            diff_blocks.append({
-                "parents": [parent],
-                "lines": commands,
-                "description": f"Modify: {parent[:50]}"
-            })
+            print(f"Successfully fetched config ({len(config)} bytes)", file=sys.stderr)
+            return config
+        
+        except Exception as e:
+            print(f"Failed to fetch from device: {str(e)}", file=sys.stderr)
+            print("Falling back to Oxidized backup...", file=sys.stderr)
+            return None
     
-    return diff_blocks
-
-def generate_diff(device_type, device_name, config_file):
-    """Generate hierarchical diff with smart baseline selection"""
+    def load_oxidized_backup(self, device_type, device_name):
+        """
+        Load config from Oxidized backup
+        
+        Returns:
+            Config text as string or None
+        """
+        oxidized_path = Path(f"network/oxidized/{device_type}/{device_name}")
+        
+        if not oxidized_path.exists():
+            return None
+        
+        with open(oxidized_path) as f:
+            config = f.read()
+        
+        print(f"Loaded Oxidized backup ({len(config)} bytes)", file=sys.stderr)
+        return config
     
-    try:
-        gitlab_config = Path(config_file)
-        oxidized_backup = Path(f"network/oxidized/{device_type}/{device_name}")
+    def generate_diff(self, current_config, desired_config):
+        """
+        Generate hierarchical diff between current and desired configs
         
-        log("=" * 60)
-        log("HIERARCHICAL DIFF GENERATOR V4")
-        log("Smart baseline with live config support")
-        log("=" * 60)
-        
-        if not gitlab_config.exists():
-            log(f"ERROR: GitLab config not found: {gitlab_config}")
-            return 1
-        
-        # Read desired config
-        log(f"Desired config: {gitlab_config}")
-        with open(gitlab_config) as f:
-            gitlab_lines = f.readlines()
-        log(f"  Lines: {len(gitlab_lines)}")
-        
-        # Get baseline using smart selection
-        baseline_source, baseline_lines = get_baseline_config(
-            device_type, 
-            device_name, 
-            oxidized_backup
-        )
-        
-        log("")
-        log("BASELINE SELECTION RESULT")
-        log("-" * 60)
-        log(f"Source: {baseline_source.upper()}")
-        log(f"Lines: {len(baseline_lines)}")
-        
-        if baseline_source == "oxidized":
-            log("")
-            log("⚠ IMPORTANT: Using Oxidized backup")
-            log("If you made recent changes, they may not be reflected!")
-            log("For best results, ensure device is reachable for live config.")
-        
-        log("")
-        log("PARSING CONFIGURATIONS")
-        log("-" * 60)
-        
+        Returns:
+            List of diff blocks with additions and deletions
+        """
         # Parse both configs
-        old_hierarchy, old_global = parse_config_hierarchy(baseline_lines)
-        new_hierarchy, new_global = parse_config_hierarchy(gitlab_lines)
+        current_blocks = self.parser.parse_config(current_config)
+        desired_blocks = self.parser.parse_config(desired_config)
         
-        log(f"Baseline: {len(old_global)} global, {len(old_hierarchy)} parents")
-        log(f"Desired:  {len(new_global)} global, {len(new_hierarchy)} parents")
+        # Create lookup structures
+        current_map = self._build_block_map(current_blocks)
+        desired_map = self._build_block_map(desired_blocks)
         
-        # Generate diff
-        log("")
-        log("GENERATING DIFF")
-        log("-" * 60)
-        diff_blocks = generate_diff_blocks(old_hierarchy, old_global, new_hierarchy, new_global)
+        diff_blocks = []
         
-        log("")
-        log(f"DEPLOYMENT PLAN: {len(diff_blocks)} blocks")
-        log("=" * 60)
+        # Find blocks to delete (in current but not in desired)
+        for context_key, current_lines in current_map.items():
+            if context_key not in desired_map:
+                # Entire block should be removed
+                parents = self._key_to_parents(context_key)
+                
+                # Generate "no" commands for all lines
+                no_commands = []
+                for line in current_lines:
+                    # Don't double-negate
+                    if not line.startswith('no '):
+                        no_commands.append(f"no {line}")
+                
+                if no_commands:
+                    diff_blocks.append({
+                        'parents': parents,
+                        'lines': no_commands,
+                        'description': f"Remove: {context_key}"
+                    })
         
-        for i, block in enumerate(diff_blocks, 1):
-            parents = block.get('parents', [])
-            lines = block.get('lines', [])
-            desc = block.get('description', '')
+        # Find blocks to add or modify
+        for context_key, desired_lines in desired_map.items():
+            parents = self._key_to_parents(context_key)
             
-            log("")
-            log(f"Block {i}: {desc}")
-            if parents:
-                log(f"  Context: {parents[0][:60]}")
+            if context_key not in current_map:
+                # New block - add everything
+                diff_blocks.append({
+                    'parents': parents,
+                    'lines': list(desired_lines),
+                    'description': f"Add: {context_key}"
+                })
+            
             else:
-                log(f"  Context: [GLOBAL]")
+                # Existing block - find differences
+                current_lines = current_map[context_key]
+                
+                additions = []
+                deletions = []
+                
+                # Normalize for comparison
+                current_set = set(self.normalize_line(line) for line in current_lines)
+                desired_set = set(self.normalize_line(line) for line in desired_lines)
+                
+                # Lines to delete
+                for line in current_lines:
+                    norm_line = self.normalize_line(line)
+                    if norm_line not in desired_set:
+                        if not line.startswith('no '):
+                            deletions.append(f"no {line}")
+                
+                # Lines to add
+                for line in desired_lines:
+                    norm_line = self.normalize_line(line)
+                    if norm_line not in current_set:
+                        additions.append(line)
+                
+                # Create diff block if there are changes
+                if deletions or additions:
+                    # Apply deletions first, then additions
+                    all_changes = deletions + additions
+                    
+                    diff_blocks.append({
+                        'parents': parents,
+                        'lines': all_changes,
+                        'description': f"Modify: {context_key}"
+                    })
+        
+        return diff_blocks
+    
+    def _build_block_map(self, blocks):
+        """
+        Build map of context -> lines
+        
+        Returns:
+            Dict mapping context key to list of lines
+        """
+        block_map = {}
+        
+        for block in blocks:
+            parents = block['parents']
+            lines = block['lines']
             
-            log(f"  Commands: {len(lines)}")
-            for j, line in enumerate(lines[:5], 1):
-                log(f"    {j}. {line[:70]}")
-            if len(lines) > 5:
-                log(f"    ... and {len(lines) - 5} more")
+            # Create unique key for this context
+            if parents:
+                context_key = ' > '.join(parents)
+            else:
+                context_key = '[GLOBAL]'
+            
+            if context_key not in block_map:
+                block_map[context_key] = []
+            
+            block_map[context_key].extend(lines)
         
-        if not diff_blocks:
-            log("")
-            log("No changes detected")
-        
-        log("")
-        log("=" * 60)
-        
-        # Output YAML
-        output = {
-            "diff_blocks": diff_blocks,
-            "baseline_source": baseline_source,
-            "baseline_note": "live = fetched from device, oxidized = from backup"
-        }
-        yaml.dump(output, sys.stdout, default_flow_style=False, sort_keys=False)
-        sys.stdout.flush()
-        
-        log("SUCCESS: Diff generated")
-        log("=" * 60)
-        return 0
-        
-    except Exception as e:
-        log(f"ERROR: {str(e)}")
-        import traceback
-        traceback.print_exc(file=sys.stderr)
-        return 1
+        return block_map
+    
+    def _key_to_parents(self, context_key):
+        """Convert context key back to parents list"""
+        if context_key == '[GLOBAL]':
+            return []
+        return context_key.split(' > ')
 
-if __name__ == "__main__":
+def generate_deployment_diff(device_type, device_name, gitlab_config_file):
+    """
+    Main function to generate deployment diff
+    
+    Outputs YAML to stdout
+    """
+    print(f"Generating diff for {device_name}...", file=sys.stderr)
+    print(f"Device type: {device_type}", file=sys.stderr)
+    print(f"GitLab config: {gitlab_config_file}", file=sys.stderr)
+    print("", file=sys.stderr)
+    
+    # Load desired config from GitLab
+    gitlab_path = Path(gitlab_config_file)
+    if not gitlab_path.exists():
+        print(f"ERROR: GitLab config not found: {gitlab_config_file}", file=sys.stderr)
+        sys.exit(1)
+    
+    with open(gitlab_path) as f:
+        desired_config = f.read()
+    
+    print(f"Loaded GitLab config ({len(desired_config)} bytes)", file=sys.stderr)
+    
+    # Get current config from device or Oxidized
+    generator = DiffGenerator()
+    
+    current_config = generator.fetch_device_config(device_type, device_name)
+    
+    if not current_config:
+        current_config = generator.load_oxidized_backup(device_type, device_name)
+    
+    if not current_config:
+        print("ERROR: Could not fetch current config from device or Oxidized", file=sys.stderr)
+        sys.exit(1)
+    
+    print("", file=sys.stderr)
+    print("Comparing configurations...", file=sys.stderr)
+    
+    # Generate diff
+    diff_blocks = generator.generate_diff(current_config, desired_config)
+    
+    print(f"Generated {len(diff_blocks)} diff blocks", file=sys.stderr)
+    print("", file=sys.stderr)
+    
+    # Output YAML to stdout
+    output = {
+        'diff_blocks': diff_blocks
+    }
+    
+    # Use safe_dump with proper formatting
+    yaml_output = yaml.safe_dump(
+        output,
+        default_flow_style=False,
+        sort_keys=False,
+        allow_unicode=True,
+        width=120
+    )
+    
+    print(yaml_output)
+
+def main():
+    """Main entry point"""
     if len(sys.argv) != 4:
-        log("Usage: generate_diff.py <device_type> <device_name> <config_file>")
+        print("Usage: generate_diff.py <device_type> <device_name> <gitlab_config_file>", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Arguments:", file=sys.stderr)
+        print("  device_type        - Device type (Router/Switch/Firewall/Access-Point)", file=sys.stderr)
+        print("  device_name        - Device hostname (e.g., nl-lte01)", file=sys.stderr)
+        print("  gitlab_config_file - Path to GitLab config file", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Example:", file=sys.stderr)
+        print("  generate_diff.py Router nl-lte01 network/configs/Router/nl-lte01", file=sys.stderr)
+        print("", file=sys.stderr)
         sys.exit(1)
     
     device_type = sys.argv[1]
     device_name = sys.argv[2]
-    config_file = sys.argv[3]
+    gitlab_config_file = sys.argv[3]
+    
+    # Validate device type
+    valid_types = ['Router', 'Switch', 'Firewall', 'Access-Point']
+    if device_type not in valid_types:
+        print(f"ERROR: Invalid device type: {device_type}", file=sys.stderr)
+        print(f"Valid types: {', '.join(valid_types)}", file=sys.stderr)
+        sys.exit(1)
     
     try:
-        exit_code = generate_diff(device_type, device_name, config_file)
-        sys.exit(exit_code)
+        generate_deployment_diff(device_type, device_name, gitlab_config_file)
     except Exception as e:
-        log(f"FATAL ERROR: {str(e)}")
+        print(f"ERROR: {str(e)}", file=sys.stderr)
         import traceback
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)
+
+if __name__ == "__main__":
+    main()
