@@ -29,6 +29,7 @@ no ip cef
 ip domain name example.net
 ip name-server 10.0.X.X
 ip name-server 10.0.X.X
+ip name-server 8.8.8.8
 !
 !
 !
