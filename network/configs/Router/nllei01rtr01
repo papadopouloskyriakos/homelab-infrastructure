@@ -42,7 +42,7 @@ clock summer-time CEST recurring last Sun Mar 2:00 last Sun Oct 3:00
 !
 !
 !
-ip name-server 10.0.X.X
+ip name-server 10.0.X.X 10.0.X.X
 ip domain name example.net
 !
 !
