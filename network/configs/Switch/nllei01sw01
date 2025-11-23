@@ -63,7 +63,7 @@ no ip source-route
 !
 !
 !
-ip name-server 10.0.X.X
+ip name-server 10.0.X.X 10.0.X.X
 ip domain name example.net
 !
 !
