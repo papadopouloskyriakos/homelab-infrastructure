@@ -1,289 +1,236 @@
 #!/usr/bin/env python3
 """
-Drift Detection - Check all devices for config drift
-Compares GitLab vs Live configs and reports discrepancies
+Detect Configuration Drift
+Compares device configs with GitLab to find unreported changes
 
-Enhanced with comprehensive filtering to prevent false drift detection
-from timestamps, checksums, and other dynamic content.
+This script checks if devices have been modified manually without updating GitLab.
+If drift is detected, it means the device is out of sync with GitLab.
 
-Usage: detect_drift.py [--auto-sync]
+Usage: detect_drift.py [device_type] [device_name]
+
+Examples:
+  detect_drift.py                           # Check all devices
+  detect_drift.py Router nl-lte01      # Check specific device
 """
 import sys
 import os
-import re
-import yaml
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from netmiko import ConnectHandler
 
-
-def filter_cisco_config(config_text):
-    """
-    Remove dynamic/timestamp content that changes frequently
-    but doesn't represent actual configuration drift.
+class DriftDetector:
+    """Detect configuration drift between devices and GitLab"""
     
-    This matches the filtering logic in sync_oxidized_gitlab.sh
-    to prevent false drift detection.
-    """
-    lines = config_text.splitlines()
-    filtered_lines = []
+    def __init__(self):
+        self.drift_found = False
     
-    # Patterns to skip entirely
-    skip_patterns = [
-        # Timestamps
-        r'Last configuration change at',
-        r'NVRAM config last updated at',
-        r'Configuration last modified by',
-        r'Building configuration',
-        r'Current configuration\s*:',
+    def normalize_config(self, config):
+        """
+        Normalize config for comparison (remove dynamic content)
+        """
+        lines = []
         
-        # Crypto/hashes (change on every save)
-        r'^Cryptochecksum:',
-        r'^!\s*Cryptochecksum:',
+        dynamic_patterns = [
+            'Last configuration change at',
+            'NVRAM config last updated at',
+            'Cryptochecksum:',
+            'ntp clock-period',
+            'uptime is',
+            'Configuration last modified by',
+            'building configuration',
+            'Current configuration :',
+        ]
         
-        # NTP clock drift (changes constantly)
-        r'^ntp clock-period',
+        for line in config.split('\n'):
+            # Skip dynamic content
+            if any(pattern in line for pattern in dynamic_patterns):
+                continue
+            
+            # Skip empty lines and pure comments
+            if not line.strip() or line.strip() == '!':
+                continue
+            
+            lines.append(line.rstrip())
         
-        # Dynamic comment lines with timestamps
-        r'^!\s*\d{2}:\d{2}:\d{2}',
-        
-        # Configuration headers with sizes/bytes
-        r'^!\s*Last configuration change',
-        r'^!\s*NVRAM config last',
-    ]
+        return '\n'.join(lines)
     
-    for line in lines:
-        # Remove trailing whitespace for consistent comparison
-        line = line.rstrip()
-        
-        # Skip empty comment lines
-        if line.strip() == '!':
-            continue
-        
-        # Check skip patterns
-        skip = False
-        for pattern in skip_patterns:
-            if re.search(pattern, line, re.IGNORECASE):
-                skip = True
-                break
-        
-        if skip:
-            continue
-        
-        # Filter "uptime" mentions (but keep interface descriptions)
-        if 'uptime' in line.lower() and 'description' not in line.lower():
-            continue
-        
-        # Keep the line
-        filtered_lines.append(line)
-    
-    return '\n'.join(filtered_lines)
-
-
-def check_device_drift(device_type, device_name, gitlab_config_path):
-    """
-    Check single device for drift
-    Returns: (device_name, status, details)
-    """
-    try:
-        # Get credentials
+    def fetch_device_config(self, device_type, device_name):
+        """Fetch running config from device"""
         username = os.getenv('CISCO_USER', 'kyriakosp')
         password = os.getenv('CISCO_PASSWORD')
         
         if not password:
-            return device_name, 'error', 'CISCO_PASSWORD not set'
+            raise Exception("CISCO_PASSWORD environment variable not set")
         
-        # Determine device type
-        if device_type == 'Firewall':
-            device_type_netmiko = 'cisco_asa'
-        else:
-            device_type_netmiko = 'cisco_ios'
+        netmiko_type_map = {
+            'Firewall': 'cisco_asa',
+            'Router': 'cisco_ios',
+            'Switch': 'cisco_ios',
+            'Access-Point': 'cisco_ios',
+        }
         
-        # Connect and fetch config
-        device = {
+        device_type_netmiko = netmiko_type_map.get(device_type, 'cisco_ios')
+        
+        device_params = {
             'device_type': device_type_netmiko,
             'host': f"{device_name}.example.net",
             'username': username,
             'password': password,
-            'timeout': 30,
-            'fast_cli': True,
+            'timeout': 120,
+            'fast_cli': False,
         }
         
-        conn = ConnectHandler(**device)
-        live_config = conn.send_command("show running-config")
+        conn = ConnectHandler(**device_params)
+        config = conn.send_command("show running-config", read_timeout=120)
         conn.disconnect()
         
-        # Read GitLab config
-        if not gitlab_config_path.exists():
-            return device_name, 'missing', 'No GitLab config file'
-        
-        with open(gitlab_config_path) as f:
-            gitlab_config = f.read()
-        
-        # CRITICAL: Filter both configs before comparison
-        live_config_filtered = filter_cisco_config(live_config)
-        gitlab_config_filtered = filter_cisco_config(gitlab_config)
-        
-        # Compare filtered configs
-        if live_config_filtered == gitlab_config_filtered:
-            return device_name, 'synced', 'No drift detected'
-        
-        # Calculate drift size
-        import difflib
-        diff = list(difflib.unified_diff(
-            gitlab_config_filtered.splitlines(),
-            live_config_filtered.splitlines(),
-            lineterm=''
-        ))
-        
-        additions = sum(1 for line in diff if line.startswith('+') and not line.startswith('+++'))
-        deletions = sum(1 for line in diff if line.startswith('-') and not line.startswith('---'))
-        
-        return device_name, 'drift', f'{additions} additions, {deletions} deletions'
-        
-    except Exception as e:
-        return device_name, 'error', str(e)[:100]
-
-
-def discover_devices():
-    """
-    Discover all devices from network/configs/
-    Returns: [(device_type, device_name, config_path), ...]
-    """
-    devices = []
-    configs_dir = Path('network/configs')
+        return config
     
-    if not configs_dir.exists():
-        return devices
+    def load_gitlab_config(self, device_type, device_name):
+        """Load config from GitLab"""
+        gitlab_path = Path(f"network/configs/{device_type}/{device_name}")
+        
+        if not gitlab_path.exists():
+            return None
+        
+        with open(gitlab_path) as f:
+            return f.read()
     
-    for device_type_dir in configs_dir.iterdir():
-        if not device_type_dir.is_dir():
-            continue
+    def check_device(self, device_type, device_name):
+        """
+        Check single device for drift
         
-        device_type = device_type_dir.name
+        Returns:
+            (has_drift, message)
+        """
+        print(f"Checking {device_name}...", end=' ')
         
-        for config_file in device_type_dir.iterdir():
-            # SKIP special files
-            if config_file.name in ['.gitkeep', '.gitignore', 'README.md']:
-                continue
+        try:
+            # Fetch device config
+            device_config = self.fetch_device_config(device_type, device_name)
             
-            # SKIP hidden files
-            if config_file.name.startswith('.'):
-                continue
+            # Load GitLab config
+            gitlab_config = self.load_gitlab_config(device_type, device_name)
+            
+            if not gitlab_config:
+                print(f"[SKIP] No GitLab config found")
+                return False, "No GitLab config"
+            
+            # Normalize both configs
+            device_normalized = self.normalize_config(device_config)
+            gitlab_normalized = self.normalize_config(gitlab_config)
+            
+            # Compare
+            if device_normalized == gitlab_normalized:
+                print("[OK] In sync")
+                return False, "In sync"
+            else:
+                print("[DRIFT] Device has unreported changes")
+                self.drift_found = True
                 
-            if config_file.is_file():
-                device_name = config_file.name
-                devices.append((device_type, device_name, config_file))
-    
-    return devices
-
-
-def detect_drift(auto_sync=False):
-    """Main drift detection function"""
-    
-    print("=" * 70)
-    print("DRIFT DETECTION - Config Synchronization Check")
-    print("=" * 70)
-    print()
-    
-    # Discover devices
-    print("Discovering devices...")
-    devices = discover_devices()
-    print(f"Found {len(devices)} device(s)")
-    print()
-    
-    if not devices:
-        print("No devices found in network/configs/")
-        return 0
-    
-    # Check each device (in parallel)
-    print("Checking devices for drift...")
-    print("-" * 70)
-    
-    results = []
-    
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        future_to_device = {
-            executor.submit(check_device_drift, dtype, dname, dpath): (dtype, dname)
-            for dtype, dname, dpath in devices
-        }
+                # Calculate rough diff size
+                device_lines = set(device_normalized.split('\n'))
+                gitlab_lines = set(gitlab_normalized.split('\n'))
+                
+                added = len(device_lines - gitlab_lines)
+                removed = len(gitlab_lines - device_lines)
+                
+                message = f"~{added} additions, ~{removed} deletions"
+                print(f"        {message}")
+                
+                return True, message
         
-        for future in as_completed(future_to_device):
-            device_type, device_name = future_to_device[future]
-            try:
-                result = future.result()
-                results.append(result)
-                
-                name, status, details = result
-                
-                if status == 'synced':
-                    icon = 'OK'
-                elif status == 'drift':
-                    icon = 'DRIFT'
-                elif status == 'missing':
-                    icon = 'MISS'
-                else:
-                    icon = 'ERROR'
-                
-                print(f"{icon:6s} {name:20s} {status:10s} {details}")
-                
-            except Exception as e:
-                print(f"ERROR  {device_name:20s} error      {str(e)[:50]}")
+        except Exception as e:
+            print(f"[ERROR] {str(e)[:60]}")
+            return False, f"Error: {str(e)}"
     
-    print("-" * 70)
-    print()
-    
-    # Summarize results
-    synced = sum(1 for _, status, _ in results if status == 'synced')
-    drifted = sum(1 for _, status, _ in results if status == 'drift')
-    missing = sum(1 for _, status, _ in results if status == 'missing')
-    errors = sum(1 for _, status, _ in results if status == 'error')
-    
-    print("SUMMARY")
-    print("=" * 70)
-    print(f"Total devices:    {len(results)}")
-    print(f"Synced:           {synced}")
-    print(f"Drift detected:   {drifted}")
-    print(f"Missing config:   {missing}")
-    print(f"Errors:           {errors}")
-    print()
-    
-    # List drifted devices
-    if drifted > 0:
-        print("DEVICES WITH DRIFT:")
-        print("-" * 70)
-        for name, status, details in results:
-            if status == 'drift':
-                print(f"  {name}: {details}")
+    def check_all_devices(self):
+        """Check all devices in network/configs/"""
+        configs_dir = Path("network/configs")
+        
+        if not configs_dir.exists():
+            print("ERROR: network/configs/ directory not found")
+            return 1
+        
+        print("=" * 70)
+        print("DRIFT DETECTION - Checking all devices")
+        print("=" * 70)
         print()
         
-        if auto_sync:
-            print("Auto-sync enabled - creating sync jobs...")
-            # Create GitLab CI jobs to sync these devices
-            # (This would trigger sync_from_device.py for each)
+        devices_checked = 0
+        
+        for device_type_dir in configs_dir.iterdir():
+            if not device_type_dir.is_dir():
+                continue
+            
+            device_type = device_type_dir.name
+            
+            # Skip non-device directories
+            if device_type in ['PDU', 'UPS']:
+                continue
+            
+            for device_file in device_type_dir.iterdir():
+                if device_file.is_file():
+                    device_name = device_file.name
+                    
+                    self.check_device(device_type, device_name)
+                    devices_checked += 1
+        
+        print()
+        print("=" * 70)
+        
+        if self.drift_found:
+            print("DRIFT DETECTED")
+            print("=" * 70)
+            print()
+            print("One or more devices have unreported changes.")
+            print("This means the device config differs from GitLab.")
+            print()
+            print("Recommended actions:")
+            print("1. Run auto_sync_drift.py to sync device -> GitLab")
+            print("2. Review the changes in the resulting MR")
+            print("3. Merge if changes are correct")
+            print()
+            return 1
         else:
-            print("ACTION REQUIRED:")
-            print("Run sync for drifted devices:")
+            print("ALL DEVICES IN SYNC")
+            print("=" * 70)
             print()
-            for name, status, details in results:
-                if status == 'drift':
-                    # Find device type
-                    device_type = next(
-                        (dt for dt, dn, _ in devices if dn == name),
-                        'Unknown'
-                    )
-                    print(f"  python3 network/scripts/sync_from_device.py {device_type} {name}")
-            print()
-    
-    # Exit code
-    if drifted > 0 or errors > 0:
-        print("WARNING: Drift or errors detected - review required")
-        return 1
-    else:
-        print("SUCCESS: All devices in sync")
-        return 0
+            print(f"Checked {devices_checked} devices - all in sync with GitLab")
+            return 0
 
+def main():
+    """Main entry point"""
+    detector = DriftDetector()
+    
+    if len(sys.argv) == 3:
+        # Check specific device
+        device_type = sys.argv[1]
+        device_name = sys.argv[2]
+        
+        has_drift, message = detector.check_device(device_type, device_name)
+        
+        if has_drift:
+            print()
+            print("DRIFT DETECTED")
+            print(f"Message: {message}")
+            sys.exit(1)
+        else:
+            print()
+            print("NO DRIFT")
+            sys.exit(0)
+    
+    elif len(sys.argv) == 1:
+        # Check all devices
+        exit_code = detector.check_all_devices()
+        sys.exit(exit_code)
+    
+    else:
+        print("Usage: detect_drift.py [device_type] [device_name]", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Examples:", file=sys.stderr)
+        print("  detect_drift.py                      # Check all devices", file=sys.stderr)
+        print("  detect_drift.py Router nl-lte01  # Check specific device", file=sys.stderr)
+        sys.exit(1)
 
 if __name__ == "__main__":
-    auto_sync = '--auto-sync' in sys.argv
-    sys.exit(detect_drift(auto_sync))
+    main()
