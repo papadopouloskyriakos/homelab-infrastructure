@@ -56,7 +56,6 @@ no ip bootp server
 ip domain name example.net
 ip name-server 1.1.1.1
 ip name-server 8.8.8.8
-ip name-server 1.2.3.4
 ip cef
 no ipv6 cef
 !
@@ -123,7 +122,6 @@ interface FastEthernet0
  no cdp enable
 !
 interface FastEthernet1
- description LOL
  switchport access vlan 3
  no ip address
  no cdp enable
