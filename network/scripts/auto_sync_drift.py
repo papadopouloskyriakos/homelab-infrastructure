@@ -19,36 +19,25 @@ import subprocess
 from pathlib import Path
 from netmiko import ConnectHandler
 
+# Import centralized filter
+sys.path.insert(0, os.path.dirname(__file__))
+from filter_dynamic_content import DynamicContentFilter
+
 class DriftSyncer:
     """Sync device configurations to GitLab"""
     
     def __init__(self):
         self.synced_devices = []
         self.failed_devices = []
+        self.filter = DynamicContentFilter()  # Use centralized filter
     
     def normalize_config(self, config):
-        """Normalize config for comparison"""
-        lines = []
-        
-        dynamic_patterns = [
-            'Last configuration change at',
-            'NVRAM config last updated at',
-            'Cryptochecksum:',
-            'ntp clock-period',
-            'uptime is',
-            'Configuration last modified by',
-            'building configuration',
-            'Current configuration :',
-        ]
-        
-        for line in config.split('\n'):
-            # Skip dynamic content
-            if any(pattern in line for pattern in dynamic_patterns):
-                continue
-            
-            lines.append(line.rstrip())
-        
-        return '\n'.join(lines)
+        """
+        Normalize config for comparison
+        Uses centralized DynamicContentFilter for consistency
+        """
+        # Use the centralized filter
+        return self.filter.filter_config(config)
     
     def fetch_device_config(self, device_type, device_name):
         """Fetch current running config from device"""
