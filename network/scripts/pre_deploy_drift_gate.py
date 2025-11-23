@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Pre-deployment drift detection gate.
-Creates MR only when actual configuration drift is detected.
+Creates MR only when actual drift detected.
+Exit codes: 0=no drift, 2=drift+MR created, 1=error
 """
 import sys
 import os
@@ -19,10 +20,10 @@ class DriftGate:
         self.filter = DynamicContentFilter()
         self.gitlab_url = os.getenv('CI_SERVER_URL', 'https://gitlab.example.net')
         self.project_id = os.getenv('CI_PROJECT_ID')
-        self.gitlab_token = os.getenv('GITLAB_TOKEN')
+        self.gitlab_token = os.getenv('GITLAB_TOKEN') or os.getenv('GITLAB_PUSH_TOKEN')
         
     def fetch_live_config(self):
-        """Fetch running config from device via SSH"""
+        """Fetch running config from device"""
         username = os.getenv('CISCO_USER', 'kyriakosp')
         password = os.getenv('CISCO_PASSWORD')
         if not password:
@@ -48,35 +49,36 @@ class DriftGate:
         conn = ConnectHandler(**device_params)
         config = conn.send_command("show running-config", read_timeout=120)
         conn.disconnect()
+        print(f"Fetched {len(config)} bytes", file=sys.stderr)
         return config
     
     def load_gitlab_config(self):
         """Load GitLab config from HEAD"""
         import subprocess
         
-        possible_paths = [
-            f"network/configs/{self.device_type}/{self.device_name}",
-            f"network/oxidized/{self.device_type}/{self.device_name}",
-        ]
+        config_path = f"network/configs/{self.device_type}/{self.device_name}"
         
-        for path in possible_paths:
-            try:
-                result = subprocess.run(
-                    ['git', 'show', f'HEAD:{path}'],
-                    capture_output=True,
-                    text=True,
-                    timeout=10
-                )
-                if result.returncode == 0 and result.stdout:
-                    return result.stdout, path
-            except Exception:
-                continue
+        # Try git show first
+        try:
+            result = subprocess.run(
+                ['git', 'show', f'HEAD:{config_path}'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            if result.returncode == 0 and result.stdout:
+                print(f"Loaded GitLab config from HEAD:{config_path}", file=sys.stderr)
+                return result.stdout, config_path
+        except Exception:
+            pass
         
-        for path_str in possible_paths:
-            path = Path(path_str)
-            if path.exists():
-                with open(path) as f:
-                    return f.read(), path_str
+        # Fallback to filesystem
+        path = Path(config_path)
+        if path.exists():
+            with open(path) as f:
+                config = f.read()
+            print(f"Loaded GitLab config from filesystem", file=sys.stderr)
+            return config, config_path
         
         return None, None
     
@@ -100,7 +102,7 @@ class DriftGate:
         except:
             pass
         
-        # Create branch from current HEAD
+        # Create branch from HEAD
         print(f"Creating branch {branch_name}...", file=sys.stderr)
         create_response = requests.post(
             f"{self.gitlab_url}/api/v4/projects/{self.project_id}/repository/branches",
@@ -112,7 +114,7 @@ class DriftGate:
         if create_response.status_code not in [200, 201]:
             raise Exception(f"Failed to create branch: {create_response.text}")
         
-        # Commit 1: Write filtered baseline (removes headers from current file)
+        # Commit 1: Filter baseline (removes headers from GitLab file)
         print(f"Commit 1: Filtering baseline...", file=sys.stderr)
         commit1_response = requests.post(
             f"{self.gitlab_url}/api/v4/projects/{self.project_id}/repository/commits",
@@ -132,7 +134,7 @@ class DriftGate:
         if commit1_response.status_code not in [200, 201]:
             raise Exception(f"Commit 1 failed: {commit1_response.text}")
         
-        # Commit 2: Write filtered live config (shows actual drift)
+        # Commit 2: Write live config (shows actual drift)
         print(f"Commit 2: Writing device config...", file=sys.stderr)
         commit2_response = requests.post(
             f"{self.gitlab_url}/api/v4/projects/{self.project_id}/repository/commits",
@@ -160,16 +162,11 @@ class DriftGate:
             json={
                 'source_branch': branch_name,
                 'target_branch': source_branch,
-                'title': f'Drift detected: Sync {self.device_name} from device',
-                'description': f'''Device {self.device_name} has configuration changes not reflected in GitLab.
+                'title': f'Drift: Sync {self.device_name} from device',
+                'description': f'''Device has configuration changes not in GitLab.
 
-This MR shows the current device configuration (filtered).
-
-**Actions:**
-- Review the changes
-- If device config is correct: Merge this MR
-- If GitLab config is correct: Close this MR and revert device changes
-- Then re-run the pipeline to deploy your changes
+Review changes and merge if device config is correct.
+If GitLab is correct, close this MR and revert device changes.
 ''',
                 'REDACTED_dae379fc': True
             },
@@ -180,24 +177,27 @@ This MR shows the current device configuration (filtered).
             raise Exception(f"Failed to create MR: {mr_response.text}")
         
         mr_url = mr_response.json().get('web_url')
-        print(f"\nMerge request created: {mr_url}", file=sys.stderr)
+        print(f"\nMR created: {mr_url}", file=sys.stderr)
         return mr_url
     
     def check_drift(self):
         """Main drift detection workflow"""
-        print(f"\nDrift gate: {self.device_name}", file=sys.stderr)
-        print("=" * 60, file=sys.stderr)
+        print(f"\nChecking drift: {self.device_name}", file=sys.stderr)
         
-        # Fetch configs
-        live_config = self.fetch_live_config()
+        try:
+            live_config = self.fetch_live_config()
+        except Exception as e:
+            print(f"ERROR: Cannot fetch live config: {e}", file=sys.stderr)
+            return 1
+        
         gitlab_config, gitlab_path = self.load_gitlab_config()
         
         if not gitlab_config:
-            print("No GitLab baseline found (new device)", file=sys.stderr)
+            print("No GitLab baseline (new device)", file=sys.stderr)
             return 0
         
-        # Filter both configs
-        print("Comparing configurations...", file=sys.stderr)
+        # Compare filtered configs
+        print("Comparing configs...", file=sys.stderr)
         are_equal, live_filtered, gitlab_filtered = self.filter.compare_configs(
             live_config, gitlab_config
         )
@@ -222,20 +222,22 @@ This MR shows the current device configuration (filtered).
                    and not line.startswith(('+++', '---'))]
         
         print(f"{len(changes)} lines differ", file=sys.stderr)
-        print("\nPreview (first 20 lines):", file=sys.stderr)
+        
+        # Show preview
+        print("\nDrift preview:", file=sys.stderr)
         for line in diff[:20]:
             print(f"  {line}", file=sys.stderr)
         
-        # Create MR with filtered configs
-        if self.gitlab_token and self.project_id:
-            try:
-                mr_url = self.create_drift_mr(gitlab_path, gitlab_filtered, live_filtered)
-                print(f"\nDeployment blocked. Review MR: {mr_url}", file=sys.stderr)
-            except Exception as e:
-                print(f"MR creation failed: {e}", file=sys.stderr)
-                return 1
-        else:
-            print("GitLab token not configured, cannot create MR", file=sys.stderr)
+        # Create MR
+        if not self.gitlab_token or not self.project_id:
+            print("ERROR: GitLab token not configured", file=sys.stderr)
+            return 1
+        
+        try:
+            mr_url = self.create_drift_mr(gitlab_path, gitlab_filtered, live_filtered)
+            print(f"\nDeployment blocked - review MR: {mr_url}", file=sys.stderr)
+        except Exception as e:
+            print(f"ERROR: MR creation failed: {e}", file=sys.stderr)
             return 1
         
         return 2
