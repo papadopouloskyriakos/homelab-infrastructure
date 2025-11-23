@@ -9,29 +9,28 @@ class DynamicContentFilter:
         """Define removal patterns for dynamic content."""
         self.removal_patterns = [
             # Building configuration headers
-            r'^\s*Building configuration.*$',
+            r'^\s*!?\s*Building configuration.*$',
 
             # Current configuration lines with byte counts
-            r'^\s*Current configuration\s*:.*\d+\s*bytes\s*$',
-            r'^\s*Current configuration.*\d+\s*bytes\s*$',
+            r'^\s*!?\s*Current configuration\s*:.*\d+\s*bytes\s*$',
+            r'^\s*!?\s*Current configuration.*\d+\s*bytes\s*$',
 
             # Last configuration change (timestamp lines)
-            r'^\s*! Last configuration change.*$',
-            r'^\s*!! Last configuration change.*$',
+            r'^\s*!+\s*Last configuration change.*$',
             r'^\s*Last configuration change\s+at\s+.*$',
 
-            # NVRAM / config updated
-            r'^\s*NVRAM config last.*$',
-            r'^\s*Configuration last modified.*$',
+            # NVRAM / config updated (with optional comment marker)
+            r'^\s*!?\s*NVRAM config last.*$',
+            r'^\s*!?\s*Configuration last modified.*$',
 
             # Crypto checksums
-            r'^\s*cryptochecksum.*$',
+            r'^\s*!?\s*cryptochecksum.*$',
 
             # NTP clock period
             r'^\s*ntp\s+clock-period\s+\d+.*$',
 
             # Uptime (conservative pattern)
-            r'^\s*(uptime|System uptime|router uptime).*$', 
+            r'^\s*!?\s*(uptime|System uptime|router uptime).*$', 
         ]
 
         self.compiled_patterns = [re.compile(p, re.IGNORECASE) for p in self.removal_patterns]
