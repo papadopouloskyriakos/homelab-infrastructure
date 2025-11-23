@@ -1,75 +1,15 @@
-!
-! Cisco Adaptive Security Appliance Software Version 9.16(4)
-! SSP Operating System Version 2.10(1.217)
-! Device Manager Version 7.20(1)
-!
-! Compiled on Tue 11-Oct-22 16:31 GMT by builders
-! System image file is "disk0:/asa9-16-4-lfbff-k8.SPA"
-! Config file at boot was "startup-config"
-!
-!
-! Hardware:   ASA5508, 8192 MB RAM, CPU Atom C2000 series 2000 MHz, 1 CPU (8 cores)
-! Internal ATA Compact Flash, 8000MB
-! BIOS Flash M25P64 @ 0xfed01000, 16384KB
-!
-! Encryption hardware device : Cisco ASA Crypto on-board accelerator (revision 0x1)
-!                              Number of accelerators: 1
-!
-!  1: Ext: GigabitEthernet1/1  : address is 7079.b344.9a0a, irq 255
-!  2: Ext: GigabitEthernet1/2  : address is 7079.b344.9a0b, irq 255
-!  3: Ext: GigabitEthernet1/3  : address is 7079.b344.9a0c, irq 255
-!  4: Ext: GigabitEthernet1/4  : address is 7079.b344.9a0d, irq 255
-!  5: Ext: GigabitEthernet1/5  : address is 7079.b344.9a0e, irq 255
-!  6: Ext: GigabitEthernet1/6  : address is 7079.b344.9a0f, irq 255
-!  7: Ext: GigabitEthernet1/7  : address is 7079.b344.9a10, irq 255
-!  8: Ext: GigabitEthernet1/8  : address is 7079.b344.9a11, irq 255
-!  9: Int: Internal-Data1/1    : address is 7079.b344.9a09, irq 255
-! 10: Int: Internal-Data1/2    : address is 0000.0001.0002, irq 0
-! 11: Int: Internal-Control1/1 : address is 0000.0001.0001, irq 0
-! 12: Int: Internal-Data1/3    : address is 0000.0001.0003, irq 0
-! 13: Ext: Management1/1       : address is 7079.b344.9a09, irq 0
-! 14: Int: Internal-Data1/4    : address is 0000.0100.0001, irq 0
-!
-! Licensed features for this platform:
-! Maximum Physical Interfaces       : Unlimited      perpetual
-! Maximum VLANs                     : 50             perpetual
-! Inside Hosts                      : Unlimited      perpetual
-! Failover                          : Active/Active  perpetual
-! Encryption-DES                    : Enabled        perpetual
-! Encryption-3DES-AES               : Enabled        perpetual
-! Security Contexts                 : 2              perpetual
-! Carrier                           : Disabled       perpetual
-! AnyConnect Premium Peers          : 4              perpetual
-! AnyConnect Essentials             : Disabled       perpetual
-! Other VPN Peers                   : 100            perpetual
-! Total VPN Peers                   : 100            perpetual
-! AnyConnect for Mobile             : Disabled       perpetual
-! AnyConnect for Cisco VPN Phone    : Disabled       perpetual
-! Advanced Endpoint Assessment      : Disabled       perpetual
-! Shared License                    : Disabled       perpetual
-! Total TLS Proxy Sessions          : 320            perpetual
-! Botnet Traffic Filter             : Disabled       perpetual
-! Cluster                           : Disabled       perpetual
-! VPN Load Balancing                : Enabled        perpetual
-!
-! Serial Number: JAD221904R4
-! Running Permanent Activation Key: 0x870df778 0xd4ab949a 0x94b30d00 0xba586010 0x0a083eaa
-! Configuration register is 0x1
-! FPGA UPGRADE Version      : 3.0
-! FPGA GOLDEN Version       : 3.0
-! ROMMON Version            : 1.1.18
-! Image type                : Release
-! Key Version               : A
-! Name: "Chassis", DESCR: "ASA 5508-X with FirePOWER services, 8GE, AC, DES"
-! PID: ASA5508           , VID: V06     , SN: JMX2221G3BZ
-!
-!
+: Saved
+
+:
+: Serial Number: JAD221904R4
+: Hardware:   ASA5508, 8192 MB RAM, CPU Atom C2000 series 2000 MHz, 1 CPU (8 cores)
+:
 ASA Version 9.16(4)
 !
 terminal width 511
 hostname nlfw01
 domain-name example.net
-enable password 8Ry2YjIyt7RRXU24 encrypted
+enable password ***** encrypted
 service-module 1 keepalive-timeout 4
 service-module 1 keepalive-counter 6
 service-module sfr keepalive-timeout 4
@@ -287,6 +227,7 @@ dns domain-lookup outside_freedom
 dns domain-lookup inside_mgmt
 dns server-group DefaultDNS
  name-server 1.1.1.1 outside_freedom
+ name-server 8.8.8.8 outside_freedom
  name-server 10.0.X.X inside_mgmt
  domain-name example.net
 same-security-traffic permit inter-interface
@@ -1279,8 +1220,8 @@ aaa authentication login-history
 http server enable 444
 http server idle-timeout 60
 http 10.0.X.X 255.255.255.0 inside_mgmt
-snmp-server host inside_mgmt 10.0.X.X community uBnr@W9dKOu#7ifTdVbAi!k$=XKr9X version 2c
-snmp-server host inside_mgmt 10.0.X.X community uBnr@W9dKOu#7ifTdVbAi!k$=XKr9X version 2c
+snmp-server host inside_mgmt 10.0.X.X community ***** version 2c
+snmp-server host inside_mgmt 10.0.X.X community ***** version 2c
 no snmp-server location
 no snmp-server contact
 sysopt connection tcpmss 1452
@@ -1539,8 +1480,8 @@ vpdn group Freedom ppp authentication pap
 vpdn group XS4ALL request dialout pppoe
 vpdn group XS4ALL localname fb7360@xs4all.nl
 vpdn group XS4ALL ppp authentication pap
-vpdn username fb7360@xs4all.nl password kpn store-local
-vpdn username fake@freedom.nl password 1234
+vpdn username fb7360@xs4all.nl password ***** store-local
+vpdn username fake@freedom.nl password *****
 
 dhcpd address 10.0.X.X-10.0.X.X inside_iot
 dhcpd dns 1.1.1.1 8.8.8.8 interface inside_iot
@@ -1660,14 +1601,14 @@ group-policy GroupPolicy_91.211.213.72 internal
 group-policy GroupPolicy_91.211.213.72 attributes
  vpn-tunnel-protocol ikev2
 dynamic-access-policy-record DfltAccessPolicy
-username kyriakosp password $sha512$5000$qBRNGIz3vGWx/x35gkNAmQ==$PKqQ77xYqjZyH26vwXI+lA== pbkdf2 privilege 15
+username kyriakosp password ***** pbkdf2 privilege 15
 tunnel-group 91.211.213.72 type ipsec-l2l
 tunnel-group 91.211.213.72 general-attributes
  default-group-policy GroupPolicy_91.211.213.72
 tunnel-group 91.211.213.72 ipsec-attributes
  isakmp keepalive threshold 10 retry 5
- ikev2 remote-authentication pre-shared-key gXveTE|XF+o"y|.d`6YD9zKgMJb$si-%<p0:k^uqGB|/5l;f``Xnu--4`@iV=dpf6SqHI1(2id8kLp_I5jgJSNT7mdS3@Hy\ZG
- ikev2 local-authentication pre-shared-key x%umgBb]hs"7jS}wVQ1CF43HtPts-YM\!h@b@0`Aqx'3+d@o}8xNlQo'3LZ,wvve5qnF6g{#>i'tWDp}*/n,(LMEPRZ*Av0t&^
+ ikev2 remote-authentication pre-shared-key *****
+ ikev2 local-authentication pre-shared-key *****
 !
 class-map global-class
  match access-list global_mpc
@@ -1742,3 +1683,4 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
+: end
