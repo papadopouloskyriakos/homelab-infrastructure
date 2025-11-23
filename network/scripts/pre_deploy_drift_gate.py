@@ -53,21 +53,25 @@ class DriftGate:
         return config
     
     def load_gitlab_config(self):
-        """Load GitLab config from HEAD"""
+        """Load GitLab config from BEFORE current commit"""
         import subprocess
         
         config_path = f"network/configs/{self.device_type}/{self.device_name}"
         
-        # Try git show first
+        # Use HEAD~1 to get version BEFORE user's commit
+        # This compares: what was in GitLab before vs what's on device now
+        baseline_ref = os.getenv('CI_COMMIT_BEFORE_SHA', 'HEAD~1')
+        
+        # Try git show with previous version
         try:
             result = subprocess.run(
-                ['git', 'show', f'HEAD:{config_path}'],
+                ['git', 'show', f'{baseline_ref}:{config_path}'],
                 capture_output=True,
                 text=True,
                 timeout=10
             )
             if result.returncode == 0 and result.stdout:
-                print(f"Loaded GitLab config from HEAD:{config_path}", file=sys.stderr)
+                print(f"Loaded GitLab config from {baseline_ref}:{config_path}", file=sys.stderr)
                 return result.stdout, config_path
         except Exception:
             pass
