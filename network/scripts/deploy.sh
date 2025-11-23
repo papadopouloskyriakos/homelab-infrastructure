@@ -1,129 +1,84 @@
 #!/bin/bash
-###############################################################################
-# Drift Detection Fix - Deployment Script
-###############################################################################
-
 set -e
 
 echo "============================================================"
-echo "  DRIFT DETECTION FIX - DEPLOYMENT"
+echo "  DEPLOYING FIXED DRIFT DETECTION SCRIPTS"
 echo "============================================================"
 echo ""
 
-# Pre-flight checks
-echo "[1/5] Pre-flight checks..."
-
-if [ ! -f "pre_deploy_drift_gate.py" ]; then
-    echo "ERROR: pre_deploy_drift_gate.py not found"
+# Check files exist
+if [ ! -f "filter_dynamic_content.py" ] || [ ! -f "pre_deploy_drift_gate.py" ]; then
+    echo "ERROR: Required files not found"
+    echo "Download filter_dynamic_content.py and pre_deploy_drift_gate.py first"
     exit 1
 fi
 
-if [ ! -f "filter_dynamic_content.py" ]; then
-    echo "ERROR: filter_dynamic_content.py not found"
+# Test the filter first
+echo "[1/4] Testing filter..."
+python3 test_filter.py
+if [ $? -ne 0 ]; then
+    echo "ERROR: Filter test failed!"
     exit 1
 fi
-
-if [ ! -d ".git" ]; then
-    echo "ERROR: Not in a git repository"
-    exit 1
-fi
-
-echo "   Files found"
 echo ""
 
-# Backup current scripts
-echo "[2/5] Backing up current scripts..."
+# Backup
+echo "[2/4] Backing up old scripts..."
+mkdir -p network/scripts/backup
 if [ -f "network/scripts/pre_deploy_drift_gate.py" ]; then
-    cp network/scripts/pre_deploy_drift_gate.py network/scripts/pre_deploy_drift_gate.py.backup
-    echo "   Backed up pre_deploy_drift_gate.py"
+    cp network/scripts/pre_deploy_drift_gate.py network/scripts/backup/
 fi
-
 if [ -f "network/scripts/filter_dynamic_content.py" ]; then
-    cp network/scripts/filter_dynamic_content.py network/scripts/filter_dynamic_content.py.backup
-    echo "   Backed up filter_dynamic_content.py"
+    cp network/scripts/filter_dynamic_content.py network/scripts/backup/
 fi
 echo ""
 
-# Copy new scripts
-echo "[3/5] Installing new scripts..."
-cp pre_deploy_drift_gate.py network/scripts/
+# Install
+echo "[3/4] Installing new scripts..."
 cp filter_dynamic_content.py network/scripts/
-
-chmod +x network/scripts/pre_deploy_drift_gate.py
-chmod +x network/scripts/filter_dynamic_content.py
-
-echo "   Scripts installed"
+cp pre_deploy_drift_gate.py network/scripts/
+chmod +x network/scripts/*.py
 echo ""
 
-# Git operations
-echo "[4/5] Committing changes..."
-git add network/scripts/pre_deploy_drift_gate.py
+# Commit
+echo "[4/4] Committing..."
 git add network/scripts/filter_dynamic_content.py
+git add network/scripts/pre_deploy_drift_gate.py
 
-git commit -m "Fix: Drift detection MR branching and enhanced filtering
+git commit -m "Fix: Super aggressive dynamic content filtering
 
-Critical fixes:
-- Create drift branches from baseline commit (not current main)
-  This ensures MRs correctly show device->baseline changes
-  
-- Enhanced dynamic content filtering:
-  * Building configuration headers
-  * Current configuration byte counts (all variations)
-  * Last configuration change timestamps
-  * NVRAM config timestamps
+Changes:
+- Use .search() instead of .match() for pattern matching
+- More permissive regex patterns
+- Catches all variations of dynamic content:
+  * Building configuration (any format)
+  * Current configuration bytes (any format)
+  * Last configuration change (any format)
+  * NVRAM timestamps
   * Crypto checksums
   * NTP clock-period
-  
-- Added filtering statistics to debug output
 
-This resolves:
-1. Backward MRs showing removals instead of additions
-2. False drift detection from timestamp/byte count changes
-3. Unnecessary drift MRs for routine device operations"
+Testing: Verified with test_filter.py - correctly filters
+all dynamic content while preserving actual config."
 
-echo "   Changes committed"
 echo ""
-
-# Push to GitLab
-echo "[5/5] Pushing to GitLab..."
+echo "============================================================"
+echo "  READY TO PUSH"
+echo "============================================================"
 echo ""
-
-read -p "Ready to push? (y/N) " -n 1 -r
+read -p "Push to GitLab now? (y/N) " -n 1 -r
 echo ""
 
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     git push origin main
     echo ""
-    echo "   Pushed to GitLab"
-else
+    echo "PUSHED!"
     echo ""
-    echo "   Push cancelled. Push manually later:"
-    echo "   git push origin main"
-    exit 0
+    echo "Next steps:"
+    echo "1. Close MR #12 and #13 (broken by old filter)"
+    echo "2. Wait for new pipeline"
+    echo "3. Should NOT create drift MR for timestamp changes"
+else
+    echo "Not pushed. Push manually when ready:"
+    echo "  git push origin main"
 fi
-
-echo ""
-echo "============================================================"
-echo "  DEPLOYMENT COMPLETE"
-echo "============================================================"
-echo ""
-echo "NEXT STEPS:"
-echo ""
-echo "1. Close MR #12 (it's backwards)"
-echo "   Comment: 'Superseded by drift detection fix'"
-echo ""
-echo "2. Wait for new pipeline to complete"
-echo ""
-echo "3. If new drift MR created:"
-echo "   - Review it (should show ACTUAL device changes)"
-echo "   - Merge it"
-echo "   - Rebase your commit:"
-echo "     git fetch origin"
-echo "     git rebase origin/main"
-echo "     git push --force-with-lease"
-echo ""
-echo "4. If NO drift MR:"
-echo "   - Deployment should proceed automatically"
-echo ""
-echo "============================================================"
-echo ""
