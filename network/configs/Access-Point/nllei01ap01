@@ -29,7 +29,6 @@ no ip cef
 ip domain name example.net
 ip name-server 10.0.X.X
 ip name-server 10.0.X.X
-ip name-server 6.6.6.6
 !
 !
 !
@@ -376,7 +375,6 @@ interface GigabitEthernet0
  speed auto
 !
 interface GigabitEthernet0.5
- description LOL
  encapsulation dot1Q 5
  no ip route-cache
  bridge-group 5
