@@ -63,7 +63,7 @@ no ip bootp server
 ip domain name example.net
 ip name-server 1.1.1.1
 ip name-server 8.8.8.8
-ip name-server 4.4.4.4
+ip name-server 5.5.5.5
 ip cef
 no ipv6 cef
 !
