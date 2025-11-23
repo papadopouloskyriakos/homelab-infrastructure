@@ -50,6 +50,11 @@ class DriftGate:
         config = conn.send_command("show running-config", read_timeout=120)
         conn.disconnect()
         print(f"Fetched {len(config)} bytes", file=sys.stderr)
+        
+        # Show first few name-server lines for verification
+        ns_lines = [line for line in config.split('\n') if 'name-server' in line]
+        print(f"DEBUG: Device name-servers: {ns_lines[:5]}", file=sys.stderr)
+        
         return config
     
     def load_gitlab_config(self):
@@ -58,9 +63,12 @@ class DriftGate:
         
         config_path = f"network/configs/{self.device_type}/{self.device_name}"
         
-        # Use HEAD~1 to get version BEFORE user's commit
-        # This compares: what was in GitLab before vs what's on device now
+        # Use CI_COMMIT_BEFORE_SHA to get version BEFORE user's commit
         baseline_ref = os.getenv('CI_COMMIT_BEFORE_SHA', 'HEAD~1')
+        
+        print(f"DEBUG: CI_COMMIT_BEFORE_SHA = {os.getenv('CI_COMMIT_BEFORE_SHA')}", file=sys.stderr)
+        print(f"DEBUG: Using baseline_ref = {baseline_ref}", file=sys.stderr)
+        print(f"DEBUG: Config path = {config_path}", file=sys.stderr)
         
         # Try git show with previous version
         try:
@@ -71,10 +79,16 @@ class DriftGate:
                 timeout=10
             )
             if result.returncode == 0 and result.stdout:
-                print(f"Loaded GitLab config from {baseline_ref}:{config_path}", file=sys.stderr)
+                print(f"Loaded baseline from {baseline_ref}:{config_path}", file=sys.stderr)
+                print(f"DEBUG: Baseline config size: {len(result.stdout)} bytes", file=sys.stderr)
+                
+                # Show first few name-server lines for verification
+                ns_lines = [line for line in result.stdout.split('\n') if 'name-server' in line]
+                print(f"DEBUG: Baseline name-servers: {ns_lines[:5]}", file=sys.stderr)
+                
                 return result.stdout, config_path
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"DEBUG: git show failed: {e}", file=sys.stderr)
         
         # Fallback to filesystem
         path = Path(config_path)
@@ -205,6 +219,13 @@ If GitLab is correct, close this MR and revert device changes.
         are_equal, live_filtered, gitlab_filtered = self.filter.compare_configs(
             live_config, gitlab_config
         )
+        
+        # Debug: Show filtered name-servers
+        gitlab_ns = [line for line in gitlab_filtered.split('\n') if 'name-server' in line]
+        live_ns = [line for line in live_filtered.split('\n') if 'name-server' in line]
+        print(f"DEBUG: After filtering:", file=sys.stderr)
+        print(f"DEBUG:   GitLab filtered name-servers: {gitlab_ns[:5]}", file=sys.stderr)
+        print(f"DEBUG:   Device filtered name-servers: {live_ns[:5]}", file=sys.stderr)
         
         if are_equal:
             print("No drift detected", file=sys.stderr)
