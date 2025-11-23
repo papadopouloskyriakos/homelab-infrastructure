@@ -14,7 +14,7 @@ Example: generate_diff.py Router nl-lte01 network/configs/Router/nl-lte01
 import sys
 import os
 import re
-import yaml
+import json
 from pathlib import Path
 from netmiko import ConnectHandler
 
@@ -356,21 +356,15 @@ def generate_deployment_diff(device_type, device_name, gitlab_config_file):
     print(f"Generated {len(diff_blocks)} diff blocks", file=sys.stderr)
     print("", file=sys.stderr)
     
-    # Output YAML to stdout
+    # Output JSON to stdout (easier than YAML, no quoting issues)
     output = {
         'diff_blocks': diff_blocks
     }
     
-    # Use safe_dump with proper formatting
-    yaml_output = yaml.safe_dump(
-        output,
-        default_flow_style=False,
-        sort_keys=False,
-        allow_unicode=True,
-        width=120
-    )
+    # Use JSON with proper formatting
+    json_output = json.dumps(output, indent=2, ensure_ascii=False)
     
-    print(yaml_output)
+    print(json_output)
 
 def main():
     """Main entry point"""
