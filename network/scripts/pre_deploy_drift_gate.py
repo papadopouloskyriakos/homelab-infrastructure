@@ -88,31 +88,40 @@ class DriftGate:
         Returns:
             Config text as string
         """
-        gitlab_path = Path(f"network/configs/{self.device_type}/{self.device_name}")
+        # Try both old and new paths
+        possible_paths = [
+            Path(f"network/configs/{self.device_type}/{self.device_name}"),
+            Path(f"network/oxidized/{self.device_type}/{self.device_name}"),
+        ]
         
-        if not gitlab_path.exists():
-            print(f"   WARNING: GitLab config not found: {gitlab_path}", file=sys.stderr)
-            return None
+        for gitlab_path in possible_paths:
+            if gitlab_path.exists():
+                with open(gitlab_path) as f:
+                    config = f.read()
+                print(f"   Loaded GitLab config: {len(config)} bytes from {gitlab_path}", file=sys.stderr)
+                return config
         
-        with open(gitlab_path) as f:
-            config = f.read()
-        
-        print(f"   Loaded GitLab config: {len(config)} bytes", file=sys.stderr)
-        return config
+        print(f"   WARNING: GitLab config not found in any expected location", file=sys.stderr)
+        return None
     
     def compare_configs(self, live_config, gitlab_config):
         """
         Compare live device config with GitLab config
         
+        Handles differences between Oxidized backup format and direct device output.
+        
         Returns:
             (has_drift, drift_lines_count, drift_diff)
         """
-        # Filter both configs
-        live_filtered = self.filter.filter_config(live_config)
-        gitlab_filtered = self.filter.filter_config(gitlab_config)
+        # Use the filter's comprehensive comparison method
+        # This handles both Oxidized normalization and dynamic content filtering
+        are_equal, live_filtered, gitlab_filtered = self.filter.compare_configs(
+            live_config, 
+            gitlab_config
+        )
         
         # Quick check
-        if live_filtered == gitlab_filtered:
+        if are_equal:
             return False, 0, None
         
         # Generate detailed diff
@@ -132,11 +141,13 @@ class DriftGate:
         if not diff:
             return False, 0, None
         
-        # Count changes
-        additions = sum(1 for line in diff if line.startswith('+') and not line.startswith('+++'))
-        deletions = sum(1 for line in diff if line.startswith('-') and not line.startswith('---'))
+        # Count changes (exclude diff header lines)
+        changes = [line for line in diff if line.startswith(('+', '-')) 
+                   and not line.startswith(('+++', '---'))]
+        total_changes = len(changes)
         
-        total_changes = additions + deletions
+        if total_changes == 0:
+            return False, 0, None
         
         return True, total_changes, diff
     
@@ -184,15 +195,26 @@ class DriftGate:
             print(f"   ERROR: Failed to create branch: {response.text}", file=sys.stderr)
             return None
         
-        # Update config file in new branch
-        gitlab_config_path = f"network/configs/{self.device_type}/{self.device_name}"
+        # Try both possible config paths
+        config_paths = [
+            f"network/configs/{self.device_type}/{self.device_name}",
+            f"network/oxidized/{self.device_type}/{self.device_name}",
+        ]
         
-        # Get current file to get blob_id
-        response = requests.get(
-            f"{api_url}/projects/{project_id}/repository/files/{gitlab_config_path.replace('/', '%2F')}",
-            headers=headers,
-            params={'ref': branch_name}
-        )
+        gitlab_config_path = None
+        for path in config_paths:
+            response = requests.get(
+                f"{api_url}/projects/{project_id}/repository/files/{path.replace('/', '%2F')}",
+                headers=headers,
+                params={'ref': 'main'}
+            )
+            if response.status_code == 200:
+                gitlab_config_path = path
+                break
+        
+        if not gitlab_config_path:
+            print(f"   ERROR: Could not find config file in GitLab", file=sys.stderr)
+            return None
         
         # Update file with live config
         response = requests.put(
@@ -201,7 +223,7 @@ class DriftGate:
             json={
                 'branch': branch_name,
                 'content': live_config,
-                'commit_message': f"Sync device drift: {self.device_name}\n\nDetected {drift_lines_count} lines of drift from live device"
+                'commit_message': f"🔄 Sync device drift: {self.device_name}\n\nDetected {drift_lines_count} lines of drift from live device"
             }
         )
         
@@ -243,7 +265,7 @@ The device configuration differs from GitLab by **{drift_lines_count} lines**.
 
 1. The blocked pipeline will be able to proceed
 2. Your GitLab change will be rebased on top of device changes
-3. Run: `bash network/scripts/rebase-after-drift.sh`
+3. Run: `git pull --rebase origin main` then push again
 
 ### 📝 Drift Details
 
@@ -251,7 +273,7 @@ See artifact `{diff_file}` for full diff.
 
 ---
 *Auto-generated by pre_deploy_drift_gate.py*  
-*Oxidized backup: Independent (no coordination needed)*
+*Filtering: Normalized Oxidized format differences and dynamic content*
 """
         
         response = requests.post(
@@ -307,6 +329,7 @@ See artifact `{diff_file}` for full diff.
         
         # Step 3: Compare configs
         print(f"\n[3/4] Comparing configurations...", file=sys.stderr)
+        print(f"   (Normalizing Oxidized format differences)", file=sys.stderr)
         has_drift, drift_lines_count, drift_diff = self.compare_configs(live_config, gitlab_config)
         
         if not has_drift:
@@ -341,8 +364,8 @@ See artifact `{diff_file}` for full diff.
         print(f"  1. Review the drift detection MR", file=sys.stderr)
         print(f"  2. Merge the MR to sync device changes to GitLab", file=sys.stderr)
         print(f"  3. Rebase your commit:", file=sys.stderr)
-        print(f"     bash network/scripts/rebase-after-drift.sh", file=sys.stderr)
-        print(f"  4. Pipeline will automatically continue", file=sys.stderr)
+        print(f"     git pull --rebase origin main && git push", file=sys.stderr)
+        print(f"  4. Pipeline will automatically retry", file=sys.stderr)
         
         return 2
 
