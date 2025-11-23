@@ -1,224 +1,196 @@
 #!/usr/bin/env python3
 """
-Filter Dynamic Content from Cisco Configs
-Removes timestamps, byte counts, and other dynamic content that causes false drift
+Dynamic Content Filter for Cisco Configurations
 
-This is used across multiple scripts to ensure consistent comparison behavior.
+Filters out content that changes automatically but doesn't represent
+actual configuration changes. Handles differences between Oxidized
+backups and direct show running-config output.
+
+Key Normalizations:
+- Removes Oxidized-specific exclamation mark separators
+- Removes "Current configuration" size lines
+- Filters timestamps, crypto checksums, NTP clock periods
+- Normalizes whitespace and empty lines
 """
 import re
 
+
 class DynamicContentFilter:
     """
-    Comprehensive filter for Cisco IOS/ASA dynamic content
+    Comprehensive filter for dynamic content in Cisco configs
     
-    This filters out content that changes frequently but has no
-    configuration impact, such as:
-    - Timestamps
-    - Configuration byte counts (CRITICAL - changes on every save)
-    - Crypto checksums
-    - NTP clock periods
-    - Uptime information
+    Handles both Oxidized backup format and direct device output format
     """
     
     def __init__(self):
-        self.patterns = [
-            # ================================================================
-            # CONFIGURATION METADATA (changes frequently)
-            # ================================================================
+        # Patterns for lines to completely remove
+        self.removal_patterns = [
+            # Timestamps and last modified indicators
+            r'^!\s*Last configuration change at.*$',
+            r'^!\s*NVRAM config last updated at.*$',
+            r'^!\s*Configuration last modified by.*$',
             
-            # Current configuration byte count - CHANGES ON EVERY CONFIG SAVE
-            # Examples:
-            #   Current configuration : 10391 bytes
-            #   Current configuration : 10380 bytes
-            #   ! Current configuration : 123456 bytes
-            r'^!\s*Current configuration\s*:\s*\d+\s*bytes.*',
-            r'^Current configuration\s*:\s*\d+\s*bytes.*',
+            # Crypto checksums (change on every write)
+            r'^!\s*Cryptochecksum:.*$',
+            r'^Cryptochecksum:.*$',
             
-            # Last configuration change timestamp
-            # Example: ! Last configuration change at 21:48:44 CET Sat Nov 22 2025 by kyriakosp
-            r'^!\s*Last configuration change at .*',
+            # NTP clock period (changes automatically)
+            r'^ntp clock-period\s+\d+$',
             
-            # NVRAM config last updated
-            # Example: ! NVRAM config last updated at 19:13:57 CET Fri Nov 21 2025 by kyriakosp
-            r'^!\s*NVRAM config last updated at .*',
+            # Current configuration size (changes with every edit)
+            r'^!\s*Current configuration\s*:\s*\d+\s*bytes.*$',
+            r'^Current configuration\s*:\s*\d+\s*bytes.*$',
             
-            # Configuration last modified by
-            r'^!\s*Configuration last modified by .*',
+            # Uptime references (dynamic)
+            r'^.*uptime is.*$',
             
-            # ================================================================
-            # CRYPTO & SECURITY (regenerated periodically)
-            # ================================================================
+            # Boot time references
+            r'^.*System returned to ROM by.*$',
+            r'^.*System restarted at.*$',
             
-            # Crypto checksum - changes when config is written
-            # Example: ! Cryptochecksum:8ac1ec0b35ccfed1b10e9560ed22aa53
-            r'^!\s*Cryptochecksum:.*',
-            r'^Cryptochecksum:.*',
+            # Oxidized metadata comments
+            r'^!\s*Oxidized.*$',
+            r'^!\s*Scraped at.*$',
             
-            # ================================================================
-            # NTP & TIMING (drifts over time)
-            # ================================================================
-            
-            # NTP clock period - adjusts based on clock drift
-            # Example: ntp clock-period 17208098
-            r'^ntp clock-period\s+\d+',
-            
-            # ================================================================
-            # UPTIME & RUNTIME INFO
-            # ================================================================
-            
-            # Uptime strings
-            # Examples:
-            #   uptime is 2 weeks, 3 days, 4 hours, 30 minutes
-            #   ASA up 45 days 3 hours
-            r'.*uptime is.*',
-            r'.*\d+\s+(year|week|day|hour|minute)s?.*',
-            
-            # ================================================================
-            # BUILD & VERSION INFO (shown in comments)
-            # ================================================================
-            
-            # Building configuration messages
-            r'^Building configuration.*',
-            
-            # Compilation timestamps in comments
-            # Example: ! Image: Compiled: Thu 03-Dec-15 14:44 by prod_rel_team
-            r'^!\s*Image:.*Compiled.*',
-            
-            # ================================================================
-            # TIMESTAMPS IN VARIOUS FORMATS
-            # ================================================================
-            
-            # Standalone timestamp lines
-            # Example: ! 18:45:23.456 CET Mon Jan 15 2025
-            r'^!\s*\d{2}:\d{2}:\d{2}\.\d+\s+[A-Z]+\s+\w+\s+\w+\s+\d+\s+\d{4}',
-            
-            # ================================================================
-            # SHOW COMMAND OUTPUT (shouldn't be in config but sometimes is)
-            # ================================================================
-            
-            # Show command headers
-            r'^\s*show\s+.*',
-            
-            # ================================================================
-            # EMPTY LINES & STANDALONE COMMENTS
-            # ================================================================
-            
-            # Empty comment lines
+            # Empty comment lines from Oxidized (standalone exclamation marks)
             r'^!\s*$',
-            
-            # Completely empty lines
-            r'^\s*$',
         ]
         
-        # Compile all patterns for performance
+        # Compile patterns for efficiency
         self.compiled_patterns = [
-            re.compile(p, re.IGNORECASE) 
-            for p in self.patterns
+            re.compile(pattern, re.IGNORECASE | re.MULTILINE)
+            for pattern in self.removal_patterns
         ]
-    
-    def is_dynamic_line(self, line):
-        """
-        Check if a line contains dynamic content
-        
-        Args:
-            line: Single line of config text
-            
-        Returns:
-            True if line should be filtered, False otherwise
-        """
-        for pattern in self.compiled_patterns:
-            if pattern.match(line):
-                return True
-        return False
     
     def filter_config(self, config_text):
         """
-        Filter dynamic content from configuration text
+        Filter dynamic content from config
         
         Args:
-            config_text: Full configuration as string
+            config_text: Raw configuration text
             
         Returns:
-            Filtered configuration with dynamic content removed
+            Filtered configuration text with dynamic content removed
         """
+        if not config_text:
+            return ""
+        
+        lines = config_text.split('\n')
         filtered_lines = []
         
-        for line in config_text.split('\n'):
-            # Remove trailing whitespace
-            line = line.rstrip()
-            
-            # Skip dynamic lines
-            if self.is_dynamic_line(line):
+        for line in lines:
+            # Skip if line matches any removal pattern
+            if any(pattern.match(line) for pattern in self.compiled_patterns):
                 continue
             
-            # Skip empty lines
-            if not line.strip():
+            # Normalize whitespace
+            line = line.rstrip()
+            
+            # Skip empty lines (but preserve structural indentation)
+            if not line:
                 continue
             
             filtered_lines.append(line)
         
-        return '\n'.join(filtered_lines)
-    
-    def filter_config_keep_structure(self, config_text):
-        """
-        Filter dynamic content but preserve line structure
+        # Join lines and ensure consistent line endings
+        filtered_config = '\n'.join(filtered_lines)
         
-        This replaces dynamic lines with empty comments to maintain
-        line numbers for debugging.
+        # Normalize multiple consecutive newlines to single newline
+        filtered_config = re.sub(r'\n{3,}', '\n\n', filtered_config)
+        
+        return filtered_config.strip()
+    
+    def normalize_oxidized_format(self, config_text):
+        """
+        Specifically normalize Oxidized backup format
+        
+        Oxidized adds standalone '!' as section separators.
+        Direct device output doesn't have these.
         
         Args:
-            config_text: Full configuration as string
+            config_text: Configuration text (possibly from Oxidized)
             
         Returns:
-            Filtered configuration with dynamic lines replaced by '!'
+            Normalized text without Oxidized-specific formatting
         """
-        filtered_lines = []
+        if not config_text:
+            return ""
         
-        for line in config_text.split('\n'):
-            # Check if line is dynamic
-            if self.is_dynamic_line(line):
-                # Replace with empty comment to preserve line numbers
-                filtered_lines.append('!')
-            else:
-                filtered_lines.append(line.rstrip())
+        lines = config_text.split('\n')
+        normalized_lines = []
         
-        return '\n'.join(filtered_lines)
+        for line in lines:
+            stripped = line.strip()
+            
+            # Skip standalone exclamation marks (Oxidized separators)
+            if stripped == '!':
+                continue
+            
+            # Skip "Current configuration" size lines
+            if re.match(r'^(!)?\s*Current configuration\s*:', line, re.IGNORECASE):
+                continue
+            
+            normalized_lines.append(line.rstrip())
+        
+        return '\n'.join(normalized_lines)
+    
+    def compare_configs(self, config1, config2):
+        """
+        Compare two configs with full normalization
+        
+        This does comprehensive filtering and normalization for both configs
+        before comparison, handling Oxidized format differences.
+        
+        Args:
+            config1: First configuration text
+            config2: Second configuration text
+            
+        Returns:
+            (are_equal, filtered_config1, filtered_config2)
+        """
+        # First normalize Oxidized-specific formatting
+        norm1 = self.normalize_oxidized_format(config1)
+        norm2 = self.normalize_oxidized_format(config2)
+        
+        # Then filter dynamic content
+        filtered1 = self.filter_config(norm1)
+        filtered2 = self.filter_config(norm2)
+        
+        # Compare
+        are_equal = filtered1 == filtered2
+        
+        return are_equal, filtered1, filtered2
 
-# Convenience function for simple usage
-def filter_cisco_config(config_text):
+
+def filter_for_comparison(config_text):
     """
-    Convenience function to filter dynamic content from config
+    Convenience function for filtering config text
     
     Args:
-        config_text: Full configuration as string
+        config_text: Raw configuration text
         
     Returns:
-        Filtered configuration string
+        Filtered configuration text
     """
     filter_obj = DynamicContentFilter()
-    return filter_obj.filter_config(config_text)
+    
+    # Apply both normalizations
+    normalized = filter_obj.normalize_oxidized_format(config_text)
+    filtered = filter_obj.filter_config(normalized)
+    
+    return filtered
 
-def main():
-    """
-    Command-line interface for testing filter
-    
-    Usage: python3 filter_dynamic_content.py < config.txt
-    """
-    import sys
-    
-    if sys.stdin.isatty():
-        print("Usage: filter_dynamic_content.py < config_file.txt", file=sys.stderr)
-        print("", file=sys.stderr)
-        print("Example:", file=sys.stderr)
-        print("  python3 filter_dynamic_content.py < nlsw01.cfg", file=sys.stderr)
-        sys.exit(1)
-    
-    # Read config from stdin
-    config_text = sys.stdin.read()
-    
-    # Filter and output
-    filtered = filter_cisco_config(config_text)
-    print(filtered)
 
 if __name__ == "__main__":
-    main()
+    # Test filtering
+    import sys
+    
+    if len(sys.argv) > 1:
+        with open(sys.argv[1]) as f:
+            config = f.read()
+        
+        filtered = filter_for_comparison(config)
+        print(filtered)
+    else:
+        print("Usage: filter_dynamic_content.py <config_file>")
+        print("  Filters and normalizes Cisco configuration for comparison")
