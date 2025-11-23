@@ -63,7 +63,7 @@ no ip source-route
 !
 !
 !
-ip name-server 10.0.X.X
+ip name-server 10.0.X.X 10.0.X.X
 ip domain name example.net
 !
 !
@@ -251,7 +251,7 @@ interface Port-channel7
  load-interval 30
 !
 interface GigabitEthernet0/0
- description Administratively_Down_LOL
+ description Administratively_Down
  vrf forwarding Mgmt-vrf
  no ip address
  shutdown
