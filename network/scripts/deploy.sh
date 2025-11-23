@@ -1,70 +1,47 @@
 #!/bin/bash
 set -e
 
-echo "============================================================"
-echo "  DEPLOYING FIXED DRIFT DETECTION SCRIPTS"
-echo "============================================================"
+echo "========================================================"
+echo "  FINAL FIX: Write Filtered Config to MR Branch"
+echo "========================================================"
 echo ""
 
-# Check files exist
-if [ ! -f "filter_dynamic_content.py" ] || [ ! -f "pre_deploy_drift_gate.py" ]; then
-    echo "ERROR: Required files not found"
-    echo "Download filter_dynamic_content.py and pre_deploy_drift_gate.py first"
+if [ ! -f "pre_deploy_drift_gate.py" ]; then
+    echo "ERROR: pre_deploy_drift_gate.py not found"
     exit 1
 fi
 
-# Test the filter first
-echo "[1/4] Testing filter..."
-python3 test_filter.py
-if [ $? -ne 0 ]; then
-    echo "ERROR: Filter test failed!"
-    exit 1
-fi
-echo ""
-
-# Backup
-echo "[2/4] Backing up old scripts..."
+echo "[1/3] Backing up old script..."
 mkdir -p network/scripts/backup
-if [ -f "network/scripts/pre_deploy_drift_gate.py" ]; then
-    cp network/scripts/pre_deploy_drift_gate.py network/scripts/backup/
-fi
-if [ -f "network/scripts/filter_dynamic_content.py" ]; then
-    cp network/scripts/filter_dynamic_content.py network/scripts/backup/
-fi
+cp network/scripts/pre_deploy_drift_gate.py network/scripts/backup/ 2>/dev/null || true
 echo ""
 
-# Install
-echo "[3/4] Installing new scripts..."
-cp filter_dynamic_content.py network/scripts/
+echo "[2/3] Installing new script..."
 cp pre_deploy_drift_gate.py network/scripts/
-chmod +x network/scripts/*.py
+chmod +x network/scripts/pre_deploy_drift_gate.py
 echo ""
 
-# Commit
-echo "[4/4] Committing..."
-git add network/scripts/filter_dynamic_content.py
+echo "[3/3] Committing..."
 git add network/scripts/pre_deploy_drift_gate.py
+git commit -m "Fix: Write filtered config to drift MR branch
 
-git commit -m "Fix: Super aggressive dynamic content filtering
+Critical fix: MR now writes filtered config (without timestamps/
+byte counts/headers) to the branch instead of raw config.
+
+This prevents MR diffs from showing timestamp noise while still
+correctly detecting actual configuration drift.
 
 Changes:
-- Use .search() instead of .match() for pattern matching
-- More permissive regex patterns
-- Catches all variations of dynamic content:
-  * Building configuration (any format)
-  * Current configuration bytes (any format)
-  * Last configuration change (any format)
-  * NVRAM timestamps
-  * Crypto checksums
-  * NTP clock-period
+- compare_configs() now returns filtered configs
+- create_drift_merge_request() writes filtered config to branch
+- MR diffs will show only real configuration changes
 
-Testing: Verified with test_filter.py - correctly filters
-all dynamic content while preserving actual config."
+Result: Clean MR diffs showing only actual config differences."
 
 echo ""
-echo "============================================================"
+echo "========================================================"
 echo "  READY TO PUSH"
-echo "============================================================"
+echo "========================================================"
 echo ""
 read -p "Push to GitLab now? (y/N) " -n 1 -r
 echo ""
@@ -74,11 +51,11 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo ""
     echo "PUSHED!"
     echo ""
-    echo "Next steps:"
-    echo "1. Close MR #12 and #13 (broken by old filter)"
+    echo "Next:"
+    echo "1. Close MRs #12, #13, #14 (broken)"
     echo "2. Wait for new pipeline"
-    echo "3. Should NOT create drift MR for timestamp changes"
+    echo "3. New MR will show CLEAN diff (no timestamps)"
 else
-    echo "Not pushed. Push manually when ready:"
+    echo "Not pushed. Push when ready:"
     echo "  git push origin main"
 fi
