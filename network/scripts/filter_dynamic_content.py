@@ -8,105 +8,95 @@ class DynamicContentFilter:
     def __init__(self):
         """Define removal patterns for dynamic content."""
         self.removal_patterns = [
-            # Building configuration - any variation
-            r'.*[Bb]uilding.*[Cc]onfiguration.*',
-            
-            # Current configuration with byte count - ANY variation
-            r'.*[Cc]urrent.*[Cc]onfiguration.*\d+.*[Bb]ytes.*',
-            r'.*[Cc]urrent.*[Cc]onfiguration.*:.*\d+.*',
-            
-            # Last configuration change - any variation
-            r'.*[Ll]ast.*[Cc]onfiguration.*[Cc]hange.*',
-            
-            # NVRAM config - any variation
-            r'.*NVRAM.*[Cc]onfig.*[Uu]pdated.*',
-            
-            # Configuration last modified
-            r'.*[Cc]onfiguration.*[Mm]odified.*',
-            
+            # Building configuration headers
+            r'^\s*Building configuration.*$',
+
+            # Current configuration lines with byte counts
+            r'^\s*Current configuration\s*:.*\d+\s*bytes\s*$',
+            r'^\s*Current configuration.*\d+\s*bytes\s*$',
+
+            # Last configuration change (timestamp lines)
+            r'^\s*! Last configuration change.*$',
+            r'^\s*!! Last configuration change.*$',
+            r'^\s*Last configuration change\s+at\s+.*$',
+
+            # NVRAM / config updated
+            r'^\s*NVRAM config last.*$',
+            r'^\s*Configuration last modified.*$',
+
             # Crypto checksums
-            r'.*[Cc]ryptochecksum.*',
-            
+            r'^\s*cryptochecksum.*$',
+
             # NTP clock period
-            r'.*ntp\s+clock-period.*',
-            
-            # Uptime
-            r'.*uptime.*',
+            r'^\s*ntp\s+clock-period\s+\d+.*$',
+
+            # Uptime (conservative pattern)
+            r'^\s*(uptime|System uptime|router uptime).*$', 
         ]
-        
-        self.compiled_patterns = [
-            re.compile(p, re.IGNORECASE) 
-            for p in self.removal_patterns
-        ]
-    
+
+        self.compiled_patterns = [re.compile(p, re.IGNORECASE) for p in self.removal_patterns]
+
     def is_dynamic_line(self, line):
-        """Check if a line contains dynamic content."""
-        stripped = line.strip()
+        """Check if a line contains dynamic content.
         
-        # Empty line
-        if not stripped:
-            return True
-        
-        # Check all patterns
+        IMPORTANT: blank lines are NOT considered dynamic.
+        We preserve single blank lines and collapse multiples later.
+        """
+        if line is None:
+            return False
+
         for pattern in self.compiled_patterns:
             if pattern.search(line):
                 return True
-        
+
         return False
-    
-    def normalize_oxidized_format(self, config_text):
-        """Normalize Oxidized backup format differences."""
-        if not config_text:
-            return ""
-        
-        lines = []
-        for line in config_text.split('\n'):
-            line = line.rstrip()
-            
-            # Skip dynamic lines
-            if self.is_dynamic_line(line):
-                continue
-            
-            lines.append(line)
-        
-        return '\n'.join(lines)
-    
+
     def filter_config(self, config_text):
-        """Filter out dynamic content from configuration."""
+        """Filter out dynamic content in a single pass.
+        
+        - Removes dynamic content lines
+        - Strips trailing whitespace from all lines
+        - Preserves single blank lines
+        - Collapses multiple blank lines into one
+        """
         if not config_text:
             return ""
-        
+
         filtered_lines = []
-        
-        for line in config_text.split('\n'):
-            line = line.rstrip()
-            
-            # Skip empty
-            if not line:
-                continue
+        blank_count = 0
+
+        for raw in config_text.splitlines():
+            # Strip trailing whitespace (fixes "waas " vs "waas" issue)
+            line = raw.rstrip()
             
             # Skip dynamic content
             if self.is_dynamic_line(line):
                 continue
-            
+
+            # Blank line handling: collapse multiples into single blank
+            if line.strip() == "":
+                blank_count += 1
+                if blank_count > 1:
+                    continue
+                filtered_lines.append("")
+                continue
+            else:
+                blank_count = 0
+
             filtered_lines.append(line)
-        
-        # Join and normalize
-        filtered = '\n'.join(filtered_lines)
-        filtered = re.sub(r'\n{3,}', '\n\n', filtered)
-        
-        return filtered.strip()
-    
+
+        # Remove leading/trailing blank lines
+        while filtered_lines and filtered_lines[0] == "":
+            filtered_lines.pop(0)
+        while filtered_lines and filtered_lines[-1] == "":
+            filtered_lines.pop()
+
+        return "\n".join(filtered_lines)
+
     def compare_configs(self, config1, config2):
         """Compare two configurations after filtering dynamic content."""
-        # Normalize and filter both
-        norm1 = self.normalize_oxidized_format(config1)
-        norm2 = self.normalize_oxidized_format(config2)
-        
-        filtered1 = self.filter_config(norm1)
-        filtered2 = self.filter_config(norm2)
-        
-        # Compare
+        filtered1 = self.filter_config(config1)
+        filtered2 = self.filter_config(config2)
+
         are_equal = filtered1 == filtered2
-        
         return are_equal, filtered1, filtered2
