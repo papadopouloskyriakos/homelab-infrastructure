@@ -7,7 +7,6 @@ import re
 class DynamicContentFilter:
     def __init__(self):
         """Define removal patterns for dynamic content."""
-        # SUPER AGGRESSIVE patterns - match anything that could vary
         self.removal_patterns = [
             # Building configuration - any variation
             r'.*[Bb]uilding.*[Cc]onfiguration.*',
@@ -33,9 +32,6 @@ class DynamicContentFilter:
             
             # Uptime
             r'.*uptime.*',
-            
-            # Standalone ! lines
-            r'^\s*!\s*$',
         ]
         
         self.compiled_patterns = [
@@ -45,15 +41,10 @@ class DynamicContentFilter:
     
     def is_dynamic_line(self, line):
         """Check if a line contains dynamic content."""
-        # Strip and check
         stripped = line.strip()
         
         # Empty line
         if not stripped:
-            return True
-        
-        # Just "!"
-        if stripped == '!':
             return True
         
         # Check all patterns
