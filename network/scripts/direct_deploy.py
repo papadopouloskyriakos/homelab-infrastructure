@@ -14,6 +14,7 @@ Example: direct_deploy.py Switch nlsw01 artifacts/diffs/nlsw01_diff.yml
 import sys
 import os
 import json
+import time
 from pathlib import Path
 from datetime import datetime
 from netmiko import ConnectHandler
