@@ -3,23 +3,13 @@
 Enhanced dynamic content filter for Cisco configurations.
 
 This module filters out dynamic/timestamp content that changes automatically
-but doesn't represent actual configuration drift, including:
-- Timestamps (Last configuration change, NVRAM config last updated)
-- Byte counts in "Current configuration" headers
-- Crypto checksums
-- NTP clock periods
-- Uptime information
-- Building configuration messages
+but doesn't represent actual configuration drift.
 """
 import re
 
 class DynamicContentFilter:
     def __init__(self):
-        """
-        Define removal patterns for dynamic content.
-        
-        Patterns are intentionally permissive to catch format variations.
-        """
+        """Define removal patterns for dynamic content."""
         self.removal_patterns = [
             # Building configuration header
             r'^Building configuration\.\.\.\s*$',
@@ -54,7 +44,7 @@ class DynamicContentFilter:
             # Standalone exclamation marks (Oxidized format)
             r'^!\s*$',
             
-            # Empty lines (will be handled separately but included for completeness)
+            # Empty lines
             r'^\s*$',
         ]
         
@@ -70,19 +60,12 @@ class DynamicContentFilter:
         
         Oxidized adds standalone '!' lines as separators. These aren't in
         live device configs, so we remove them for comparison.
-        
-        Args:
-            config_text: Raw configuration text
-            
-        Returns:
-            Normalized configuration text
         """
         if not config_text:
             return ""
         
         lines = []
         for line in config_text.split('\n'):
-            # Strip trailing whitespace
             line = line.rstrip()
             
             # Remove standalone exclamation marks
@@ -107,12 +90,6 @@ class DynamicContentFilter:
         
         Removes lines matching any of the dynamic content patterns,
         ensuring only actual configuration differences are detected.
-        
-        Args:
-            config_text: Configuration text (pre-normalized)
-            
-        Returns:
-            Filtered configuration text
         """
         if not config_text:
             return ""
@@ -120,7 +97,6 @@ class DynamicContentFilter:
         filtered_lines = []
         
         for line in config_text.split('\n'):
-            # Strip trailing whitespace first
             line = line.rstrip()
             
             # Skip empty lines
@@ -136,8 +112,6 @@ class DynamicContentFilter:
         
         # Join lines and normalize excessive blank lines
         filtered = '\n'.join(filtered_lines)
-        
-        # Reduce multiple consecutive blank lines to single blank line
         filtered = re.sub(r'\n{3,}', '\n\n', filtered)
         
         return filtered.strip()
@@ -146,10 +120,6 @@ class DynamicContentFilter:
         """
         Compare two configurations after filtering dynamic content.
         
-        Args:
-            config1: First configuration (e.g., live device config)
-            config2: Second configuration (e.g., GitLab baseline)
-            
         Returns:
             Tuple of (are_equal, filtered_config1, filtered_config2)
         """
@@ -165,77 +135,3 @@ class DynamicContentFilter:
         are_equal = filtered1 == filtered2
         
         return are_equal, filtered1, filtered2
-    
-    def get_meaningful_diff(self, config1, config2):
-        """
-        Generate a diff showing only meaningful configuration differences.
-        
-        This is useful for debugging - it shows what's actually different
-        after filtering out dynamic content.
-        
-        Args:
-            config1: First configuration
-            config2: Second configuration
-            
-        Returns:
-            List of diff lines, or empty list if no differences
-        """
-        are_equal, filtered1, filtered2 = self.compare_configs(config1, config2)
-        
-        if are_equal:
-            return []
-        
-        import difflib
-        
-        lines1 = filtered1.split('\n')
-        lines2 = filtered2.split('\n')
-        
-        diff = list(difflib.unified_diff(
-            lines2, lines1,
-            fromfile='baseline',
-            tofile='device',
-            lineterm=''
-        ))
-        
-        return diff
-
-
-# Standalone testing function
-def test_filter():
-    """Test the filter with sample Cisco output"""
-    
-    sample_config = """Building configuration...
-
-Current configuration : 10391 bytes
-!
-! Last configuration change at 21:48:44 CET Sat Nov 22 2025 by kyriakosp
-! NVRAM config last updated at 19:13:57 CET Fri Nov 21 2025 by kyriakosp
-!
-version 15.6
-no service pad
-service timestamps debug datetime msec
-!
-hostname nl-lte01
-!
-ntp clock-period 37378432
-!
-Cryptochecksum:8ac1ec0b35ccfed1b10e9560ed22aa53
-"""
-    
-    filter_obj = DynamicContentFilter()
-    filtered = filter_obj.filter_config(sample_config)
-    
-    print("=== Original Config ===")
-    print(sample_config)
-    print("\n=== Filtered Config ===")
-    print(filtered)
-    print("\n=== Lines Removed ===")
-    original_lines = len(sample_config.split('\n'))
-    filtered_lines = len(filtered.split('\n'))
-    print(f"Original: {original_lines} lines")
-    print(f"Filtered: {filtered_lines} lines")
-    print(f"Removed: {original_lines - filtered_lines} lines")
-
-
-if __name__ == "__main__":
-    test_filter()
