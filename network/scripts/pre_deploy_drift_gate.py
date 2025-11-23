@@ -76,9 +76,6 @@ class DriftGate:
         ]
         
         # Get the baseline commit (before current changes)
-        # This could be:
-        # - CI_COMMIT_BEFORE_SHA: the commit before current pipeline trigger
-        # - HEAD~1: one commit back (fallback)
         baseline_ref = os.getenv('CI_COMMIT_BEFORE_SHA', 'HEAD~1')
         
         # Special case: if this is the first commit on a branch, use main
@@ -112,7 +109,6 @@ class DriftGate:
                 continue
         
         # Fallback: check if file exists in working directory
-        # This handles new devices that don't exist in git history
         for path_str in possible_paths:
             path = Path(path_str)
             if path.exists():
@@ -165,7 +161,7 @@ class DriftGate:
         Create MR to sync device drift.
         
         CRITICAL: Branch must be created from baseline commit, not current main!
-        This ensures the MR correctly shows device → baseline changes.
+        This ensures the MR correctly shows device -> baseline changes.
         """
         gitlab_url = os.getenv('CI_SERVER_URL', 'https://gitlab.example.net')
         project_id = os.getenv('CI_PROJECT_ID')
@@ -214,7 +210,7 @@ class DriftGate:
             response = requests.get(
                 f"{api_url}/projects/{project_id}/repository/files/{path.replace('/', '%2F')}",
                 headers=headers,
-                params={'ref': base_ref}  # Check against baseline
+                params={'ref': base_ref}
             )
             if response.status_code == 200:
                 gitlab_config_path = path
@@ -231,7 +227,7 @@ class DriftGate:
             json={
                 'branch': branch_name,
                 'content': live_config,
-                'commit_message': f" Sync device drift: {self.device_name}\n\nDetected {drift_lines_count} lines of drift from baseline"
+                'commit_message': f"Sync device drift: {self.device_name}\n\nDetected {drift_lines_count} lines of drift from baseline"
             }
         )
         
@@ -245,7 +241,7 @@ class DriftGate:
             f.write('\n'.join(drift_diff))
         
         # Create MR description
-        mr_description = f"""##  Configuration Drift Detected
+        mr_description = f"""## Configuration Drift Detected
 
 **Device:** `{self.device_name}` ({self.device_type})  
 **Drift:** {drift_lines_count} lines changed on device vs GitLab baseline  
@@ -279,7 +275,7 @@ See artifact `{diff_file}` for full diff.
             json={
                 'source_branch': branch_name,
                 'target_branch': 'main',
-                'title': f" Device Drift Sync: {self.device_name}",
+                'title': f"Device Drift Sync: {self.device_name}",
                 'description': mr_description,
                 'REDACTED_dae379fc': True,
                 'labels': ['drift-detection', 'automated']
@@ -288,7 +284,7 @@ See artifact `{diff_file}` for full diff.
         
         if response.status_code == 201:
             mr_url = response.json()['web_url']
-            print(f"    Created MR: {mr_url}", file=sys.stderr)
+            print(f"   Created MR: {mr_url}", file=sys.stderr)
             return mr_url
         else:
             print(f"   ERROR: Failed to create MR: {response.text}", file=sys.stderr)
@@ -330,14 +326,14 @@ See artifact `{diff_file}` for full diff.
         gitlab_lines_after = len(gitlab_filtered.split('\n'))
         
         print(f"   Filtering stats:", file=sys.stderr)
-        print(f"     Live device: {live_lines_before} → {live_lines_after} lines ({live_lines_before - live_lines_after} filtered)", file=sys.stderr)
-        print(f"     GitLab baseline: {gitlab_lines_before} → {gitlab_lines_after} lines ({gitlab_lines_before - gitlab_lines_after} filtered)", file=sys.stderr)
+        print(f"     Live device: {live_lines_before} -> {live_lines_after} lines ({live_lines_before - live_lines_after} filtered)", file=sys.stderr)
+        print(f"     GitLab baseline: {gitlab_lines_before} -> {gitlab_lines_after} lines ({gitlab_lines_before - gitlab_lines_after} filtered)", file=sys.stderr)
         
         if not has_drift:
-            print(f"    No drift detected", file=sys.stderr)
+            print(f"   No drift detected", file=sys.stderr)
             return 0
         
-        print(f"     DRIFT DETECTED", file=sys.stderr)
+        print(f"   WARNING: DRIFT DETECTED", file=sys.stderr)
         print(f"   {drift_lines_count} lines differ between device and baseline", file=sys.stderr)
         print(f"\n   Drift preview (first 20 lines):", file=sys.stderr)
         for line in drift_diff[:20]:
@@ -353,9 +349,9 @@ See artifact `{diff_file}` for full diff.
         print(f"{'='*60}", file=sys.stderr)
         
         if mr_url:
-            print(f"\n📋 Merge Request: {mr_url}", file=sys.stderr)
+            print(f"\nMerge Request: {mr_url}", file=sys.stderr)
         
-        print(f"\n  This deployment cannot proceed until drift is resolved", file=sys.stderr)
+        print(f"\nWARNING: This deployment cannot proceed until drift is resolved", file=sys.stderr)
         print(f"\nNext steps:", file=sys.stderr)
         print(f"  1. Review the drift detection MR", file=sys.stderr)
         print(f"  2. Merge the MR to sync device changes to GitLab", file=sys.stderr)
