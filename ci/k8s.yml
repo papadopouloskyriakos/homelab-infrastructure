@@ -1,22 +1,25 @@
-# Kubernetes Infrastructure Pipeline (OpenTofu)
-# Manages PRODUCTION Kubernetes resources via OpenTofu with GitLab-managed state
-# Directory structure: k8s/ (production only, no sandbox)
+stages:
+  - validate
+  - plan
+  - apply
+  - verify
 
-.k8s_base:
-  image: $K8S_IMAGE
-  tags:
-    - k8s
+variables:
+  K8S_DIR: "k8s"
+  TF_STATE_NAME: "k8s-production-state"
+  PLAN_CACHE: "artifacts/plan-production.cache"
 
-# Validate OpenTofu configurations
 validate_k8s_manifests:
-  extends: .k8s_base
   stage: validate
+  image: $K8S_RUNNER_IMAGE
+  tags:
+    - docker
   rules:
     - changes:
         - k8s/**/*
       when: on_success
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
-      when: never
+  before_script:
+    - git config --global --add safe.directory $CI_PROJECT_DIR
   script:
     - |
       set -eu
@@ -26,79 +29,67 @@ validate_k8s_manifests:
       echo "PRODUCTION ONLY"
       echo "================================================"
       
-      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep '^k8s/' || true)
+      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep "^k8s/" || true)
       
       if [ -z "$CHANGED" ]; then
-        echo "No Kubernetes configuration changes detected"
+        echo "No k8s configuration changes detected"
         exit 0
       fi
       
       echo "Changed files:"
       echo "$CHANGED" | sed 's/^/  /'
       echo "================================================"
+      
       echo ""
-      
-      K8S_DIR="k8s"
-      
       echo "Validating: Production infrastructure"
       echo "------------------------------------------------"
       
-      if [ ! -d "$K8S_DIR" ]; then
-        echo "  ERROR: k8s/ directory not found"
-        exit 1
-      fi
-      
       cd "$K8S_DIR"
       
-      if [ ! -f "main.tf" ] && [ ! -f "main.tf.json" ]; then
-        echo "  ERROR: No main.tf or main.tf.json found"
+      if [ ! -f "main.tf" ]; then
+        echo "  ERROR: main.tf not found"
         exit 1
       fi
       
       echo "  Found OpenTofu configuration"
       
+      # Format check
       echo "  Running tofu fmt check..."
-      if ! tofu fmt -check -recursive .; then
+      if ! tofu fmt -check -recursive . 2>/dev/null; then
         echo "  WARNING: Formatting issues detected (non-critical)"
       fi
       
+      # Initialize for validation
       echo "  Running tofu validate..."
       
-      if ! tofu init -backend=false 2>&1 | grep -v "backend initialization"; then
-        echo "  ERROR: Failed to initialize for validation"
-        exit 1
-      fi
+      # Set backend config for validation
+      export TF_CLI_ARGS_init="-backend-config=address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME} -backend-config=lock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=unlock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=username=gitlab-ci-token -backend-config=password=${CI_JOB_TOKEN} -backend-config=lock_method=POST -backend-config=unlock_method=DELETE -backend-config=retry_wait_min=5"
       
-      if ! tofu validate; then
+      tofu init -input=false
+      
+      if tofu validate; then
+        echo "  SUCCESS: Validation passed"
+        exit 0
+      else
         echo "  ERROR: Validation failed"
         exit 1
       fi
-      
-      echo "  PASS: Validation successful"
-      
-      cd "$CI_PROJECT_DIR"
-      
-      echo ""
-      echo "================================================"
-      echo "SUCCESS: All validations passed"
-      echo "================================================"
-  artifacts:
-    when: always
-    expire_in: 7 days
   allow_failure: false
 
-# Plan Kubernetes infrastructure changes
 plan_k8s_infrastructure:
-  extends: .k8s_base
-  stage: pre-deploy
+  stage: plan
+  image: $K8S_RUNNER_IMAGE
+  tags:
+    - docker
   rules:
     - changes:
         - k8s/**/*
       when: on_success
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
-      when: never
   needs:
     - validate_k8s_manifests
+  before_script:
+    - git config --global --add safe.directory $CI_PROJECT_DIR
+    - mkdir -p artifacts
   script:
     - |
       set -eu
@@ -108,246 +99,171 @@ plan_k8s_infrastructure:
       echo "PRODUCTION"
       echo "================================================"
       
-      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep '^k8s/' || true)
+      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep "^k8s/" || true)
       
       if [ -z "$CHANGED" ]; then
-        echo "No changes detected"
+        echo "No k8s configuration changes detected"
         exit 0
       fi
       
       echo "Changed files:"
       echo "$CHANGED" | sed 's/^/  /'
       echo "================================================"
-      echo ""
       
-      if [ -z "${K8S_HOST:-}" ]; then
-        echo "ERROR: K8S_HOST not set in GitLab CI/CD variables"
-        exit 1
-      fi
-      
-      if [ -z "${K8S_TOKEN:-}" ]; then
-        echo "ERROR: K8S_TOKEN not set in GitLab CI/CD variables"
-        exit 1
-      fi
-      
-      if [ -z "${K8S_CA_CERT:-}" ]; then
-        echo "ERROR: K8S_CA_CERT not set in GitLab CI/CD variables"
+      # Validate credentials
+      if [ -z "$K8S_HOST" ] || [ -z "$K8S_TOKEN" ] || [ -z "$K8S_CA_CERT" ]; then
+        echo "ERROR: Missing K8s credentials"
+        echo "Required variables: K8S_HOST, K8S_TOKEN, K8S_CA_CERT"
         exit 1
       fi
       
       echo "Credentials validated"
-      echo "  API Server: $K8S_HOST"
+      echo "  API Server: [MASKED]"
       echo "  Token length: ${#K8S_TOKEN} chars"
       echo "  CA cert length: ${#K8S_CA_CERT} chars"
-      echo ""
-      
-      K8S_DIR="k8s"
-      STATE_NAME="${K8S_TF_STATE_NAME:-k8s-production}"
-      PLAN_FILE="$CI_PROJECT_DIR/artifacts/plan-production.cache"
-      
-      mkdir -p "$CI_PROJECT_DIR/artifacts"
-      
-      echo "================================================"
-      echo "Planning: Production infrastructure"
       echo "================================================"
       
       cd "$K8S_DIR"
       
-      export TF_HTTP_ADDRESS="$CI_API_V4_URL/projects/$CI_PROJECT_ID/terraform/state/$STATE_NAME"
-      export TF_HTTP_LOCK_ADDRESS="$TF_HTTP_ADDRESS/lock"
-      export TF_HTTP_UNLOCK_ADDRESS="$TF_HTTP_ADDRESS/lock"
-      export TF_HTTP_USERNAME="gitlab-ci-token"
-      export TF_HTTP_PASSWORD="$CI_JOB_TOKEN"
-      export TF_HTTP_LOCK_METHOD="POST"
-      export TF_HTTP_UNLOCK_METHOD="DELETE"
+      echo ""
+      echo "Planning: Production infrastructure"
+      echo "================================================"
+      echo "  State backend: $TF_STATE_NAME"
       
-      echo "  State backend: $STATE_NAME"
+      # Export variables for OpenTofu
+      export TF_VAR_k8s_host="$K8S_HOST"
+      export TF_VAR_k8s_token="$K8S_TOKEN"
+      export TF_VAR_k8s_ca_cert="$K8S_CA_CERT"
+      export TF_VAR_pihole_password="${PIHOLE_PASSWORD:-changeme123}"
+      
+      # Backend configuration
+      export TF_CLI_ARGS_init="-backend-config=address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME} -backend-config=lock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=unlock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=username=gitlab-ci-token -backend-config=password=${CI_JOB_TOKEN} -backend-config=lock_method=POST -backend-config=unlock_method=DELETE -backend-config=retry_wait_min=5"
+      
+      # Initialize
       echo "  Initializing OpenTofu..."
-      
-      INIT_SUCCESS=0
-      for attempt in 1 2 3; do
-        if tofu init -reconfigure; then
-          INIT_SUCCESS=1
-          break
-        else
-          echo "  Initialization attempt $attempt failed"
-          if [ $attempt -lt 3 ]; then
-            echo "  Retrying in 10 seconds..."
-            sleep 10
-          fi
-        fi
-      done
-      
-      if [ $INIT_SUCCESS -eq 0 ]; then
-        echo "  ERROR: Failed to initialize after 3 attempts"
+      if ! tofu init -input=false; then
+        echo "  ERROR: Initialization failed"
         exit 1
       fi
       
       echo "  Initialization successful"
-      echo ""
-      echo "  Creating plan..."
       
-      if tofu plan -out="$PLAN_FILE" \
-        -var "k8s_host=${K8S_HOST}" \
-        -var "k8s_token=${K8S_TOKEN}" \
-        -var "k8s_ca_cert=${K8S_CA_CERT}"; then
-        
+      # Create plan
+      echo "  Creating plan..."
+      if tofu plan -out="../$PLAN_CACHE" -input=false; then
         echo "  SUCCESS: Plan created"
-        echo "  Plan saved to: artifacts/plan-production.cache"
+        echo "  Plan saved to: $PLAN_CACHE"
+        
+        # Show plan summary  
+        echo "  Plan summary:"
+        tofu show "../$PLAN_CACHE" | head -100 || true
         
         echo ""
-        echo "  Plan summary:"
-        tofu show "$PLAN_FILE" | head -50 | sed 's/^/    /'
+        echo "================================================"
+        echo "Plan stage completed successfully"
+        echo "================================================"
         
+        # CRITICAL: Explicit success exit
+        exit 0
       else
         echo "  ERROR: Plan creation failed"
         exit 1
       fi
-      
-      cd "$CI_PROJECT_DIR"
-      
-      echo ""
-      echo "================================================"
-      echo "SUCCESS: Plan created"
-      echo "================================================"
-      echo ""
-      echo "Review plan in artifacts before applying"
   artifacts:
     when: always
     paths:
       - artifacts/plan-*.cache
-    expire_in: 7 days
+    expire_in: 1 day
   allow_failure: false
 
-# Apply Kubernetes infrastructure changes
 apply_k8s_infrastructure:
-  extends: .k8s_base
-  stage: deploy
+  stage: apply
+  image: $K8S_RUNNER_IMAGE
+  tags:
+    - docker
   rules:
     - changes:
         - k8s/**/*
       when: manual
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
-      when: never
   needs:
     - plan_k8s_infrastructure
+  before_script:
+    - git config --global --add safe.directory $CI_PROJECT_DIR
   script:
     - |
       set -eu
       
       echo "================================================"
-      echo "Applying Kubernetes Infrastructure Changes"
+      echo "Applying Kubernetes Infrastructure"
       echo "PRODUCTION"
       echo "================================================"
       
-      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep '^k8s/' || true)
-      
-      if [ -z "$CHANGED" ]; then
-        echo "No changes detected"
-        exit 0
+      if [ ! -f "$PLAN_CACHE" ]; then
+        echo "ERROR: Plan cache not found: $PLAN_CACHE"
+        echo "Run plan stage first"
+        exit 1
       fi
       
-      echo "Changed files:"
-      echo "$CHANGED" | sed 's/^/  /'
-      echo "================================================"
+      echo "Plan cache found: $PLAN_CACHE"
       echo ""
-      
-      if [ -z "${K8S_HOST:-}" ]; then
-        echo "ERROR: K8S_HOST not set"
-        exit 1
-      fi
-      
-      if [ -z "${K8S_TOKEN:-}" ]; then
-        echo "ERROR: K8S_TOKEN not set"
-        exit 1
-      fi
-      
-      if [ -z "${K8S_CA_CERT:-}" ]; then
-        echo "ERROR: K8S_CA_CERT not set"
-        exit 1
-      fi
-      
-      K8S_DIR="k8s"
-      STATE_NAME="${K8S_TF_STATE_NAME:-k8s-production}"
-      PLAN_FILE="$CI_PROJECT_DIR/artifacts/plan-production.cache"
-      
-      echo "================================================"
-      echo "Applying: Production infrastructure"
-      echo "================================================"
-      
-      if [ ! -f "$PLAN_FILE" ]; then
-        echo "ERROR: Plan file not found: $PLAN_FILE"
-        echo "Plan must be created first"
-        exit 1
-      fi
       
       cd "$K8S_DIR"
       
-      export TF_HTTP_ADDRESS="$CI_API_V4_URL/projects/$CI_PROJECT_ID/terraform/state/$STATE_NAME"
-      export TF_HTTP_LOCK_ADDRESS="$TF_HTTP_ADDRESS/lock"
-      export TF_HTTP_UNLOCK_ADDRESS="$TF_HTTP_ADDRESS/lock"
-      export TF_HTTP_USERNAME="gitlab-ci-token"
-      export TF_HTTP_PASSWORD="$CI_JOB_TOKEN"
-      export TF_HTTP_LOCK_METHOD="POST"
-      export TF_HTTP_UNLOCK_METHOD="DELETE"
+      # Export variables
+      export TF_VAR_k8s_host="$K8S_HOST"
+      export TF_VAR_k8s_token="$K8S_TOKEN"
+      export TF_VAR_k8s_ca_cert="$K8S_CA_CERT"
+      export TF_VAR_pihole_password="${PIHOLE_PASSWORD:-changeme123}"
       
-      echo "  Initializing OpenTofu..."
+      # Backend configuration
+      export TF_CLI_ARGS_init="-backend-config=address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME} -backend-config=lock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=unlock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=username=gitlab-ci-token -backend-config=password=${CI_JOB_TOKEN} -backend-config=lock_method=POST -backend-config=unlock_method=DELETE -backend-config=retry_wait_min=5"
       
-      INIT_SUCCESS=0
-      for attempt in 1 2 3; do
-        if tofu init -reconfigure; then
-          INIT_SUCCESS=1
-          break
-        else
-          echo "  Initialization attempt $attempt failed"
-          if [ $attempt -lt 3 ]; then
-            echo "  Retrying in 10 seconds..."
-            sleep 10
-          fi
-        fi
-      done
-      
-      if [ $INIT_SUCCESS -eq 0 ]; then
-        echo "  ERROR: Failed to initialize"
+      # Initialize
+      echo "Initializing OpenTofu..."
+      if ! tofu init -input=false; then
+        echo "ERROR: Initialization failed"
         exit 1
       fi
       
-      echo "  Applying plan..."
+      echo "Initialization successful"
+      echo ""
       
-      if tofu apply "$PLAN_FILE" 2>&1 | tee "$CI_PROJECT_DIR/artifacts/apply-production.log"; then
+      # Apply
+      echo "Applying infrastructure..."
+      echo "================================================"
+      
+      if tofu apply -input=false "../$PLAN_CACHE"; then
         echo ""
-        echo "  SUCCESS: Infrastructure applied"
+        echo "================================================"
+        echo "SUCCESS: Infrastructure applied"
+        echo "================================================"
+        
+        # Show outputs
+        echo ""
+        echo "Outputs:"
+        tofu output || true
+        
+        exit 0
       else
         echo ""
-        echo "  ERROR: Apply failed"
-        echo "  Check log: artifacts/apply-production.log"
+        echo "================================================"
+        echo "ERROR: Apply failed"
+        echo "================================================"
         exit 1
       fi
-      
-      cd "$CI_PROJECT_DIR"
-      
-      echo ""
-      echo "================================================"
-      echo "SUCCESS: Infrastructure applied"
-      echo "================================================"
-  artifacts:
-    when: always
-    paths:
-      - artifacts/
-    expire_in: 7 days
-  environment: production
+  environment:
+    name: production
   allow_failure: false
 
-# Verify Kubernetes deployments
 verify_k8s_infrastructure:
-  extends: .k8s_base
   stage: verify
+  image: $K8S_RUNNER_IMAGE
+  tags:
+    - docker
   rules:
     - changes:
         - k8s/**/*
       when: on_success
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
-      when: never
   needs:
     - apply_k8s_infrastructure
   script:
@@ -356,79 +272,59 @@ verify_k8s_infrastructure:
       
       echo "================================================"
       echo "Verifying Kubernetes Infrastructure"
-      echo "PRODUCTION"
       echo "================================================"
       
-      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep '^k8s/' || true)
+      # Setup kubeconfig
+      mkdir -p ~/.kube
       
-      if [ -z "$CHANGED" ]; then
-        echo "No changes to verify"
-        exit 0
-      fi
+      cat > ~/.kube/config <<EOF
+      apiVersion: v1
+      kind: Config
+      clusters:
+      - cluster:
+          certificate-authority-data: ${K8S_CA_CERT}
+          server: ${K8S_HOST}
+        name: k8s-cluster
+      contexts:
+      - context:
+          cluster: k8s-cluster
+          user: gitlab-ci
+        name: gitlab-ci
+      current-context: gitlab-ci
+      users:
+      - name: gitlab-ci
+        user:
+          token: ${K8S_TOKEN}
+      EOF
       
-      if [ -z "${K8S_HOST:-}" ]; then
-        echo "ERROR: K8S_HOST not set"
-        exit 1
-      fi
-      
-      if [ -z "${K8S_TOKEN:-}" ]; then
-        echo "ERROR: K8S_TOKEN not set"
-        exit 1
-      fi
-      
-      if [ -z "${K8S_CA_CERT:-}" ]; then
-        echo "ERROR: K8S_CA_CERT not set"
-        exit 1
-      fi
-      
-      echo "Configuring kubectl..."
-      
-      echo "$K8S_CA_CERT" | base64 -d > /tmp/ca.crt
-      
-      kubectl config set-cluster k8s-cluster \
-        --server="$K8S_HOST" \
-        --certificate-authority=/tmp/ca.crt \
-        --embed-certs=true
-      
-      kubectl config set-credentials gitlab-ci \
-        --token="$K8S_TOKEN"
-      
-      kubectl config set-context k8s-context \
-        --cluster=k8s-cluster \
-        --user=gitlab-ci
-      
-      kubectl config use-context k8s-context
-      
-      echo "  kubectl configured"
+      echo "Checking namespaces..."
+      kubectl get namespaces || true
       echo ""
       
-      echo "Testing cluster connectivity..."
-      if ! kubectl cluster-info 2>&1 | head -5; then
-        echo "WARNING: Could not get cluster info"
-      fi
+      echo "Checking Pi-hole deployment..."
+      kubectl get all -n pihole || true
       echo ""
       
-      echo "Listing namespaces..."
-      kubectl get namespaces 2>&1 | sed 's/^/  /' || echo "  WARNING: Could not list namespaces"
-      echo ""
-      
-      echo "Checking production namespace..."
-      
-      if kubectl get namespace production &>/dev/null; then
-        echo "  Namespace exists"
-        
-        echo ""
-        echo "  Resources in production:"
-        kubectl get all -n production 2>&1 | sed 's/^/    /' || echo "    No resources found"
+      echo "Checking Pi-hole pod status..."
+      if kubectl wait --for=condition=ready pod -l app=pihole -n pihole --timeout=300s; then
+        echo "  SUCCESS: Pi-hole pod is ready"
       else
-        echo "  WARNING: Production namespace not found"
+        echo "  WARNING: Pi-hole pod not ready yet"
       fi
-      
       echo ""
+      
+      echo "Checking services..."
+      kubectl get svc -n pihole || true
+      echo ""
+      
       echo "================================================"
-      echo "SUCCESS: Verification complete"
+      echo "Verification complete"
       echo "================================================"
-  artifacts:
-    when: always
-    expire_in: 7 days
+      echo ""
+      echo "Access Pi-hole:"
+      echo "  kubectl port-forward -n pihole svc/pihole-web 8080:80"
+      echo "  Then visit: http://localhost:8080/admin"
+      echo ""
+      
+      exit 0
   allow_failure: true
