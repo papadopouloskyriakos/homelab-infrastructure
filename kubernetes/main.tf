@@ -6,9 +6,7 @@ terraform {
     }
   }
   
-  backend "http" {
-    # GitLab configures this automatically
-  }
+  backend "http" {}
 }
 
 provider "kubernetes" {
@@ -17,7 +15,6 @@ provider "kubernetes" {
   cluster_ca_certificate = base64decode(var.k8s_ca_cert)
 }
 
-# Production namespace
 resource "kubernetes_namespace" "production" {
   metadata {
     name = "production"
@@ -28,7 +25,6 @@ resource "kubernetes_namespace" "production" {
   }
 }
 
-# Pi-hole namespace (separate for DNS services)
 resource "kubernetes_namespace" "pihole" {
   metadata {
     name = "pihole"
@@ -40,7 +36,6 @@ resource "kubernetes_namespace" "pihole" {
   }
 }
 
-# ConfigMap for Pi-hole custom DNS
 resource "kubernetes_config_map" "pihole_custom_dns" {
   metadata {
     name      = "pihole-custom-dns"
@@ -55,7 +50,6 @@ resource "kubernetes_config_map" "pihole_custom_dns" {
   }
 }
 
-# PersistentVolumeClaim for Pi-hole data
 resource "REDACTED_912a6d18_claim" "pihole_data" {
   metadata {
     name      = "pihole-data"
@@ -73,7 +67,6 @@ resource "REDACTED_912a6d18_claim" "pihole_data" {
   }
 }
 
-# Pi-hole Deployment
 resource "kubernetes_deployment" "pihole" {
   metadata {
     name      = "pihole"
@@ -140,12 +133,6 @@ resource "kubernetes_deployment" "pihole" {
             name           = "web"
             container_port = 80
             protocol       = "TCP"
-          }
-
-          port {
-            name           = "dhcp"
-            container_port = 67
-            protocol       = "UDP"
           }
 
           resources {
@@ -220,7 +207,6 @@ resource "kubernetes_deployment" "pihole" {
   }
 }
 
-# Service for Pi-hole web interface
 resource "kubernetes_service" "pihole_web" {
   metadata {
     name      = "pihole-web"
@@ -243,7 +229,6 @@ resource "kubernetes_service" "pihole_web" {
   }
 }
 
-# Service for Pi-hole DNS (TCP)
 resource "kubernetes_service" "pihole_dns_tcp" {
   metadata {
     name      = "pihole-dns-tcp"
@@ -266,7 +251,6 @@ resource "kubernetes_service" "pihole_dns_tcp" {
   }
 }
 
-# Service for Pi-hole DNS (UDP)
 resource "kubernetes_service" "pihole_dns_udp" {
   metadata {
     name      = "pihole-dns-udp"
@@ -289,7 +273,6 @@ resource "kubernetes_service" "pihole_dns_udp" {
   }
 }
 
-# Ingress for Pi-hole web interface
 resource "kubernetes_ingress_v1" "pihole_ingress" {
   metadata {
     name      = "pihole-ingress"
@@ -321,5 +304,3 @@ resource "kubernetes_ingress_v1" "pihole_ingress" {
     }
   }
 }
-
-
