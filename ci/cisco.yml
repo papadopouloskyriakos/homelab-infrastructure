@@ -1,0 +1,587 @@
+# ===========================================================================
+# CISCO NETWORK AUTOMATION PIPELINE
+# Handles configuration deployment for routers, switches, firewalls, APs
+# ===========================================================================
+
+.cisco_base:
+  image: $EE_IMAGE
+  tags:
+    - cisco
+  before_script:
+    - git config --global --add safe.directory $CI_PROJECT_DIR
+
+# ===========================================================================
+# DRIFT DETECTION - Device as Source of Truth
+# ===========================================================================
+
+auto_detect_and_sync_drift:
+  extends: .cisco_base
+  stage: drift-detection
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: always
+    - when: manual
+      allow_failure: true
+  before_script:
+    - git config --global user.email "gitlab-ci@example.net"
+    - git config --global user.name "GitLab CI Auto-Sync"
+    - git config --global --add safe.directory $CI_PROJECT_DIR
+    - git remote set-url origin https://root:${GITLAB_PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
+    - git checkout main || git checkout -b main
+    - git pull origin main || echo "No remote main yet"
+  script:
+    - |
+      echo "============================================================"
+      echo "DRIFT DETECTION - Syncing Device to GitLab"
+      echo "Device is source of truth - GitLab will be updated"
+      echo "============================================================"
+      
+      if python3 network/scripts/detect_drift.py 2>&1 | tee drift_report.txt; then
+        echo "All devices in sync with GitLab"
+        exit 0
+      fi
+      
+      echo "Drift detected - syncing device configs to GitLab..."
+      python3 network/scripts/auto_sync_drift.py 2>&1 | tee auto_sync.log
+      
+      if [ $? -eq 0 ]; then
+        echo "Device configs synced to GitLab successfully"
+        exit 0
+      else
+        echo "WARNING - Some changes require manual review"
+        exit 1
+      fi
+  artifacts:
+    when: always
+    paths:
+      - drift_report.txt
+      - auto_sync.log
+    expire_in: 7 days
+  allow_failure: false
+
+# ===========================================================================
+# PRE-DEPLOY DRIFT GATE - Blocks deployment if device has manual changes
+# ===========================================================================
+
+pre_deploy_drift_gate:
+  extends: .cisco_base
+  stage: validate
+  rules:
+    - changes:
+        - network/configs/**/*
+      when: on_success
+    - if: '$CI_COMMIT_AUTHOR_NAME == "NL Oxidized Bot" || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
+      when: never
+    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+      when: never
+  script:
+    - |
+      set -eu
+      
+      echo "================================================"
+      echo "PRE-DEPLOY DRIFT GATE"
+      echo "Checking for unreported device changes..."
+      echo "================================================"
+      
+      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E 'network/configs/[^/]+/nllei[0-9]' || true)
+      
+      if [ -z "$CHANGED" ]; then
+        echo "No Cisco configuration changes detected"
+        exit 0
+      fi
+      
+      echo "Changed configuration files:"
+      echo "$CHANGED" | sed 's/^/  /'
+      echo "================================================"
+      echo ""
+      
+      DRIFT_DETECTED=0
+      
+      for file in $CHANGED; do
+        DEVICE_TYPE=$(echo "$file" | cut -d'/' -f3)
+        DEVICE_NAME=$(basename "$file")
+        
+        echo ""
+        echo "Checking drift for: $DEVICE_NAME ($DEVICE_TYPE)"
+        echo "--------------------------------------------"
+        
+        if python3 network/scripts/pre_deploy_drift_gate.py "$DEVICE_TYPE" "$DEVICE_NAME"; then
+          echo "   No drift detected for $DEVICE_NAME"
+        else
+          EXIT_CODE=$?
+          
+          if [ $EXIT_CODE -eq 2 ]; then
+            echo "   DRIFT DETECTED for $DEVICE_NAME"
+            echo "     Deployment blocked - device has unreported changes"
+            DRIFT_DETECTED=1
+          else
+            echo "    ERROR checking $DEVICE_NAME"
+            echo "     Proceeding with caution..."
+          fi
+        fi
+      done
+      
+      echo ""
+      echo "================================================"
+      
+      if [ $DRIFT_DETECTED -eq 1 ]; then
+        echo "RESULT: DRIFT DETECTED - DEPLOYMENT BLOCKED"
+        echo "================================================"
+        echo ""
+        echo "One or more devices have unreported manual changes."
+        echo "A merge request has been created with the device state."
+        echo ""
+        echo "Next steps:"
+        echo "  1. Review the drift detection MR(s)"
+        echo "  2. Merge the MR to sync device changes to GitLab"
+        echo "  3. Rebase your commit on top:"
+        echo "     bash network/scripts/rebase-after-drift.sh"
+        echo "  4. Pipeline will automatically retry"
+        echo ""
+        exit 1
+      else
+        echo "RESULT: NO DRIFT - SAFE TO DEPLOY"
+        echo "================================================"
+        echo ""
+        echo "All devices are in sync with GitLab"
+        echo "Deployment can proceed safely"
+        exit 0
+      fi
+  allow_failure: false
+
+# ===========================================================================
+# VALIDATION
+# ===========================================================================
+
+validate_cisco_configs:
+  extends: .cisco_base
+  stage: validate
+  rules:
+    - changes:
+        - network/configs/**/*
+      when: on_success
+    - if: '$CI_COMMIT_AUTHOR_NAME == "NL Oxidized Bot" || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
+      when: never
+    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+      when: never
+  script:
+    - |
+      set -eu
+      
+      echo "================================================"
+      echo "Validating Cisco Configuration Changes"
+      echo "================================================"
+      
+      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E 'network/configs/[^/]+/nllei[0-9]' || true)
+      
+      if [ -z "$CHANGED" ]; then
+        echo "No Cisco configuration changes detected"
+        exit 0
+      fi
+      
+      echo "Changed configuration files:"
+      echo "$CHANGED" | sed 's/^/  /'
+      echo "================================================"
+      
+      VALIDATION_FAILED=0
+      
+      for file in $CHANGED; do
+        DEVICE_TYPE=$(echo "$file" | cut -d'/' -f3)
+        DEVICE_NAME=$(basename "$file")
+        
+        echo ""
+        echo "Validating: $DEVICE_TYPE/$DEVICE_NAME"
+        
+        if [ ! -f "$CI_PROJECT_DIR/$file" ]; then
+          echo "  ERROR: File not found: $file"
+          VALIDATION_FAILED=1
+          continue
+        fi
+        
+        if [ ! -s "$CI_PROJECT_DIR/$file" ]; then
+          echo "  ERROR: File is empty: $file"
+          VALIDATION_FAILED=1
+          continue
+        fi
+        
+        if ! grep -qE "(hostname|interface|router|firewall)" "$CI_PROJECT_DIR/$file"; then
+          echo "  ERROR: File appears invalid (no basic IOS/ASA commands): $file"
+          VALIDATION_FAILED=1
+          continue
+        fi
+        
+        LINE_COUNT=$(wc -l < "$CI_PROJECT_DIR/$file")
+        echo "  Config size: $LINE_COUNT lines"
+        
+        if [ "$LINE_COUNT" -lt 10 ]; then
+          echo "  ERROR: Config suspiciously small (less than 10 lines)"
+          VALIDATION_FAILED=1
+          continue
+        fi
+        
+        if python3 network/scripts/validate_syntax.py "$CI_PROJECT_DIR/$file"; then
+          echo "  PASS: Syntax validation passed"
+        else
+          echo "  ERROR: Syntax validation failed"
+          VALIDATION_FAILED=1
+          continue
+        fi
+        
+        echo "  PASS: All validations passed"
+      done
+      
+      if [ $VALIDATION_FAILED -eq 1 ]; then
+        echo ""
+        echo "ERROR: One or more validations failed"
+        exit 1
+      fi
+      
+      echo ""
+      echo "SUCCESS: All validations passed"
+  allow_failure: false
+
+# ===========================================================================
+# PRE-DEPLOYMENT DIFF GENERATION
+# ===========================================================================
+
+generate_deployment_diffs:
+  extends: .cisco_base
+  stage: pre-deploy
+  rules:
+    - if: '$CI_MERGE_REQUEST_IID'
+      when: never
+    - changes:
+        - network/configs/**/*
+      when: on_success
+    - if: '$CI_COMMIT_AUTHOR_NAME == "NL Oxidized Bot" || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
+      when: never
+    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+      when: never
+  needs:
+    - validate_cisco_configs
+    - pre_deploy_drift_gate
+  before_script:
+    - git config --global --add safe.directory $CI_PROJECT_DIR
+    - mkdir -p artifacts/diffs
+  script:
+    - |
+      set -eu
+      
+      echo "================================================"
+      echo "GENERATING DEPLOYMENT DIFFS"
+      echo "Creating hierarchical diffs with add/delete"
+      echo "================================================"
+      
+      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E 'network/configs/[^/]+/nllei[0-9]' || true)
+      
+      if [ -z "$CHANGED" ]; then
+        echo "No changes to diff"
+        exit 0
+      fi
+      
+      echo "Changed configuration files:"
+      echo "$CHANGED" | sed 's/^/  /'
+      echo "================================================"
+      echo ""
+      
+      DIFF_FAILED=0
+      
+      for file in $CHANGED; do
+        DEVICE_TYPE=$(echo "$file" | cut -d'/' -f3)
+        DEVICE_NAME=$(basename "$file")
+        DIFF_FILE="artifacts/diffs/${DEVICE_NAME}_diff.json"
+        
+        echo ""
+        echo "Generating diff for: $DEVICE_NAME"
+        echo "--------------------------------------------"
+        
+        TEMP_DIFF="/tmp/${DEVICE_NAME}_diff_temp.json"
+        
+        echo "  Running generate_diff.py..."
+        
+        if python3 network/scripts/generate_diff.py \
+          "$DEVICE_TYPE" \
+          "$DEVICE_NAME" \
+          "$CI_PROJECT_DIR/$file" \
+          > "$TEMP_DIFF"; then
+          
+          echo "  Script completed successfully"
+          
+          if [ ! -f "$TEMP_DIFF" ]; then
+            echo "  ERROR: Script completed but no output file created"
+            DIFF_FAILED=1
+            continue
+          fi
+          
+          if [ ! -s "$TEMP_DIFF" ]; then
+            echo "  ERROR: Output file is empty"
+            DIFF_FAILED=1
+            continue
+          fi
+          
+          FILE_SIZE=$(wc -c < "$TEMP_DIFF")
+          echo "  Output file size: $FILE_SIZE bytes"
+          
+          echo "  Validating JSON syntax..."
+          if ! python3 -m json.tool "$TEMP_DIFF" > /dev/null 2>&1; then
+            echo "  ERROR: Invalid JSON syntax"
+            echo "  First 20 lines:"
+            head -20 "$TEMP_DIFF" || cat "$TEMP_DIFF"
+            rm -f "$TEMP_DIFF"
+            DIFF_FAILED=1
+            continue
+          fi
+          
+          if grep -q '"error"' "$TEMP_DIFF"; then
+            echo "  ERROR: Script returned an error in JSON"
+            echo "  Error content:"
+            python3 -c "import json; d=json.load(open('$TEMP_DIFF')); print('   ', d.get('error', 'Unknown error'))"
+            rm -f "$TEMP_DIFF"
+            DIFF_FAILED=1
+            continue
+          fi
+          
+          mv "$TEMP_DIFF" "$DIFF_FILE"
+          echo "  SUCCESS: Diff saved to $DIFF_FILE"
+          
+          echo ""
+          echo "  Diff preview:"
+          python3 -c 'import json; f=open("'"$DIFF_FILE"'"); data=json.load(f); blocks=data.get("diff_blocks",[]); print(f"    Total blocks: {len(blocks)}"); [print(f"    Block {i}: {block.get(\"description\",\"No description\")[:60]}\n      Commands: {len(block.get(\"lines\",[]))}") for i,block in enumerate(blocks[:3],1)]; print(f"    ... and {len(blocks)-3} more blocks") if len(blocks)>3 else None' || echo "    Could not parse diff (non-critical)"
+          
+        else
+          EXIT_CODE=$?
+          echo "  ERROR: generate_diff.py failed with exit code $EXIT_CODE"
+          echo "  Check error messages above for details"
+          
+          if [ -f "$TEMP_DIFF" ]; then
+            FILE_SIZE=$(wc -c < "$TEMP_DIFF" 2>/dev/null || echo 0)
+            if [ "$FILE_SIZE" -gt 0 ]; then
+              echo "  Partial output file created ($FILE_SIZE bytes):"
+              head -20 "$TEMP_DIFF"
+            fi
+            rm -f "$TEMP_DIFF"
+          fi
+          
+          DIFF_FAILED=1
+          continue
+        fi
+      done
+      
+      echo ""
+      echo "================================================"
+      echo "FINAL VERIFICATION"
+      echo "================================================"
+      
+      echo "Contents of artifacts/diffs/:"
+      ls -lh artifacts/diffs/ || echo "  ERROR: Directory not found!"
+      
+      EXPECTED_COUNT=$(echo "$CHANGED" | wc -l)
+      ACTUAL_COUNT=$(find artifacts/diffs/ -type f -name "*.json" 2>/dev/null | wc -l)
+      
+      echo ""
+      echo "Expected diff files: $EXPECTED_COUNT"
+      echo "Created diff files: $ACTUAL_COUNT"
+      
+      if [ $DIFF_FAILED -eq 1 ]; then
+        echo ""
+        echo "ERROR: One or more diff generations failed"
+        exit 1
+      fi
+      
+      if [ "$ACTUAL_COUNT" -lt "$EXPECTED_COUNT" ]; then
+        echo ""
+        echo "ERROR: Not all diff files were created"
+        echo "Expected $EXPECTED_COUNT but only found $ACTUAL_COUNT"
+        exit 1
+      fi
+      
+      echo ""
+      echo "================================================"
+      echo "SUCCESS: All deployment diffs generated"
+      echo "================================================"
+      echo ""
+      echo "All $ACTUAL_COUNT diff file(s) created successfully"
+  artifacts:
+    when: always
+    paths:
+      - artifacts/diffs/
+    expire_in: 7 days
+  allow_failure: false
+
+# ===========================================================================
+# DEPLOYMENT - Using Hierarchical Diffs (TRUE DECLARATIVE)
+# ===========================================================================
+
+deploy_cisco_configs:
+  extends: .cisco_base
+  stage: deploy
+  rules:
+    - changes:
+        - network/configs/**/*
+      when: on_success
+    - if: '$CI_COMMIT_AUTHOR_NAME == "NL Oxidized Bot" || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
+      when: never
+    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+      when: never
+  needs:
+    - validate_cisco_configs
+    - pre_deploy_drift_gate
+    - generate_deployment_diffs
+  before_script:
+    - git config --global --add safe.directory $CI_PROJECT_DIR
+    - mkdir -p $CI_PROJECT_DIR/backups
+    - echo "Creating deployment lock at $DEPLOYMENT_LOCK_FILE"
+    - echo $$ > $DEPLOYMENT_LOCK_FILE
+    - trap "rm -f $DEPLOYMENT_LOCK_FILE; echo 'Deployment lock removed'" EXIT
+  script:
+    - |
+      set -eu
+      
+      echo "================================================"
+      echo "DEPLOYING CISCO CONFIGURATIONS"
+      echo "GitLab to Device deployment (TRUE DECLARATIVE)"
+      echo "================================================"
+      
+      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E 'network/configs/[^/]+/nllei[0-9]' || true)
+      
+      if [ -z "$CHANGED" ]; then
+        echo "No Cisco configuration changes detected"
+        exit 0
+      fi
+      
+      echo "Changed configuration files:"
+      echo "$CHANGED" | sed 's/^/  /'
+      echo "================================================"
+      echo ""
+      
+      DEPLOYMENT_FAILED=0
+      
+      for file in $CHANGED; do
+        DEVICE_TYPE=$(echo "$file" | cut -d'/' -f3)
+        DEVICE_NAME=$(basename "$file")
+        DIFF_FILE="artifacts/diffs/${DEVICE_NAME}_diff.json"
+        
+        if [ ! -f "$DIFF_FILE" ]; then
+          echo "ERROR: Diff file not found: $DIFF_FILE"
+          DEPLOYMENT_FAILED=1
+          continue
+        fi
+        
+        echo "  Diff file: $DIFF_FILE"
+        echo "  File size: $(wc -c < "$DIFF_FILE") bytes"
+        echo "  First 5 lines:"
+        head -5 "$DIFF_FILE" || echo "  (file is empty or unreadable)"
+        echo ""
+        
+        echo ""
+        echo "================================================"
+        echo "DEPLOYING: $DEVICE_NAME"
+        echo "================================================"
+        
+        if python3 network/scripts/direct_deploy.py \
+          "$DEVICE_TYPE" \
+          "$DEVICE_NAME" \
+          "$DIFF_FILE" 2>&1 | tee "artifacts/deploy_${DEVICE_NAME}.log"; then
+          
+          echo "  SUCCESS: $DEVICE_NAME deployed successfully"
+        else
+          echo "  ERROR: $DEVICE_NAME deployment failed"
+          echo "  Check log: artifacts/deploy_${DEVICE_NAME}.log"
+          DEPLOYMENT_FAILED=1
+        fi
+      done
+      
+      if [ $DEPLOYMENT_FAILED -eq 1 ]; then
+        echo ""
+        echo "ERROR: One or more deployments failed"
+        exit 1
+      fi
+      
+      echo ""
+      echo "================================================"
+      echo "SUCCESS: All configurations deployed"
+      echo "================================================"
+  artifacts:
+    when: always
+    paths:
+      - backups/
+      - artifacts/
+    expire_in: 7 days
+  environment: production
+  allow_failure: false
+
+# ===========================================================================
+# POST-DEPLOYMENT VERIFICATION
+# ===========================================================================
+
+verify_cisco_deployments:
+  extends: .cisco_base
+  stage: verify
+  rules:
+    - changes:
+        - network/configs/**/*
+      when: on_success
+    - if: '$CI_COMMIT_AUTHOR_NAME == "NL Oxidized Bot" || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
+      when: never
+    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+      when: never
+  needs:
+    - deploy_cisco_configs
+  before_script:
+    - git config --global --add safe.directory $CI_PROJECT_DIR
+    - mkdir -p artifacts
+  script:
+    - |
+      set -eu
+      
+      echo "================================================"
+      echo "POST-DEPLOYMENT VERIFICATION"
+      echo "================================================"
+      
+      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E 'network/configs/[^/]+/nllei[0-9]' || true)
+      
+      if [ -z "$CHANGED" ]; then
+        echo "No changes to verify"
+        exit 0
+      fi
+      
+      VERIFICATION_FAILED=0
+      
+      for file in $CHANGED; do
+        DEVICE_TYPE=$(echo "$file" | cut -d'/' -f3)
+        DEVICE_NAME=$(basename "$file")
+        
+        echo ""
+        echo "Verifying: $DEVICE_NAME"
+        
+        if python3 network/scripts/post_validate.py \
+          "$DEVICE_TYPE" \
+          "$DEVICE_NAME" 2>&1 | tee "artifacts/postval_${DEVICE_NAME}.log"; then
+          
+          echo "  PASS: Post-validation successful"
+        else
+          echo "  WARNING: Post-validation had issues (non-critical)"
+        fi
+        
+        if ping -c 2 "$DEVICE_NAME.example.net" &>/dev/null; then
+          echo "  PASS: Device is reachable"
+        else
+          echo "  WARNING: Device not responding to ping"
+          VERIFICATION_FAILED=1
+        fi
+      done
+      
+      if [ $VERIFICATION_FAILED -eq 1 ]; then
+        echo ""
+        echo "WARNING: Some verifications failed"
+        echo "Devices may still be operational - check logs"
+      else
+        echo ""
+        echo "SUCCESS: All verifications passed"
+      fi
+  artifacts:
+    when: always
+    paths:
+      - artifacts/
+    expire_in: 7 days
+  allow_failure: true
