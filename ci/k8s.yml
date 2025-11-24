@@ -87,8 +87,11 @@ apply_k8s_infrastructure:
     - export TF_HTTP_UNLOCK_METHOD="DELETE"
     - export TF_HTTP_RETRY_WAIT_MIN="5"
     - tofu init -input=false -reconfigure
-    - tofu apply -input=false "../$PLAN_CACHE"
-    - echo "Infrastructure applied"
+    - echo "Running fresh plan in apply stage (cached plan has auth issues)"
+    - tofu plan -out=apply.tfplan -input=false
+    - echo "Applying infrastructure changes"
+    - tofu apply -input=false apply.tfplan
+    - echo "Infrastructure applied successfully"
     - tofu output || true
   environment:
     name: production
