@@ -4,11 +4,10 @@
 # ===========================================================================
 
 .docker_base:
-  image: alpine:latest
+  image: $DOCKER_IMAGE
   tags:
     - docker
   before_script:
-    - apk add --no-cache openssh-client rsync git
     - mkdir -p ~/.ssh
     - base64 -d $CI_PROJECT_DIR/.ssh/one_key.b64 > ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
