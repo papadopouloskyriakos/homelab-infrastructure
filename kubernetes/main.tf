@@ -8,7 +8,7 @@ locals {
     "environment" = "production"
     "repository"  = "REDACTED_25022d4e"
   }
-  
+
   # Timezone for all workloads
   timezone = "Europe/Amsterdam"
 }
