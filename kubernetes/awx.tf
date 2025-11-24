@@ -30,7 +30,7 @@ resource "REDACTED_5a69a0fb" "nfs_sc" {
   
   storage_provisioner = "kubernetes.io/no-provisioner"
   reclaim_policy      = "Retain"
-  volume_binding_mode = "WaitForFirstConsumer"
+  volume_binding_mode = "Immediate"
 }
 
 # PostgreSQL PV - specific NFS path

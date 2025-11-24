@@ -1,6 +1,5 @@
 terraform {
   required_version = ">= 1.6.0"
-
   required_providers {
     kubernetes = {
       source  = "REDACTED_1158da07"
@@ -11,13 +10,10 @@ terraform {
       version = "~> 2.17"
     }
   }
-
-  backend "http" {
-    # Backend config provided via environment variables in CI:
-    # TF_HTTP_ADDRESS, TF_HTTP_LOCK_ADDRESS, TF_HTTP_UNLOCK_ADDRESS
-    # TF_HTTP_USERNAME, TF_HTTP_PASSWORD
-    # TF_HTTP_LOCK_METHOD, TF_HTTP_UNLOCK_METHOD
-  }
+  
+  # Backend configured via environment in CI
+  # For local use, create backend.tf with: backend "local" {}
+  backend "http" {}
 }
 
 provider "kubernetes" {
