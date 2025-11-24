@@ -196,19 +196,37 @@ class DiffGenerator:
                 # Entire block should be removed
                 parents = self._key_to_parents(context_key)
                 
-                # Generate "no" commands for all lines
-                no_commands = []
-                for line in current_lines:
-                    # Don't double-negate
-                    if not line.startswith('no '):
-                        no_commands.append(f"no {line}")
-                
-                if no_commands:
+                # CRITICAL FIX: For parent contexts being entirely removed,
+                # issue a single "no" command at GLOBAL level to remove parent + children
+                # 
+                # Cisco behavior:
+                #   no object network LOL  → Removes object and all children
+                #   no interface GigE0/1   → Removes interface and all config
+                #
+                # This avoids entering the context and leaving an empty parent
+                if parents:
+                    # Parent context being removed entirely
+                    # Generate single global command to remove entire block
+                    parent_cmd = parents[0]
                     diff_blocks.append({
-                        'parents': parents,
-                        'lines': no_commands,
+                        'parents': [],  # Execute at GLOBAL level (not inside context)
+                        'lines': [f"no {parent_cmd}"],
                         'description': f"Remove: {context_key}"
                     })
+                else:
+                    # Global commands being removed (no parent context)
+                    no_commands = []
+                    for line in current_lines:
+                        # Don't double-negate
+                        if not line.startswith('no '):
+                            no_commands.append(f"no {line}")
+                    
+                    if no_commands:
+                        diff_blocks.append({
+                            'parents': [],
+                            'lines': no_commands,
+                            'description': f"Remove: {context_key}"
+                        })
         
         # Find blocks to add or modify
         for context_key, desired_lines in desired_map.items():
