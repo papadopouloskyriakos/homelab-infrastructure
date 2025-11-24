@@ -8,7 +8,7 @@ variables:
 
 validate_k8s_manifests:
   stage: validate
-  image: $K8S_RUNNER_IMAGE
+  image: $K8S_IMAGE
   tags:
     - docker
   rules:
@@ -28,7 +28,7 @@ validate_k8s_manifests:
 
 plan_k8s_infrastructure:
   stage: pre-deploy
-  image: $K8S_RUNNER_IMAGE
+  image: $K8S_IMAGE
   tags:
     - docker
   rules:
@@ -61,7 +61,7 @@ plan_k8s_infrastructure:
 
 apply_k8s_infrastructure:
   stage: deploy
-  image: $K8S_RUNNER_IMAGE
+  image: $K8S_IMAGE
   tags:
     - docker
   rules:
@@ -89,7 +89,7 @@ apply_k8s_infrastructure:
 
 verify_k8s_infrastructure:
   stage: verify
-  image: $K8S_RUNNER_IMAGE
+  image: $K8S_IMAGE
   tags:
     - docker
   rules:
