@@ -38,6 +38,7 @@ output "REDACTED_8dc96658" {
 
 # Summary
 output "deployment_summary" {
+  sensitive = true
   description = "Summary of deployed workloads"
   value       = <<-EOF
     

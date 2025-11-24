@@ -1,0 +1,24 @@
+# Local backend override
+backend.tf
+
+# State files (managed by GitLab)
+*.tfstate
+*.tfstate.*
+
+# Terraform/OpenTofu directories
+.terraform/
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Sensitive files
+*.tfvars
+*.tfvars.json
+secrets/*.crt
+secrets/*.key
+secrets/*.pem
+secrets/token*
+
+# Keep lock file for reproducible builds
+!.terraform.lock.hcl
