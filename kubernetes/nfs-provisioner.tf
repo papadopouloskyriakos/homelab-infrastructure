@@ -1,13 +1,3 @@
-***REMOVED***
-# NFS Subdir External Provisioner
-***REMOVED***
-# Provides dynamic PV provisioning using NFS storage
-***REMOVED***Class: nfs-client (default)
-#
-# Import command:
-# tofu import 'helm_release.nfs_provisioner' 'nfs-provisioner/nfs-provisioner'
-***REMOVED***
-
 resource "helm_release" "nfs_provisioner" {
   name             = "nfs-provisioner"
   repository       = "https://kubernetes-sigs.github.io/REDACTED_5fef70be"
@@ -23,10 +13,7 @@ resource "helm_release" "nfs_provisioner" {
         path   = var.nfs_path
       }
       storageClass = {
-        name            = "nfs-client"
-        defaultClass    = true
-        reclaimPolicy   = "Retain"
-        archiveOnDelete = true
+        create          = false  # Don't manage StorageClass via helm
       }
       replicaCount = 1
     })
