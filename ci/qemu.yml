@@ -71,9 +71,10 @@ validate_qemu_configs:
           continue
         fi
         
-        # Validate VMID format
-        if ! echo "$VMID" | grep -qE '^[0-9]{3,5}$'; then
+        # Validate VMID format (Proxmox allows 100-999999999)
+        if ! echo "$VMID" | grep -qE '^[0-9]{3,9}$'; then
           echo "  ERROR: Invalid VMID format: $VMID"
+          echo "         VMID must be 3-9 digits"
           VALIDATION_FAILED=1
           continue
         fi
