@@ -5,8 +5,6 @@ terraform {
       version = "~> 2.0"
     }
   }
-  
-  backend "http" {}
 }
 
 provider "kubernetes" {
@@ -304,6 +302,3 @@ resource "kubernetes_ingress_v1" "pihole_ingress" {
     }
   }
 }
-
-
-
