@@ -1,53 +1,74 @@
-output "namespaces" {
-  description = "Created namespaces"
-  value = {
-    production = kubernetes_namespace.production.metadata[0].name
-    pihole     = kubernetes_namespace.pihole.metadata[0].name
-  }
+***REMOVED***
+# Outputs
+***REMOVED***
+
+***REMOVED***
+output "nfs_storage_class" {
+  description = "Default storage class name"
+  value       = "nfs-client"
 }
 
-output "pihole_web_service" {
-  description = "Pi-hole web interface service"
-  value       = "${kubernetes_service.pihole_web.metadata[0].name}.${kubernetes_namespace.pihole.metadata[0].name}.svc.cluster.local"
+# Monitoring
+output "grafana_url" {
+  description = "Grafana dashboard URL (NodePort)"
+  value       = "http://<node-ip>:30000"
 }
 
-output "pihole_dns_tcp" {
-  description = "Pi-hole DNS TCP service"
-  value       = kubernetes_service.pihole_dns_tcp.metadata[0].name
+output "prometheus_url" {
+  description = "Prometheus UI URL (NodePort)"
+  value       = "http://<node-ip>:30090"
 }
 
-output "pihole_dns_udp" {
-  description = "Pi-hole DNS UDP service"
-  value       = kubernetes_service.pihole_dns_udp.metadata[0].name
+# Pihole
+output "pihole_web_url" {
+  description = "Pi-hole admin URL (NodePort)"
+  value       = "http://<node-ip>:30666/admin"
 }
 
-output "pihole_admin_url" {
-  description = "Pi-hole admin interface URL"
+output "pihole_ingress_url" {
+  description = "Pi-hole admin URL (Ingress)"
   value       = "http://pihole.example.net/admin"
 }
 
-output "access_instructions" {
-  description = "How to access Pi-hole"
-  value = <<-EOF
+# Dashboard
+output "REDACTED_8dc96658" {
+  description = "Command to get dashboard admin token"
+  value       = "kubectl -n REDACTED_d97cef76 get secret REDACTED_c48f3618 -o jsonpath='{.data.token}' | base64 -d"
+}
+
+# Summary
+output "deployment_summary" {
+  description = "Summary of deployed workloads"
+  value       = <<-EOF
     
-    Pi-hole Deployment Complete!
+    ============================================
+    Kubernetes Infrastructure Deployment Summary
+    ============================================
     
-    Access Methods:
+    Storage:
+    - NFS Provisioner: nfs-client (default StorageClass)
     
-    1. Port Forward (Quick Test):
-       kubectl port-forward -n pihole svc/pihole-web 8080:80
-       Then visit: http://localhost:8080/admin
+    Networking:
+    - Ingress NGINX: Deployed
+    - Pihole DNS: NodePort 30666
     
-    2. Ingress (Production):
-       Visit: http://pihole.example.net/admin
-       (Configure DNS to point to your ingress IP)
+    Monitoring:
+    - Prometheus: NodePort 30090
+    - Grafana: NodePort 30000
+    - Alertmanager: Deployed
     
-    3. Get LoadBalancer IP:
-       kubectl get svc -n pihole pihole-dns-tcp
-       kubectl get svc -n pihole pihole-dns-udp
+    CI/CD:
+    - GitLab Agent (k8s-agent): ${REDACTED_305df36d != "" ? "Deployed" : "Skipped (no token)"}
+    - GitLab Runner: ${var.gitlab_runner_token != "" ? "Deployed" : "Skipped (no token)"}
     
-    Login: admin
-    Password: [Set via PIHOLE_PASSWORD variable]
+    Applications:
+    - Kubernetes Dashboard: Deployed
+    - AWX: PVs created (apply CR separately)
+    - Pihole: NodePort 30666, Ingress pihole.example.net
+    
+    Next Steps for AWX:
+    1. Install operator: kubectl apply -k awx-install-clean/
+    2. Apply AWX CR:     kubectl apply -f awx-install-clean/my-awx.yaml
     
   EOF
 }

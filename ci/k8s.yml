@@ -1,12 +1,19 @@
-# K8s Pipeline - Hybrid Approach
-# - OpenTofu uses K8S_HOST, K8S_TOKEN, K8S_CA_CERT variables
-# - kubectl uses GitLab Agent (verify stage)
+***REMOVED***
+# K8s Pipeline - OpenTofu Infrastructure Management
+***REMOVED***
+# - OpenTofu manages all K8s workloads via Kubernetes + Helm providers
+# - GitLab Agent used for kubectl verification
+# - State stored in GitLab Terraform backend
+***REMOVED***
 
 variables:
   K8S_DIR: "k8s"
   TF_STATE_NAME: "k8s-production-state"
   KUBE_CONTEXT: "infrastructure/nl/production:k8s-agent"
 
+# -----------------------------------------------------------------------------
+# Validate Stage
+# -----------------------------------------------------------------------------
 validate_k8s_manifests:
   stage: validate
   image: $K8S_IMAGE
@@ -21,12 +28,23 @@ validate_k8s_manifests:
   script:
     - cd "$K8S_DIR"
     - tofu fmt -check -recursive . 2>/dev/null || echo "Formatting issues (non-critical)"
-    - export TF_CLI_ARGS_init="-backend-config=address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME} -backend-config=lock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=unlock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=username=gitlab-ci-token -backend-config=password=${CI_JOB_TOKEN} -backend-config=lock_method=POST -backend-config=unlock_method=DELETE -backend-config=retry_wait_min=5"
+    - |
+      export TF_CLI_ARGS_init="-backend-config=address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME} \
+        -backend-config=lock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock \
+        -backend-config=unlock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock \
+        -backend-config=username=gitlab-ci-token \
+        -backend-config=password=${CI_JOB_TOKEN} \
+        -backend-config=lock_method=POST \
+        -backend-config=unlock_method=DELETE \
+        -backend-config=retry_wait_min=5"
     - tofu init -input=false
     - tofu validate
-    - echo "Validation passed"
+    - echo "✓ Validation passed"
   allow_failure: false
 
+# -----------------------------------------------------------------------------
+# Plan Stage
+# -----------------------------------------------------------------------------
 plan_k8s_infrastructure:
   stage: pre-deploy
   image: $K8S_IMAGE
@@ -44,14 +62,59 @@ plan_k8s_infrastructure:
   script:
     - echo "Planning Kubernetes Infrastructure"
     - cd "$K8S_DIR"
+    
+    # Kubernetes connection
     - export TF_VAR_k8s_host="$K8S_HOST"
     - export TF_VAR_k8s_token="$K8S_TOKEN"
     - export TF_VAR_k8s_ca_cert="$K8S_CA_CERT"
+    
+    # NFS Storage
+    - export TF_VAR_nfs_server="${NFS_SERVER:-10.0.X.X}"
+    - export TF_VAR_nfs_path="${NFS_PATH:-/volume1/k8s}"
+    
+    # Pihole
     - export TF_VAR_pihole_password="${PIHOLE_PASSWORD:-changeme123}"
-    - export TF_CLI_ARGS_init="-backend-config=address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME} -backend-config=lock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=unlock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=username=gitlab-ci-token -backend-config=password=${CI_JOB_TOKEN} -backend-config=lock_method=POST -backend-config=unlock_method=DELETE -backend-config=retry_wait_min=5"
+    
+    # Monitoring
+    - export TF_VAR_grafana_admin_password="${GRAFANA_ADMIN_PASSWORD:-changeme123}"
+    - export TF_VAR_prometheus_retention="${PROMETHEUS_RETENTION:-1095d}"
+    - export TF_VAR_REDACTED_6a2724e6="${PROMETHEUS_STORAGE_SIZE:-200Gi}"
+    - export TF_VAR_grafana_storage_size="${GRAFANA_STORAGE_SIZE:-20Gi}"
+    
+    # GitLab Runner & Agent (optional - empty string skips deployment)
+    - export TF_VAR_gitlab_url="${GITLAB_URL:-https://gitlab.example.net}"
+    - export TF_VAR_gitlab_runner_token="${GITLAB_RUNNER_TOKEN:-}"
+    - export TF_VAR_REDACTED_b6136a28="${GITLAB_AGENT_K8S_TOKEN:-}"
+    
+    # AWX
+    - export TF_VAR_REDACTED_3e5e811f="${AWX_POSTGRES_STORAGE_SIZE:-50Gi}"
+    - export TF_VAR_REDACTED_12032801="${AWX_PROJECTS_STORAGE_SIZE:-50Gi}"
+    
+    # Backend configuration
+    - |
+      export TF_CLI_ARGS_init="-backend-config=address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME} \
+        -backend-config=lock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock \
+        -backend-config=unlock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock \
+        -backend-config=username=gitlab-ci-token \
+        -backend-config=password=${CI_JOB_TOKEN} \
+        -backend-config=lock_method=POST \
+        -backend-config=unlock_method=DELETE \
+        -backend-config=retry_wait_min=5"
+    
     - tofu init -input=false
-    - tofu plan -detailed-exitcode -out="../$PLAN_CACHE" -input=false || true
-    - echo "Plan stage complete"
+    - tofu plan -detailed-exitcode -out=plan.cache -input=false || PLAN_EXIT=$?
+    
+    # Exit code 2 = changes detected (not an error)
+    - |
+      if [ "${PLAN_EXIT:-0}" = "2" ]; then
+        echo "✓ Plan complete - changes detected"
+        cp plan.cache ../artifacts/plan-${CI_PIPELINE_ID}.cache
+      elif [ "${PLAN_EXIT:-0}" = "0" ]; then
+        echo "✓ Plan complete - no changes"
+      else
+        echo "✗ Plan failed"
+        exit 1
+      fi
   artifacts:
     when: always
     paths:
@@ -59,6 +122,9 @@ plan_k8s_infrastructure:
     expire_in: 1 day
   allow_failure: false
 
+# -----------------------------------------------------------------------------
+# Apply Stage (Manual)
+# -----------------------------------------------------------------------------
 apply_k8s_infrastructure:
   stage: deploy
   image: $K8S_IMAGE
@@ -74,10 +140,25 @@ apply_k8s_infrastructure:
     - git config --global --add safe.directory $CI_PROJECT_DIR
   script:
     - cd "$K8S_DIR"
+    
+    # All variables (same as plan stage)
     - export TF_VAR_k8s_host="$K8S_HOST"
     - export TF_VAR_k8s_token="$K8S_TOKEN"
     - export TF_VAR_k8s_ca_cert="$K8S_CA_CERT"
+    - export TF_VAR_nfs_server="${NFS_SERVER:-10.0.X.X}"
+    - export TF_VAR_nfs_path="${NFS_PATH:-/volume1/k8s}"
     - export TF_VAR_pihole_password="${PIHOLE_PASSWORD:-changeme123}"
+    - export TF_VAR_grafana_admin_password="${GRAFANA_ADMIN_PASSWORD:-changeme123}"
+    - export TF_VAR_prometheus_retention="${PROMETHEUS_RETENTION:-1095d}"
+    - export TF_VAR_REDACTED_6a2724e6="${PROMETHEUS_STORAGE_SIZE:-200Gi}"
+    - export TF_VAR_grafana_storage_size="${GRAFANA_STORAGE_SIZE:-20Gi}"
+    - export TF_VAR_gitlab_url="${GITLAB_URL:-https://gitlab.example.net}"
+    - export TF_VAR_gitlab_runner_token="${GITLAB_RUNNER_TOKEN:-}"
+    - export TF_VAR_REDACTED_b6136a28="${GITLAB_AGENT_K8S_TOKEN:-}"
+    - export TF_VAR_REDACTED_3e5e811f="${AWX_POSTGRES_STORAGE_SIZE:-50Gi}"
+    - export TF_VAR_REDACTED_12032801="${AWX_PROJECTS_STORAGE_SIZE:-50Gi}"
+    
+    # Backend configuration
     - export TF_HTTP_ADDRESS="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}"
     - export TF_HTTP_LOCK_ADDRESS="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock"
     - export TF_HTTP_UNLOCK_ADDRESS="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock"
@@ -86,17 +167,21 @@ apply_k8s_infrastructure:
     - export TF_HTTP_LOCK_METHOD="POST"
     - export TF_HTTP_UNLOCK_METHOD="DELETE"
     - export TF_HTTP_RETRY_WAIT_MIN="5"
+    
     - tofu init -input=false -reconfigure
-    - echo "Running fresh plan in apply stage"
+    - echo "Running fresh plan..."
     - tofu plan -out=apply.tfplan -input=false
-    - echo "Applying infrastructure changes"
+    - echo "Applying infrastructure changes..."
     - tofu apply -input=false apply.tfplan
-    - echo "Infrastructure applied successfully"
+    - echo "✓ Infrastructure applied successfully"
     - tofu output || true
   environment:
     name: production
   allow_failure: false
 
+# -----------------------------------------------------------------------------
+# Verify Stage
+# -----------------------------------------------------------------------------
 verify_k8s_infrastructure:
   stage: verify
   image: $K8S_IMAGE
@@ -109,15 +194,38 @@ verify_k8s_infrastructure:
   needs:
     - apply_k8s_infrastructure
   before_script:
-    # Use GitLab Agent for kubectl!
+    # Use GitLab Agent for kubectl
     - kubectl config use-context "$KUBE_CONTEXT"
   script:
     - echo "Verifying Kubernetes deployment via GitLab Agent"
+    
+    # Cluster health
+    - echo "=== Cluster Info ==="
+    - kubectl cluster-info || true
+    - kubectl get nodes
+    
+    # Namespaces
+    - echo "=== Namespaces ==="
     - kubectl get namespaces
+    
+    # Workload status
+    - echo "=== Workload Status ==="
+    - kubectl get pods -A | grep -E "(pihole|monitoring|ingress|nfs|dashboard|gitlab)" || true
+    
+    # Pihole verification
+    - echo "=== Pihole ==="
     - kubectl get all -n pihole
     - kubectl wait --for=condition=ready pod -l app=pihole -n pihole --timeout=300s || true
-    - kubectl get svc -n pihole
-    - echo "Verification complete"
+    
+    # Monitoring verification
+    - echo "=== Monitoring ==="
+    - kubectl get pods -n monitoring
+    
+    # Services
+    - echo "=== NodePort Services ==="
+    - kubectl get svc -A | grep NodePort || true
+    
+    - echo "✓ Verification complete"
   environment:
     name: production
     kubernetes:
