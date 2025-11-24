@@ -4,11 +4,10 @@
 # ===========================================================================
 
 .lxc_base:
-  image: alpine:latest
+  image: $PVE_IMAGE
   tags:
     - lxc
   before_script:
-    - apk add --no-cache openssh-client git bash
     - mkdir -p ~/.ssh
     - base64 -d $CI_PROJECT_DIR/.ssh/one_key.b64 > ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
