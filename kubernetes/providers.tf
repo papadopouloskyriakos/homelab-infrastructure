@@ -10,7 +10,7 @@ terraform {
       version = "~> 2.17"
     }
   }
-  
+
   # Backend configured via environment in CI
   # For local use, create backend.tf with: backend "local" {}
   backend "http" {}
