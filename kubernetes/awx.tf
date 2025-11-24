@@ -27,7 +27,7 @@ resource "REDACTED_5a69a0fb" "nfs_sc" {
   metadata {
     name = "nfs-sc"
   }
-  
+
   storage_provisioner = "kubernetes.io/no-provisioner"
   reclaim_policy      = "Retain"
   volume_binding_mode = "Immediate"

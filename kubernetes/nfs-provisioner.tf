@@ -13,7 +13,7 @@ resource "helm_release" "nfs_provisioner" {
         path   = var.nfs_path
       }
       storageClass = {
-        create          = false  # Don't manage StorageClass via helm
+        create = false # Don't manage StorageClass via helm
       }
       replicaCount = 1
     })
