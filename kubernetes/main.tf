@@ -11,31 +11,6 @@ terraform {
   }
 }
 
-# Variables from GitLab CI/CD
-variable "k8s_host" {
-  description = "Kubernetes API server"
-  type        = string
-}
-
-variable "k8s_token" {
-  description = "Service account token"
-  type        = string
-  sensitive   = true
-}
-
-variable "k8s_ca_cert" {
-  description = "Cluster CA certificate (base64)"
-  type        = string
-  sensitive   = true
-}
-
-variable "pihole_password" {
-  description = "Pi-hole admin password"
-  type        = string
-  sensitive   = true
-  default     = "changeme123"  # Change this!
-}
-
 provider "kubernetes" {
   host                   = var.k8s_host
   token                  = var.k8s_token
@@ -109,7 +84,7 @@ resource "kubernetes_deployment" "pihole" {
   }
 
   spec {
-    replicas = 1  # Pi-hole should run single instance
+    replicas = 1
 
     selector {
       match_labels = {
@@ -287,7 +262,7 @@ resource "kubernetes_service" "pihole_dns_tcp" {
       protocol    = "TCP"
     }
 
-    type = "LoadBalancer"  # Change to NodePort if LoadBalancer not available
+    type = "LoadBalancer"
   }
 }
 
@@ -310,23 +285,23 @@ resource "kubernetes_service" "pihole_dns_udp" {
       protocol    = "UDP"
     }
 
-    type = "LoadBalancer"  # Change to NodePort if LoadBalancer not available
+    type = "LoadBalancer"
   }
 }
 
-# Ingress for Pi-hole web interface (optional)
+# Ingress for Pi-hole web interface
 resource "kubernetes_ingress_v1" "pihole_ingress" {
   metadata {
     name      = "pihole-ingress"
     namespace = kubernetes_namespace.pihole.metadata[0].name
     annotations = {
-      "kubernetes.io/ingress.class" = "nginx"  # Change based on your ingress controller
+      "kubernetes.io/ingress.class" = "nginx"
     }
   }
 
   spec {
     rule {
-      host = "pihole.example.net"  # Change to your domain
+      host = "pihole.example.net"
 
       http {
         path {
@@ -347,22 +322,4 @@ resource "kubernetes_ingress_v1" "pihole_ingress" {
   }
 }
 
-# Outputs
-output "namespaces" {
-  description = "Created namespaces"
-  value = {
-    production = kubernetes_namespace.production.metadata[0].name
-    pihole     = kubernetes_namespace.pihole.metadata[0].name
-  }
-}
 
-output "pihole_info" {
-  description = "Pi-hole connection information"
-  value = {
-    web_service_name = kubernetes_service.pihole_web.metadata[0].name
-    dns_tcp_service  = kubernetes_service.pihole_dns_tcp.metadata[0].name
-    dns_udp_service  = kubernetes_service.pihole_dns_udp.metadata[0].name
-    namespace        = kubernetes_namespace.pihole.metadata[0].name
-    admin_url        = "http://pihole.example.net/admin"
-  }
-}
