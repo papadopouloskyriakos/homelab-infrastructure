@@ -52,9 +52,7 @@ validate_k8s_manifests:
       
       # Format check
       echo "  Running tofu fmt check..."
-      if ! tofu fmt -check -recursive . 2>/dev/null; then
-        echo "  WARNING: Formatting issues detected (non-critical)"
-      fi
+      tofu fmt -check -recursive . 2>/dev/null || echo "  WARNING: Formatting issues detected (non-critical)"
       
       # Initialize for validation
       echo "  Running tofu validate..."
@@ -63,14 +61,10 @@ validate_k8s_manifests:
       export TF_CLI_ARGS_init="-backend-config=address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME} -backend-config=lock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=unlock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=username=gitlab-ci-token -backend-config=password=${CI_JOB_TOKEN} -backend-config=lock_method=POST -backend-config=unlock_method=DELETE -backend-config=retry_wait_min=5"
       
       tofu init -input=false
+      tofu validate
       
-      if tofu validate; then
-        echo "  SUCCESS: Validation passed"
-        exit 0
-      else
-        echo "  ERROR: Validation failed"
-        exit 1
-      fi
+      echo "  SUCCESS: Validation passed"
+      exit 0
   allow_failure: false
 
 plan_k8s_infrastructure:
@@ -138,34 +132,22 @@ plan_k8s_infrastructure:
       
       # Initialize
       echo "  Initializing OpenTofu..."
-      if ! tofu init -input=false; then
-        echo "  ERROR: Initialization failed"
-        exit 1
-      fi
-      
+      tofu init -input=false
       echo "  Initialization successful"
       
       # Create plan
       echo "  Creating plan..."
-      if tofu plan -out="../$PLAN_CACHE" -input=false; then
-        echo "  SUCCESS: Plan created"
-        echo "  Plan saved to: $PLAN_CACHE"
-        
-        # Show plan summary (ignore failures)
-        echo "  Plan summary:"
-        tofu show "../$PLAN_CACHE" | head -100 || true
-        
-        echo ""
-        echo "================================================"
-        echo "Plan stage completed successfully"
-        echo "================================================"
-        
-        # CRITICAL: Explicit success exit
-        exit 0
-      else
-        echo "  ERROR: Plan creation failed"
-        exit 1
-      fi
+      tofu plan -out="../$PLAN_CACHE" -input=false
+      
+      echo "  SUCCESS: Plan created"
+      echo "  Plan saved to: $PLAN_CACHE"
+      echo ""
+      echo "================================================"
+      echo "Plan stage completed successfully"
+      echo "================================================"
+      
+      # ALWAYS exit 0 if we got here
+      exit 0
   artifacts:
     when: always
     paths:
@@ -217,37 +199,24 @@ apply_k8s_infrastructure:
       
       # Initialize
       echo "Initializing OpenTofu..."
-      if ! tofu init -input=false; then
-        echo "ERROR: Initialization failed"
-        exit 1
-      fi
-      
+      tofu init -input=false
       echo "Initialization successful"
       echo ""
       
       # Apply
       echo "Applying infrastructure..."
       echo "================================================"
+      tofu apply -input=false "../$PLAN_CACHE"
       
-      if tofu apply -input=false "../$PLAN_CACHE"; then
-        echo ""
-        echo "================================================"
-        echo "SUCCESS: Infrastructure applied"
-        echo "================================================"
-        
-        # Show outputs
-        echo ""
-        echo "Outputs:"
-        tofu output || true
-        
-        exit 0
-      else
-        echo ""
-        echo "================================================"
-        echo "ERROR: Apply failed"
-        echo "================================================"
-        exit 1
-      fi
+      echo ""
+      echo "================================================"
+      echo "SUCCESS: Infrastructure applied"
+      echo "================================================"
+      echo ""
+      echo "Outputs:"
+      tofu output || echo "No outputs defined"
+      
+      exit 0
   environment:
     name: production
   allow_failure: false
@@ -303,11 +272,7 @@ verify_k8s_infrastructure:
       echo ""
       
       echo "Checking Pi-hole pod status..."
-      if kubectl wait --for=condition=ready pod -l app=pihole -n pihole --timeout=300s; then
-        echo "  SUCCESS: Pi-hole pod is ready"
-      else
-        echo "  WARNING: Pi-hole pod not ready yet"
-      fi
+      kubectl wait --for=condition=ready pod -l app=pihole -n pihole --timeout=300s || echo "  WARNING: Pi-hole pod not ready yet"
       echo ""
       
       echo "Checking services..."
