@@ -1,0 +1,360 @@
+# ===========================================================================
+# QEMU VM MANAGEMENT PIPELINE
+# Handles QEMU virtual machine configuration deployment on Proxmox hosts
+# ===========================================================================
+
+.qemu_base:
+  image: alpine:latest
+  tags:
+    - qemu
+  before_script:
+    - apk add --no-cache openssh-client git bash
+    - mkdir -p ~/.ssh
+    - base64 -d $CI_PROJECT_DIR/.ssh/one_key.b64 > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    - |
+      if ! ssh-keygen -y -P "" -f ~/.ssh/id_ed25519 > /dev/null 2>&1; then
+        echo "ERROR: Invalid or corrupted SSH key"
+        exit 1
+      fi
+
+# ===========================================================================
+# VALIDATION
+# ===========================================================================
+
+validate_qemu_configs:
+  extends: .qemu_base
+  stage: validate
+  rules:
+    - changes:
+        - pve/**/qemu/*.conf
+      when: on_success
+    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+      when: never
+  script:
+    - |
+      set -eu
+      
+      echo "================================================"
+      echo "Validating QEMU VM Configuration Changes"
+      echo "================================================"
+      
+      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep 'pve/.*/qemu/.*\.conf' || true)
+      
+      if [ -z "$CHANGED" ]; then
+        echo "No QEMU configuration changes detected"
+        exit 0
+      fi
+      
+      echo "Changed configuration files:"
+      echo "$CHANGED" | sed 's/^/  /'
+      echo "================================================"
+      echo ""
+      
+      VALIDATION_FAILED=0
+      
+      for file in $CHANGED; do
+        HOSTNAME=$(echo "$file" | cut -d'/' -f2)
+        VMID=$(basename "$file" .conf)
+        
+        echo "Validating VM $VMID on $HOSTNAME..."
+        
+        # Check file exists and not empty
+        if [ ! -f "$CI_PROJECT_DIR/$file" ]; then
+          echo "  ERROR: File not found: $file"
+          VALIDATION_FAILED=1
+          continue
+        fi
+        
+        if [ ! -s "$CI_PROJECT_DIR/$file" ]; then
+          echo "  ERROR: File is empty: $file"
+          VALIDATION_FAILED=1
+          continue
+        fi
+        
+        # Validate VMID format
+        if ! echo "$VMID" | grep -qE '^[0-9]{3,5}$'; then
+          echo "  ERROR: Invalid VMID format: $VMID"
+          VALIDATION_FAILED=1
+          continue
+        fi
+        
+        # Check for required QEMU config parameters
+        if ! grep -qE "^(cores|memory|sockets|bootdisk)" "$CI_PROJECT_DIR/$file"; then
+          echo "  WARNING: Config missing common QEMU parameters"
+        fi
+        
+        # Add host to known_hosts
+        ssh-keyscan -H "$HOSTNAME" >> ~/.ssh/known_hosts 2>/dev/null || true
+        
+        # Validate SSH connection to host
+        echo "  Validating connection to $HOSTNAME..."
+        if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5 \
+             root@"$HOSTNAME" "echo 'connected'" &>/dev/null; then
+          echo "  ERROR: Cannot connect to $HOSTNAME"
+          VALIDATION_FAILED=1
+          continue
+        fi
+        
+        # Verify VM exists on host
+        if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+             root@"$HOSTNAME" "qm config $VMID" &>/dev/null; then
+          echo "  WARNING: VM $VMID not found on $HOSTNAME"
+          echo "  This may be a new VM deployment"
+        else
+          echo "  PASS: VM exists on host"
+        fi
+        
+        echo "  PASS: Validation complete for VM $VMID"
+      done
+      
+      if [ $VALIDATION_FAILED -eq 1 ]; then
+        echo ""
+        echo "ERROR: One or more validations failed"
+        exit 1
+      fi
+      
+      echo ""
+      echo "SUCCESS: All QEMU VM configurations validated"
+  allow_failure: false
+
+# ===========================================================================
+# DEPLOYMENT
+# ===========================================================================
+
+deploy_qemu_configs:
+  extends: .qemu_base
+  stage: deploy
+  rules:
+    - changes:
+        - pve/**/qemu/*.conf
+      when: on_success
+    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+      when: never
+  needs:
+    - validate_qemu_configs
+  script:
+    - |
+      set -eu
+      
+      echo "================================================"
+      echo "Deploying QEMU VM Configurations"
+      echo "================================================"
+      
+      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep 'pve/.*/qemu/.*\.conf' || true)
+      
+      if [ -z "$CHANGED" ]; then
+        echo "No QEMU configuration changes detected"
+        exit 0
+      fi
+      
+      echo "Changed configuration files:"
+      echo "$CHANGED" | sed 's/^/  /'
+      echo "================================================"
+      echo ""
+      
+      DEPLOYMENT_FAILED=0
+      
+      for file in $CHANGED; do
+        HOSTNAME=$(echo "$file" | cut -d'/' -f2)
+        VMID=$(basename "$file" .conf)
+        
+        echo "========================================"
+        echo "Deploying QEMU VM $VMID on $HOSTNAME"
+        echo "========================================"
+        
+        ssh-keyscan -H "$HOSTNAME" >> ~/.ssh/known_hosts 2>/dev/null || true
+        
+        # Validate SSH connection
+        echo "Validating connection to $HOSTNAME..."
+        if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5 \
+             root@"$HOSTNAME" "echo 'connected'" &>/dev/null; then
+          echo "ERROR: Cannot connect to $HOSTNAME"
+          DEPLOYMENT_FAILED=1
+          continue
+        fi
+        
+        # Create backup directory on host
+        echo "Creating backup directory..."
+        ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+          root@"$HOSTNAME" \
+          "mkdir -p $PVE_BACKUP_DIR"
+        
+        # Backup current configuration
+        TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+        BACKUP_FILE="$PVE_BACKUP_DIR/${VMID}_${TIMESTAMP}.conf"
+        
+        echo "Backing up current config to $BACKUP_FILE..."
+        if ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+             root@"$HOSTNAME" "test -f /etc/pve/qemu-server/${VMID}.conf"; then
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+            root@"$HOSTNAME" \
+            "cp /etc/pve/qemu-server/${VMID}.conf $BACKUP_FILE"
+          echo "  Backup created: $BACKUP_FILE"
+        else
+          echo "  No existing config to backup (new VM)"
+        fi
+        
+        # Stop VM gracefully
+        echo "Stopping VM $VMID..."
+        if ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+             root@"$HOSTNAME" "qm status $VMID" 2>/dev/null | grep -q "running"; then
+          
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+            root@"$HOSTNAME" \
+            "qm shutdown $VMID --timeout 30 || qm stop $VMID"
+          
+          echo "  VM stopped"
+        else
+          echo "  VM already stopped"
+        fi
+        
+        # Create temp staging directory
+        ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+          root@"$HOSTNAME" \
+          "mkdir -p $PVE_TEMP_CONFIG_DIR"
+        
+        # Copy new config to staging
+        TEMP_CONFIG="$PVE_TEMP_CONFIG_DIR/${VMID}.conf"
+        echo "Uploading new configuration..."
+        scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+          "$CI_PROJECT_DIR/$file" \
+          "root@$HOSTNAME:$TEMP_CONFIG"
+        
+        # Verify config was uploaded
+        if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+             root@"$HOSTNAME" "test -f $TEMP_CONFIG"; then
+          echo "ERROR: Failed to upload config to $HOSTNAME"
+          DEPLOYMENT_FAILED=1
+          continue
+        fi
+        
+        # Replace production config
+        echo "Deploying configuration..."
+        ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+          root@"$HOSTNAME" \
+          "cp $TEMP_CONFIG /etc/pve/qemu-server/${VMID}.conf"
+        
+        # Verify deployment
+        if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+             root@"$HOSTNAME" \
+             "diff -q $TEMP_CONFIG /etc/pve/qemu-server/${VMID}.conf" &>/dev/null; then
+          echo "ERROR: Config verification failed"
+          echo "Rolling back to backup..."
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+            root@"$HOSTNAME" \
+            "cp $BACKUP_FILE /etc/pve/qemu-server/${VMID}.conf"
+          DEPLOYMENT_FAILED=1
+          continue
+        fi
+        
+        echo "  Configuration deployed successfully"
+        
+        # Start VM
+        echo "Starting VM $VMID..."
+        if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+             root@"$HOSTNAME" \
+             "timeout $PVE_DEPLOYMENT_TIMEOUT qm start $VMID"; then
+          echo "ERROR: Failed to start VM"
+          echo "Rolling back to backup..."
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+            root@"$HOSTNAME" \
+            "cp $BACKUP_FILE /etc/pve/qemu-server/${VMID}.conf && qm start $VMID"
+          DEPLOYMENT_FAILED=1
+          continue
+        fi
+        
+        echo "  VM started successfully"
+        
+        # Cleanup staging
+        ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+          root@"$HOSTNAME" \
+          "rm -f $TEMP_CONFIG"
+        
+        echo "SUCCESS: VM $VMID deployed on $HOSTNAME"
+        echo ""
+      done
+      
+      if [ $DEPLOYMENT_FAILED -eq 1 ]; then
+        echo "================================================"
+        echo "ERROR: One or more deployments failed"
+        echo "================================================"
+        exit 1
+      fi
+      
+      echo "================================================"
+      echo "SUCCESS: All QEMU VM configurations deployed"
+      echo "================================================"
+  environment: production
+  allow_failure: false
+
+# ===========================================================================
+# POST-DEPLOYMENT VERIFICATION
+# ===========================================================================
+
+verify_qemu_deployments:
+  extends: .qemu_base
+  stage: verify
+  rules:
+    - changes:
+        - pve/**/qemu/*.conf
+      when: on_success
+    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+      when: never
+  needs:
+    - deploy_qemu_configs
+  script:
+    - |
+      set -eu
+      
+      echo "================================================"
+      echo "QEMU VM Deployment Verification"
+      echo "================================================"
+      
+      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep 'pve/.*/qemu/.*\.conf' || true)
+      
+      if [ -z "$CHANGED" ]; then
+        echo "No changes to verify"
+        exit 0
+      fi
+      
+      echo "Waiting 10 seconds for VMs to stabilize..."
+      sleep 10
+      
+      VERIFICATION_FAILED=0
+      
+      for file in $CHANGED; do
+        HOSTNAME=$(echo "$file" | cut -d'/' -f2)
+        VMID=$(basename "$file" .conf)
+        
+        echo ""
+        echo "Verifying QEMU VM $VMID on $HOSTNAME..."
+        
+        ssh-keyscan -H "$HOSTNAME" >> ~/.ssh/known_hosts 2>/dev/null || true
+        
+        # Check VM status
+        STATUS=$(ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+          root@"$HOSTNAME" "qm status $VMID" || echo "ERROR")
+        
+        echo "  Status: $STATUS"
+        
+        if echo "$STATUS" | grep -q "running"; then
+          echo "  PASS: VM is running"
+        else
+          echo "  ERROR: VM not running"
+          VERIFICATION_FAILED=1
+        fi
+      done
+      
+      if [ $VERIFICATION_FAILED -eq 1 ]; then
+        echo ""
+        echo "WARNING: Some verifications failed"
+        echo "Check VM logs for details"
+      else
+        echo ""
+        echo "SUCCESS: All VMs verified running"
+      fi
+  artifacts:
+    when: always
+    expire_in: 7 days
+  allow_failure: true
