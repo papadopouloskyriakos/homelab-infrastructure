@@ -236,8 +236,6 @@ object network PUBLIC_xs4all
  host 145.53.163.13
 object network PUBLIC_inalan
  host 91.211.213.72
-object network LOL
- host 6.6.6.6
 object network GR-Cisco_C819G
  host 10.0.X.X
 object network inside_mgmt-network-24
