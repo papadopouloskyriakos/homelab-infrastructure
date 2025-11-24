@@ -54,10 +54,18 @@ production/
 │       └── rebase-after-drift.sh  #    - Rebase helper script
 │
 ├── 📁 k8s/                        # ☸️ Kubernetes (OpenTofu)
-│   ├── main.tf                    #    K8s resources
+│   ├── providers.tf               #    Provider & backend config
 │   ├── variables.tf               #    Input variables
+│   ├── main.tf                    #    Common locals & labels
 │   ├── outputs.tf                 #    Output values
-│   └── backend.tf                 #    GitLab state backend
+│   ├── nfs-provisioner.tf         #    NFS StorageClass (Helm)
+│   ├── ingress-nginx.tf           #    Ingress Controller (Helm)
+│   ├── monitoring.tf              #    Prometheus & Grafana (Helm)
+│   ├── gitlab.tf                  #    GitLab Agent (Helm)
+│   ├── pihole.tf                  #    Pi-hole DNS (native K8s)
+│   ├── awx.tf                     #    AWX infrastructure (PVs, PVCs)
+│   ├── .gitignore                 #    Excludes local state/secrets
+│   └── .terraform.lock.hcl        #    Provider version lock
 │
 ├── 📁 proxmox/                    # 🖥️ Proxmox Automation
 │   ├── lxc/                       #    LXC container definitions
@@ -74,7 +82,7 @@ production/
     ├── cisco-ee/                  #    Cisco automation image
     │   └── Dockerfile             #    - Netmiko, Ansible, etc.
     ├── k8s-runner/                #    Kubernetes runner image
-    │   └── Dockerfile             #    - tofu, kubectl, helm
+    │   └── Dockerfile             #    - tofu, kubectl, helm (providers cached)
     ├── docker-runner/             #    Docker operations image
     │   └── Dockerfile             #    - Docker CLI, buildx
     └── pve-runner/                #    Proxmox runner image
@@ -360,32 +368,59 @@ resource "proxmox_vm_qemu" "k8s_worker" {
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Kubernetes Cluster                            │
+│                    Kubernetes Cluster (v1.34.2)                  │
+│                  api-k8s.example.net:6443                │
 │                                                                  │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
-│  │  Controller  │  │   Worker 1   │  │   Worker 2   │           │
-│  │   (master)   │  │              │  │              │           │
+│  │  Controller  │  │  Controller  │  │  Controller  │           │
+│  │   ctrl01    │  │   ctrl02    │  │   ctrl03    │           │
 │  └──────────────┘  └──────────────┘  └──────────────┘           │
 │                                                                  │
-│  Namespaces:                                                     │
-│  ┌────────────┐ ┌────────────┐ ┌────────────┐                   │
-│  │ production │ │   pihole   │ │  monitoring│                   │
-│  └────────────┘ └────────────┘ └────────────┘                   │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
+│  │   Worker     │  │   Worker     │  │   Worker     │           │
+│  │    wrk01     │  │    wrk02     │  │    wrk03     │           │
+│  └──────────────┘  └──────────────┘  └──────────────┘           │
+│                         ┌──────────────┐                        │
+│                         │   Worker     │                        │
+│                         │    wrk04     │                        │
+│                         └──────────────┘                        │
 └─────────────────────────────────────────────────────────────────┘
                             │
-                            │ Managed by OpenTofu
+                            │ Managed by OpenTofu via GitLab CI
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                    GitLab CI/CD Pipeline                         │
-│              (k8s/ directory → Kubernetes API)                   │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐            │
+│  │ Validate │→│   Plan   │→│  Apply   │→│  Verify  │            │
+│  │          │ │          │ │ (manual) │ │          │            │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘            │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 📦 Current Deployments
+### 📦 Managed Workloads
 
-| App | Namespace | Service Type | Port | Access |
-|-----|-----------|--------------|------|--------|
-| 🛡️ Pi-hole | `pihole` | NodePort | 30666 | http://\<node-ip\>:30666/admin |
+All workloads are managed via **OpenTofu** with state stored in **GitLab Terraform State**.
+
+| Workload | Type | Namespace | Access | File |
+|----------|------|-----------|--------|------|
+| 🗂️ **NFS Provisioner** | Helm | `nfs-provisioner` | StorageClass: `nfs-client` | `nfs-provisioner.tf` |
+| 🌐 **Ingress NGINX** | Helm | `ingress-nginx` | LoadBalancer (pending MetalLB) | `ingress-nginx.tf` |
+| 📊 **Prometheus** | Helm | `monitoring` | NodePort :30090 | `monitoring.tf` |
+| 📈 **Grafana** | Helm | `monitoring` | NodePort :30000 | `monitoring.tf` |
+| 🔔 **Alertmanager** | Helm | `monitoring` | Internal | `monitoring.tf` |
+| 🛡️ **Pi-hole** | Native K8s | `pihole` | NodePort :30666, Ingress | `pihole.tf` |
+| 🤖 **AWX** | Operator | `awx` | NodePort :30080 | `awx.tf` |
+| 🔗 **GitLab Agent** | Helm | `REDACTED_01b50c5d` | Internal | `gitlab.tf` |
+
+### 🔗 Access URLs
+
+| Service | URL |
+|---------|-----|
+| 📈 Grafana | http://\<node-ip\>:30000 |
+| 📊 Prometheus | http://\<node-ip\>:30090 |
+| 🛡️ Pi-hole | http://\<node-ip\>:30666/admin |
+| 🛡️ Pi-hole (Ingress) | http://pihole.example.net/admin |
+| 🤖 AWX | http://\<node-ip\>:30080 |
 
 ### 🔄 K8s Pipeline Stages
 
@@ -393,53 +428,83 @@ resource "proxmox_vm_qemu" "k8s_worker" {
 |-------|-----|-------------|
 | ✅ **validate** | `validate_k8s_manifests` | `tofu fmt` + `tofu validate` |
 | 📝 **pre-deploy** | `plan_k8s_infrastructure` | Generate execution plan |
-| 🚀 **deploy** | `apply_k8s_infrastructure` | Apply changes (manual trigger) |
-| ✔️ **verify** | `verify_k8s_infrastructure` | Check pods, services, ingress |
+| 🚀 **deploy** | `apply_k8s_infrastructure` | Apply changes (**manual trigger**) |
+| ✔️ **verify** | `verify_k8s_infrastructure` | Check pods, services via GitLab Agent |
 
-### 🛠️ Adding New K8s Deployments
+### 📁 K8s Directory Structure
 
-1. **Add resources to `k8s/main.tf`:**
-```hcl
-resource "kubernetes_deployment" "myapp" {
-  metadata {
-    name      = "myapp"
-    namespace = "production"
-  }
-  # ... spec
-}
+```
+k8s/
+├── providers.tf           # Kubernetes & Helm providers, HTTP backend
+├── variables.tf           # All input variables
+├── main.tf                # Common labels & locals
+├── outputs.tf             # URLs, commands, summary
+│
+├── nfs-provisioner.tf     # NFS StorageClass (default)
+├── ingress-nginx.tf       # Ingress controller
+├── monitoring.tf          # REDACTED_d8074874 (Prometheus, Grafana, Alertmanager)
+├── gitlab.tf              # GitLab Agent for cluster connectivity
+├── pihole.tf              # Pi-hole DNS (Deployment, Services, Ingress, ConfigMap)
+├── awx.tf                 # AWX infrastructure (Namespace, StorageClass, PVs, PVCs)
+│
+├── .gitignore             # Excludes: backend.tf, *.tfstate, .terraform/
+└── .terraform.lock.hcl    # Provider version lock (committed)
 ```
 
-2. **Commit and push:**
+### 🛠️ Making K8s Changes
+
 ```bash
-git add k8s/main.tf
-git commit -m "feat(k8s): Add myapp deployment"
-git push
-```
+# 1. Clone the repo (or use existing)
+git clone https://gitlab.example.net/infrastructure/nl/production.git
+cd production
 
-3. **Pipeline runs automatically:**
-   - ✅ Validates manifests
-   - 📝 Shows plan (what will change)
-   - 🚀 Apply (click manual trigger)
-   - ✔️ Verifies deployment
+# 2. Edit the appropriate .tf file
+vim k8s/pihole.tf
+
+# 3. Commit and push
+git add k8s/pihole.tf
+git commit -m "feat(k8s): Update Pi-hole resources"
+git push origin main
+
+# 4. Pipeline runs automatically:
+#    ✅ Validates OpenTofu configs
+#    📝 Shows plan (what will change)
+#    ⏸️ Apply stage waits for manual trigger
+#    ✔️ Verifies deployment via GitLab Agent
+```
 
 ### 🔧 K8s Management Commands
 
 ```bash
-# View pods
-kubectl get pods -n pihole
+# View all workloads
+kubectl get pods -A | grep -E "(pihole|monitoring|ingress|nfs|gitlab|awx)"
 
-# View logs
-kubectl logs -n pihole <pod-name> -f
+# Check specific namespace
+kubectl get all -n monitoring
+
+# View Grafana password
+kubectl get secret -n monitoring monitoring-grafana -o jsonpath="{.data.admin-password}" | base64 -d
 
 # Port forward for testing
-kubectl port-forward -n pihole svc/pihole-web 8080:80 --address=0.0.0.0
+kubectl port-forward -n monitoring svc/monitoring-grafana 3000:80
+
+# View logs
+kubectl logs -n pihole -l app=pihole -f
 
 # Exec into pod
-kubectl exec -it -n pihole <pod-name> -- /bin/bash
-
-# Reset Pi-hole password
-kubectl exec -n pihole <pod-name> -- pihole -a -p newpassword
+kubectl exec -it -n pihole deploy/pihole -- /bin/bash
 ```
+
+### 🔐 K8s CI/CD Variables
+
+| Variable | Description | Protected | Masked |
+|----------|-------------|-----------|--------|
+| `K8S_HOST` | API server URL | ✅ | ❌ |
+| `K8S_TOKEN` | Service account token (1 year) | ✅ | ✅ |
+| `K8S_CA_CERT` | Cluster CA cert (base64) | ✅ | ❌ |
+| `PIHOLE_PASSWORD` | Pi-hole admin password | ✅ | ✅ |
+| `GRAFANA_ADMIN_PASSWORD` | Grafana admin password | ✅ | ✅ |
+| `GITLAB_AGENT_K8S_TOKEN` | GitLab Agent token | ✅ | ✅ |
 
 ---
 
@@ -451,12 +516,12 @@ Custom runner images optimized for specific CI/CD tasks.
 
 All images stored at: `registry.example.net/infrastructure/nl/production/`
 
-| Image | Purpose | Base | Size | Key Tools |
-|-------|---------|------|------|-----------|
-| `cisco-ee` | Cisco automation | AWX EE | ~500MB | Netmiko, Ansible, ciscoconfparse |
-| `k8s-runner` | K8s deployments | Alpine | ~74MB | OpenTofu, kubectl, helm |
-| `docker-runner` | Docker builds | Alpine | ~27MB | Docker CLI, buildx |
-| `pve-runner` | Proxmox automation | Alpine | ~28MB | Proxmox API client, OpenTofu |
+| Image | Purpose | Base | Key Tools |
+|-------|---------|------|-----------|
+| `cisco-ee` | Cisco automation | AWX EE | Netmiko, Ansible, ciscoconfparse |
+| `k8s-runner` | K8s deployments | Alpine | OpenTofu, kubectl, helm (**providers pre-cached**) |
+| `docker-runner` | Docker builds | Alpine | Docker CLI, buildx |
+| `pve-runner` | Proxmox automation | Alpine | Proxmox API client, OpenTofu |
 
 ### 🔨 Building Images
 
@@ -485,11 +550,13 @@ docker push registry.example.net/infrastructure/nl/production/k8s-runner:latest
 
 **k8s-runner:**
 ```dockerfile
-# Alpine-based, minimal
+# Alpine-based, with pre-cached providers
 - opentofu
 - kubectl
 - helm
-- curl, jq, git
+- REDACTED_1158da07 provider (cached)
+- hashicorp/helm provider (cached)
+- curl, git, bash
 ```
 
 **pve-runner:**
@@ -516,10 +583,12 @@ docker push registry.example.net/infrastructure/nl/production/k8s-runner:latest
 
 | Variable | Description | Type | Protected |
 |----------|-------------|------|-----------|
-| `K8S_HOST` | API server URL | String | ❌ |
+| `K8S_HOST` | API server URL | String | ✅ |
 | `K8S_TOKEN` | Service account token | Secret | ✅ |
 | `K8S_CA_CERT` | Cluster CA cert (base64) | Secret | ✅ |
 | `PIHOLE_PASSWORD` | Pi-hole admin password | Secret | ✅ |
+| `GRAFANA_ADMIN_PASSWORD` | Grafana admin password | Secret | ✅ |
+| `GITLAB_AGENT_K8S_TOKEN` | GitLab Agent token | Secret | ✅ |
 
 ### 🖥️ Proxmox
 
@@ -586,6 +655,10 @@ export TF_VAR_k8s_host="https://api-k8s.example.net:6443"
 export TF_VAR_k8s_token="your-token"
 export TF_VAR_k8s_ca_cert="base64-ca-cert"
 export TF_VAR_pihole_password="your-password"
+export TF_VAR_grafana_admin_password="your-password"
+
+# For local testing, create a local backend
+echo 'terraform { backend "local" {} }' > backend.tf
 
 # Initialize and plan
 tofu init
@@ -656,6 +729,14 @@ kubectl create token gitlab-ci -n kube-system --duration=8760h
 # Update K8S_TOKEN in GitLab → Settings → CI/CD → Variables
 ```
 
+**"cannot re-use a name that is still in use"?**
+```bash
+# Resource exists but not in OpenTofu state
+# Import it:
+cd k8s
+tofu import 'helm_release.resource_name' namespace/release-name
+```
+
 **Pod not starting?**
 ```bash
 # Check pod status
@@ -723,9 +804,12 @@ docker login registry.example.net
 | Component | Status | Endpoint |
 |-----------|--------|----------|
 | 🌐 Cisco Network | 🟢 Operational | - |
-| ☸️ Kubernetes | 🟢 Operational | api-k8s.example.net:6443 |
+| ☸️ Kubernetes | 🟢 Operational (v1.34.2) | api-k8s.example.net:6443 |
 | 🖥️ Proxmox | 🟢 Operational | pve.example.net:8006 |
+| 📈 Grafana | 🟢 Running | \<node-ip\>:30000 |
+| 📊 Prometheus | 🟢 Running | \<node-ip\>:30090 |
 | 🛡️ Pi-hole | 🟢 Running | \<node-ip\>:30666 |
+| 🤖 AWX | 🟢 Running | \<node-ip\>:30080 |
 | 🐳 Registry | 🟢 Operational | registry.example.net |
 
 ---
@@ -751,6 +835,7 @@ Examples:
 ```bash
 feat(cisco): Add VLAN 100 to core switch
 fix(k8s): Correct Pi-hole service port
+feat(k8s): Add MetalLB for LoadBalancer support
 docs(readme): Update troubleshooting section
 chore(ci): Update runner image version
 ```
