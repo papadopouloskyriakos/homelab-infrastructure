@@ -221,9 +221,10 @@ resource "kubernetes_service" "pihole_web" {
       port        = 80
       target_port = 80
       protocol    = "TCP"
+      node_port   = 30666
     }
 
-    type = "ClusterIP"
+    type = "NodePort"
   }
 }
 
