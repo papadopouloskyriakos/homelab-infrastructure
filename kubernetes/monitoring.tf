@@ -16,7 +16,7 @@ resource "helm_release" "monitoring" {
   create_namespace = true
   version          = "79.1.1"
 
-  timeout = 900  # Large chart needs more time
+  timeout = 900 # Large chart needs more time
 
   values = [
     yamlencode({

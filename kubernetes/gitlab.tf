@@ -47,8 +47,8 @@ resource "helm_release" "gitlab_runner" {
   name             = "gitlab-runner"
   repository       = "https://charts.gitlab.io"
   chart            = "gitlab-runner"
-  namespace        = "REDACTED_01b50c5d"  # Same namespace as agent
-  create_namespace = false  # Already created by agent
+  namespace        = "REDACTED_01b50c5d" # Same namespace as agent
+  create_namespace = false                    # Already created by agent
   version          = "0.75.0"
 
   values = [
@@ -58,7 +58,7 @@ resource "helm_release" "gitlab_runner" {
 
       runners = {
         privileged = true
-        tags       = "k8s,nlk8s"  # Updated tags
+        tags       = "k8s,nlk8s" # Updated tags
 
         config = <<-EOF
           [[runners]]
