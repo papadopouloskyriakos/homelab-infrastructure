@@ -136,17 +136,30 @@ plan_k8s_infrastructure:
       echo "  Initialization successful"
       
       # Create plan
+      # CRITICAL: Tofu returns exit code 2 when changes exist (not an error!)
+      # Exit codes: 0=no changes, 1=error, 2=changes detected
       echo "  Creating plan..."
+      set +e  # Temporarily disable exit-on-error
       tofu plan -out="../$PLAN_CACHE" -input=false
+      PLAN_EXIT_CODE=$?
+      set -e  # Re-enable exit-on-error
       
-      echo "  SUCCESS: Plan created"
+      # Check exit code
+      if [ $PLAN_EXIT_CODE -eq 0 ]; then
+        echo "  SUCCESS: Plan created (no changes)"
+      elif [ $PLAN_EXIT_CODE -eq 2 ]; then
+        echo "  SUCCESS: Plan created (changes detected)"
+      else
+        echo "  ERROR: Plan creation failed with exit code $PLAN_EXIT_CODE"
+        exit 1
+      fi
+      
       echo "  Plan saved to: $PLAN_CACHE"
       echo ""
       echo "================================================"
       echo "Plan stage completed successfully"
       echo "================================================"
       
-      # ALWAYS exit 0 if we got here
       exit 0
   artifacts:
     when: always
