@@ -245,7 +245,7 @@ resource "kubernetes_service" "pihole_dns_tcp" {
       protocol    = "TCP"
     }
 
-    type = "LoadBalancer"
+    type = "ClusterIP"
   }
 }
 
@@ -267,7 +267,7 @@ resource "kubernetes_service" "pihole_dns_udp" {
       protocol    = "UDP"
     }
 
-    type = "LoadBalancer"
+    type = "ClusterIP"
   }
 }
 
@@ -302,5 +302,3 @@ resource "kubernetes_ingress_v1" "pihole_ingress" {
     }
   }
 }
-
-
