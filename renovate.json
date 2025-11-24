@@ -7,12 +7,32 @@
   "schedule": [
     "after 10pm on sunday"
   ],
+  "enabledManagers": [
+    "docker-compose",
+    "dockerfile",
+    "gitlabci",
+    "terraform",
+    "helm-values",
+    "kubernetes",
+    "ansible",
+    "pip_requirements"
+  ],
   "docker-compose": {
     "enabled": true,
-    "managerFilePatterns": [
-      "/(^|/)docker-compose\\.ya?ml$/"
-    ],
+    "fileMatch": ["(^|/)docker-compose\\.ya?ml$"],
     "pinDigests": false
+  },
+  "terraform": {
+    "enabled": true,
+    "fileMatch": ["(^|/)\\.tf$"]
+  },
+  "helm-values": {
+    "enabled": true,
+    "fileMatch": ["(^|/)values\\.ya?ml$"]
+  },
+  "kubernetes": {
+    "enabled": true,
+    "fileMatch": ["\\.ya?ml$"]
   },
   "labels": [
     "renovate",
@@ -25,63 +45,48 @@
   "REDACTED_203b14db": "🤖 Renovate Dependency Dashboard",
   "packageRules": [
     {
+      "description": "OpenTofu/Terraform providers",
+      "matchManagers": ["terraform"],
+      "labels": ["renovate", "infrastructure"],
+      "commitMessagePrefix": "🏗️ [INFRA]",
+      "automerge": false
+    },
+    {
+      "description": "Helm charts",
+      "matchManagers": ["helm-values"],
+      "labels": ["renovate", "helm"],
+      "commitMessagePrefix": "⎈ [HELM]"
+    },
+    {
       "description": "Critical Matrix services",
-      "matchDatasources": [
-        "docker"
-      ],
-      "labels": [
-        "renovate",
-        "critical"
-      ],
+      "matchDatasources": ["docker"],
+      "labels": ["renovate", "critical"],
       "commitMessagePrefix": "🔒 [CRITICAL]",
       "automerge": false,
-      "matchPackageNames": [
-        "/synapse/",
-        "REDACTED_54172810",
-        "/postgres/"
-      ]
+      "matchPackageNames": ["/synapse/", "REDACTED_54172810", "/postgres/"]
     },
     {
       "description": "Frontend services",
-      "labels": [
-        "renovate",
-        "frontend"
-      ],
+      "labels": ["renovate", "frontend"],
       "commitMessagePrefix": "🎨",
-      "matchPackageNames": [
-        "/element-web/",
-        "/synapse-admin/"
-      ]
+      "matchPackageNames": ["/element-web/", "/synapse-admin/"]
     },
     {
       "description": "Security services",
-      "labels": [
-        "renovate",
-        "security"
-      ],
+      "labels": ["renovate", "security"],
       "commitMessagePrefix": "🔐",
-      "matchPackageNames": [
-        "/crowdsec/"
-      ]
+      "matchPackageNames": ["/crowdsec/"]
     },
     {
       "description": "Major updates",
-      "matchUpdateTypes": [
-        "major"
-      ],
-      "labels": [
-        "renovate",
-        "major-update"
-      ],
+      "matchUpdateTypes": ["major"],
+      "labels": ["renovate", "major-update"],
       "commitMessagePrefix": "⚠️ [MAJOR]"
     }
   ],
   "vulnerabilityAlerts": {
     "enabled": true,
-    "labels": [
-      "security",
-      "vulnerability"
-    ]
+    "labels": ["security", "vulnerability"]
   },
   "prConcurrentLimit": 5,
   "prHourlyLimit": 2
