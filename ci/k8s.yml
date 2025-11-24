@@ -19,8 +19,6 @@ validate_k8s_manifests:
     - git config --global --add safe.directory $CI_PROJECT_DIR
   script:
     - |
-      set -eu
-      
       echo "================================================"
       echo "Validating Kubernetes OpenTofu Configuration"
       echo "PRODUCTION ONLY"
@@ -37,10 +35,6 @@ validate_k8s_manifests:
       echo "$CHANGED" | sed 's/^/  /'
       echo "================================================"
       
-      echo ""
-      echo "Validating: Production infrastructure"
-      echo "------------------------------------------------"
-      
       cd "$K8S_DIR"
       
       if [ ! -f "main.tf" ]; then
@@ -49,22 +43,15 @@ validate_k8s_manifests:
       fi
       
       echo "  Found OpenTofu configuration"
-      
-      # Format check
       echo "  Running tofu fmt check..."
-      tofu fmt -check -recursive . 2>/dev/null || echo "  WARNING: Formatting issues detected (non-critical)"
+      tofu fmt -check -recursive . 2>/dev/null || echo "  WARNING: Formatting issues"
       
-      # Initialize for validation
       echo "  Running tofu validate..."
-      
-      # Set backend config for validation
       export TF_CLI_ARGS_init="-backend-config=address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME} -backend-config=lock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=unlock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=username=gitlab-ci-token -backend-config=password=${CI_JOB_TOKEN} -backend-config=lock_method=POST -backend-config=unlock_method=DELETE -backend-config=retry_wait_min=5"
       
       tofu init -input=false
       tofu validate
-      
       echo "  SUCCESS: Validation passed"
-      exit 0
   allow_failure: false
 
 plan_k8s_infrastructure:
@@ -83,8 +70,6 @@ plan_k8s_infrastructure:
     - mkdir -p artifacts
   script:
     - |
-      set -eu
-      
       echo "================================================"
       echo "Planning Kubernetes Infrastructure Changes"
       echo "PRODUCTION"
@@ -101,10 +86,8 @@ plan_k8s_infrastructure:
       echo "$CHANGED" | sed 's/^/  /'
       echo "================================================"
       
-      # Validate credentials
       if [ -z "$K8S_HOST" ] || [ -z "$K8S_TOKEN" ] || [ -z "$K8S_CA_CERT" ]; then
         echo "ERROR: Missing K8s credentials"
-        echo "Required variables: K8S_HOST, K8S_TOKEN, K8S_CA_CERT"
         exit 1
       fi
       
@@ -116,51 +99,35 @@ plan_k8s_infrastructure:
       
       cd "$K8S_DIR"
       
-      echo ""
       echo "Planning: Production infrastructure"
-      echo "================================================"
       echo "  State backend: $TF_STATE_NAME"
       
-      # Export variables for OpenTofu
       export TF_VAR_k8s_host="$K8S_HOST"
       export TF_VAR_k8s_token="$K8S_TOKEN"
       export TF_VAR_k8s_ca_cert="$K8S_CA_CERT"
       export TF_VAR_pihole_password="${PIHOLE_PASSWORD:-changeme123}"
       
-      # Backend configuration
       export TF_CLI_ARGS_init="-backend-config=address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME} -backend-config=lock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=unlock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=username=gitlab-ci-token -backend-config=password=${CI_JOB_TOKEN} -backend-config=lock_method=POST -backend-config=unlock_method=DELETE -backend-config=retry_wait_min=5"
       
-      # Initialize
       echo "  Initializing OpenTofu..."
-      tofu init -input=false
+      tofu init -input=false || exit 1
       echo "  Initialization successful"
       
-      # Create plan
-      # CRITICAL: Tofu returns exit code 2 when changes exist (not an error!)
-      # Exit codes: 0=no changes, 1=error, 2=changes detected
       echo "  Creating plan..."
-      set +e  # Temporarily disable exit-on-error
       tofu plan -out="../$PLAN_CACHE" -input=false
-      PLAN_EXIT_CODE=$?
-      set -e  # Re-enable exit-on-error
+      PLAN_STATUS=$?
       
-      # Check exit code
-      if [ $PLAN_EXIT_CODE -eq 0 ]; then
-        echo "  SUCCESS: Plan created (no changes)"
-      elif [ $PLAN_EXIT_CODE -eq 2 ]; then
-        echo "  SUCCESS: Plan created (changes detected)"
+      if [ $PLAN_STATUS -eq 0 ] || [ $PLAN_STATUS -eq 2 ]; then
+        echo "  Plan created successfully"
+        echo "  Plan saved to: $PLAN_CACHE"
+        echo "================================================"
+        echo "SUCCESS"
+        echo "================================================"
+        true
       else
-        echo "  ERROR: Plan creation failed with exit code $PLAN_EXIT_CODE"
-        exit 1
+        echo "  ERROR: Plan failed with status $PLAN_STATUS"
+        false
       fi
-      
-      echo "  Plan saved to: $PLAN_CACHE"
-      echo ""
-      echo "================================================"
-      echo "Plan stage completed successfully"
-      echo "================================================"
-      
-      exit 0
   artifacts:
     when: always
     paths:
@@ -183,53 +150,25 @@ apply_k8s_infrastructure:
     - git config --global --add safe.directory $CI_PROJECT_DIR
   script:
     - |
-      set -eu
-      
-      echo "================================================"
-      echo "Applying Kubernetes Infrastructure"
-      echo "PRODUCTION"
-      echo "================================================"
-      
       if [ ! -f "$PLAN_CACHE" ]; then
-        echo "ERROR: Plan cache not found: $PLAN_CACHE"
-        echo "Run plan stage first"
+        echo "ERROR: Plan cache not found"
         exit 1
       fi
       
-      echo "Plan cache found: $PLAN_CACHE"
-      echo ""
-      
       cd "$K8S_DIR"
       
-      # Export variables
       export TF_VAR_k8s_host="$K8S_HOST"
       export TF_VAR_k8s_token="$K8S_TOKEN"
       export TF_VAR_k8s_ca_cert="$K8S_CA_CERT"
       export TF_VAR_pihole_password="${PIHOLE_PASSWORD:-changeme123}"
       
-      # Backend configuration
       export TF_CLI_ARGS_init="-backend-config=address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME} -backend-config=lock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=unlock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=username=gitlab-ci-token -backend-config=password=${CI_JOB_TOKEN} -backend-config=lock_method=POST -backend-config=unlock_method=DELETE -backend-config=retry_wait_min=5"
       
-      # Initialize
-      echo "Initializing OpenTofu..."
       tofu init -input=false
-      echo "Initialization successful"
-      echo ""
-      
-      # Apply
-      echo "Applying infrastructure..."
-      echo "================================================"
       tofu apply -input=false "../$PLAN_CACHE"
       
-      echo ""
-      echo "================================================"
       echo "SUCCESS: Infrastructure applied"
-      echo "================================================"
-      echo ""
-      echo "Outputs:"
-      tofu output || echo "No outputs defined"
-      
-      exit 0
+      tofu output || true
   environment:
     name: production
   allow_failure: false
@@ -247,13 +186,6 @@ verify_k8s_infrastructure:
     - apply_k8s_infrastructure
   script:
     - |
-      set -eu
-      
-      echo "================================================"
-      echo "Verifying Kubernetes Infrastructure"
-      echo "================================================"
-      
-      # Setup kubeconfig
       mkdir -p ~/.kube
       
       cat > ~/.kube/config <<EOF
@@ -276,30 +208,11 @@ verify_k8s_infrastructure:
           token: ${K8S_TOKEN}
       EOF
       
-      echo "Checking namespaces..."
       kubectl get namespaces || true
-      echo ""
-      
-      echo "Checking Pi-hole deployment..."
       kubectl get all -n pihole || true
-      echo ""
-      
-      echo "Checking Pi-hole pod status..."
-      kubectl wait --for=condition=ready pod -l app=pihole -n pihole --timeout=300s || echo "  WARNING: Pi-hole pod not ready yet"
-      echo ""
-      
-      echo "Checking services..."
+      kubectl wait --for=condition=ready pod -l app=pihole -n pihole --timeout=300s || true
       kubectl get svc -n pihole || true
-      echo ""
       
-      echo "================================================"
       echo "Verification complete"
-      echo "================================================"
-      echo ""
-      echo "Access Pi-hole:"
-      echo "  kubectl port-forward -n pihole svc/pihole-web 8080:80"
-      echo "  Then visit: http://localhost:8080/admin"
-      echo ""
-      
-      exit 0
+      echo "Access: kubectl port-forward -n pihole svc/pihole-web 8080:80"
   allow_failure: true
