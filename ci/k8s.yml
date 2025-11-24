@@ -3,11 +3,9 @@
 # Directory structure: k8s/environments/<env>/
 
 .k8s_base:
-  image: ghcr.io/opentofu/opentofu:latest
+  image: $K8S_IMAGE
   tags:
     - k8s
-  before_script:
-    - apk add --no-cache curl bash git
 
 # Validate OpenTofu configurations
 validate_k8s_manifests:
@@ -411,8 +409,6 @@ verify_k8s_infrastructure:
       when: never
   needs:
     - apply_k8s_infrastructure
-  before_script:
-    - apk add --no-cache curl bash git kubectl
   script:
     - |
       set -eu
