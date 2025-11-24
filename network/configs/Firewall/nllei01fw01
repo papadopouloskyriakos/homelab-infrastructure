@@ -589,7 +589,6 @@ object network nlhpb01-3478-udp
  host 10.0.X.X
 object network nlsynapse01
  host 10.0.X.X
-object network LOL
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
