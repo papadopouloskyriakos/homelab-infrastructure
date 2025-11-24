@@ -1,8 +1,5 @@
-stages:
-  - validate
-  - plan
-  - apply
-  - verify
+# K8s jobs use stages defined in main _gitlab-ci.yml
+# Stages: drift-detection, validate, pre-deploy, deploy, verify
 
 variables:
   K8S_DIR: "k8s"
@@ -77,7 +74,7 @@ validate_k8s_manifests:
   allow_failure: false
 
 plan_k8s_infrastructure:
-  stage: plan
+  stage: pre-deploy
   image: $K8S_RUNNER_IMAGE
   tags:
     - docker
@@ -154,7 +151,7 @@ plan_k8s_infrastructure:
         echo "  SUCCESS: Plan created"
         echo "  Plan saved to: $PLAN_CACHE"
         
-        # Show plan summary  
+        # Show plan summary (ignore failures)
         echo "  Plan summary:"
         tofu show "../$PLAN_CACHE" | head -100 || true
         
@@ -177,7 +174,7 @@ plan_k8s_infrastructure:
   allow_failure: false
 
 apply_k8s_infrastructure:
-  stage: apply
+  stage: deploy
   image: $K8S_RUNNER_IMAGE
   tags:
     - docker
