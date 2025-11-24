@@ -14,7 +14,8 @@
 # tofu import 'kubernetes_service.pihole_dns_udp' 'pihole/pihole-dns-udp'
 # tofu import 'kubernetes_ingress_v1.pihole_ingress' 'pihole/pihole-ingress'
 ***REMOVED***
-# Test Atlantis
+# Test Atlantis v1
+# Test Atlantis v2
 
 resource "kubernetes_namespace" "pihole" {
   metadata {
