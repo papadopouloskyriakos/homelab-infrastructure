@@ -1,10 +1,10 @@
-# K8s jobs use stages defined in main _gitlab-ci.yml
-# Stages: drift-detection, validate, pre-deploy, deploy, verify
+# K8s Pipeline using GitLab Kubernetes Agent
+# No more K8S_TOKEN, K8S_HOST, K8S_CA_CERT variables needed!
 
 variables:
   K8S_DIR: "k8s"
   TF_STATE_NAME: "k8s-production-state"
-  PLAN_CACHE: "artifacts/plan-production.cache"
+  KUBE_CONTEXT: "infrastructure/nl/production:k8s-agent"
 
 validate_k8s_manifests:
   stage: validate
@@ -40,12 +40,12 @@ plan_k8s_infrastructure:
   before_script:
     - git config --global --add safe.directory $CI_PROJECT_DIR
     - mkdir -p artifacts
+    # Setup kubeconfig using GitLab Agent
+    - kubectl config use-context "$KUBE_CONTEXT"
   script:
     - echo "Planning Kubernetes Infrastructure"
     - cd "$K8S_DIR"
-    - export TF_VAR_k8s_host="$K8S_HOST"
-    - export TF_VAR_k8s_token="$K8S_TOKEN"
-    - export TF_VAR_k8s_ca_cert="$K8S_CA_CERT"
+    # No more K8S_HOST, K8S_TOKEN, K8S_CA_CERT needed!
     - export TF_VAR_pihole_password="${PIHOLE_PASSWORD:-changeme123}"
     - export TF_CLI_ARGS_init="-backend-config=address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME} -backend-config=lock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=unlock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock -backend-config=username=gitlab-ci-token -backend-config=password=${CI_JOB_TOKEN} -backend-config=lock_method=POST -backend-config=unlock_method=DELETE -backend-config=retry_wait_min=5"
     - tofu init -input=false
@@ -72,11 +72,11 @@ apply_k8s_infrastructure:
     - plan_k8s_infrastructure
   before_script:
     - git config --global --add safe.directory $CI_PROJECT_DIR
+    # Setup kubeconfig using GitLab Agent
+    - kubectl config use-context "$KUBE_CONTEXT"
   script:
     - cd "$K8S_DIR"
-    - export TF_VAR_k8s_host="$K8S_HOST"
-    - export TF_VAR_k8s_token="$K8S_TOKEN"
-    - export TF_VAR_k8s_ca_cert="$K8S_CA_CERT"
+    # No more K8S_HOST, K8S_TOKEN, K8S_CA_CERT needed!
     - export TF_VAR_pihole_password="${PIHOLE_PASSWORD:-changeme123}"
     - export TF_HTTP_ADDRESS="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}"
     - export TF_HTTP_LOCK_ADDRESS="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock"
@@ -87,7 +87,7 @@ apply_k8s_infrastructure:
     - export TF_HTTP_UNLOCK_METHOD="DELETE"
     - export TF_HTTP_RETRY_WAIT_MIN="5"
     - tofu init -input=false -reconfigure
-    - echo "Running fresh plan in apply stage (cached plan has auth issues)"
+    - echo "Running fresh plan in apply stage"
     - tofu plan -out=apply.tfplan -input=false
     - echo "Applying infrastructure changes"
     - tofu apply -input=false apply.tfplan
@@ -95,6 +95,8 @@ apply_k8s_infrastructure:
     - tofu output || true
   environment:
     name: production
+    kubernetes:
+      agent: k8s-agent
   allow_failure: false
 
 verify_k8s_infrastructure:
@@ -108,31 +110,18 @@ verify_k8s_infrastructure:
       when: on_success
   needs:
     - apply_k8s_infrastructure
+  before_script:
+    # Use GitLab Agent - no manual kubeconfig needed!
+    - kubectl config use-context "$KUBE_CONTEXT"
   script:
-    - mkdir -p ~/.kube
-    - |
-      cat > ~/.kube/config <<EOF
-      apiVersion: v1
-      kind: Config
-      clusters:
-      - cluster:
-          certificate-authority-data: ${K8S_CA_CERT}
-          server: ${K8S_HOST}
-        name: k8s-cluster
-      contexts:
-      - context:
-          cluster: k8s-cluster
-          user: gitlab-ci
-        name: gitlab-ci
-      current-context: gitlab-ci
-      users:
-      - name: gitlab-ci
-        user:
-          token: ${K8S_TOKEN}
-      EOF
-    - kubectl get namespaces || true
-    - kubectl get all -n pihole || true
+    - echo "Verifying Kubernetes deployment"
+    - kubectl get namespaces
+    - kubectl get all -n pihole
     - kubectl wait --for=condition=ready pod -l app=pihole -n pihole --timeout=300s || true
-    - kubectl get svc -n pihole || true
+    - kubectl get svc -n pihole
     - echo "Verification complete"
+  environment:
+    name: production
+    kubernetes:
+      agent: k8s-agent
   allow_failure: true
