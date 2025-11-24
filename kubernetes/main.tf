@@ -8,9 +8,8 @@ terraform {
 }
 
 provider "kubernetes" {
-  host                   = var.k8s_host
-  token                  = var.k8s_token
-  cluster_ca_certificate = base64decode(var.k8s_ca_cert)
+  config_path    = "~/.kube/config"
+  config_context = "infrastructure/nl/production:k8s-agent"
 }
 
 resource "kubernetes_namespace" "production" {
