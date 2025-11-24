@@ -78,15 +78,16 @@ apply_k8s_infrastructure:
     - export TF_VAR_k8s_token="$K8S_TOKEN"
     - export TF_VAR_k8s_ca_cert="$K8S_CA_CERT"
     - export TF_VAR_pihole_password="${PIHOLE_PASSWORD:-changeme123}"
-    - export TF_HTTP_ADDRESS="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}"
-    - export TF_HTTP_LOCK_ADDRESS="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock"
-    - export TF_HTTP_UNLOCK_ADDRESS="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock"
-    - export TF_HTTP_USERNAME="gitlab-ci-token"
-    - export TF_HTTP_PASSWORD="${CI_JOB_TOKEN}"
-    - export TF_HTTP_LOCK_METHOD="POST"
-    - export TF_HTTP_UNLOCK_METHOD="DELETE"
-    - export TF_HTTP_RETRY_WAIT_MIN="5"
-    - tofu init -input=false
+    - |
+      tofu init -input=false \
+        -backend-config="address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}" \
+        -backend-config="lock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock" \
+        -backend-config="unlock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock" \
+        -backend-config="username=gitlab-ci-token" \
+        -backend-config="password=${CI_JOB_TOKEN}" \
+        -backend-config="lock_method=POST" \
+        -backend-config="unlock_method=DELETE" \
+        -backend-config="retry_wait_min=5"
     - tofu apply -input=false "../$PLAN_CACHE"
     - echo "Infrastructure applied"
     - tofu output || true
