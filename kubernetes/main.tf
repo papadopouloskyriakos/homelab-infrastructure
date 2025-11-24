@@ -304,3 +304,4 @@ resource "kubernetes_ingress_v1" "pihole_ingress" {
     }
   }
 }
+
