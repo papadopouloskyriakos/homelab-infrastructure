@@ -111,3 +111,22 @@ module "velero" {
 
   depends_on = [module.minio]
 }
+
+module "argocd" {
+  source = "./namespaces/argocd"
+
+  common_labels = local.common_labels
+  domain        = var.domain
+
+  # Argo CD settings
+  REDACTED_be8b31fd         = var.REDACTED_be8b31fd
+  argocd_nodeport              = var.argocd_nodeport
+  REDACTED_84146aee       = var.REDACTED_84146aee
+  REDACTED_649263f1         = var.REDACTED_649263f1
+  REDACTED_035cbec1 = var.REDACTED_035cbec1
+  argocd_dex_enabled           = var.argocd_dex_enabled
+  argocd_repositories          = var.argocd_repositories
+  argocd_ssh_known_hosts       = var.argocd_ssh_known_hosts
+
+  depends_on = [module.ingress_nginx]
+}
