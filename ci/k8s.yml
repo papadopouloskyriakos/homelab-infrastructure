@@ -29,13 +29,13 @@ validate_k8s_manifests:
     
     # Format check
     - echo "=== Checking formatting ==="
-    - tofu fmt -check -recursive . || { echo "⚠️ Run 'tofu fmt' to fix formatting"; exit 1; }
+    - tofu fmt -check -recursive . || { echo "⚠️ Run 'tofu fmt -recursive .' to fix formatting"; exit 1; }
     
-    # Initialize without backend (just for validation)
-    - echo "=== Initializing (validation mode) ==="
-    - tofu init -backend=false -input=false
+    # Initialize with backend (modules need proper init)
+    - echo "=== Initializing modules ==="
+    - tofu init -input=false
     
-    # Validate syntax
+    # Validate syntax and module structure
     - echo "=== Validating configuration ==="
     - tofu validate
     
@@ -63,13 +63,28 @@ verify_k8s_infrastructure:
     # Cluster health
     - kubectl get nodes
     
-    # Workload status
-    - echo "=== Workloads ==="
-    - kubectl get pods -A | grep -E "(pihole|monitoring|ingress|nfs|gitlab|awx)" || true
+    # Core infrastructure
+    - echo "=== Core Infrastructure ==="
+    - kubectl get pods -n nfs-provisioner || true
+    - kubectl get pods -n ingress-nginx || true
+    - kubectl get pods -n REDACTED_01b50c5d || true
+    
+    # Application workloads
+    - echo "=== Application Namespaces ==="
+    - kubectl get pods -n awx || true
+    - kubectl get pods -n minio || true
+    - kubectl get pods -n monitoring || true
+    - kubectl get pods -n pihole || true
+    - kubectl get pods -n velero || true
     
     # Key services
-    - echo "=== Services ==="
+    - echo "=== NodePort Services ==="
     - kubectl get svc -A | grep NodePort || true
+    
+    ***REMOVED***
+    - echo "=== Storage ==="
+    - kubectl get pvc -A
+    - kubectl get sc
     
     - echo "✅ Verification complete"
   environment:

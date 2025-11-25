@@ -1,3 +1,20 @@
+***REMOVED***
+# NFS Subdir External Provisioner
+***REMOVED***
+# Provides dynamic NFS-based storage provisioning
+***REMOVED***Class: nfs-client
+***REMOVED***
+
+variable "nfs_server" {
+  description = "NFS server address"
+  type        = string
+}
+
+variable "nfs_path" {
+  description = "NFS export path"
+  type        = string
+}
+
 resource "helm_release" "nfs_provisioner" {
   name             = "nfs-provisioner"
   repository       = "https://kubernetes-sigs.github.io/REDACTED_5fef70be"
@@ -13,9 +30,10 @@ resource "helm_release" "nfs_provisioner" {
         path   = var.nfs_path
       }
       storageClass = {
-        create = false # Don't manage StorageClass via helm
+        create = false # Managed separately
       }
       replicaCount = 1
     })
   ]
 }
+

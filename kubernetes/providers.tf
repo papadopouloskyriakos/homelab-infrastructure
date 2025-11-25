@@ -1,20 +1,7 @@
-terraform {
-  required_version = ">= 1.6.0"
-  required_providers {
-    kubernetes = {
-      source  = "REDACTED_1158da07"
-      version = "~> 2.35"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.17"
-    }
-  }
-
-  # Backend configured via environment in CI
-  # For local use, create backend.tf with: backend "local" {}
-  backend "http" {}
-}
+***REMOVED***
+# Provider Configuration
+***REMOVED***
+# Providers are configured here and inherited by all modules
 
 provider "kubernetes" {
   host                   = var.k8s_host
