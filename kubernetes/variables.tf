@@ -114,3 +114,59 @@ variable "REDACTED_12032801" {
   type        = string
   default     = "50Gi"
 }
+
+***REMOVED***
+# Velero & MinIO Variables - Add these to your existing variables.tf
+***REMOVED***
+
+# -----------------------------------------------------------------------------
+# Domain (if not already defined)
+# -----------------------------------------------------------------------------
+variable "domain" {
+  description = "Base domain for ingress hostnames"
+  type        = string
+  default     = "example.net"
+}
+
+# -----------------------------------------------------------------------------
+# MinIO Variables
+# -----------------------------------------------------------------------------
+variable "minio_root_user" {
+  description = "MinIO root username"
+  type        = string
+  default     = "admin"
+  sensitive   = true
+}
+
+variable "minio_root_password" {
+  description = "MinIO root password"
+  type        = string
+  sensitive   = true
+}
+
+variable "minio_storage_size" {
+  description = "MinIO storage size"
+  type        = string
+  default     = "100Gi"
+}
+
+variable "minio_version" {
+  description = "MinIO Docker image version"
+  type        = string
+  default     = "RELEASE.2024-11-07T00-52-20Z"
+}
+
+# -----------------------------------------------------------------------------
+# Velero Variables
+# -----------------------------------------------------------------------------
+variable "velero_chart_version" {
+  description = "Velero Helm chart version"
+  type        = string
+  default     = "7.2.1"
+}
+
+variable "velero_ui_version" {
+  description = "Velero UI Docker image version"
+  type        = string
+  default     = "0.2.0"
+}
