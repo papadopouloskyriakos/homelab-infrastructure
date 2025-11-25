@@ -14,7 +14,7 @@
 resource "kubernetes_namespace" "velero" {
   metadata {
     name = "velero"
-    labels = merge(local.common_labels, {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name" = "velero"
     })
   }
@@ -27,7 +27,7 @@ resource "kubernetes_secret" "velero_s3_credentials" {
   metadata {
     name      = "velero-s3-credentials"
     namespace = kubernetes_namespace.velero.metadata[0].name
-    labels    = local.common_labels
+    labels    = var.common_labels
   }
 
   data = {
@@ -70,7 +70,7 @@ resource "REDACTED_4ad9fc99" "velero" {
   metadata {
     name      = "velero"
     namespace = kubernetes_namespace.velero.metadata[0].name
-    labels    = local.common_labels
+    labels    = var.common_labels
   }
 
   depends_on = [kubernetes_manifest.velero_crds]
@@ -82,7 +82,7 @@ resource "REDACTED_4ad9fc99" "velero" {
 resource "REDACTED_2b73dc4c" "velero" {
   metadata {
     name   = "velero"
-    labels = local.common_labels
+    labels = var.common_labels
   }
 
   role_ref {
@@ -108,7 +108,7 @@ resource "kubernetes_manifest" "velero_backup_location" {
     metadata = {
       name      = "default"
       namespace = kubernetes_namespace.velero.metadata[0].name
-      labels    = local.common_labels
+      labels    = var.common_labels
     }
     spec = {
       provider = "aws"
@@ -137,7 +137,7 @@ resource "kubernetes_manifest" "velero_snapshot_location" {
     metadata = {
       name      = "default"
       namespace = kubernetes_namespace.velero.metadata[0].name
-      labels    = local.common_labels
+      labels    = var.common_labels
     }
     spec = {
       provider = "aws"
@@ -157,7 +157,7 @@ resource "kubernetes_deployment" "velero" {
   metadata {
     name      = "velero"
     namespace = kubernetes_namespace.velero.metadata[0].name
-    labels = merge(local.common_labels, {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name" = "velero"
     })
   }
@@ -173,7 +173,7 @@ resource "kubernetes_deployment" "velero" {
 
     template {
       metadata {
-        labels = merge(local.common_labels, {
+        labels = merge(var.common_labels, {
           "app.kubernetes.io/name" = "velero"
         })
       }
@@ -278,7 +278,6 @@ resource "kubernetes_deployment" "velero" {
     REDACTED_2b73dc4c.velero,
     kubernetes_manifest.velero_backup_location,
     kubernetes_manifest.velero_snapshot_location,
-    kubernetes_job.minio_create_bucket
   ]
 }
 
@@ -289,7 +288,7 @@ resource "kubernetes_daemonset" "velero_node_agent" {
   metadata {
     name      = "velero-node-agent"
     namespace = kubernetes_namespace.velero.metadata[0].name
-    labels = merge(local.common_labels, {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name" = "velero-node-agent"
     })
   }
@@ -303,7 +302,7 @@ resource "kubernetes_daemonset" "velero_node_agent" {
 
     template {
       metadata {
-        labels = merge(local.common_labels, {
+        labels = merge(var.common_labels, {
           "app.kubernetes.io/name" = "velero-node-agent"
         })
       }
@@ -413,7 +412,7 @@ resource "kubernetes_manifest" "velero_schedule_daily" {
     metadata = {
       name      = "daily-backup"
       namespace = kubernetes_namespace.velero.metadata[0].name
-      labels    = local.common_labels
+      labels    = var.common_labels
     }
     spec = {
       schedule = "0 2 * * *" # 2 AM daily
@@ -439,7 +438,7 @@ resource "kubernetes_manifest" "velero_schedule_weekly" {
     metadata = {
       name      = "weekly-backup"
       namespace = kubernetes_namespace.velero.metadata[0].name
-      labels    = local.common_labels
+      labels    = var.common_labels
     }
     spec = {
       schedule = "0 3 * * 0" # 3 AM Sunday
@@ -465,7 +464,7 @@ resource "kubernetes_deployment" "velero_ui" {
   metadata {
     name      = "velero-ui"
     namespace = kubernetes_namespace.velero.metadata[0].name
-    labels = merge(local.common_labels, {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name" = "velero-ui"
     })
   }
@@ -481,7 +480,7 @@ resource "kubernetes_deployment" "velero_ui" {
 
     template {
       metadata {
-        labels = merge(local.common_labels, {
+        labels = merge(var.common_labels, {
           "app.kubernetes.io/name" = "velero-ui"
         })
       }
@@ -552,7 +551,7 @@ resource "kubernetes_service" "velero_ui" {
   metadata {
     name      = "velero-ui"
     namespace = kubernetes_namespace.velero.metadata[0].name
-    labels    = local.common_labels
+    labels    = var.common_labels
   }
 
   spec {
@@ -579,7 +578,7 @@ resource "kubernetes_ingress_v1" "velero_ui" {
   metadata {
     name      = "velero-ui"
     namespace = kubernetes_namespace.velero.metadata[0].name
-    labels    = local.common_labels
+    labels    = var.common_labels
   }
 
   spec {
