@@ -15,7 +15,7 @@
 resource "kubernetes_namespace" "awx" {
   metadata {
     name = "awx"
-    labels = merge(local.common_labels, {
+    labels = merge(var.common_labels, {
       app = "awx"
     })
   }
