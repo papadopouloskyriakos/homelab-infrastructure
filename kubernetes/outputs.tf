@@ -73,3 +73,56 @@ output "deployment_summary" {
     
   EOF
 }
+
+***REMOVED***
+# Velero & MinIO Outputs - Add these to your existing outputs.tf
+***REMOVED***
+
+# -----------------------------------------------------------------------------
+# MinIO Outputs
+# -----------------------------------------------------------------------------
+output "minio_console_url" {
+  description = "MinIO Console URL (NodePort)"
+  value       = "http://<node-ip>:30010"
+}
+
+output "minio_api_url" {
+  description = "MinIO API URL (NodePort)"
+  value       = "http://<node-ip>:30011"
+}
+
+output "minio_console_ingress" {
+  description = "MinIO Console Ingress URL"
+  value       = "https://minio.${var.domain}"
+}
+
+# -----------------------------------------------------------------------------
+# Velero Outputs
+# -----------------------------------------------------------------------------
+output "velero_ui_url" {
+  description = "Velero UI URL (NodePort)"
+  value       = "http://<node-ip>:30012"
+}
+
+output "velero_ui_ingress" {
+  description = "Velero UI Ingress URL"
+  value       = "https://velero.${var.domain}"
+}
+
+output "velero_backup_schedule" {
+  description = "Velero backup schedules"
+  value = {
+    daily  = "2 AM daily, 30 days retention"
+    weekly = "3 AM Sunday, 90 days retention"
+  }
+}
+
+output "velero_commands" {
+  description = "Useful Velero CLI commands"
+  value = {
+    list_backups   = "velero backup get"
+    create_backup  = "velero backup create my-backup --include-namespaces pihole,monitoring"
+    restore_backup = "velero restore create --from-backup <backup-name>"
+    get_schedules  = "velero schedule get"
+  }
+}
