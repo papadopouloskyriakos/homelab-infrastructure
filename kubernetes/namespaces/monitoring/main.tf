@@ -4,6 +4,7 @@
 # Deploys REDACTED_d8074874 with proper node affinity to keep
 # Prometheus and Alertmanager OFF control plane nodes
 ***REMOVED***
+# Node affinity applied to prevent control plane scheduling
 
 variable "common_labels" {
   description = "Common labels to apply to resources"
