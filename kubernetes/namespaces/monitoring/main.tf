@@ -4,41 +4,7 @@
 # Deploys REDACTED_d8074874 with proper node affinity to keep
 # Prometheus and Alertmanager OFF control plane nodes
 ***REMOVED***
-# Node affinity applied to prevent control plane scheduling
 
-variable "common_labels" {
-  description = "Common labels to apply to resources"
-  type        = map(string)
-  default     = {}
-}
-
-variable "prometheus_retention" {
-  description = "Prometheus data retention period"
-  type        = string
-  default     = "1095d"
-}
-
-variable "REDACTED_6a2724e6" {
-  description = "Prometheus PVC size"
-  type        = string
-  default     = "200Gi"
-}
-
-variable "grafana_admin_password" {
-  description = "Grafana admin password"
-  type        = string
-  sensitive   = true
-}
-
-variable "grafana_storage_size" {
-  description = "Grafana PVC size"
-  type        = string
-  default     = "20Gi"
-}
-
-# -----------------------------------------------------------------------------
-# Helm Release: REDACTED_d8074874
-# -----------------------------------------------------------------------------
 resource "helm_release" "monitoring" {
   name             = "monitoring"
   repository       = "https://prometheus-community.github.io/helm-charts"
@@ -109,7 +75,7 @@ resource "helm_release" "monitoring" {
 
         # Service configuration
         service = {
-          type = "NodePort"
+          type     = "NodePort"
           nodePort = 30090
         }
       }
@@ -257,7 +223,6 @@ resource "helm_release" "monitoring" {
       # =========================================================================
       # ADDITIONAL SETTINGS
       # =========================================================================
-      # Disable components we don't need
       kubeEtcd = {
         enabled = true
       }
@@ -275,23 +240,4 @@ resource "helm_release" "monitoring" {
       }
     })
   ]
-}
-
-# -----------------------------------------------------------------------------
-# Outputs
-# -----------------------------------------------------------------------------
-output "namespace" {
-  value = helm_release.monitoring.metadata[0].namespace
-}
-
-output "chart_version" {
-  value = helm_release.monitoring.metadata[0].version
-}
-
-output "grafana_nodeport" {
-  value = 30000
-}
-
-output "prometheus_nodeport" {
-  value = 30090
 }
