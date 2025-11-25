@@ -1,3 +1,9 @@
+***REMOVED***
+# Ingress NGINX Controller
+***REMOVED***
+# Provides HTTP/HTTPS ingress for Kubernetes services
+***REMOVED***
+
 resource "helm_release" "ingress_nginx" {
   name             = "ingress-nginx"
   repository       = "https://kubernetes.github.io/ingress-nginx"
@@ -24,3 +30,4 @@ resource "helm_release" "ingress_nginx" {
     })
   ]
 }
+
