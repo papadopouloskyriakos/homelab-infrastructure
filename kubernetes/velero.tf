@@ -52,6 +52,11 @@ resource "helm_release" "velero" {
 
   values = [
     yamlencode({
+      # Disable CRD upgrade pre-install job (CRDs installed by Helm)
+      upgradeCRDs = {
+        enabled = false
+      }
+
       # Velero configuration
       configuration = {
         backupStorageLocation = [{
