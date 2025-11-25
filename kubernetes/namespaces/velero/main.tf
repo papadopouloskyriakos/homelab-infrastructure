@@ -1,11 +1,9 @@
-# Deploy Velero backup system (manifest-based, not Helm)
-
 ***REMOVED***
 # Velero - Kubernetes Backup & Disaster Recovery
 ***REMOVED***
 # Backs up K8s resources and persistent volumes
 # Uses MinIO as S3-compatible storage backend
-# Deployed via kubernetes_manifest (not Helm) to avoid chart issues
+# CRDs are assumed to be pre-installed (kubectl apply -f velero CRDs)
 ***REMOVED***
 
 # -----------------------------------------------------------------------------
@@ -42,28 +40,6 @@ EOT
 }
 
 # -----------------------------------------------------------------------------
-# Install Velero CRDs
-# -----------------------------------------------------------------------------
-data "http" "velero_crds" {
-  url = "https://raw.githubusercontent.com/vmware-tanzu/velero/v1.14.1/config/crd/v1/crds.yaml"
-}
-
-# Split CRDs and apply them
-locals {
-  velero_crds = [for doc in split("---", data.http.velero_crds.response_body) : yamldecode(doc) if length(regexall("(?m)^kind:\\s*CustomResourceDefinition", doc)) > 0]
-}
-
-resource "kubernetes_manifest" "velero_crds" {
-  for_each = { for idx, crd in local.velero_crds : crd.metadata.name => crd }
-
-  manifest = each.value
-
-  field_manager {
-    force_conflicts = true
-  }
-}
-
-# -----------------------------------------------------------------------------
 # Velero ServiceAccount
 # -----------------------------------------------------------------------------
 resource "REDACTED_4ad9fc99" "velero" {
@@ -72,8 +48,6 @@ resource "REDACTED_4ad9fc99" "velero" {
     namespace = kubernetes_namespace.velero.metadata[0].name
     labels    = var.common_labels
   }
-
-  depends_on = [kubernetes_manifest.velero_crds]
 }
 
 # -----------------------------------------------------------------------------
@@ -123,8 +97,6 @@ resource "kubernetes_manifest" "velero_backup_location" {
       }
     }
   }
-
-  depends_on = [kubernetes_manifest.velero_crds]
 }
 
 # -----------------------------------------------------------------------------
@@ -146,8 +118,6 @@ resource "kubernetes_manifest" "velero_snapshot_location" {
       }
     }
   }
-
-  depends_on = [kubernetes_manifest.velero_crds]
 }
 
 # -----------------------------------------------------------------------------
