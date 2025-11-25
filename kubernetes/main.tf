@@ -99,18 +99,7 @@ module "pihole" {
   pihole_password = var.pihole_password
 }
 
-module "velero" {
-  source = "./namespaces/velero"
-
-  common_labels = local.common_labels
-
-  # Pass MinIO credentials for S3 backend
-  minio_root_user     = var.minio_root_user
-  minio_root_password = var.minio_root_password
-  domain              = var.domain
-
-  depends_on = [module.minio]
-}
+# NOTE: Velero has been migrated to Argo CD management (apps/velero/)
 
 module "argocd" {
   source = "./namespaces/argocd"
@@ -118,7 +107,6 @@ module "argocd" {
   common_labels = local.common_labels
   domain        = var.domain
 
-  # Argo CD settings
   REDACTED_be8b31fd         = var.REDACTED_be8b31fd
   argocd_nodeport              = var.argocd_nodeport
   REDACTED_84146aee       = var.REDACTED_84146aee
