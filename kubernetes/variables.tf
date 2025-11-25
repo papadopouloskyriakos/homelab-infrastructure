@@ -184,7 +184,7 @@ variable "REDACTED_be8b31fd" {
 variable "argocd_nodeport" {
   description = "NodePort for Argo CD HTTPS access"
   type        = number
-  default     = 30080
+  default     = 30085
 }
 
 variable "REDACTED_84146aee" {
