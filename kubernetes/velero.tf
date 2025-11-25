@@ -346,8 +346,8 @@ resource "kubernetes_daemonset" "velero_node_agent" {
           }
 
           volume_mount {
-            name       = "host-pods"
-            mount_path = "/host_pods"
+            name              = "host-pods"
+            mount_path        = "/host_pods"
             mount_propagation = "HostToContainer"
           }
 
