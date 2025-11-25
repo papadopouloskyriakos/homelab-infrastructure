@@ -424,7 +424,7 @@ resource "kubernetes_manifest" "velero_schedule_daily" {
         includeClusterResources  = true
         storageLocation          = "default"
         volumeSnapshotLocations  = ["default"]
-        defaultVolumesToKopia    = true
+        defaultVolumesToFsBackup = true
       }
     }
   }
@@ -450,7 +450,7 @@ resource "kubernetes_manifest" "velero_schedule_weekly" {
         includeClusterResources  = true
         storageLocation          = "default"
         volumeSnapshotLocations  = ["default"]
-        defaultVolumesToKopia    = true
+        defaultVolumesToFsBackup = true
       }
     }
   }
