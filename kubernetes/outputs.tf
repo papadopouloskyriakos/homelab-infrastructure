@@ -126,3 +126,33 @@ output "velero_commands" {
     get_schedules  = "velero schedule get"
   }
 }
+
+***REMOVED***
+# Argo CD Outputs
+***REMOVED***
+
+output "argocd_url_nodeport" {
+  description = "Argo CD URL (NodePort)"
+  value       = "https://<node-ip>:${var.argocd_nodeport}"
+}
+
+output "argocd_url_ingress" {
+  description = "Argo CD URL (Ingress)"
+  value       = var.REDACTED_84146aee ? "https://argocd.${var.domain}" : null
+}
+
+output "REDACTED_3a519042" {
+  description = "Command to get Argo CD initial admin password"
+  value       = "kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
+}
+
+output "argocd_cli_commands" {
+  description = "Useful Argo CD CLI commands"
+  value = {
+    install_cli  = "curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64 && sudo install argocd /usr/local/bin/"
+    login        = "argocd login argocd.${var.domain} --username admin --grpc-web"
+    list_apps    = "argocd app list"
+    sync_app     = "argocd app sync <app-name>"
+    get_password = "kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
+  }
+}
