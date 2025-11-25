@@ -490,7 +490,7 @@ resource "kubernetes_deployment" "velero_ui" {
 
         container {
           name  = "velero-ui"
-          image = "ghcr.io/otwld/velero-ui:v0.10.1"
+          image = "docker.io/otwld/velero-ui:latest"
 
           port {
             name           = "http"
