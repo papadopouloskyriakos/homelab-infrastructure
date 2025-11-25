@@ -373,7 +373,8 @@ resource "kubernetes_daemonset" "velero_node_agent" {
           }
 
           security_context {
-            privileged = true
+            privileged  = true
+            run_as_user = 0
           }
         }
 
