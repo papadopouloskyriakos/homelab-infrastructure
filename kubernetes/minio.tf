@@ -48,7 +48,7 @@ resource "REDACTED_912a6d18_claim" "minio_data" {
 
   spec {
     access_modes       = ["ReadWriteOnce"]
-    storage_class_name = "nfs-sc"
+    storage_class_name = "nfs-client"
 
     resources {
       requests = {
