@@ -318,8 +318,7 @@ resource "kubernetes_daemonset" "velero_node_agent" {
           command = ["/velero"]
           args = [
             "node-agent",
-            "server",
-            "--uploader-type=kopia"
+            "server"
           ]
 
           env {
@@ -491,7 +490,7 @@ resource "kubernetes_deployment" "velero_ui" {
 
         container {
           name  = "velero-ui"
-          image = "ghcr.io/otwld/velero-ui:${var.velero_ui_version}"
+          image = "ghcr.io/otwld/velero-ui:v0.10.1"
 
           port {
             name           = "http"
