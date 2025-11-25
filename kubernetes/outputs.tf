@@ -62,6 +62,10 @@ output "deployment_summary" {
     - GitLab Agent (k8s-agent): ${REDACTED_305df36d != "" ? "Deployed" : "Skipped (no token)"}
     - GitLab Runner: ${var.gitlab_runner_token != "" ? "Deployed" : "Skipped (no token)"}
     
+    GitOps:
+    - Argo CD: Deployed (manages application workloads)
+    - Velero: Managed by Argo CD (apps/velero/)
+    
     Applications:
     - Kubernetes Dashboard: Deployed
     - AWX: PVs created (apply CR separately)
@@ -75,12 +79,9 @@ output "deployment_summary" {
 }
 
 ***REMOVED***
-# Velero & MinIO Outputs - Add these to your existing outputs.tf
+# MinIO Outputs
 ***REMOVED***
 
-# -----------------------------------------------------------------------------
-# MinIO Outputs
-# -----------------------------------------------------------------------------
 output "minio_console_url" {
   description = "MinIO Console URL (NodePort)"
   value       = "http://<node-ip>:30010"
@@ -94,37 +95,6 @@ output "minio_api_url" {
 output "minio_console_ingress" {
   description = "MinIO Console Ingress URL"
   value       = "https://minio.${var.domain}"
-}
-
-# -----------------------------------------------------------------------------
-# Velero Outputs
-# -----------------------------------------------------------------------------
-output "velero_ui_url" {
-  description = "Velero UI URL (NodePort)"
-  value       = "http://<node-ip>:30012"
-}
-
-output "velero_ui_ingress" {
-  description = "Velero UI Ingress URL"
-  value       = "https://velero.${var.domain}"
-}
-
-output "velero_backup_schedule" {
-  description = "Velero backup schedules"
-  value = {
-    daily  = "2 AM daily, 30 days retention"
-    weekly = "3 AM Sunday, 90 days retention"
-  }
-}
-
-output "velero_commands" {
-  description = "Useful Velero CLI commands"
-  value = {
-    list_backups   = "velero backup get"
-    create_backup  = "velero backup create my-backup --include-namespaces pihole,monitoring"
-    restore_backup = "velero restore create --from-backup <backup-name>"
-    get_schedules  = "velero schedule get"
-  }
 }
 
 ***REMOVED***
