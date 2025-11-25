@@ -31,13 +31,25 @@ validate_k8s_manifests:
     - echo "=== Checking formatting ==="
     - tofu fmt -check -recursive . || { echo "⚠️ Run 'tofu fmt -recursive .' to fix formatting"; exit 1; }
     
-    # Initialize with backend (modules need proper init)
-    - echo "=== Initializing modules ==="
-    - tofu init -input=false
+    # Create temporary backend config for validation
+    - echo "=== Initializing modules (validation mode) ==="
+    - |
+      cat > backend_override.tf << 'BACKEND'
+      terraform {
+        backend "local" {
+          path = "/tmp/terraform.tfstate"
+        }
+      }
+      BACKEND
+    
+    - tofu init -input=false -reconfigure
     
     # Validate syntax and module structure
     - echo "=== Validating configuration ==="
     - tofu validate
+    
+    # Clean up temp backend
+    - rm -f backend_override.tf
     
     - echo "✅ Validation passed - Atlantis will handle plan/apply in MR"
   allow_failure: false
