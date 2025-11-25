@@ -12,7 +12,7 @@
 resource "kubernetes_namespace" "minio" {
   metadata {
     name = "minio"
-    labels = merge(local.common_labels, {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name" = "minio"
     })
   }
@@ -25,7 +25,7 @@ resource "kubernetes_secret" "minio_credentials" {
   metadata {
     name      = "minio-credentials"
     namespace = kubernetes_namespace.minio.metadata[0].name
-    labels    = local.common_labels
+    labels    = var.common_labels
   }
 
   data = {
@@ -43,7 +43,7 @@ resource "REDACTED_912a6d18_claim" "minio_data" {
   metadata {
     name      = "minio-data"
     namespace = kubernetes_namespace.minio.metadata[0].name
-    labels    = local.common_labels
+    labels    = var.common_labels
   }
 
   spec {
@@ -65,7 +65,7 @@ resource "kubernetes_deployment" "minio" {
   metadata {
     name      = "minio"
     namespace = kubernetes_namespace.minio.metadata[0].name
-    labels = merge(local.common_labels, {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name" = "minio"
     })
   }
@@ -85,7 +85,7 @@ resource "kubernetes_deployment" "minio" {
 
     template {
       metadata {
-        labels = merge(local.common_labels, {
+        labels = merge(var.common_labels, {
           "app.kubernetes.io/name" = "minio"
         })
       }
@@ -182,7 +182,7 @@ resource "kubernetes_service" "minio_api" {
   metadata {
     name      = "minio-api"
     namespace = kubernetes_namespace.minio.metadata[0].name
-    labels    = local.common_labels
+    labels    = var.common_labels
   }
 
   spec {
@@ -206,7 +206,7 @@ resource "kubernetes_service" "minio_console" {
   metadata {
     name      = "minio-console"
     namespace = kubernetes_namespace.minio.metadata[0].name
-    labels    = local.common_labels
+    labels    = var.common_labels
   }
 
   spec {
@@ -233,7 +233,7 @@ resource "kubernetes_ingress_v1" "minio_console" {
   metadata {
     name      = "minio-console"
     namespace = kubernetes_namespace.minio.metadata[0].name
-    labels    = local.common_labels
+    labels    = var.common_labels
     annotations = {
       "nginx.ingress.kubernetes.io/proxy-body-size" = "0"
     }
@@ -269,7 +269,7 @@ resource "kubernetes_job" "minio_create_bucket" {
   metadata {
     name      = "minio-create-velero-bucket"
     namespace = kubernetes_namespace.minio.metadata[0].name
-    labels    = local.common_labels
+    labels    = var.common_labels
   }
 
   spec {
@@ -277,7 +277,7 @@ resource "kubernetes_job" "minio_create_bucket" {
 
     template {
       metadata {
-        labels = local.common_labels
+        labels = var.common_labels
       }
 
       spec {
