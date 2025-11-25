@@ -78,8 +78,8 @@ resource "helm_release" "velero" {
 
       # Credentials
       credentials = {
-        useSecret       = true
-        existingSecret  = kubernetes_secret.velero_s3_credentials.metadata[0].name
+        useSecret      = true
+        existingSecret = kubernetes_secret.velero_s3_credentials.metadata[0].name
       }
 
       # Init containers to install plugins
@@ -127,30 +127,30 @@ resource "helm_release" "velero" {
       schedules = {
         daily-backup = {
           disabled = false
-          schedule = "0 2 * * *"  # 2 AM daily
+          schedule = "0 2 * * *" # 2 AM daily
           template = {
-            ttl                         = "720h"  # 30 days retention
-            includedNamespaces          = ["*"]
-            excludedNamespaces          = ["kube-system", "velero", "minio"]
-            includeClusterResources     = true
-            storageLocation             = "default"
-            volumeSnapshotLocations     = ["default"]
-            defaultVolumesToFsBackup    = true
+            ttl                      = "720h" # 30 days retention
+            includedNamespaces       = ["*"]
+            excludedNamespaces       = ["kube-system", "velero", "minio"]
+            includeClusterResources  = true
+            storageLocation          = "default"
+            volumeSnapshotLocations  = ["default"]
+            defaultVolumesToFsBackup = true
           }
           useOwnerReferencesInBackup = false
         }
 
         weekly-backup = {
           disabled = false
-          schedule = "0 3 * * 0"  # 3 AM every Sunday
+          schedule = "0 3 * * 0" # 3 AM every Sunday
           template = {
-            ttl                         = "2160h"  # 90 days retention
-            includedNamespaces          = ["*"]
-            excludedNamespaces          = ["kube-system", "velero", "minio"]
-            includeClusterResources     = true
-            storageLocation             = "default"
-            volumeSnapshotLocations     = ["default"]
-            defaultVolumesToFsBackup    = true
+            ttl                      = "2160h" # 90 days retention
+            includedNamespaces       = ["*"]
+            excludedNamespaces       = ["kube-system", "velero", "minio"]
+            includeClusterResources  = true
+            storageLocation          = "default"
+            volumeSnapshotLocations  = ["default"]
+            defaultVolumesToFsBackup = true
           }
           useOwnerReferencesInBackup = false
         }
