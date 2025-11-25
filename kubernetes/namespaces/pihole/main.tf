@@ -20,7 +20,7 @@
 resource "kubernetes_namespace" "pihole" {
   metadata {
     name = "pihole"
-    labels = merge(local.common_labels, {
+    labels = merge(var.common_labels, {
       app = "pihole"
     })
   }
@@ -57,7 +57,6 @@ resource "REDACTED_912a6d18_claim" "pihole_data" {
     }
   }
 
-  depends_on = [helm_release.nfs_provisioner]
 }
 
 resource "kubernetes_deployment" "pihole" {
@@ -92,7 +91,7 @@ resource "kubernetes_deployment" "pihole" {
 
           env {
             name  = "TZ"
-            value = local.timezone
+            value = "Europe/Amsterdam"
           }
 
           env {

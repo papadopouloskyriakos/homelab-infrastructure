@@ -129,5 +129,4 @@ resource "helm_release" "monitoring" {
     })
   ]
 
-  depends_on = [helm_release.nfs_provisioner]
 }
