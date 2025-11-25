@@ -1,9 +1,7 @@
-# atlantis.yaml (in repo root)
 version: 3
 automerge: false
 parallel_plan: true
 parallel_apply: false
-
 projects:
   - name: k8s
     dir: k8s
@@ -11,28 +9,25 @@ projects:
     autoplan:
       enabled: true
       when_modified:
-        - "*.tf"
+        - "**/*.tf"
         - "*.tfvars"
     workflow: opentofu-k8s
-
   - name: proxmox-lxc
     dir: pve/lxc
     workspace: default
     autoplan:
       enabled: true
       when_modified:
-        - "*.tf"
+        - "**/*.tf"
     workflow: opentofu-pve
-
   - name: proxmox-qemu
     dir: pve/qemu
     workspace: default
     autoplan:
       enabled: true
       when_modified:
-        - "*.tf"
+        - "**/*.tf"
     workflow: opentofu-pve
-
 workflows:
   opentofu-k8s:
     plan:
@@ -42,7 +37,6 @@ workflows:
     apply:
       steps:
         - apply
-
   opentofu-pve:
     plan:
       steps:
