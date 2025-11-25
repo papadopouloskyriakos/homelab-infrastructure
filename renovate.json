@@ -5,7 +5,7 @@
   ],
   "timezone": "Europe/Amsterdam",
   "schedule": [
-    "after 10pm on sunday"
+    "at any time"
   ],
   "enabledManagers": [
     "docker-compose",
