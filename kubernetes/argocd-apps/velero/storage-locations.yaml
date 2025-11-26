@@ -1,0 +1,31 @@
+---
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: default
+  namespace: velero
+  labels:
+    environment: production
+    managed-by: argocd
+spec:
+  provider: aws
+  default: true
+  objectStorage:
+    bucket: velero
+  config:
+    region: minio
+    s3ForcePathStyle: "true"
+    s3Url: http://minio-api.minio.svc.cluster.local:9000
+---
+apiVersion: velero.io/v1
+kind: VolumeSnapshotLocation
+metadata:
+  name: default
+  namespace: velero
+  labels:
+    environment: production
+    managed-by: argocd
+spec:
+  provider: aws
+  config:
+    region: minio
