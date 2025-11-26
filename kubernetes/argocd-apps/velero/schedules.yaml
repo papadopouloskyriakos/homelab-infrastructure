@@ -1,0 +1,48 @@
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: daily-backup
+  namespace: velero
+  labels:
+    environment: production
+    managed-by: argocd
+spec:
+  schedule: "0 2 * * *"
+  template:
+    ttl: 720h
+    includedNamespaces:
+    - "*"
+    excludedNamespaces:
+    - kube-system
+    - velero
+    - minio
+    includeClusterResources: true
+    storageLocation: default
+    volumeSnapshotLocations:
+    - default
+    defaultVolumesToFsBackup: true
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: weekly-backup
+  namespace: velero
+  labels:
+    environment: production
+    managed-by: argocd
+spec:
+  schedule: "0 3 * * 0"
+  template:
+    ttl: 2160h
+    includedNamespaces:
+    - "*"
+    excludedNamespaces:
+    - kube-system
+    - velero
+    - minio
+    includeClusterResources: true
+    storageLocation: default
+    volumeSnapshotLocations:
+    - default
+    defaultVolumesToFsBackup: true
