@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: velero-node-agent
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero-node-agent
+    environment: production
+    managed-by: argocd
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: velero-node-agent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: velero-node-agent
+        environment: production
+        managed-by: argocd
+    spec:
+      serviceAccountName: velero
+      containers:
+      - name: node-agent
+        image: velero/velero:v1.14.1
+        command: ["/velero"]
+        args:
+        - node-agent
+        - server
+        env:
+        - name: VELERO_NAMESPACE
+          value: velero
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: VELERO_SCRATCH_DIR
+          value: /scratch
+        - name: AWS_SHARED_CREDENTIALS_FILE
+          value: /credentials/cloud
+        volumeMounts:
+        - name: host-pods
+          mountPath: /host_pods
+          mountPropagation: HostToContainer
+        - name: scratch
+          mountPath: /scratch
+        - name: cloud-credentials
+          mountPath: /credentials
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        securityContext:
+          privileged: true
+          runAsUser: 0
+      volumes:
+      - name: host-pods
+        hostPath:
+          path: /var/lib/kubelet/pods
+      - name: scratch
+        emptyDir: {}
+      - name: cloud-credentials
+        secret:
+          secretName: velero-s3-credentials
