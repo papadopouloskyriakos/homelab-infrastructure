@@ -3,21 +3,87 @@
 [![Pipeline Status](https://gitlab.example.net/infrastructure/nl/production/badges/main/pipeline.svg)](https://gitlab.example.net/infrastructure/nl/production/-/pipelines)
 [![License: WTFPL](https://img.shields.io/badge/License-WTFPL-brightgreen.svg)](http://www.wtfpl.net/about/)
 
-**GitLab-driven Infrastructure as Code for the Nuclear Lighters homelab.**
+**Hybrid GitOps Infrastructure as Code for the Nuclear Lighters homelab.**
 
-This repository is the **single source of truth** for the entire Nuclear Lighters infrastructure - managing network devices, virtual machines, containers, Kubernetes deployments, and automation through GitLab CI/CD pipelines.
+This repository is the **single source of truth** for the entire Nuclear Lighters infrastructure — managing network devices, virtual machines, containers, Kubernetes deployments, and 60+ Docker services through GitLab CI/CD pipelines with a two-tier GitOps model.
 
 ---
 
 ## 🎯 Overview
 
-| Component | Technology | Purpose |
-|-----------|------------|---------|
-| 🌐 Network | Cisco IOS/ASA | Routers, Switches, Firewalls, APs |
-| 🖥️ Virtualization | Proxmox VE | QEMU VMs & LXC Containers |
-| ☸️ Orchestration | Kubernetes | Container workloads |
-| 🐳 Images | Docker | Custom CI/CD runner images |
-| 🔄 Automation | GitLab CI/CD | Pipeline-driven deployments |
+| Component | Technology | Management | Purpose |
+|-----------|------------|------------|---------|
+| ☸️ Kubernetes | K8s v1.34.2 (7 nodes) | Atlantis + Argo CD | Container orchestration |
+| 🌐 Network | Cisco IOS/ASA | GitLab CI/CD | Routers, Switches, Firewalls, APs |
+| 🖥️ Virtualization | Proxmox VE (3 nodes) | OpenTofu | 100+ LXC, 20+ QEMU VMs |
+| 🐳 Docker | 60+ Services | GitLab CI/CD | GPU/AI, Media, Databases |
+| 🔄 Automation | GitLab CI/CD | - | Pipeline-driven deployments |
+
+---
+
+## 🏗️ Hybrid GitOps Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         SOURCE OF TRUTH                                      │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                      📂 GitLab Repository                              │  │
+│  │  k8s/          → OpenTofu configs (Atlantis)                          │  │
+│  │  k8s/argocd-apps/ → Argo CD manifests                                 │  │
+│  │  network/      → Cisco configs                                        │  │
+│  │  pve/          → Proxmox VM/LXC configs                               │  │
+│  │  docker/       → 60+ service definitions                              │  │
+│  │                                                                        │  │
+│  │  📊 1000+ commits • Terraform State Backend                           │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      ⚡ GitLab CI/CD Pipeline                                │
+│                                                                              │
+│   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐                │
+│   │  DRIFT   │ → │ VALIDATE │ → │   PLAN   │ → │  DEPLOY  │                │
+│   │  DETECT  │   │          │   │ MR Comment│   │Auto/Manual│               │
+│   └──────────┘   └──────────┘   └──────────┘   └──────────┘                │
+│                                                                              │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │  🏗️ Atlantis (Platform)          │  🔄 Argo CD (Applications)       │   │
+│   │  PR-based OpenTofu workflows     │  Auto-sync with self-healing     │   │
+│   │  `atlantis plan` / `apply`       │  GitOps for K8s workloads        │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│   Custom Runners: [k8s-runner] [cisco-ee] [pve-runner] [docker-runner]      │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      MANAGED INFRASTRUCTURE                                  │
+│                                                                              │
+│  ┌────────────────┐ ┌────────────────┐ ┌────────────────┐ ┌──────────────┐ │
+│  │ ☸️ Kubernetes   │ │ 🌐 Cisco       │ │ 🖥️ Proxmox     │ │ 🐳 Docker    │ │
+│  │ v1.34.2        │ │ Network        │ │ VE             │ │ Fleet        │ │
+│  │ 7 Nodes HA     │ │                │ │ 3 Nodes        │ │              │ │
+│  │                │ │ • Routers      │ │                │ │ • GPU/AI     │ │
+│  │ Platform:      │ │ • Switches     │ │ • 100+ LXC     │ │ • Media      │ │
+│  │ • Prometheus   │ │ • Firewalls    │ │ • 20+ QEMU     │ │ • Databases  │ │
+│  │ • Grafana      │ │ • Access Points│ │ • Cloud-init   │ │ • Matrix     │ │
+│  │ • Ingress NGINX│ │                │ │ • Templates    │ │ • Nextcloud  │ │
+│  │ • Pi-hole      │ │ Auto Drift     │ │                │ │              │ │
+│  │ • AWX          │ │ Detection      │ │ OpenTofu       │ │ 60+ Services │ │
+│  │ • MinIO        │ │                │ │ Managed        │ │              │ │
+│  │ • Argo CD      │ │ Python +       │ │                │ │ CI/CD Auto   │ │
+│  │                │ │ Netmiko        │ │                │ │ Deploy       │ │
+│  │ Apps:          │ │                │ │                │ │              │ │
+│  │ • Velero       │ │                │ │                │ │              │ │
+│  └────────────────┘ └────────────────┘ └────────────────┘ └──────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+                    ┌───────────────────────────────┐
+                    │  🔍 Drift → 📝 Auto MR → ✅ Reconcile  │
+                    └───────────────────────────────┘
+```
 
 ---
 
@@ -25,99 +91,189 @@ This repository is the **single source of truth** for the entire Nuclear Lighter
 
 ```
 production/
-├── 📄 _gitlab-ci.yml              # Main pipeline configuration
+├── 📄 .gitlab-ci.yml              # Main pipeline configuration
+├── 📄 atlantis.yaml               # Atlantis project configuration
+├── 📄 renovate.json               # Automated dependency updates
 ├── 📄 README.md                   # You are here! 👋
-├── 📄 LICENSE                     # WTFPL - Do what you want!
 │
 ├── 📁 ci/                         # 🔧 Modular pipeline includes
 │   ├── cisco.yml                  #    Cisco device automation
-│   ├── k8s.yml                    #    Kubernetes deployments
-│   ├── docker.yml                 #    Docker image builds
-│   └── proxmox.yml                #    Proxmox VM/LXC automation
+│   ├── k8s.yml                    #    Kubernetes (OpenTofu + Argo CD validation)
+│   ├── docker.yml                 #    Docker image builds & deployments
+│   ├── lxc.yml                    #    Proxmox LXC automation
+│   └── qemu.yml                   #    Proxmox QEMU automation
+│
+├── 📁 k8s/                        # ☸️ Kubernetes Infrastructure
+│   ├── main.tf                    #    Main orchestrator
+│   ├── variables.tf               #    Input variables
+│   ├── outputs.tf                 #    Output values
+│   ├── providers.tf               #    Provider configuration
+│   │
+│   ├── 📁 _core/                  #    Core infrastructure (Atlantis)
+│   │   ├── nfs-provisioner/       #    - NFS StorageClass
+│   │   ├── ingress-nginx/         #    - Ingress Controller
+│   │   └── gitlab-agent/          #    - GitLab K8s Agent
+│   │
+│   ├── 📁 namespaces/             #    Application namespaces (Atlantis)
+│   │   ├── argocd/                #    - Argo CD deployment
+│   │   ├── awx/                   #    - AWX Ansible automation
+│   │   ├── minio/                 #    - S3-compatible storage
+│   │   ├── monitoring/            #    - Prometheus + Grafana
+│   │   └── pihole/                #    - Pi-hole DNS
+│   │
+│   └── 📁 argocd-apps/            #    Argo CD managed applications
+│       └── velero/                #    - Backup & disaster recovery
+│           ├── application.yaml   #      Argo CD Application
+│           ├── deployment.yaml    #      Velero server
+│           ├── daemonset.yaml     #      Node agents
+│           ├── schedules.yaml     #      Backup schedules
+│           └── ui.yaml            #      Velero UI
 │
 ├── 📁 network/                    # 🌐 Cisco Network Configs
-│   ├── configs/                   #    Device configurations
+│   ├── 📁 configs/                #    Device configurations
 │   │   ├── Router/                #    - Router configs
 │   │   ├── Switch/                #    - Switch configs
 │   │   ├── Firewall/              #    - ASA firewall configs
 │   │   └── Access-Point/          #    - Wireless AP configs
-│   └── scripts/                   #    Python automation scripts
+│   └── 📁 scripts/                #    Python automation scripts
 │       ├── detect_drift.py        #    - Drift detection
 │       ├── generate_diff.py       #    - Hierarchical diff generator
 │       ├── direct_deploy.py       #    - Device deployment
-│       ├── validate_syntax.py     #    - Config validation
-│       ├── pre_deploy_drift_gate.py   # - Pre-deploy checks
-│       ├── post_validate.py       #    - Post-deploy verification
 │       ├── auto_sync_drift.py     #    - Auto-sync device→GitLab
-│       ├── sync_from_device.py    #    - Manual sync helper
-│       ├── filter_dynamic_content.py  # - Dynamic content filter
-│       └── rebase-after-drift.sh  #    - Rebase helper script
+│       └── ...                    #    - More utilities
 │
-├── 📁 k8s/                        # ☸️ Kubernetes (OpenTofu)
-│   ├── providers.tf               #    Provider & backend config
-│   ├── variables.tf               #    Input variables
-│   ├── main.tf                    #    Common locals & labels
-│   ├── outputs.tf                 #    Output values
-│   ├── nfs-provisioner.tf         #    NFS StorageClass (Helm)
-│   ├── ingress-nginx.tf           #    Ingress Controller (Helm)
-│   ├── monitoring.tf              #    Prometheus & Grafana (Helm)
-│   ├── gitlab.tf                  #    GitLab Agent (Helm)
-│   ├── pihole.tf                  #    Pi-hole DNS (native K8s)
-│   ├── awx.tf                     #    AWX infrastructure (PVs, PVCs)
-│   ├── .gitignore                 #    Excludes local state/secrets
-│   └── .terraform.lock.hcl        #    Provider version lock
+├── 📁 pve/                        # 🖥️ Proxmox Automation
+│   ├── 📁 lxc/                    #    LXC container definitions
+│   │   ├── nl-pve01/          #    - 76 containers
+│   │   ├── nl-pve02/          #    - 7 containers
+│   │   └── nl-pve03/          #    - 34 containers
+│   └── 📁 qemu/                   #    QEMU VM definitions
+│       ├── nl-pve01/          #    - 8 VMs
+│       └── nl-pve03/          #    - 14 VMs
 │
-├── 📁 proxmox/                    # 🖥️ Proxmox Automation
-│   ├── lxc/                       #    LXC container definitions
-│   │   ├── main.tf                #    - Container resources
-│   │   ├── variables.tf           #    - Container variables
-│   │   └── templates/             #    - Container templates
-│   ├── qemu/                      #    QEMU VM definitions
-│   │   ├── main.tf                #    - VM resources
-│   │   ├── variables.tf           #    - VM variables
-│   │   └── cloud-init/            #    - Cloud-init configs
-│   └── modules/                   #    Shared Terraform modules
-│
-└── 📁 docker/                     # 🐳 Custom Docker Images
-    ├── cisco-ee/                  #    Cisco automation image
-    │   └── Dockerfile             #    - Netmiko, Ansible, etc.
-    ├── k8s-runner/                #    Kubernetes runner image
-    │   └── Dockerfile             #    - tofu, kubectl, helm (providers cached)
-    ├── docker-runner/             #    Docker operations image
-    │   └── Dockerfile             #    - Docker CLI, buildx
-    └── pve-runner/                #    Proxmox runner image
-        └── Dockerfile             #    - Proxmox API tools
+└── 📁 docker/                     # 🐳 Docker Services & Images
+    ├── 📁 images/                 #    Custom CI/CD runner images
+    │   ├── cisco-ee/              #    - Cisco automation (Netmiko)
+    │   ├── k8s-runner/            #    - K8s runner (tofu, kubectl, helm)
+    │   ├── docker-runner/         #    - Docker operations
+    │   └── pve-runner/            #    - Proxmox API tools
+    └── 📁 services/               #    60+ Docker service definitions
+        ├── gpu-ai/                #    - Ollama, Stable Diffusion, Whisper
+        ├── media/                 #    - Jellyfin, Plex, Navidrome
+        ├── databases/             #    - Redis, InfluxDB, ProxySQL
+        └── productivity/          #    - Matrix, LibreChat, Nextcloud
 ```
 
 ---
 
+## ☸️ Kubernetes Infrastructure
+
+### 🏗️ Cluster Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    Kubernetes Cluster v1.34.2                                │
+│                  api-k8s.example.net:6443                            │
+│                                                                              │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                       Control Plane (HA)                              │   │
+│  │   ┌────────────┐   ┌────────────┐   ┌────────────┐                   │   │
+│  │   │  ctrl01   │   │  ctrl02   │   │  ctrl03   │                   │   │
+│  │   │  8 CPU     │   │  4 CPU     │   │  8 CPU     │                   │   │
+│  │   │  8 GB RAM  │   │  4 GB RAM  │   │  8 GB RAM  │                   │   │
+│  │   └────────────┘   └────────────┘   └────────────┘                   │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                        Worker Nodes                                   │   │
+│  │   ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐       │   │
+│  │   │   node01   │ │   node02   │ │   node03   │ │   node04   │       │   │
+│  │   │  8 CPU     │ │  8 CPU     │ │  8 CPU     │ │  8 CPU     │       │   │
+│  │   │  8 GB RAM  │ │  8 GB RAM  │ │  8 GB RAM  │ │  8 GB RAM  │       │   │
+│  │   └────────────┘ └────────────┘ └────────────┘ └────────────┘       │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 📦 Managed Workloads
+
+#### Platform Infrastructure (Atlantis + OpenTofu)
+
+| Workload | Namespace | Access | Description |
+|----------|-----------|--------|-------------|
+| 🗂️ **NFS Provisioner** | `nfs-provisioner` | StorageClass: `nfs-client` | Dynamic NFS provisioning |
+| 🌐 **Ingress NGINX** | `ingress-nginx` | LoadBalancer | HTTP/HTTPS ingress |
+| 🔗 **GitLab Agent** | `REDACTED_01b50c5d` | Internal | Cluster connectivity |
+| 📊 **Prometheus** | `monitoring` | NodePort :30090 | Metrics collection (3yr retention) |
+| 📈 **Grafana** | `monitoring` | NodePort :30000 | Dashboards & visualization |
+| 🔔 **Alertmanager** | `monitoring` | Internal | Alert routing |
+| 🛡️ **Pi-hole** | `pihole` | NodePort :30666 | DNS filtering |
+| 🤖 **AWX** | `awx` | NodePort :30994 | Ansible automation |
+| 💾 **MinIO** | `minio` | NodePort :30010 | S3-compatible storage |
+| 🔄 **Argo CD** | `argocd` | NodePort :30085 | GitOps delivery |
+
+#### Applications (Argo CD)
+
+| Application | Namespace | Access | Description |
+|-------------|-----------|--------|-------------|
+| 📦 **Velero** | `velero` | NodePort :30012 | Backup & disaster recovery |
+
+### 🔄 Hybrid GitOps Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     Platform Changes (OpenTofu)                              │
+│                                                                              │
+│   Developer                  Atlantis                    Kubernetes          │
+│       │                          │                            │              │
+│       │── git push ─────────────▶│                            │              │
+│       │                          │── tofu plan ──────────────▶│              │
+│       │◀── MR comment (plan) ────│                            │              │
+│       │                          │                            │              │
+│       │── "atlantis apply" ─────▶│                            │              │
+│       │                          │── tofu apply ─────────────▶│              │
+│       │◀── MR comment (applied) ─│                            │              │
+│       │                          │                            │              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     Application Changes (Argo CD)                            │
+│                                                                              │
+│   Developer                  Argo CD                     Kubernetes          │
+│       │                          │                            │              │
+│       │── git push (main) ──────▶│                            │              │
+│       │                          │── detect OutOfSync ───────▶│              │
+│       │                          │── auto-sync ──────────────▶│              │
+│       │                          │── self-heal if needed ────▶│              │
+│       │                          │                            │              │
+│       │◀─────────── Synced & Healthy ─────────────────────────│              │
+│       │                          │                            │              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 🔗 Access URLs
+
+| Service | NodePort | Ingress |
+|---------|----------|---------|
+| 📈 Grafana | `<node-ip>:30000` | - |
+| 📊 Prometheus | `<node-ip>:30090` | - |
+| 🛡️ Pi-hole | `<node-ip>:30666` | `pihole.example.net` |
+| 🤖 AWX | `<node-ip>:30994` | - |
+| 💾 MinIO Console | `<node-ip>:30010` | `minio.example.net` |
+| 🔄 Argo CD | `<node-ip>:30085` | `argocd.example.net` |
+| 📦 Velero UI | `<node-ip>:30012` | `velero.example.net` |
+
+### 🔄 K8s Pipeline Jobs
+
+| Stage | Job | Trigger | Description |
+|-------|-----|---------|-------------|
+| ✅ **validate** | `validate_k8s_opentofu` | `k8s/**/*.tf` | OpenTofu fmt + validate |
+| ✅ **validate** | `validate_argocd_manifests` | `k8s/argocd-apps/**/*.yaml` | Dry-run K8s manifests |
+| ✔️ **verify** | `verify_k8s_infrastructure` | merge to main | Check pods, services, Argo CD apps |
+
+---
+
 ## 🌐 Network Automation (Cisco)
-
-### 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        GitLab Repository                         │
-│                    (Single Source of Truth)                      │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      GitLab CI/CD Pipeline                       │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐ │
-│  │  Drift   │→│ Validate │→│Pre-Deploy│→│  Deploy  │→│ Verify │ │
-│  │Detection │ │          │ │  (Diff)  │ │          │ │        │ │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └────────┘ │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      Network Devices                             │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐            │
-│  │ 🌐 Router│ │🔀 Switch │ │🛡️Firewall│ │ 📶 AP    │            │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘            │
-└─────────────────────────────────────────────────────────────────┘
-```
 
 ### 🔄 Pipeline Stages
 
@@ -132,14 +288,161 @@ production/
 
 ### 📋 Supported Devices
 
-| Type | Platform | Naming Convention | Example | Config Path |
-|------|----------|-------------------|---------|-------------|
-| 🌐 Router | Cisco IOS | `nllte*` | nl-lte01 | `network/configs/Router/` |
-| 🔀 Switch | Cisco IOS | `nlsw*` | nlsw01 | `network/configs/Switch/` |
-| 🛡️ Firewall | Cisco ASA | `nlfw*` | nlfw01 | `REDACTED_0cc48b91` |
-| 📶 Access Point | Cisco IOS | `nlap*` | nlap01 | `network/configs/Access-Point/` |
+| Type | Platform | Config Path |
+|------|----------|-------------|
+| 🌐 Router | Cisco IOS | `network/configs/Router/` |
+| 🔀 Switch | Cisco IOS | `network/configs/Switch/` |
+| 🛡️ Firewall | Cisco ASA | `REDACTED_0cc48b91` |
+| 📶 Access Point | Cisco IOS | `network/configs/Access-Point/` |
 
-### 🛠️ Making Network Changes
+### 🚨 Drift Detection Flow
+
+```
+Someone SSHs to device and makes changes
+              │
+              ▼
+┌─────────────────────────────┐
+│  Nightly drift detection    │
+│  or pre-deploy check        │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│   Drift detected!           │
+│   🛑 DEPLOYMENT BLOCKED     │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│  MR created automatically   │
+│  with device's current      │
+│  configuration              │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│  Review & merge the MR      │
+│  Rebase your changes        │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│  Pipeline succeeds! 🎉       │
+└─────────────────────────────┘
+```
+
+---
+
+## 🖥️ Proxmox Automation
+
+### 📊 Infrastructure Overview
+
+| Node | LXC Containers | QEMU VMs |
+|------|----------------|----------|
+| nl-pve01 | 76 | 8 |
+| nl-pve02 | 7 | - |
+| nl-pve03 | 34 | 14 |
+| **Total** | **117** | **22** |
+
+### 🔄 Pipeline Stages
+
+| Stage | Description |
+|-------|-------------|
+| ✅ **validate** | OpenTofu fmt check + validate |
+| 📝 **plan** | Generate execution plan |
+| 🚀 **apply** | Create/modify VMs & containers (manual trigger) |
+| ✔️ **verify** | Verify resources are running |
+
+---
+
+## 🐳 Docker Fleet
+
+### 📊 Service Categories
+
+| Category | Examples | Count |
+|----------|----------|-------|
+| 🤖 GPU/AI | Ollama, Stable Diffusion, Whisper, Immich | 8+ |
+| 🎬 Media | Jellyfin, Plex, Navidrome, Audiobookshelf | 10+ |
+| 🗄️ Databases | Redis, InfluxDB, ProxySQL, PostgreSQL | 8+ |
+| 💬 Communication | Matrix Synapse, Element, LibreChat | 6+ |
+| 📁 Productivity | Nextcloud, Paperless-ngx, Vaultwarden | 10+ |
+| 🔧 Infrastructure | Traefik, Portainer, Watchtower | 8+ |
+| 📊 Monitoring | Telegraf, Uptime Kuma, Healthchecks | 6+ |
+| **Total** | | **60+** |
+
+### 🖥️ Custom Runner Images
+
+| Image | Purpose | Pre-cached |
+|-------|---------|------------|
+| `k8s-runner` | Kubernetes operations | OpenTofu providers, kubectl, helm |
+| `cisco-ee` | Network automation | Netmiko, Ansible, Python |
+| `pve-runner` | Proxmox operations | Proxmox API tools |
+| `docker-runner` | Docker operations | Docker CLI, buildx |
+
+---
+
+## 📊 Infrastructure Status
+
+| Component | Status | Version | Endpoint |
+|-----------|--------|---------|----------|
+| ☸️ Kubernetes | 🟢 Operational | v1.34.2 | api-k8s.example.net:6443 |
+| 🔄 Argo CD | 🟢 Operational | v2.13.2 | argocd.example.net |
+| 📦 Velero | 🟢 Operational | v1.14.1 | velero.example.net |
+| 🌐 Cisco Network | 🟢 Operational | - | - |
+| 🖥️ Proxmox | 🟢 Operational | - | pve.example.net:8006 |
+| 📈 Grafana | 🟢 Running | v12.3.0 | `<node-ip>:30000` |
+| 📊 Prometheus | 🟢 Running | v3.7.3 | `<node-ip>:30090` |
+| 🛡️ Pi-hole | 🟢 Running | latest | `<node-ip>:30666` |
+| 🤖 AWX | 🟢 Running | v24.6.1 | `<node-ip>:30994` |
+| 💾 MinIO | 🟢 Running | latest | `<node-ip>:30010` |
+| 🐳 Registry | 🟢 Operational | - | registry.example.net |
+
+### 📦 Backup Status (Velero)
+
+| Schedule | Frequency | Retention |
+|----------|-----------|-----------|
+| daily-backup | 2:00 AM daily | 30 days |
+| weekly-backup | 3:00 AM Sunday | 90 days |
+
+---
+
+## 🛠️ Quick Start
+
+### Making Kubernetes Changes
+
+**Platform Infrastructure (Atlantis):**
+```bash
+# 1. Create feature branch
+git checkout -b feature/add-new-service
+
+# 2. Edit OpenTofu files
+vim k8s/namespaces/new-service/main.tf
+
+# 3. Push and create MR
+git add -A && git commit -m "feat(k8s): Add new-service"
+git push -u origin feature/add-new-service
+
+# 4. Atlantis comments the plan on MR
+# 5. Review plan, then comment: atlantis apply
+# 6. Merge MR after apply succeeds
+```
+
+**Applications (Argo CD):**
+```bash
+# 1. Create app manifests
+mkdir k8s/argocd-apps/new-app
+vim k8s/argocd-apps/new-app/deployment.yaml
+vim k8s/argocd-apps/new-app/application.yaml
+
+# 2. Push to main (or via MR)
+git add -A && git commit -m "feat(argocd): Add new-app"
+git push origin main
+
+# 3. Argo CD auto-syncs within 3 minutes
+# 4. Check status: kubectl get application new-app -n argocd
+```
+
+### Making Network Changes
 
 ```bash
 # 1. Edit the device config
@@ -154,541 +457,42 @@ git push origin main
 #    ✅ Validates syntax
 #    🔍 Checks for drift (blocks if device was modified via SSH)
 #    📝 Generates hierarchical diff
-#    🚀 Deploys ONLY the changes (not full config)
+#    🚀 Deploys ONLY the changes
 #    ✔️ Verifies device is reachable
-```
-
-### 🚨 Drift Detection Flow
-
-```
-Someone SSHs to device and makes changes
-              │
-              ▼
-┌─────────────────────────────┐
-│  You push changes to GitLab │
-└──────────────┬──────────────┘
-               │
-               ▼
-┌─────────────────────────────┐
-│   Pipeline detects drift!   │
-│   🛑 DEPLOYMENT BLOCKED     │
-└──────────────┬──────────────┘
-               │
-               ▼
-┌─────────────────────────────┐
-│  MR created automatically   │
-│  with device's current      │
-│  configuration              │
-└──────────────┬──────────────┘
-               │
-               ▼
-┌─────────────────────────────┐
-│  Review & merge the MR      │
-└──────────────┬──────────────┘
-               │
-               ▼
-┌─────────────────────────────┐
-│  Rebase your changes:       │
-│  ./network/scripts/         │
-│    rebase-after-drift.sh    │
-└──────────────┬──────────────┘
-               │
-               ▼
-┌─────────────────────────────┐
-│  Pipeline succeeds! 🎉       │
-└─────────────────────────────┘
-```
-
-### 🔧 Network Scripts Reference
-
-| Script | Purpose | Usage |
-|--------|---------|-------|
-| `detect_drift.py` | Check all devices for drift | `python3 detect_drift.py` |
-| `generate_diff.py` | Generate hierarchical diff | `python3 generate_diff.py Router nl-lte01 <config>` |
-| `direct_deploy.py` | Deploy diff to device | `python3 direct_deploy.py Router nl-lte01 <diff.json>` |
-| `validate_syntax.py` | Validate config syntax | `python3 validate_syntax.py <config_file>` |
-| `pre_deploy_drift_gate.py` | Check drift before deploy | `python3 pre_deploy_drift_gate.py Router nl-lte01` |
-| `post_validate.py` | Post-deployment checks | `python3 post_validate.py Router nl-lte01` |
-| `auto_sync_drift.py` | Auto-sync device→GitLab | `python3 auto_sync_drift.py` |
-| `sync_from_device.py` | Manual sync helper | `python3 sync_from_device.py Router nl-lte01` |
-| `rebase-after-drift.sh` | Rebase after drift MR | `./rebase-after-drift.sh` |
-
----
-
-## 🖥️ Proxmox Automation (VMs & Containers)
-
-### 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Proxmox VE Cluster                          │
-│                                                                  │
-│  ┌─────────────────────────┐  ┌─────────────────────────────┐   │
-│  │    🖥️ QEMU/KVM VMs      │  │    📦 LXC Containers        │   │
-│  │                         │  │                             │   │
-│  │  • Full virtualization  │  │  • Lightweight containers   │   │
-│  │  • Any OS supported     │  │  • Shared kernel            │   │
-│  │  • Cloud-init support   │  │  • Fast startup             │   │
-│  │  • PCI passthrough      │  │  • Low overhead             │   │
-│  └─────────────────────────┘  └─────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
-                            │
-                            │ Managed by OpenTofu
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    GitLab CI/CD Pipeline                         │
-│            (proxmox/ directory → Proxmox API)                    │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### 📦 LXC Containers
-
-LXC containers are lightweight Linux containers running on the Proxmox host kernel.
-
-**Use Cases:**
-- 🌐 Web servers (nginx, Apache)
-- 🗄️ Databases (PostgreSQL, MySQL)
-- 🔧 Utility services (DNS, DHCP)
-- 📊 Monitoring (Prometheus, Grafana)
-
-**Directory Structure:**
-```
-proxmox/lxc/
-├── main.tf              # Container definitions
-├── variables.tf         # Container variables
-├── outputs.tf           # Output values
-└── templates/           # Container templates
-    ├── debian-12.conf   # Debian 12 template
-    └── ubuntu-24.conf   # Ubuntu 24.04 template
-```
-
-**Example LXC Resource:**
-```hcl
-resource "proxmox_lxc" "webserver" {
-  hostname    = "nlweb01"
-  target_node = "nl-pve01"
-  ostemplate  = "local:vztmpl/debian-12-standard_12.2-1_amd64.tar.zst"
-  
-  cores  = 2
-  memory = 2048
-  swap   = 512
-  
-  rootfs {
-    storage = "local-lvm"
-    size    = "8G"
-  }
-  
-  network {
-    name   = "eth0"
-    bridge = "vmbr0"
-    ip     = "10.0.X.X/24"
-    gw     = "10.0.X.X"
-  }
-  
-  features {
-    nesting = true  # For Docker-in-LXC
-  }
-}
-```
-
-### 🖥️ QEMU Virtual Machines
-
-Full virtualization for workloads requiring complete OS isolation.
-
-**Use Cases:**
-- 🪟 Windows servers
-- ☸️ Kubernetes nodes
-- 🔒 Security-sensitive workloads
-- 🧪 Testing environments
-
-**Directory Structure:**
-```
-proxmox/qemu/
-├── main.tf              # VM definitions
-├── variables.tf         # VM variables
-├── outputs.tf           # Output values
-└── cloud-init/          # Cloud-init configurations
-    ├── user-data.yaml   # User configuration
-    └── network.yaml     # Network configuration
-```
-
-**Example QEMU Resource:**
-```hcl
-resource "proxmox_vm_qemu" "k8s_worker" {
-  name        = "nlk8s-wrk01"
-  target_node = "nl-pve01"
-  clone       = "ubuntu-cloud-template"
-  
-  cores   = 4
-  sockets = 1
-  memory  = 8192
-  
-  disk {
-    storage = "local-lvm"
-    size    = "50G"
-    type    = "scsi"
-  }
-  
-  network {
-    model  = "virtio"
-    bridge = "vmbr0"
-  }
-  
-  # Cloud-init configuration
-  os_type    = "cloud-init"
-  ipconfig0  = "ip=10.0.X.X/24,gw=10.0.X.X"
-  ciuser     = "ansible"
-  sshkeys    = file("~/.ssh/id_rsa.pub")
-}
-```
-
-### 🔄 Proxmox Pipeline Stages
-
-| Stage | Description |
-|-------|-------------|
-| ✅ **validate** | Terraform fmt check + validate |
-| 📝 **plan** | Generate execution plan |
-| 🚀 **apply** | Create/modify VMs & containers (manual trigger) |
-| ✔️ **verify** | Verify resources are running |
-
-### 🔐 Proxmox Variables
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `PVE_API_URL` | Proxmox API endpoint | `https://pve.example.net:8006/api2/json` |
-| `PVE_USER` | API user | `root@pam` or `terraform@pve` |
-| `PVE_PASSWORD` | API password/token | `****` |
-| `PVE_NODE` | Default target node | `nl-pve01` |
-
----
-
-## ☸️ Kubernetes Deployments
-
-### 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Kubernetes Cluster (v1.34.2)                  │
-│                  api-k8s.example.net:6443                │
-│                                                                  │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
-│  │  Controller  │  │  Controller  │  │  Controller  │           │
-│  │   ctrl01    │  │   ctrl02    │  │   ctrl03    │           │
-│  └──────────────┘  └──────────────┘  └──────────────┘           │
-│                                                                  │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
-│  │   Worker     │  │   Worker     │  │   Worker     │           │
-│  │    wrk01     │  │    wrk02     │  │    wrk03     │           │
-│  └──────────────┘  └──────────────┘  └──────────────┘           │
-│                         ┌──────────────┐                        │
-│                         │   Worker     │                        │
-│                         │    wrk04     │                        │
-│                         └──────────────┘                        │
-└─────────────────────────────────────────────────────────────────┘
-                            │
-                            │ Managed by OpenTofu via GitLab CI
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    GitLab CI/CD Pipeline                         │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐            │
-│  │ Validate │→│   Plan   │→│  Apply   │→│  Verify  │            │
-│  │          │ │          │ │ (manual) │ │          │            │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘            │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### 📦 Managed Workloads
-
-All workloads are managed via **OpenTofu** with state stored in **GitLab Terraform State**.
-
-| Workload | Type | Namespace | Access | File |
-|----------|------|-----------|--------|------|
-| 🗂️ **NFS Provisioner** | Helm | `nfs-provisioner` | StorageClass: `nfs-client` | `nfs-provisioner.tf` |
-| 🌐 **Ingress NGINX** | Helm | `ingress-nginx` | LoadBalancer (pending MetalLB) | `ingress-nginx.tf` |
-| 📊 **Prometheus** | Helm | `monitoring` | NodePort :30090 | `monitoring.tf` |
-| 📈 **Grafana** | Helm | `monitoring` | NodePort :30000 | `monitoring.tf` |
-| 🔔 **Alertmanager** | Helm | `monitoring` | Internal | `monitoring.tf` |
-| 🛡️ **Pi-hole** | Native K8s | `pihole` | NodePort :30666, Ingress | `pihole.tf` |
-| 🤖 **AWX** | Operator | `awx` | NodePort :30080 | `awx.tf` |
-| 🔗 **GitLab Agent** | Helm | `REDACTED_01b50c5d` | Internal | `gitlab.tf` |
-
-### 🔗 Access URLs
-
-| Service | URL |
-|---------|-----|
-| 📈 Grafana | http://\<node-ip\>:30000 |
-| 📊 Prometheus | http://\<node-ip\>:30090 |
-| 🛡️ Pi-hole | http://\<node-ip\>:30666/admin |
-| 🛡️ Pi-hole (Ingress) | http://pihole.example.net/admin |
-| 🤖 AWX | http://\<node-ip\>:30080 |
-
-### 🔄 K8s Pipeline Stages
-
-| Stage | Job | Description |
-|-------|-----|-------------|
-| ✅ **validate** | `validate_k8s_manifests` | `tofu fmt` + `tofu validate` |
-| 📝 **pre-deploy** | `plan_k8s_infrastructure` | Generate execution plan |
-| 🚀 **deploy** | `apply_k8s_infrastructure` | Apply changes (**manual trigger**) |
-| ✔️ **verify** | `verify_k8s_infrastructure` | Check pods, services via GitLab Agent |
-
-### 📁 K8s Directory Structure
-
-```
-k8s/
-├── providers.tf           # Kubernetes & Helm providers, HTTP backend
-├── variables.tf           # All input variables
-├── main.tf                # Common labels & locals
-├── outputs.tf             # URLs, commands, summary
-│
-├── nfs-provisioner.tf     # NFS StorageClass (default)
-├── ingress-nginx.tf       # Ingress controller
-├── monitoring.tf          # REDACTED_d8074874 (Prometheus, Grafana, Alertmanager)
-├── gitlab.tf              # GitLab Agent for cluster connectivity
-├── pihole.tf              # Pi-hole DNS (Deployment, Services, Ingress, ConfigMap)
-├── awx.tf                 # AWX infrastructure (Namespace, StorageClass, PVs, PVCs)
-│
-├── .gitignore             # Excludes: backend.tf, *.tfstate, .terraform/
-└── .terraform.lock.hcl    # Provider version lock (committed)
-```
-
-### 🛠️ Making K8s Changes
-
-```bash
-# 1. Clone the repo (or use existing)
-git clone https://gitlab.example.net/infrastructure/nl/production.git
-cd production
-
-# 2. Edit the appropriate .tf file
-vim k8s/pihole.tf
-
-# 3. Commit and push
-git add k8s/pihole.tf
-git commit -m "feat(k8s): Update Pi-hole resources"
-git push origin main
-
-# 4. Pipeline runs automatically:
-#    ✅ Validates OpenTofu configs
-#    📝 Shows plan (what will change)
-#    ⏸️ Apply stage waits for manual trigger
-#    ✔️ Verifies deployment via GitLab Agent
-```
-
-### 🔧 K8s Management Commands
-
-```bash
-# View all workloads
-kubectl get pods -A | grep -E "(pihole|monitoring|ingress|nfs|gitlab|awx)"
-
-# Check specific namespace
-kubectl get all -n monitoring
-
-# View Grafana password
-kubectl get secret -n monitoring monitoring-grafana -o jsonpath="{.data.admin-password}" | base64 -d
-
-# Port forward for testing
-kubectl port-forward -n monitoring svc/monitoring-grafana 3000:80
-
-# View logs
-kubectl logs -n pihole -l app=pihole -f
-
-# Exec into pod
-kubectl exec -it -n pihole deploy/pihole -- /bin/bash
-```
-
-### 🔐 K8s CI/CD Variables
-
-| Variable | Description | Protected | Masked |
-|----------|-------------|-----------|--------|
-| `K8S_HOST` | API server URL | ✅ | ❌ |
-| `K8S_TOKEN` | Service account token (1 year) | ✅ | ✅ |
-| `K8S_CA_CERT` | Cluster CA cert (base64) | ✅ | ❌ |
-| `PIHOLE_PASSWORD` | Pi-hole admin password | ✅ | ✅ |
-| `GRAFANA_ADMIN_PASSWORD` | Grafana admin password | ✅ | ✅ |
-| `GITLAB_AGENT_K8S_TOKEN` | GitLab Agent token | ✅ | ✅ |
-
----
-
-## 🐳 Docker Images
-
-Custom runner images optimized for specific CI/CD tasks.
-
-### 📦 Image Registry
-
-All images stored at: `registry.example.net/infrastructure/nl/production/`
-
-| Image | Purpose | Base | Key Tools |
-|-------|---------|------|-----------|
-| `cisco-ee` | Cisco automation | AWX EE | Netmiko, Ansible, ciscoconfparse |
-| `k8s-runner` | K8s deployments | Alpine | OpenTofu, kubectl, helm (**providers pre-cached**) |
-| `docker-runner` | Docker builds | Alpine | Docker CLI, buildx |
-| `pve-runner` | Proxmox automation | Alpine | Proxmox API client, OpenTofu |
-
-### 🔨 Building Images
-
-Images auto-build when their Dockerfile changes:
-
-```bash
-# Manual build example
-cd docker/k8s-runner
-docker build -t registry.example.net/infrastructure/nl/production/k8s-runner:latest .
-docker push registry.example.net/infrastructure/nl/production/k8s-runner:latest
-```
-
-### 📋 Image Contents
-
-**cisco-ee (Cisco Execution Environment):**
-```dockerfile
-# Based on AWX Execution Environment
-- ansible-core
-- netmiko
-- paramiko
-- ciscoconfparse
-- textfsm
-- cisco.ios collection
-- cisco.asa collection
-```
-
-**k8s-runner:**
-```dockerfile
-# Alpine-based, with pre-cached providers
-- opentofu
-- kubectl
-- helm
-- REDACTED_1158da07 provider (cached)
-- hashicorp/helm provider (cached)
-- curl, git, bash
-```
-
-**pve-runner:**
-```dockerfile
-# Alpine-based
-- opentofu
-- proxmoxer (Python)
-- curl, jq, git
-```
-
----
-
-## 🔐 GitLab CI/CD Variables
-
-### 🌐 Cisco Network Automation
-
-| Variable | Description | Type | Protected |
-|----------|-------------|------|-----------|
-| `CISCO_USER` | SSH username for devices | String | ✅ |
-| `CISCO_PASSWORD` | SSH password | Secret | ✅ |
-| `GITLAB_PUSH_TOKEN` | Token for auto-sync commits | Secret | ✅ |
-
-### ☸️ Kubernetes
-
-| Variable | Description | Type | Protected |
-|----------|-------------|------|-----------|
-| `K8S_HOST` | API server URL | String | ✅ |
-| `K8S_TOKEN` | Service account token | Secret | ✅ |
-| `K8S_CA_CERT` | Cluster CA cert (base64) | Secret | ✅ |
-| `PIHOLE_PASSWORD` | Pi-hole admin password | Secret | ✅ |
-| `GRAFANA_ADMIN_PASSWORD` | Grafana admin password | Secret | ✅ |
-| `GITLAB_AGENT_K8S_TOKEN` | GitLab Agent token | Secret | ✅ |
-
-### 🖥️ Proxmox
-
-| Variable | Description | Type | Protected |
-|----------|-------------|------|-----------|
-| `PVE_API_URL` | Proxmox API endpoint | String | ❌ |
-| `PVE_USER` | API username | String | ✅ |
-| `PVE_PASSWORD` | API password/token | Secret | ✅ |
-| `PVE_NODE` | Default target node | String | ❌ |
-
-### 🐳 Docker Registry
-
-| Variable | Description | Type | Protected |
-|----------|-------------|------|-----------|
-| `CI_REGISTRY` | GitLab registry URL | Auto | - |
-| `CI_REGISTRY_USER` | Registry username | Auto | - |
-| `CI_REGISTRY_PASSWORD` | Registry password | Auto | - |
-
----
-
-## 🧪 Local Development
-
-### 🔧 Prerequisites
-
-```bash
-# Python packages for Cisco automation
-pip install netmiko paramiko ciscoconfparse pyyaml
-
-# OpenTofu for infrastructure
-brew install opentofu  # macOS
-# or download from https://opentofu.org
-
-# kubectl for Kubernetes
-brew install kubectl   # macOS
-```
-
-### 🌐 Testing Cisco Scripts
-
-```bash
-# Set credentials
-export CISCO_USER="your-username"
-export CISCO_PASSWORD="your-password"
-
-# Check all devices for drift
-python3 network/scripts/detect_drift.py
-
-# Check specific device
-python3 network/scripts/detect_drift.py Router nl-lte01
-
-# Validate config syntax
-python3 network/scripts/validate_syntax.py network/configs/Router/nl-lte01
-
-# Generate diff (dry-run)
-python3 network/scripts/generate_diff.py Router nl-lte01 network/configs/Router/nl-lte01
-```
-
-### ☸️ Testing Kubernetes
-
-```bash
-cd k8s
-
-# Set variables
-export TF_VAR_k8s_host="https://api-k8s.example.net:6443"
-export TF_VAR_k8s_token="your-token"
-export TF_VAR_k8s_ca_cert="base64-ca-cert"
-export TF_VAR_pihole_password="your-password"
-export TF_VAR_grafana_admin_password="your-password"
-
-# For local testing, create a local backend
-echo 'terraform { backend "local" {} }' > backend.tf
-
-# Initialize and plan
-tofu init
-tofu plan
-
-# Apply (be careful!)
-tofu apply
-```
-
-### 🖥️ Testing Proxmox
-
-```bash
-cd proxmox/lxc  # or proxmox/qemu
-
-# Set variables
-export TF_VAR_pve_api_url="https://pve.example.net:8006/api2/json"
-export TF_VAR_pve_user="terraform@pve"
-export TF_VAR_pve_password="your-password"
-
-# Initialize and plan
-tofu init
-tofu plan
-
-# Apply (creates VMs/containers!)
-tofu apply
 ```
 
 ---
 
 ## 🆘 Troubleshooting
+
+### ☸️ Kubernetes Issues
+
+**Argo CD app stuck in "Progressing"?**
+```bash
+# Check application status
+kubectl get application <app> -n argocd -o yaml
+
+# Force refresh
+kubectl patch application <app> -n argocd --type=merge \
+  -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
+```
+
+**Atlantis plan/apply not working?**
+```bash
+# Check Atlantis logs
+kubectl logs -n atlantis deployment/atlantis
+
+# Verify webhook is configured in GitLab
+# Settings → Webhooks → Should see atlantis URL
+```
+
+**Pod not starting?**
+```bash
+# Check pod status
+kubectl get pods -n <namespace>
+kubectl describe pod -n <namespace> <pod-name>
+kubectl logs -n <namespace> <pod-name>
+```
 
 ### 🌐 Cisco Issues
 
@@ -697,158 +501,45 @@ tofu apply
 # Someone made manual changes via SSH
 # 1. Review the auto-created MR
 # 2. Merge it
-# 3. Rebase your changes:
+# 3. Rebase your changes
 ./network/scripts/rebase-after-drift.sh
 ```
 
-**Can't connect to device?**
+### 📦 Velero Issues
+
+**Check backup status:**
 ```bash
-# Check connectivity
-ping nlsw01.example.net
-
-# Test SSH manually
-ssh kyriakosp@nlsw01.example.net
-
-# Check credentials in GitLab variables
+velero backup get
+velero schedule get
+velero backup-location get
 ```
 
-**Config deploy succeeded but changes not applied?**
+**Create manual backup:**
 ```bash
-# Check the deployment log for errors
-# Verify with show run on device
-ssh user@device "show running-config | include your-change"
+velero backup create manual-backup --include-namespaces pihole,monitoring
 ```
-
-### ☸️ Kubernetes Issues
-
-**K8s deploy fails with "Unauthorized"?**
-```bash
-# Token expired - regenerate:
-kubectl create token gitlab-ci -n kube-system --duration=8760h
-
-# Update K8S_TOKEN in GitLab → Settings → CI/CD → Variables
-```
-
-**"cannot re-use a name that is still in use"?**
-```bash
-# Resource exists but not in OpenTofu state
-# Import it:
-cd k8s
-tofu import 'helm_release.resource_name' namespace/release-name
-```
-
-**Pod not starting?**
-```bash
-# Check pod status
-kubectl get pods -n pihole
-
-# Describe pod for events
-kubectl describe pod -n pihole <pod-name>
-
-# Check logs
-kubectl logs -n pihole <pod-name>
-```
-
-**Service not accessible?**
-```bash
-# Check service
-kubectl get svc -n pihole
-
-# Port forward for testing
-kubectl port-forward -n pihole svc/pihole-web 8080:80 --address=0.0.0.0
-```
-
-### 🖥️ Proxmox Issues
-
-**VM/Container creation fails?**
-```bash
-# Check Proxmox API access
-curl -k -d "username=user@pam&password=pass" \
-  https://pve.example.net:8006/api2/json/access/ticket
-
-# Check storage availability
-pvesm status
-
-# Check template exists
-pveam list local
-```
-
-**Can't connect to VM after creation?**
-```bash
-# Check if VM is running
-qm list
-
-# Check network configuration
-qm config <vmid>
-
-# Check cloud-init status (if used)
-qm cloudinit dump <vmid> user
-```
-
-### 🐳 Docker Issues
-
-**Image build fails?**
-```bash
-# Build locally to debug
-cd docker/k8s-runner
-docker build -t test:local .
-
-# Check registry REDACTED_6fa691d2
-docker login registry.example.net
-```
-
----
-
-## 📊 Infrastructure Status
-
-| Component | Status | Endpoint |
-|-----------|--------|----------|
-| 🌐 Cisco Network | 🟢 Operational | - |
-| ☸️ Kubernetes | 🟢 Operational (v1.34.2) | api-k8s.example.net:6443 |
-| 🖥️ Proxmox | 🟢 Operational | pve.example.net:8006 |
-| 📈 Grafana | 🟢 Running | \<node-ip\>:30000 |
-| 📊 Prometheus | 🟢 Running | \<node-ip\>:30090 |
-| 🛡️ Pi-hole | 🟢 Running | \<node-ip\>:30666 |
-| 🤖 AWX | 🟢 Running | \<node-ip\>:30080 |
-| 🐳 Registry | 🟢 Operational | registry.example.net |
 
 ---
 
 ## 🤝 Contributing
 
-1. **Create a branch** (or fork)
-2. **Make your changes**
-3. **Test locally** if possible
-4. **Create a Merge Request**
-5. **Pipeline must pass** before merge
-
-### 📝 Commit Message Format
+### Commit Message Format
 
 ```
 <type>(<scope>): <description>
 
-Types: feat, fix, docs, style, refactor, test, chore
-Scopes: cisco, k8s, proxmox, docker, ci
+Types: feat, fix, docs, refactor, test, chore
+Scopes: k8s, argocd, cisco, pve, docker, ci
 ```
 
-Examples:
+**Examples:**
 ```bash
-feat(cisco): Add VLAN 100 to core switch
-fix(k8s): Correct Pi-hole service port
-feat(k8s): Add MetalLB for LoadBalancer support
-docs(readme): Update troubleshooting section
-chore(ci): Update runner image version
+feat(k8s): Add cert-manager for TLS certificates
+feat(argocd): Deploy external-dns application
+fix(velero): Correct backup schedule timezone
+chore(ci): Update k8s-runner image version
+docs(readme): Update architecture diagram
 ```
-
----
-
-## 👤 Author
-
-**Nuclear Lighters Infrastructure Team**
-
-- 🏠 Homelab: Nuclear Lighters
-- 🌐 Domain: example.net
-- 📧 Contact: admin@example.net
 
 ---
 
@@ -870,16 +561,15 @@ chore(ci): Update runner image version
   0. You just DO WHAT THE FUCK YOU WANT TO.
 ```
 
-See [LICENSE](LICENSE) file for details.
-
 ---
 
 <p align="center">
   <img src="https://img.shields.io/badge/Made%20with-❤️-red" alt="Made with love">
   <img src="https://img.shields.io/badge/Powered%20by-GitLab-orange" alt="Powered by GitLab">
-  <img src="https://img.shields.io/badge/Infrastructure-as%20Code-blue" alt="IaC">
+  <img src="https://img.shields.io/badge/GitOps-Atlantis%20%2B%20Argo%20CD-blue" alt="GitOps">
+  <img src="https://img.shields.io/badge/Infrastructure-as%20Code-green" alt="IaC">
 </p>
 
 <p align="center">
-  <b>🔥 Nuclear Lighters - Powering the Homelab Since Day One 🔥</b>
+  <b>🔥 Nuclear Lighters - Hybrid GitOps Since 2024 🔥</b>
 </p>
