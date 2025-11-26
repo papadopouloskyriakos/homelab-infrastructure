@@ -2,7 +2,8 @@
 # K8s Pipeline - Validation Only (Atlantis handles plan/apply)
 ***REMOVED***
 # - GitLab CI: Format checking, validation, security scanning
-# - Atlantis: Plan and Apply via MR comments
+# - Atlantis: Plan and Apply via MR comments (OpenTofu)
+# - Argo CD: Auto-sync for argocd-apps/ manifests
 # - State stored in GitLab Terraform backend
 ***REMOVED***
 
@@ -11,16 +12,17 @@ variables:
   KUBE_CONTEXT: "infrastructure/nl/production:k8s-agent"
 
 # -----------------------------------------------------------------------------
-# Validate Stage - Runs on every push to k8s/**
+# Validate Stage - OpenTofu (runs on .tf file changes)
 # -----------------------------------------------------------------------------
-validate_k8s_manifests:
+validate_k8s_opentofu:
   stage: validate
   image: $K8S_IMAGE
   tags:
     - k8s
   rules:
     - changes:
-        - k8s/**/*
+        - k8s/**/*.tf
+        - k8s/**/*.tfvars
       when: on_success
   before_script:
     - git config --global --add safe.directory $CI_PROJECT_DIR
@@ -51,11 +53,56 @@ validate_k8s_manifests:
     # Clean up temp backend
     - rm -f backend_override.tf
     
-    - echo "✅ Validation passed - Atlantis will handle plan/apply in MR"
+    - echo "✅ OpenTofu validation passed - Atlantis will handle plan/apply in MR"
   allow_failure: false
 
 # -----------------------------------------------------------------------------
-# Verify Stage - Runs after merge to main (post-Atlantis apply)
+# Validate Stage - Argo CD Manifests (runs on argocd-apps/ changes)
+# -----------------------------------------------------------------------------
+validate_argocd_manifests:
+  stage: validate
+  image: $K8S_IMAGE
+  tags:
+    - k8s
+  rules:
+    - changes:
+        - k8s/argocd-apps/**/*.yaml
+        - k8s/argocd-apps/**/*.yml
+      when: on_success
+  before_script:
+    - kubectl config use-context "$KUBE_CONTEXT"
+  script:
+    - echo "=== Validating Argo CD manifests ==="
+    
+    # Dry-run validation of all manifests
+    - |
+      for app_dir in k8s/argocd-apps/*/; do
+        app_name=$(basename "$app_dir")
+        echo "--- Validating $app_name ---"
+        
+        # Validate each YAML file (skip application.yaml - it's for Argo CD itself)
+        for file in "$app_dir"*.yaml "$app_dir"*.yml; do
+          [ -f "$file" ] || continue
+          filename=$(basename "$file")
+          
+          if [ "$filename" = "application.yaml" ]; then
+            echo "  ⏭️ Skipping $filename (Argo CD Application resource)"
+            continue
+          fi
+          
+          echo "  📄 Validating $filename"
+          kubectl apply --dry-run=client -f "$file" 2>&1 || {
+            echo "  ❌ Failed: $file"
+            exit 1
+          }
+        done
+      done
+    
+    - echo "✅ Argo CD manifests valid - Argo CD will auto-sync on merge"
+  allow_failure: false
+
+# -----------------------------------------------------------------------------
+# Verify Stage - Runs after merge to main (post-Atlantis/Argo CD apply)
 # -----------------------------------------------------------------------------
 verify_k8s_infrastructure:
   stage: verify
@@ -70,23 +117,28 @@ verify_k8s_infrastructure:
   before_script:
     - kubectl config use-context "$KUBE_CONTEXT"
   script:
-    - echo "=== Verifying K8s infrastructure (post-Atlantis apply) ==="
+    - echo "=== Verifying K8s infrastructure (post-Atlantis/Argo CD apply) ==="
     
     # Cluster health
     - kubectl get nodes
     
-    # Core infrastructure
-    - echo "=== Core Infrastructure ==="
+    # Core infrastructure (Atlantis-managed)
+    - echo "=== Core Infrastructure (Atlantis) ==="
     - kubectl get pods -n nfs-provisioner || true
     - kubectl get pods -n ingress-nginx || true
     - kubectl get pods -n REDACTED_01b50c5d || true
+    - kubectl get pods -n argocd || true
     
-    # Application workloads
-    - echo "=== Application Namespaces ==="
+    # Application workloads (Atlantis-managed)
+    - echo "=== Application Namespaces (Atlantis) ==="
     - kubectl get pods -n awx || true
     - kubectl get pods -n minio || true
     - kubectl get pods -n monitoring || true
     - kubectl get pods -n pihole || true
+    
+    # Argo CD managed applications
+    - echo "=== Argo CD Applications ==="
+    - kubectl get applications -n argocd || true
     - kubectl get pods -n velero || true
     
     # Key services
