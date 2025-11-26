@@ -1,6 +1,6 @@
-***REMOVED***
+# ========================================================================
 # Main Orchestrator - Calls Core and Namespace Modules
-***REMOVED***
+# ========================================================================
 
 terraform {
   required_version = ">= 1.0"
@@ -19,9 +19,9 @@ terraform {
   backend "http" {}
 }
 
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Common Labels
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 locals {
   common_labels = {
     environment = "production"
@@ -30,9 +30,9 @@ locals {
   }
 }
 
-***REMOVED***
+# ========================================================================
 # CORE INFRASTRUCTURE MODULES
-***REMOVED***
+# ========================================================================
 
 module "nfs_provisioner" {
   source = "./_core/nfs-provisioner"
@@ -41,8 +41,14 @@ module "nfs_provisioner" {
   nfs_path   = var.nfs_path
 }
 
+module "metallb" {
+  source = "./_core/metallb"
+}
+
 module "ingress_nginx" {
   source = "./_core/ingress-nginx"
+
+  depends_on = [module.metallb]
 }
 
 module "gitlab_agent" {
@@ -51,9 +57,9 @@ module "gitlab_agent" {
   REDACTED_b6136a28 = REDACTED_305df36d
 }
 
-***REMOVED***
+# ========================================================================
 # APPLICATION NAMESPACE MODULES
-***REMOVED***
+# ========================================================================
 
 module "awx" {
   source = "./namespaces/awx"
