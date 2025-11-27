@@ -26,6 +26,7 @@ auto_detect_and_sync_drift:
     - git config --global user.email "gitlab-ci@example.net"
     - git config --global user.name "GitLab CI Auto-Sync"
     - git config --global --add safe.directory $CI_PROJECT_DIR
+    - git config --global pull.rebase true
     - git remote set-url origin https://root:${GITLAB_PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
     - git checkout main || git checkout -b main
     - git pull origin main || echo "No remote main yet"
