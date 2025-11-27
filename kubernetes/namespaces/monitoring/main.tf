@@ -22,11 +22,16 @@ resource "helm_release" "monitoring" {
       # =========================================================================
       prometheus = {
         prometheusSpec = {
-          # Retention settings
+          replicas = 2
+
+          podDisruptionBudget = {
+            enabled      = true
+            minAvailable = 1
+          }
+
           retention     = var.prometheus_retention
           retentionSize = "190GB"
 
-          # Resource requests/limits
           resources = {
             requests = {
               cpu    = "500m"
@@ -38,7 +43,6 @@ resource "helm_release" "monitoring" {
             }
           }
 
-          ***REMOVED*** configuration
           storageSpec = {
             volumeClaimTemplate = {
               spec = {
@@ -53,9 +57,6 @@ resource "helm_release" "monitoring" {
             }
           }
 
-          # =======================================================================
-          # NODE AFFINITY - Keep Prometheus OFF control plane nodes
-          # =======================================================================
           affinity = {
             nodeAffinity = {
               requiredDuringSchedulingIgnoredDuringExecution = {
@@ -67,13 +68,26 @@ resource "helm_release" "monitoring" {
                 }]
               }
             }
+            podAntiAffinity = {
+              preferredDuringSchedulingIgnoredDuringExecution = [{
+                weight = 100
+                podAffinityTerm = {
+                  labelSelector = {
+                    matchExpressions = [{
+                      key      = "app.kubernetes.io/name"
+                      operator = "In"
+                      values   = ["prometheus"]
+                    }]
+                  }
+                  topologyKey = "kubernetes.io/hostname"
+                }
+              }]
+            }
           }
 
-          # Tolerate nothing - don't schedule on tainted nodes
           tolerations = []
         }
 
-        # Service configuration
         service = {
           type     = "NodePort"
           nodePort = 30090
@@ -85,7 +99,13 @@ resource "helm_release" "monitoring" {
       # =========================================================================
       alertmanager = {
         alertmanagerSpec = {
-          ***REMOVED*** for alertmanager
+          replicas = 2
+
+          podDisruptionBudget = {
+            enabled      = true
+            minAvailable = 1
+          }
+
           storage = {
             volumeClaimTemplate = {
               spec = {
@@ -100,7 +120,6 @@ resource "helm_release" "monitoring" {
             }
           }
 
-          # Resource limits
           resources = {
             requests = {
               cpu    = "100m"
@@ -108,9 +127,6 @@ resource "helm_release" "monitoring" {
             }
           }
 
-          # =======================================================================
-          # NODE AFFINITY - Keep Alertmanager OFF control plane nodes
-          # =======================================================================
           affinity = {
             nodeAffinity = {
               requiredDuringSchedulingIgnoredDuringExecution = {
@@ -122,6 +138,21 @@ resource "helm_release" "monitoring" {
                 }]
               }
             }
+            podAntiAffinity = {
+              preferredDuringSchedulingIgnoredDuringExecution = [{
+                weight = 100
+                podAffinityTerm = {
+                  labelSelector = {
+                    matchExpressions = [{
+                      key      = "app.kubernetes.io/name"
+                      operator = "In"
+                      values   = ["alertmanager"]
+                    }]
+                  }
+                  topologyKey = "kubernetes.io/hostname"
+                }
+              }]
+            }
           }
 
           tolerations = []
@@ -132,24 +163,26 @@ resource "helm_release" "monitoring" {
       # GRAFANA CONFIGURATION
       # =========================================================================
       grafana = {
+        replicas = 2
+
+        podDisruptionBudget = {
+          enabled      = true
+          minAvailable = 1
+        }
+
         adminPassword = var.grafana_admin_password
 
-        # Persistence
         persistence = {
           enabled          = true
           storageClassName = "nfs-client"
           size             = var.grafana_storage_size
         }
 
-        # Service configuration
         service = {
           type     = "NodePort"
           nodePort = 30000
         }
 
-        # =======================================================================
-        # NODE AFFINITY - Keep Grafana OFF control plane nodes
-        # =======================================================================
         affinity = {
           nodeAffinity = {
             requiredDuringSchedulingIgnoredDuringExecution = {
@@ -161,6 +194,21 @@ resource "helm_release" "monitoring" {
               }]
             }
           }
+          podAntiAffinity = {
+            preferredDuringSchedulingIgnoredDuringExecution = [{
+              weight = 100
+              podAffinityTerm = {
+                labelSelector = {
+                  matchExpressions = [{
+                    key      = "app.kubernetes.io/name"
+                    operator = "In"
+                    values   = ["grafana"]
+                  }]
+                }
+                topologyKey = "kubernetes.io/hostname"
+              }
+            }]
+          }
         }
 
         tolerations = []
@@ -170,7 +218,11 @@ resource "helm_release" "monitoring" {
       # KUBE-STATE-METRICS CONFIGURATION
       # =========================================================================
       kube-state-metrics = {
-        # Keep off control plane
+        podDisruptionBudget = {
+          enabled      = true
+          minAvailable = 1
+        }
+
         affinity = {
           nodeAffinity = {
             requiredDuringSchedulingIgnoredDuringExecution = {
@@ -191,7 +243,11 @@ resource "helm_release" "monitoring" {
       # PROMETHEUS OPERATOR CONFIGURATION
       # =========================================================================
       prometheusOperator = {
-        # Keep operator off control plane
+        podDisruptionBudget = {
+          enabled      = true
+          minAvailable = 1
+        }
+
         affinity = {
           nodeAffinity = {
             requiredDuringSchedulingIgnoredDuringExecution = {
@@ -212,7 +268,6 @@ resource "helm_release" "monitoring" {
       # NODE EXPORTER - DaemonSet (runs on ALL nodes including control plane)
       # =========================================================================
       prometheus-node-exporter = {
-        # Node exporter SHOULD run on control plane to collect metrics
         tolerations = [{
           key      = "node-role.kubernetes.io/control-plane"
           operator = "Exists"

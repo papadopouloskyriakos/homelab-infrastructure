@@ -57,6 +57,11 @@ module "gitlab_agent" {
   REDACTED_b6136a28 = REDACTED_305df36d
 }
 
+module "REDACTED_279a43a7" {
+  source        = "./_core/REDACTED_b9c50d9a"
+  common_labels = local.common_labels
+}
+
 # ========================================================================
 # APPLICATION NAMESPACE MODULES
 # ========================================================================

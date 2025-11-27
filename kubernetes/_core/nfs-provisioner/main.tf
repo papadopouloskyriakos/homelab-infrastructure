@@ -29,11 +29,17 @@ resource "helm_release" "nfs_provisioner" {
         server = var.nfs_server
         path   = var.nfs_path
       }
+
       storageClass = {
-        create = false # Managed separately
+        create = false
       }
+
       replicaCount = 1
+
+      podDisruptionBudget = {
+        enabled      = true
+        minAvailable = 1
+      }
     })
   ]
 }
-

@@ -146,3 +146,57 @@ resource "kubernetes_manifest" "awx_cr" {
   ]
 }
 
+# -----------------------------------------------------------------------------
+# AWX Pod Disruption Budgets
+# -----------------------------------------------------------------------------
+resource "REDACTED_e0540b90" "awx_postgres" {
+  metadata {
+    name      = "awx-postgres-pdb"
+    namespace = kubernetes_namespace.awx.metadata[0].name
+    labels    = var.common_labels
+  }
+
+  spec {
+    min_available = "1"
+    selector {
+      match_labels = {
+        "app.kubernetes.io/name"     = "postgres-15"
+        "app.kubernetes.io/instance" = "postgres-15-my-awx"
+      }
+    }
+  }
+}
+
+resource "REDACTED_e0540b90" "awx_web" {
+  metadata {
+    name      = "awx-web-pdb"
+    namespace = kubernetes_namespace.awx.metadata[0].name
+    labels    = var.common_labels
+  }
+
+  spec {
+    min_available = "1"
+    selector {
+      match_labels = {
+        "app.kubernetes.io/name" = "my-awx-web"
+      }
+    }
+  }
+}
+
+resource "REDACTED_e0540b90" "awx_task" {
+  metadata {
+    name      = "awx-task-pdb"
+    namespace = kubernetes_namespace.awx.metadata[0].name
+    labels    = var.common_labels
+  }
+
+  spec {
+    min_available = "1"
+    selector {
+      match_labels = {
+        "app.kubernetes.io/name" = "my-awx-task"
+      }
+    }
+  }
+}
