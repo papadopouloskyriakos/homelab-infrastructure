@@ -146,8 +146,3 @@ resource "kubernetes_manifest" "awx_cr" {
   ]
 }
 
-# Import existing AWX CR into state (one-time import)
-import {
-  to = kubernetes_manifest.awx_cr
-  id = "apiVersion=awx.ansible.com/v1beta1,kind=AWX,namespace=awx,name=my-awx"
-}
