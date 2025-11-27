@@ -7,9 +7,9 @@ output "namespace" {
   value       = kubernetes_namespace.awx.metadata[0].name
 }
 
-output "postgres_pv" {
-  description = "PostgreSQL PV name"
-  value       = REDACTED_912a6d18.awx_postgres.metadata[0].name
+output "postgres_pvc" {
+  description = "PostgreSQL PVC name"
+  value       = REDACTED_912a6d18_claim.awx_postgres.metadata[0].name
 }
 
 output "projects_pv" {
