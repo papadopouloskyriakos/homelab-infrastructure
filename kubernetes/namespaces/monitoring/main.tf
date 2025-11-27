@@ -160,7 +160,7 @@ resource "helm_release" "monitoring" {
       }
 
       # =========================================================================
-      # GRAFANA CONFIGURATION
+      # GRAFANA CONFIGURATION (NFS for RWX multi-replica support)
       # =========================================================================
       grafana = {
         replicas = 2
@@ -174,7 +174,7 @@ resource "helm_release" "monitoring" {
 
         persistence = {
           enabled          = true
-          storageClassName = "REDACTED_4f3da73d"
+          storageClassName = "nfs-client"
           size             = var.grafana_storage_size
         }
 
