@@ -146,8 +146,3 @@ module "awx" {
   REDACTED_12032801 = var.REDACTED_12032801
 }
 
-# Import existing AWX PostgreSQL CSI PVC into state
-import {
-  to = module.awx.REDACTED_912a6d18_claim.awx_postgres
-  id = "awx/REDACTED_0d7ca6a5"
-}
