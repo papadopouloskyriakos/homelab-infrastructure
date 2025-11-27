@@ -222,3 +222,37 @@ variable "minio_snapshot_secret_key" {
   type        = string
   sensitive   = true
 }
+
+***REMOVED***
+# Synology CSI - nl-nas01 (DS1621+)
+***REMOVED***
+
+variable "nl-nas01_csi_host" {
+  description = "Synology NAS IP address for CSI driver"
+  type        = string
+  default     = "10.0.X.X"
+}
+
+variable "REDACTED_6177f7df" {
+  description = "Synology DSM username for CSI"
+  type        = string
+  sensitive   = true
+}
+
+variable "REDACTED_29445e2e" {
+  description = "Synology DSM password for CSI"
+  type        = string
+  sensitive   = true
+}
+
+variable "REDACTED_cd98d00a" {
+  description = "Synology volume path for LUNs"
+  type        = string
+  default     = "/volume1"
+}
+
+variable "REDACTED_bf874266" {
+  description = "Synology CSI Helm chart version"
+  type        = string
+  default     = "0.10.1"
+}
