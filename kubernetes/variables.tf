@@ -20,7 +20,7 @@ variable "k8s_ca_cert" {
 }
 
 ***REMOVED***
-# NFS Storage
+# NFS Storage - Changed to NFS VLAN
 ***REMOVED***
 
 variable "nfs_server" {
