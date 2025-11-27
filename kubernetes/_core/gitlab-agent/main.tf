@@ -22,14 +22,21 @@ resource "helm_release" "gitlab_agent_k8s" {
 
   values = [
     yamlencode({
+      replicas = 2
+
+      podDisruptionBudget = {
+        enabled      = true
+        minAvailable = 1
+      }
+
       config = {
         token      = REDACTED_305df36d
         kasAddress = "wss://gitlab.example.net/-/kubernetes-agent/"
       }
+
       image = {
         tag = "v18.6.0"
       }
     })
   ]
 }
-

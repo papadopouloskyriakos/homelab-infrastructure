@@ -33,20 +33,23 @@ resource "helm_release" "argocd" {
 
   values = [
     yamlencode({
-      # Global settings
       global = {
         domain = "argocd.${var.domain}"
       }
 
-      # Server configuration
       server = {
-        # Expose via NodePort for direct access
+        replicas = 2
+
+        pdb = {
+          enabled      = true
+          minAvailable = 1
+        }
+
         service = {
           type          = "NodePort"
           nodePortHttps = var.argocd_nodeport
         }
 
-        # Ingress configuration
         ingress = {
           enabled          = var.REDACTED_84146aee
           ingressClassName = "nginx"
@@ -58,10 +61,8 @@ resource "helm_release" "argocd" {
           tls = var.REDACTED_84146aee
         }
 
-        # Run in insecure mode if using ingress TLS termination
         extraArgs = var.REDACTED_649263f1 ? ["--insecure"] : []
 
-        # Resource limits
         resources = {
           requests = {
             cpu    = "100m"
@@ -74,9 +75,14 @@ resource "helm_release" "argocd" {
         }
       }
 
-      # Controller configuration
       controller = {
         replicas = 1
+
+        pdb = {
+          enabled      = true
+          minAvailable = 1
+        }
+
         resources = {
           requests = {
             cpu    = "250m"
@@ -89,9 +95,14 @@ resource "helm_release" "argocd" {
         }
       }
 
-      # Repo server configuration
       repoServer = {
-        replicas = 1
+        replicas = 2
+
+        pdb = {
+          enabled      = true
+          minAvailable = 1
+        }
+
         resources = {
           requests = {
             cpu    = "100m"
@@ -104,8 +115,12 @@ resource "helm_release" "argocd" {
         }
       }
 
-      # Redis configuration (bundled)
       redis = {
+        pdb = {
+          enabled      = true
+          minAvailable = 1
+        }
+
         resources = {
           requests = {
             cpu    = "50m"
@@ -118,9 +133,15 @@ resource "helm_release" "argocd" {
         }
       }
 
-      # Application Set controller
       applicationSet = {
-        enabled = true
+        enabled  = true
+        replicas = 1
+
+        pdb = {
+          enabled      = true
+          minAvailable = 1
+        }
+
         resources = {
           requests = {
             cpu    = "50m"
@@ -133,22 +154,18 @@ resource "helm_release" "argocd" {
         }
       }
 
-      # Notifications controller
       notifications = {
         enabled = var.REDACTED_035cbec1
       }
 
-      # Dex (SSO) - disabled by default
       dex = {
         enabled = var.argocd_dex_enabled
       }
 
-      # HA mode - disabled for homelab
       redis-ha = {
         enabled = false
       }
 
-      # Config for connecting to your GitLab
       configs = {
         repositories = var.argocd_repositories
 
