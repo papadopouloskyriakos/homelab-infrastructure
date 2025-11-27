@@ -17,6 +17,12 @@ variable "nfs_path" {
   type        = string
 }
 
+variable "domain" {
+  description = "Base domain for ingress URLs"
+  type        = string
+  default     = "example.net"
+}
+
 variable "REDACTED_3e5e811f" {
   description = "PostgreSQL storage size"
   type        = string
