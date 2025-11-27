@@ -1,6 +1,6 @@
 # K8s Cluster Snapshot
 
-**Date:** 2025-11-27 12:58:52 UTC | **Host:** nlk8s-ctrl01 | **Version:** 2.0.0
+**Date:** 2025-11-27 13:07:13 UTC | **Host:** nlk8s-ctrl01 | **Version:** 2.0.0
 
 ## Overview
 
@@ -35,7 +35,7 @@ argocd                   argocd-server                                     1/1  
 awx                      awx-operator-controller-manager                   1/1     1            1           22d
 awx                      my-awx-task                                       1/1     1            1           22d
 awx                      my-awx-web                                        1/1     1            1           22d
-REDACTED_01b50c5d   REDACTED_ab04b573-v2                         2/2     2            2           2d23h
+REDACTED_01b50c5d   REDACTED_ab04b573-v2                         2/2     2            2           3d
 ingress-nginx            ingress-nginx-controller                          1/1     1            1           21d
 kube-system              coredns                                           2/2     2            2           23d
 kube-system              metrics-server                                    1/1     1            1           23d
@@ -113,15 +113,15 @@ nfs-provisioner	nfs-provisioner       	6       	2025-11-27 00:00:44.803439068 +0
 ## Velero Schedules
 ```
 NAME            STATUS    SCHEDULE    LASTBACKUP   AGE   PAUSED
-daily-backup    Enabled   0 2 * * *   10h          41h   
+daily-backup    Enabled   0 2 * * *   11h          41h   
 weekly-backup   Enabled   0 3 * * 0                41h   
 ```
 
 ## Warning Events
 ```
 NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   25m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   24m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   33m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   33m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ---
