@@ -6,4 +6,4 @@
 ## History
 
 
-Full backups: MinIO `cluster-snapshots/cluster-snapshots/`
+Full backups: MinIO `cluster-snapshots//`
