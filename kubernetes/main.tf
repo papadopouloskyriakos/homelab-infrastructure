@@ -62,6 +62,16 @@ module "REDACTED_279a43a7" {
   common_labels = local.common_labels
 }
 
+module "nl-nas01_csi" {
+  source = "./_core/nl-nas01-csi"
+
+  synology_host        = var.nl-nas01_csi_host
+  synology_username    = var.REDACTED_6177f7df
+  synology_password    = REDACTED_97ec5898
+  REDACTED_add7f998 = var.REDACTED_cd98d00a
+  chart_version        = var.REDACTED_bf874266
+}
+
 # ========================================================================
 # APPLICATION NAMESPACE MODULES
 # ========================================================================
