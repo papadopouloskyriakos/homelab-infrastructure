@@ -25,3 +25,19 @@ variable "minio_version" {
 variable "domain" {
   type = string
 }
+
+# -----------------------------------------------------------------------------
+# Cluster Snapshots Service Account
+# -----------------------------------------------------------------------------
+variable "minio_snapshot_access_key" {
+  description = "Access key for cluster snapshot service account"
+  type        = string
+  sensitive   = true
+  default     = "snapshot-admin"
+}
+
+variable "minio_snapshot_secret_key" {
+  description = "Secret key for cluster snapshot service account"
+  type        = string
+  sensitive   = true
+}
