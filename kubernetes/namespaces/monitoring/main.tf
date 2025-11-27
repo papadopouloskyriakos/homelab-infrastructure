@@ -12,7 +12,7 @@ resource "helm_release" "monitoring" {
   namespace        = "monitoring"
   create_namespace = true
   version          = "79.7.1"
-  timeout          = 600
+  timeout          = 1800
   wait             = true
 
   values = [
@@ -46,7 +46,7 @@ resource "helm_release" "monitoring" {
           storageSpec = {
             volumeClaimTemplate = {
               spec = {
-                storageClassName = "nfs-client"
+                storageClassName = "REDACTED_4f3da73d"
                 accessModes      = ["ReadWriteOnce"]
                 resources = {
                   requests = {
@@ -109,7 +109,7 @@ resource "helm_release" "monitoring" {
           storage = {
             volumeClaimTemplate = {
               spec = {
-                storageClassName = "nfs-client"
+                storageClassName = "REDACTED_4f3da73d"
                 accessModes      = ["ReadWriteOnce"]
                 resources = {
                   requests = {
@@ -160,7 +160,7 @@ resource "helm_release" "monitoring" {
       }
 
       # =========================================================================
-      # GRAFANA CONFIGURATION
+      # GRAFANA CONFIGURATION (NFS for RWX multi-replica support)
       # =========================================================================
       grafana = {
         replicas = 2
