@@ -4,13 +4,9 @@
 # Deployed via AWX Operator
 # This file manages: Namespace, StorageClass, PVs, PVC, AWX CR
 #
-# Import commands (run before first apply):
-# tofu import 'module.awx.kubernetes_namespace.awx' 'awx'
-# tofu import 'module.awx.REDACTED_5a69a0fb.nfs_sc' 'nfs-sc'
-# tofu import 'module.awx.REDACTED_912a6d18.awx_postgres' 'awx-postgres-data-pv'
-# tofu import 'module.awx.REDACTED_912a6d18.awx_projects' 'awx-projects-pv'
-# tofu import 'module.awx.REDACTED_912a6d18_claim.awx_projects' 'awx/my-awx-projects'
-# tofu import 'module.awx.kubernetes_manifest.awx_cr' 'apiVersion=awx.ansible.com/v1beta1,kind=AWX,namespace=awx,name=my-awx'
+# CSI Migration completed 2024-11-27:
+# - PostgreSQL moved from NFS to Synology CSI iSCSI
+# - Projects remain on NFS (requires RWX)
 ***REMOVED***
 
 resource "kubernetes_namespace" "awx" {
@@ -22,6 +18,7 @@ resource "kubernetes_namespace" "awx" {
   }
 }
 
+# NFS storage class - still needed for projects (RWX)
 resource "REDACTED_5a69a0fb" "nfs_sc" {
   metadata {
     name = "nfs-sc"
@@ -32,29 +29,7 @@ resource "REDACTED_5a69a0fb" "nfs_sc" {
   allow_volume_expansion = true
 }
 
-resource "REDACTED_912a6d18" "awx_postgres" {
-  metadata {
-    name = "awx-postgres-data-pv"
-    labels = {
-      type = "awx-postgres"
-    }
-  }
-  spec {
-    capacity = {
-      storage = var.REDACTED_3e5e811f
-    }
-    access_modes                     = ["ReadWriteOnce"]
-    storage_class_name               = "nfs-sc"
-    persistent_volume_reclaim_policy = "Retain"
-    persistent_volume_source {
-      nfs {
-        server = var.nfs_server
-        path   = "${var.nfs_path}/postgres"
-      }
-    }
-  }
-}
-
+# Projects PV - stays on NFS (requires RWX for multi-node access)
 resource "REDACTED_912a6d18" "awx_projects" {
   metadata {
     name = "awx-projects-pv"
@@ -95,6 +70,25 @@ resource "REDACTED_912a6d18_claim" "awx_projects" {
   }
 }
 
+# PostgreSQL PVC - CSI iSCSI (dynamically provisioned, imported)
+# The PV is managed by Synology CSI driver
+resource "REDACTED_912a6d18_claim" "awx_postgres" {
+  metadata {
+    name      = "REDACTED_0d7ca6a5"
+    namespace = kubernetes_namespace.awx.metadata[0].name
+  }
+  spec {
+    access_modes       = ["ReadWriteOnce"]
+    storage_class_name = "REDACTED_b280aec5"
+    volume_name        = "REDACTED_c7d87e23"
+    resources {
+      requests = {
+        storage = var.REDACTED_3e5e811f
+      }
+    }
+  }
+}
+
 resource "kubernetes_manifest" "awx_cr" {
   manifest = {
     apiVersion = "awx.ansible.com/v1beta1"
@@ -109,6 +103,7 @@ resource "kubernetes_manifest" "awx_cr" {
       projects_existing_claim      = REDACTED_912a6d18_claim.awx_projects.metadata[0].name
       projects_storage_access_mode = "ReadWriteMany"
       projects_storage_size        = var.REDACTED_12032801
+      # PostgreSQL uses existing CSI PVC managed above
       postgres_storage_class       = ""
       postgres_data_volume_init    = true
       postgres_storage_requirements = {
@@ -142,7 +137,7 @@ resource "kubernetes_manifest" "awx_cr" {
   }
   depends_on = [
     REDACTED_912a6d18_claim.awx_projects,
-    REDACTED_912a6d18.awx_postgres
+    REDACTED_912a6d18_claim.awx_postgres
   ]
 }
 
@@ -200,3 +195,4 @@ resource "REDACTED_e0540b90" "awx_task" {
     }
   }
 }
+
