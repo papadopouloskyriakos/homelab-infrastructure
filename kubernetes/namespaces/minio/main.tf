@@ -417,3 +417,23 @@ resource "kubernetes_job" "minio_init" {
     kubernetes_service.minio_api
   ]
 }
+
+# -----------------------------------------------------------------------------
+# MinIO Pod Disruption Budget
+# -----------------------------------------------------------------------------
+resource "REDACTED_e0540b90" "minio" {
+  metadata {
+    name      = "minio-pdb"
+    namespace = kubernetes_namespace.minio.metadata[0].name
+    labels    = var.common_labels
+  }
+
+  spec {
+    min_available = "1"
+    selector {
+      match_labels = {
+        "app.kubernetes.io/name" = "minio"
+      }
+    }
+  }
+}
