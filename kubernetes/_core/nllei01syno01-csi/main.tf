@@ -43,7 +43,7 @@ resource "kubernetes_secret" "client_info" {
   }
 
   data = {
-    "client-info.yml" = yamlencode({
+    "client-info.yaml" = yamlencode({
       clients = [
         {
           host     = var.synology_host
