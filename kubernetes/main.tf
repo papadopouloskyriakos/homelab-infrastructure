@@ -61,16 +61,6 @@ module "gitlab_agent" {
 # APPLICATION NAMESPACE MODULES
 # ========================================================================
 
-module "awx" {
-  source = "./namespaces/awx"
-
-  common_labels = local.common_labels
-
-  nfs_server                = var.nfs_server
-  nfs_path                  = var.nfs_path
-  REDACTED_3e5e811f = var.REDACTED_3e5e811f
-  REDACTED_12032801 = var.REDACTED_12032801
-}
 
 module "minio" {
   source = "./namespaces/minio"
@@ -123,4 +113,16 @@ module "argocd" {
   argocd_ssh_known_hosts       = var.argocd_ssh_known_hosts
 
   depends_on = [module.ingress_nginx]
+}
+
+module "awx" {
+  source = "./namespaces/awx"
+
+  common_labels = local.common_labels
+  domain        = var.domain
+
+  nfs_server                = var.nfs_server
+  nfs_path                  = var.nfs_path
+  REDACTED_3e5e811f = var.REDACTED_3e5e811f
+  REDACTED_12032801 = var.REDACTED_12032801
 }
