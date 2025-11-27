@@ -21,3 +21,8 @@ output "storage_class" {
   description = "AWX storage class name"
   value       = REDACTED_5a69a0fb.nfs_sc.metadata[0].name
 }
+
+output "awx_url" {
+  description = "AWX web interface URL"
+  value       = "https://awx.${var.domain}"
+}
