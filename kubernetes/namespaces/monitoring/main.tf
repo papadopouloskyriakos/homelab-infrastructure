@@ -46,7 +46,7 @@ resource "helm_release" "monitoring" {
           storageSpec = {
             volumeClaimTemplate = {
               spec = {
-                storageClassName = "nfs-client"
+                storageClassName = "REDACTED_4f3da73d"
                 accessModes      = ["ReadWriteOnce"]
                 resources = {
                   requests = {
@@ -109,7 +109,7 @@ resource "helm_release" "monitoring" {
           storage = {
             volumeClaimTemplate = {
               spec = {
-                storageClassName = "nfs-client"
+                storageClassName = "REDACTED_4f3da73d"
                 accessModes      = ["ReadWriteOnce"]
                 resources = {
                   requests = {
@@ -174,7 +174,7 @@ resource "helm_release" "monitoring" {
 
         persistence = {
           enabled          = true
-          storageClassName = "nfs-client"
+          storageClassName = "REDACTED_4f3da73d"
           size             = var.grafana_storage_size
         }
 
