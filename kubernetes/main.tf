@@ -70,6 +70,8 @@ module "nl-nas01_csi" {
   synology_password    = REDACTED_97ec5898
   REDACTED_add7f998 = var.REDACTED_cd98d00a
   chart_version        = var.REDACTED_bf874266
+  
+  enable_velero_integration = false
 }
 
 # ========================================================================
