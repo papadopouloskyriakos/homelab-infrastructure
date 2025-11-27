@@ -55,18 +55,18 @@ resource "kubernetes_secret" "snapshot_credentials" {
 }
 
 # -----------------------------------------------------------------------------
-# MinIO PVC - Uses existing NFS StorageClass
+# MinIO PVC - Synology CSI iSCSI Storage
 # -----------------------------------------------------------------------------
 resource "REDACTED_912a6d18_claim" "minio_data" {
   metadata {
-    name      = "minio-data"
+    name      = "minio-data-csi"
     namespace = kubernetes_namespace.minio.metadata[0].name
     labels    = var.common_labels
   }
 
   spec {
     access_modes       = ["ReadWriteOnce"]
-    storage_class_name = "nfs-client"
+    storage_class_name = "REDACTED_b280aec5"
 
     resources {
       requests = {
