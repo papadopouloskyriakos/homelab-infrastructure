@@ -71,7 +71,9 @@ module "minio" {
   minio_root_password = var.minio_root_password
   minio_storage_size  = var.minio_storage_size
   minio_version       = var.minio_version
-  domain              = var.domain
+  domain                    = var.domain
+  minio_snapshot_access_key = var.minio_snapshot_access_key
+  minio_snapshot_secret_key = var.minio_snapshot_secret_key
 }
 
 module "monitoring" {
