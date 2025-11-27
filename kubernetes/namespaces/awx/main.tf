@@ -105,8 +105,8 @@ resource "kubernetes_manifest" "awx_cr" {
       projects_storage_access_mode = "ReadWriteMany"
       projects_storage_size        = var.REDACTED_12032801
       # PostgreSQL uses existing CSI PVC managed above
-      postgres_storage_class       = ""
-      postgres_data_volume_init    = true
+      postgres_storage_class    = ""
+      postgres_data_volume_init = true
       postgres_storage_requirements = {
         requests = {
           storage = var.REDACTED_3e5e811f
