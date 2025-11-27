@@ -37,6 +37,24 @@ resource "kubernetes_secret" "minio_credentials" {
 }
 
 # -----------------------------------------------------------------------------
+# Snapshot Service Account Credentials Secret
+# -----------------------------------------------------------------------------
+resource "kubernetes_secret" "snapshot_credentials" {
+  metadata {
+    name      = "minio-snapshot-credentials"
+    namespace = kubernetes_namespace.minio.metadata[0].name
+    labels    = var.common_labels
+  }
+
+  data = {
+    access-key = var.minio_snapshot_access_key
+    secret-key = var.minio_snapshot_secret_key
+  }
+
+  type = "Opaque"
+}
+
+# -----------------------------------------------------------------------------
 # MinIO PVC - Uses existing NFS StorageClass
 # -----------------------------------------------------------------------------
 resource "REDACTED_912a6d18_claim" "minio_data" {
@@ -263,11 +281,11 @@ resource "kubernetes_ingress_v1" "minio_console" {
 }
 
 # -----------------------------------------------------------------------------
-# Create Velero Bucket (using Kubernetes Job)
+# MinIO Init Job - Creates Buckets and Service Account
 # -----------------------------------------------------------------------------
-resource "kubernetes_job" "minio_create_bucket" {
+resource "kubernetes_job" "minio_init" {
   metadata {
-    name      = "minio-create-velero-bucket"
+    name      = "minio-init-buckets"
     namespace = kubernetes_namespace.minio.metadata[0].name
     labels    = var.common_labels
   }
@@ -290,11 +308,61 @@ resource "kubernetes_job" "minio_create_bucket" {
           command = ["/bin/sh", "-c"]
           args = [
             <<-EOT
-            sleep 10
+            set -e
+            echo "Waiting for MinIO to be ready..."
+            sleep 15
+            
+            # Configure MinIO client
             mc alias set myminio http://minio-api:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD
+            
+            # Create buckets
+            echo "Creating buckets..."
             mc mb myminio/velero --ignore-existing
-            mc anonymous set download myminio/velero
-            echo "Bucket 'velero' created successfully"
+            mc mb myminio/cluster-snapshots --ignore-existing
+            
+            # Create snapshot-admin user
+            echo "Creating snapshot-admin user..."
+            mc admin user add myminio $SNAPSHOT_ACCESS_KEY $SNAPSHOT_SECRET_KEY 2>/dev/null || echo "User may already exist"
+            
+            # Create policy for cluster-snapshots bucket (read/write)
+            echo "Creating snapshot policy..."
+            cat > /tmp/snapshot-policy.json << 'POLICY'
+            {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetBucketLocation",
+                    "s3:ListBucket",
+                    "s3:ListBucketMultipartUploads"
+                  ],
+                  "Resource": ["arn:aws:s3:::cluster-snapshots"]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject",
+                    "s3:PutObject",
+                    "s3:DeleteObject",
+                    "s3:ListMultipartUploadParts",
+                    "s3:AbortMultipartUpload"
+                  ],
+                  "Resource": ["arn:aws:s3:::cluster-snapshots/*"]
+                }
+              ]
+            }
+            POLICY
+            
+            mc admin policy create myminio snapshot-readwrite /tmp/snapshot-policy.json 2>/dev/null || echo "Policy may already exist"
+            mc admin policy attach myminio snapshot-readwrite --user $SNAPSHOT_ACCESS_KEY 2>/dev/null || echo "Policy may already be attached"
+            
+            echo "=== MinIO initialization complete ==="
+            echo "Buckets:"
+            mc ls myminio/
+            echo ""
+            echo "Users:"
+            mc admin user list myminio
             EOT
           ]
 
@@ -314,6 +382,26 @@ resource "kubernetes_job" "minio_create_bucket" {
               secret_key_ref {
                 name = kubernetes_secret.minio_credentials.metadata[0].name
                 key  = "root-password"
+              }
+            }
+          }
+
+          env {
+            name = "SNAPSHOT_ACCESS_KEY"
+            value_from {
+              secret_key_ref {
+                name = kubernetes_secret.snapshot_credentials.metadata[0].name
+                key  = "access-key"
+              }
+            }
+          }
+
+          env {
+            name = "SNAPSHOT_SECRET_KEY"
+            value_from {
+              secret_key_ref {
+                name = kubernetes_secret.snapshot_credentials.metadata[0].name
+                key  = "secret-key"
               }
             }
           }
