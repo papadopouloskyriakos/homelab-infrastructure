@@ -12,7 +12,7 @@ resource "helm_release" "monitoring" {
   namespace        = "monitoring"
   create_namespace = true
   version          = "79.7.1"
-  timeout          = 600
+  timeout          = 1800
   wait             = true
 
   values = [
