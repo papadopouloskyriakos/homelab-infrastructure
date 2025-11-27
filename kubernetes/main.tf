@@ -67,10 +67,10 @@ module "minio" {
 
   common_labels = local.common_labels
 
-  minio_root_user     = var.minio_root_user
-  minio_root_password = var.minio_root_password
-  minio_storage_size  = var.minio_storage_size
-  minio_version       = var.minio_version
+  minio_root_user           = var.minio_root_user
+  minio_root_password       = var.minio_root_password
+  minio_storage_size        = var.minio_storage_size
+  minio_version             = var.minio_version
   domain                    = var.domain
   minio_snapshot_access_key = var.minio_snapshot_access_key
   minio_snapshot_secret_key = var.minio_snapshot_secret_key
