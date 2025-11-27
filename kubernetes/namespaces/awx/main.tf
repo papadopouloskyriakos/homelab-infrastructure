@@ -5,6 +5,12 @@
 # This file manages: Namespace, StorageClass, PVs, PVC, AWX CR
 #
 # CSI Migration completed 2024-11-27:
+
+# Import existing CSI PVC into state
+import {
+  to = REDACTED_912a6d18_claim.awx_postgres
+  id = "awx/REDACTED_0d7ca6a5"
+}
 # - PostgreSQL moved from NFS to Synology CSI iSCSI
 # - Projects remain on NFS (requires RWX)
 ***REMOVED***
