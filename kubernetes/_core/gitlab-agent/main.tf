@@ -18,7 +18,7 @@ resource "helm_release" "gitlab_agent_k8s" {
   chart            = "gitlab-agent"
   namespace        = "REDACTED_01b50c5d"
   create_namespace = true
-  version          = "2.21.0"
+  version          = "2.21.1"
 
   values = [
     yamlencode({
