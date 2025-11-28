@@ -100,7 +100,7 @@ resource "kubernetes_deployment" "pihole" {
           }
 
           env {
-            name  = "DNSMASQ_LISTENING"
+            name  = "FTLCONF_dns_listeningMode"
             value = "all"
           }
 
