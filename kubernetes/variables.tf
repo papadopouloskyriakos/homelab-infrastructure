@@ -256,3 +256,37 @@ variable "REDACTED_bf874266" {
   type        = string
   default     = "0.10.1"
 }
+
+***REMOVED***
+# Cilium BGP - LoadBalancer IP allocation and BGP peering
+***REMOVED***
+
+variable "REDACTED_08cea5a5" {
+  description = "Start IP of Cilium LoadBalancer IP pool"
+  type        = string
+  default     = "10.0.X.X"
+}
+
+variable "cilium_lb_pool_stop" {
+  description = "End IP of Cilium LoadBalancer IP pool"
+  type        = string
+  default     = "10.0.X.X"
+}
+
+variable "cilium_local_asn" {
+  description = "Local BGP AS number for Kubernetes nodes"
+  type        = number
+  default     = 65001
+}
+
+variable "cilium_peer_asn" {
+  description = "BGP peer AS number (ASA firewall)"
+  type        = number
+  default     = 65000
+}
+
+variable "cilium_peer_address" {
+  description = "BGP peer IP address (ASA firewall on K8s VLAN)"
+  type        = string
+  default     = "10.0.X.X"
+}
