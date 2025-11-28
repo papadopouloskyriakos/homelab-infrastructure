@@ -1,9 +1,143 @@
 # ========================================================================
-# Cilium BGP Configuration Module
-# Manages LB-IPAM pool and BGP peering for LoadBalancer services
+# Cilium CNI Helm Release
 # ========================================================================
-# Note: Cilium CNI itself is installed via CLI (cilium install)
-# This module manages the BGP control plane configuration only
+# Manages Cilium installation via Helm through OpenTofu
+# Enables Service Mesh mTLS with SPIRE
+# ========================================================================
+
+resource "helm_release" "cilium" {
+  name             = "cilium"
+  namespace        = "kube-system"
+  repository       = "https://helm.cilium.io/"
+  chart            = "cilium"
+  version          = "1.18.2"
+  create_namespace = false
+
+  # Cluster settings
+  set {
+    name  = "cluster.name"
+    value = "kubernetes"
+  }
+
+  set {
+    name  = "k8sServiceHost"
+    value = var.k8s_api_host
+  }
+
+  set {
+    name  = "k8sServicePort"
+    value = "6443"
+  }
+
+  # Networking
+  set {
+    name  = "REDACTED_fd61d0fe"
+    value = "true"
+  }
+
+  set {
+    name  = "routingMode"
+    value = "tunnel"
+  }
+
+  set {
+    name  = "tunnelProtocol"
+    value = "vxlan"
+  }
+
+  # Operator
+  set {
+    name  = "operator.replicas"
+    value = "1"
+  }
+
+  # ========================================================================
+  # Hubble Observability
+  # ========================================================================
+  set {
+    name  = "hubble.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "hubble.relay.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "hubble.ui.enabled"
+    value = "true"
+  }
+
+  # Hubble Metrics
+  set {
+    name  = "hubble.metrics.enableOpenMetrics"
+    value = "true"
+  }
+
+  set {
+    name  = "hubble.metrics.enabled"
+    value = "{dns,drop,tcp,flow,icmp,http}"
+  }
+
+  set {
+    name  = "hubble.metrics.serviceMonitor.enabled"
+    value = "true"
+  }
+
+  # ========================================================================
+  # Prometheus Metrics
+  # ========================================================================
+  set {
+    name  = "prometheus.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "prometheus.serviceMonitor.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "operator.prometheus.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "operator.prometheus.serviceMonitor.enabled"
+    value = "true"
+  }
+
+  # ========================================================================
+  # Gateway API (future-proofing)
+  # ========================================================================
+  set {
+    name  = "gatewayAPI.enabled"
+    value = "true"
+  }
+
+  # ========================================================================
+  # Service Mesh - mTLS with SPIRE
+  # ========================================================================
+  set {
+    name  = "authentication.mutual.spire.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "authentication.mutual.spire.install.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "authentication.mutual.spire.install.server.dataStorage.storageClass"
+    value = "nfs-client"
+  }
+}
+
+# ========================================================================
+# Cilium BGP Configuration
+# Manages LB-IPAM pool and BGP peering for LoadBalancer services
 # ========================================================================
 
 resource "kubernetes_manifest" "cilium_lb_pool" {
@@ -153,3 +287,5 @@ resource "kubernetes_service_v1" "hubble_relay_lb" {
     }
   }
 }
+
+# ========================================================================
