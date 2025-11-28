@@ -154,3 +154,11 @@ module "awx" {
   REDACTED_3e5e811f = var.REDACTED_3e5e811f
   REDACTED_12032801 = var.REDACTED_12032801
 }
+
+# ========================================================================
+# Import existing Helm release into state
+# ========================================================================
+import {
+  to = module.cilium_bgp.helm_release.cilium
+  id = "kube-system/cilium"
+}
