@@ -11,7 +11,7 @@ resource "helm_release" "monitoring" {
   chart            = "REDACTED_d8074874"
   namespace        = "monitoring"
   create_namespace = true
-  version          = "79.7.1"
+  version          = "79.9.0"
   timeout          = 1800
   wait             = true
 
