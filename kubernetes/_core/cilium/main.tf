@@ -8,7 +8,7 @@
 
 resource "kubernetes_manifest" "cilium_lb_pool" {
   manifest = {
-    apiVersion = "cilium.io/v2alpha1"
+    apiVersion = "cilium.io/v2"
     kind       = "REDACTED_ad8886c8"
     metadata = {
       name = "lb-pool"
@@ -26,7 +26,7 @@ resource "kubernetes_manifest" "cilium_lb_pool" {
 
 resource "kubernetes_manifest" "REDACTED_5c4a3b9e" {
   manifest = {
-    apiVersion = "cilium.io/v2alpha1"
+    apiVersion = "cilium.io/v2"
     kind       = "CiliumBGPPeerConfig"
     metadata = {
       name = "asa-peer-config"
@@ -59,7 +59,7 @@ resource "kubernetes_manifest" "REDACTED_5868bd7c" {
   depends_on = [kubernetes_manifest.REDACTED_5c4a3b9e]
 
   manifest = {
-    apiVersion = "cilium.io/v2alpha1"
+    apiVersion = "cilium.io/v2"
     kind       = "REDACTED_916bf007"
     metadata = {
       name = "bgp-cluster-config"
@@ -92,7 +92,7 @@ resource "kubernetes_manifest" "REDACTED_5868bd7c" {
 
 resource "kubernetes_manifest" "REDACTED_4dd3398e" {
   manifest = {
-    apiVersion = "cilium.io/v2alpha1"
+    apiVersion = "cilium.io/v2"
     kind       = "REDACTED_ace81415"
     metadata = {
       name = "lb-advertisement"
