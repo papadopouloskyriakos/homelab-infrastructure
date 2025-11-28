@@ -121,3 +121,35 @@ resource "kubernetes_manifest" "REDACTED_4dd3398e" {
     }
   }
 }
+
+# ========================================================================
+# Hubble Relay LoadBalancer Service
+# Exposes Hubble Relay for CLI access outside the cluster
+# ========================================================================
+
+resource "kubernetes_service_v1" "hubble_relay_lb" {
+  metadata {
+    name      = "hubble-relay-lb"
+    namespace = "kube-system"
+    labels = {
+      "app.kubernetes.io/name"    = "hubble-relay"
+      "app.kubernetes.io/part-of" = "cilium"
+      "managed-by"                = "opentofu"
+    }
+  }
+
+  spec {
+    type = "LoadBalancer"
+
+    selector = {
+      "k8s-app" = "hubble-relay"
+    }
+
+    port {
+      name        = "grpc"
+      port        = 80
+      target_port = 4245
+      protocol    = "TCP"
+    }
+  }
+}
