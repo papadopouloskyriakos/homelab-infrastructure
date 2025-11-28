@@ -289,9 +289,3 @@ resource "kubernetes_service_v1" "hubble_relay_lb" {
 }
 
 # ========================================================================
-# Import existing Helm release into state
-# ========================================================================
-import {
-  to = helm_release.cilium
-  id = "kube-system/cilium"
-}
