@@ -297,3 +297,53 @@ resource "kubernetes_ingress_v1" "pihole_ingress" {
     }
   }
 }
+
+***REMOVED***
+# External DNS Access via LoadBalancer
+***REMOVED***
+
+resource "kubernetes_service" "pihole_dns_lb" {
+  metadata {
+    name      = "pihole-dns-lb"
+    namespace = kubernetes_namespace.pihole.metadata[0].name
+    labels = {
+      app        = "pihole"
+      managed-by = "opentofu"
+    }
+  }
+  spec {
+    selector = {
+      app = "pihole"
+    }
+    port {
+      name        = "dns-udp"
+      port        = 53
+      target_port = 53
+      protocol    = "UDP"
+    }
+    type = "LoadBalancer"
+  }
+}
+
+resource "kubernetes_service" "pihole_dns_tcp_lb" {
+  metadata {
+    name      = "pihole-dns-tcp-lb"
+    namespace = kubernetes_namespace.pihole.metadata[0].name
+    labels = {
+      app        = "pihole"
+      managed-by = "opentofu"
+    }
+  }
+  spec {
+    selector = {
+      app = "pihole"
+    }
+    port {
+      name        = "dns-tcp"
+      port        = 53
+      target_port = 53
+      protocol    = "TCP"
+    }
+    type = "LoadBalancer"
+  }
+}

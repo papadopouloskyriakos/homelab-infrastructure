@@ -2,6 +2,7 @@
 # Pi-hole Network Policies
 # ========================================================================
 # Cilium Network Policy for Pi-hole DNS server
+# Includes mTLS enforcement for pod-to-pod communication
 # ========================================================================
 
 resource "kubernetes_manifest" "pihole_network_policy" {
@@ -22,7 +23,7 @@ resource "kubernetes_manifest" "pihole_network_policy" {
       # Ingress rules
       ingress = [
         {
-          # Allow DNS from anywhere (UDP)
+          # Allow DNS from anywhere (UDP) - no mTLS for external clients
           fromEntities = ["all"]
           toPorts = [
             {
@@ -33,7 +34,7 @@ resource "kubernetes_manifest" "pihole_network_policy" {
           ]
         },
         {
-          # Allow DNS from anywhere (TCP)
+          # Allow DNS from anywhere (TCP) - no mTLS for external clients
           fromEntities = ["all"]
           toPorts = [
             {
@@ -44,7 +45,7 @@ resource "kubernetes_manifest" "pihole_network_policy" {
           ]
         },
         {
-          # Allow Web UI from ingress-nginx controller
+          # Allow Web UI from ingress-nginx controller - mTLS required
           fromEndpoints = [
             {
               matchLabels = {
@@ -60,9 +61,12 @@ resource "kubernetes_manifest" "pihole_network_policy" {
               ]
             }
           ]
+          authentication = {
+            mode = "required"
+          }
         },
         {
-          # Allow Prometheus scraping from monitoring namespace
+          # Allow Prometheus scraping from monitoring namespace - mTLS required
           fromEndpoints = [
             {
               matchLabels = {
@@ -77,6 +81,9 @@ resource "kubernetes_manifest" "pihole_network_policy" {
               ]
             }
           ]
+          authentication = {
+            mode = "required"
+          }
         }
       ]
 
