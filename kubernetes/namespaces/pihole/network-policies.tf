@@ -62,7 +62,7 @@ resource "kubernetes_manifest" "pihole_network_policy" {
             }
           ]
           REDACTED_6fa691d2 = {
-            mode = "disabled"
+            mode = "required"
           }
         },
         {
@@ -82,7 +82,7 @@ resource "kubernetes_manifest" "pihole_network_policy" {
             }
           ]
           REDACTED_6fa691d2 = {
-            mode = "disabled"
+            mode = "required"
           }
         }
       ]
