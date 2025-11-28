@@ -20,10 +20,16 @@ validate_k8s_opentofu:
   tags:
     - k8s
   rules:
-    - changes:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        paths:
+          - k8s/**/*.tf
+          - k8s/**/*.tfvars
+        compare_to: 'refs/heads/main'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
         - k8s/**/*.tf
         - k8s/**/*.tfvars
-      when: on_success
   before_script:
     - git config --global --add safe.directory $CI_PROJECT_DIR
   script:
@@ -31,7 +37,7 @@ validate_k8s_opentofu:
     
     # Format check
     - echo "=== Checking formatting ==="
-    - tofu fmt -check -recursive . || { echo "⚠️ Run 'tofu fmt -recursive .' to fix formatting"; exit 1; }
+    - tofu fmt -check -recursive . || { echo "WARNING - Run 'tofu fmt -recursive .' to fix formatting"; exit 1; }
     
     # Create temporary backend config for validation
     - echo "=== Initializing modules (validation mode) ==="
@@ -53,7 +59,7 @@ validate_k8s_opentofu:
     # Clean up temp backend
     - rm -f backend_override.tf
     
-    - echo "✅ OpenTofu validation passed - Atlantis will handle plan/apply in MR"
+    - echo "OK - OpenTofu validation passed - Atlantis will handle plan/apply in MR"
   allow_failure: false
 
 # -----------------------------------------------------------------------------
@@ -65,10 +71,16 @@ validate_argocd_manifests:
   tags:
     - k8s
   rules:
-    - changes:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        paths:
+          - k8s/argocd-apps/**/*.yaml
+          - k8s/argocd-apps/**/*.yml
+        compare_to: 'refs/heads/main'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
         - k8s/argocd-apps/**/*.yaml
         - k8s/argocd-apps/**/*.yml
-      when: on_success
   before_script:
     - kubectl config use-context "$KUBE_CONTEXT"
   script:
@@ -86,19 +98,50 @@ validate_argocd_manifests:
           filename=$(basename "$file")
           
           if [ "$filename" = "application.yaml" ]; then
-            echo "  ⏭️ Skipping $filename (Argo CD Application resource)"
+            echo "  SKIP - $filename (Argo CD Application resource)"
             continue
           fi
           
-          echo "  📄 Validating $filename"
+          echo "  VALIDATING - $filename"
           kubectl apply --dry-run=client -f "$file" 2>&1 || {
-            echo "  ❌ Failed: $file"
+            echo "  FAILED - $file"
             exit 1
           }
         done
       done
     
-    - echo "✅ Argo CD manifests valid - Argo CD will auto-sync on merge"
+    - echo "OK - Argo CD manifests valid - Argo CD will auto-sync on merge"
+  allow_failure: false
+
+# -----------------------------------------------------------------------------
+# Atlantis Skip - Provides passing status when no .tf changes
+# -----------------------------------------------------------------------------
+atlantis_not_required:
+  stage: validate
+  image: alpine:latest
+  tags:
+    - k8s
+  rules:
+    # Don't run if .tf files changed (Atlantis will handle those)
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        paths:
+          - k8s/**/*.tf
+          - k8s/**/*.tfvars
+          - pve/**/*.tf
+          - pve/**/*.tfvars
+        compare_to: 'refs/heads/main'
+      when: never
+    # Run for all other MRs (docker, cisco, etc.)
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: on_success
+  script:
+    - echo "=============================================="
+    - echo "No OpenTofu/Terraform changes detected"
+    - echo "Atlantis plan/apply not required for this MR"
+    - echo "=============================================="
+    - echo ""
+    - echo "This MR can be merged without Atlantis approval."
   allow_failure: false
 
 # -----------------------------------------------------------------------------
@@ -113,7 +156,6 @@ verify_k8s_infrastructure:
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
         - k8s/**/*
-      when: on_success
   before_script:
     - kubectl config use-context "$KUBE_CONTEXT"
   script:
@@ -150,7 +192,7 @@ verify_k8s_infrastructure:
     - kubectl get pvc -A
     - kubectl get sc
     
-    - echo "✅ Verification complete"
+    - echo "OK - Verification complete"
   environment:
     name: production
     kubernetes:
