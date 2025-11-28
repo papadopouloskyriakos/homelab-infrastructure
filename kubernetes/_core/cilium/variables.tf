@@ -1,6 +1,12 @@
 # ========================================================================
-# Cilium BGP Module Variables
+# Cilium Module Variables
 # ========================================================================
+
+variable "k8s_api_host" {
+  description = "Kubernetes API server hostname"
+  type        = string
+  default     = "api-k8s.example.net"
+}
 
 variable "lb_pool_start" {
   description = "Start IP of LoadBalancer IP pool"
