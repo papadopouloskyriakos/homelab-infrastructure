@@ -14,6 +14,9 @@ This repository is the **single source of truth** for the entire Nuclear Lighter
 | Component | Technology | Management | Purpose |
 |-----------|------------|------------|---------|
 | ☸️ Kubernetes | K8s v1.34.2 (7 nodes) | Atlantis + Argo CD | Container orchestration |
+| 🌐 CNI | Cilium v1.18.2 (eBPF) | CLI + OpenTofu | Networking + kube-proxy replacement |
+| 🔀 Load Balancing | Cilium LB-IPAM + BGP | OpenTofu | LoadBalancer services via BGP |
+| 💾 Storage | NFS + Synology iSCSI CSI | OpenTofu | Dynamic provisioning (RWX + RWO) |
 | 🌐 Network | Cisco IOS/ASA | GitLab CI/CD | Routers, Switches, Firewalls, APs |
 | 🖥️ Virtualization | Proxmox VE (3 nodes) | OpenTofu | 100+ LXC, 20+ QEMU VMs |
 | 🐳 Docker | 60+ Services | GitLab CI/CD | GPU/AI, Media, Databases |
@@ -66,14 +69,15 @@ This repository is the **single source of truth** for the entire Nuclear Lighter
 │  │ 7 Nodes HA     │ │                │ │ 3 Nodes        │ │              │ │
 │  │                │ │ • Routers      │ │                │ │ • GPU/AI     │ │
 │  │ Platform:      │ │ • Switches     │ │ • 100+ LXC     │ │ • Media      │ │
-│  │ • Prometheus   │ │ • Firewalls    │ │ • 20+ QEMU     │ │ • Databases  │ │
-│  │ • Grafana      │ │ • Access Points│ │ • Cloud-init   │ │ • Matrix     │ │
-│  │ • Ingress NGINX│ │                │ │ • Templates    │ │ • Nextcloud  │ │
-│  │ • Pi-hole      │ │ Auto Drift     │ │                │ │              │ │
-│  │ • AWX          │ │ Detection      │ │ OpenTofu       │ │ 60+ Services │ │
-│  │ • MinIO        │ │                │ │ Managed        │ │              │ │
-│  │ • Argo CD      │ │ Python +       │ │                │ │ CI/CD Auto   │ │
-│  │                │ │ Netmiko        │ │                │ │ Deploy       │ │
+│  │ • Cilium CNI   │ │ • Firewalls    │ │ • 20+ QEMU     │ │ • Databases  │ │
+│  │ • Prometheus   │ │ • Access Points│ │ • Cloud-init   │ │ • Matrix     │ │
+│  │ • Grafana      │ │                │ │ • Templates    │ │ • Nextcloud  │ │
+│  │ • Ingress NGINX│ │ Auto Drift     │ │                │ │              │ │
+│  │ • Pi-hole      │ │ Detection      │ │ OpenTofu       │ │ 60+ Services │ │
+│  │ • AWX          │ │                │ │ Managed        │ │              │ │
+│  │ • MinIO        │ │ Python +       │ │                │ │ CI/CD Auto   │ │
+│  │ • Argo CD      │ │ Netmiko        │ │                │ │ Deploy       │ │
+│  │                │ │                │ │                │ │              │ │
 │  │ Apps:          │ │                │ │                │ │              │ │
 │  │ • Velero       │ │                │ │                │ │              │ │
 │  └────────────────┘ └────────────────┘ └────────────────┘ └──────────────┘ │
@@ -110,9 +114,12 @@ production/
 │   ├── providers.tf               #    Provider configuration
 │   │
 │   ├── 📁 _core/                  #    Core infrastructure (Atlantis)
+│   │   ├── cilium/                #    - Cilium BGP configuration
 │   │   ├── nfs-provisioner/       #    - NFS StorageClass
+│   │   ├── nl-nas01-csi/     #    - Synology iSCSI CSI driver
 │   │   ├── ingress-nginx/         #    - Ingress Controller
-│   │   └── gitlab-agent/          #    - GitLab K8s Agent
+│   │   ├── gitlab-agent/          #    - GitLab K8s Agent
+│   │   └── pod-disruption-budgets/#    - PDBs for critical workloads
 │   │
 │   ├── 📁 namespaces/             #    Application namespaces (Atlantis)
 │   │   ├── argocd/                #    - Argo CD deployment
@@ -195,28 +202,83 @@ production/
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+### 🌐 Networking Stack
+
+| Component | Technology | Description |
+|-----------|------------|-------------|
+| **CNI** | Cilium v1.18.2 | eBPF-based networking with kube-proxy replacement |
+| **Service Mesh** | Cilium (built-in) | L7 visibility, network policies |
+| **Load Balancer** | Cilium LB-IPAM | Native LoadBalancer IP allocation |
+| **Route Advertisement** | BGP (Cilium) | Dynamic route announcement to ASA |
+| **Ingress** | NGINX Ingress | HTTP/HTTPS routing |
+| **Observability** | Hubble | Real-time network flow visualization |
+
+### 🔀 BGP Configuration
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           BGP Peering Topology                               │
+│                                                                              │
+│   Cisco ASA (AS 65000)                    K8s Workers (AS 65001)            │
+│   10.0.X.X                                                               │
+│        │                                                                     │
+│        ├────────────────────────────────── node01 (10.0.X.X)           │
+│        ├────────────────────────────────── node02 (10.0.X.X)           │
+│        ├────────────────────────────────── node03 (10.0.X.X)           │
+│        └────────────────────────────────── node04 (10.0.X.X)           │
+│                                                                              │
+│   LoadBalancer IP Pool: 10.0.X.X - 10.0.X.X                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 💾 Storage Architecture
+
+| StorageClass | Provider | Access Modes | Use Case |
+|--------------|----------|--------------|----------|
+| `nfs-client` | NFS Provisioner | RWX, RWO | Multi-replica workloads, shared data |
+| `synology-iscsi` | Synology CSI | RWO | Databases, single-replica high-performance |
+
+**Storage Backend:**
+- **NFS Server:** 10.0.X.X (Synology DS1621+) - `/volume1/k8s`
+- **iSCSI Target:** 10.0.X.X (Synology DS1621+) - Block storage for PVCs
+
 ### 📦 Managed Workloads
 
 #### Platform Infrastructure (Atlantis + OpenTofu)
 
 | Workload | Namespace | Access | Description |
 |----------|-----------|--------|-------------|
+| 🌐 **Cilium** | `kube-system` | - | CNI + kube-proxy replacement + BGP |
+| 🔭 **Hubble** | `kube-system` | `hubble.example.net` | Network observability UI |
 | 🗂️ **NFS Provisioner** | `nfs-provisioner` | StorageClass: `nfs-client` | Dynamic NFS provisioning |
+| 💾 **Synology CSI** | `synology-csi` | StorageClass: `synology-iscsi` | iSCSI block storage |
 | 🌐 **Ingress NGINX** | `ingress-nginx` | LoadBalancer | HTTP/HTTPS ingress |
 | 🔗 **GitLab Agent** | `REDACTED_01b50c5d` | Internal | Cluster connectivity |
+| 🛡️ **Pod Disruption Budgets** | Multiple | - | HA guarantees for critical workloads |
 | 📊 **Prometheus** | `monitoring` | NodePort :30090 | Metrics collection (3yr retention) |
-| 📈 **Grafana** | `monitoring` | NodePort :30000 | Dashboards & visualization |
+| 📈 **Grafana** | `monitoring` | `grafana.example.net` | Dashboards & visualization |
 | 🔔 **Alertmanager** | `monitoring` | Internal | Alert routing |
 | 🛡️ **Pi-hole** | `pihole` | NodePort :30666 | DNS filtering |
-| 🤖 **AWX** | `awx` | NodePort :30994 | Ansible automation |
-| 💾 **MinIO** | `minio` | NodePort :30010 | S3-compatible storage |
-| 🔄 **Argo CD** | `argocd` | NodePort :30085 | GitOps delivery |
+| 🤖 **AWX** | `awx` | `awx.example.net` | Ansible automation |
+| 💾 **MinIO** | `minio` | `minio.example.net` | S3-compatible storage |
+| 🔄 **Argo CD** | `argocd` | `argocd.example.net` | GitOps delivery |
 
 #### Applications (Argo CD)
 
 | Application | Namespace | Access | Description |
 |-------------|-----------|--------|-------------|
-| 📦 **Velero** | `velero` | NodePort :30012 | Backup & disaster recovery |
+| 📦 **Velero** | `velero` | `velero.example.net` | Backup & disaster recovery |
+
+### 🛡️ Pod Disruption Budgets
+
+PDBs are configured for all critical workloads to ensure availability during node maintenance:
+
+| Workload | Namespace | MinAvailable |
+|----------|-----------|--------------|
+| Ingress NGINX | `ingress-nginx` | 1 |
+| Prometheus | `monitoring` | 1 |
+| Alertmanager | `monitoring` | 1 |
+| Grafana | `monitoring` | 1 |
 
 ### 🔄 Hybrid GitOps Flow
 
@@ -255,13 +317,15 @@ production/
 
 | Service | NodePort | Ingress |
 |---------|----------|---------|
-| 📈 Grafana | `<node-ip>:30000` | - |
+| 🔭 Hubble | - | `hubble.example.net` |
+| 📈 Grafana | `<node-ip>:30000` | `grafana.example.net` |
 | 📊 Prometheus | `<node-ip>:30090` | - |
 | 🛡️ Pi-hole | `<node-ip>:30666` | `pihole.example.net` |
-| 🤖 AWX | `<node-ip>:30994` | - |
+| 🤖 AWX | `<node-ip>:30994` | `awx.example.net` |
 | 💾 MinIO Console | `<node-ip>:30010` | `minio.example.net` |
 | 🔄 Argo CD | `<node-ip>:30085` | `argocd.example.net` |
 | 📦 Velero UI | `<node-ip>:30012` | `velero.example.net` |
+| 🖥️ K8s Dashboard | `<node-ip>:32321` | `k8s.example.net` |
 
 ### 🔄 K8s Pipeline Jobs
 
@@ -374,7 +438,7 @@ Someone SSHs to device and makes changes
 
 | Image | Purpose | Pre-cached |
 |-------|---------|------------|
-| `k8s-runner` | Kubernetes operations | OpenTofu providers, kubectl, helm |
+| `k8s-runner` | Kubernetes operations | OpenTofu providers, kubectl, helm, cilium |
 | `cisco-ee` | Network automation | Netmiko, Ansible, Python |
 | `pve-runner` | Proxmox operations | Proxmox API tools |
 | `docker-runner` | Docker operations | Docker CLI, buildx |
@@ -386,15 +450,18 @@ Someone SSHs to device and makes changes
 | Component | Status | Version | Endpoint |
 |-----------|--------|---------|----------|
 | ☸️ Kubernetes | 🟢 Operational | v1.34.2 | api-k8s.example.net:6443 |
+| 🌐 Cilium CNI | 🟢 Operational | v1.18.2 | - |
+| 🔭 Hubble | 🟢 Operational | v1.18.2 | hubble.example.net |
+| 🔀 BGP Peering | 🟢 Established | 4 peers | AS 65001 ↔ AS 65000 |
 | 🔄 Argo CD | 🟢 Operational | v2.13.2 | argocd.example.net |
 | 📦 Velero | 🟢 Operational | v1.14.1 | velero.example.net |
 | 🌐 Cisco Network | 🟢 Operational | - | - |
 | 🖥️ Proxmox | 🟢 Operational | - | pve.example.net:8006 |
-| 📈 Grafana | 🟢 Running | v12.3.0 | `<node-ip>:30000` |
+| 📈 Grafana | 🟢 Running | v12.3.0 | grafana.example.net |
 | 📊 Prometheus | 🟢 Running | v3.7.3 | `<node-ip>:30090` |
 | 🛡️ Pi-hole | 🟢 Running | latest | `<node-ip>:30666` |
-| 🤖 AWX | 🟢 Running | v24.6.1 | `<node-ip>:30994` |
-| 💾 MinIO | 🟢 Running | latest | `<node-ip>:30010` |
+| 🤖 AWX | 🟢 Running | v24.6.1 | awx.example.net |
+| 💾 MinIO | 🟢 Running | latest | minio.example.net |
 | 🐳 Registry | 🟢 Operational | - | registry.example.net |
 
 ### 📦 Backup Status (Velero)
@@ -467,6 +534,19 @@ git push origin main
 
 ### ☸️ Kubernetes Issues
 
+**Check Cilium status:**
+```bash
+cilium status
+cilium bgp peers
+cilium connectivity test
+```
+
+**Hubble network flows:**
+```bash
+hubble observe --namespace <namespace>
+hubble observe --to-pod <pod-name>
+```
+
 **Argo CD app stuck in "Progressing"?**
 ```bash
 # Check application status
@@ -492,6 +572,18 @@ kubectl logs -n atlantis deployment/atlantis
 kubectl get pods -n <namespace>
 kubectl describe pod -n <namespace> <pod-name>
 kubectl logs -n <namespace> <pod-name>
+```
+
+**iSCSI volume not attaching?**
+```bash
+# Check Synology CSI pods
+kubectl get pods -n synology-csi
+
+# Check node iSCSI sessions
+iscsiadm -m session
+
+# Check PVC status
+kubectl get pvc -A
 ```
 
 ### 🌐 Cisco Issues
@@ -529,13 +621,14 @@ velero backup create manual-backup --include-namespaces pihole,monitoring
 <type>(<scope>): <description>
 
 Types: feat, fix, docs, refactor, test, chore
-Scopes: k8s, argocd, cisco, pve, docker, ci
+Scopes: k8s, argocd, cisco, pve, docker, ci, cilium
 ```
 
 **Examples:**
 ```bash
 feat(k8s): Add cert-manager for TLS certificates
 feat(argocd): Deploy external-dns application
+feat(cilium): Configure BGP peering with new router
 fix(velero): Correct backup schedule timezone
 chore(ci): Update k8s-runner image version
 docs(readme): Update architecture diagram
@@ -567,6 +660,7 @@ docs(readme): Update architecture diagram
   <img src="https://img.shields.io/badge/Made%20with-❤️-red" alt="Made with love">
   <img src="https://img.shields.io/badge/Powered%20by-GitLab-orange" alt="Powered by GitLab">
   <img src="https://img.shields.io/badge/GitOps-Atlantis%20%2B%20Argo%20CD-blue" alt="GitOps">
+  <img src="https://img.shields.io/badge/CNI-Cilium%20eBPF-purple" alt="Cilium">
   <img src="https://img.shields.io/badge/Infrastructure-as%20Code-green" alt="IaC">
 </p>
 
