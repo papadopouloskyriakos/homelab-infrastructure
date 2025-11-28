@@ -25,9 +25,11 @@ validate_docker_compose:
   extends: .docker_base
   stage: validate
   rules:
-    - changes:
-        - docker/**/*
-      when: on_success
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        paths:
+          - docker/**/*
+        compare_to: 'refs/heads/main'
     - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
       when: never
   script:
@@ -38,7 +40,12 @@ validate_docker_compose:
       echo "Validating Docker Compose Changes"
       echo "================================================"
       
-      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep '^docker/' || true)
+      # Use git diff against merge base for MRs, or parent commit for main
+      if [ -n "${CI_MERGE_REQUEST_TARGET_BRANCH_SHA:-}" ]; then
+        CHANGED=$(git diff --name-only "$CI_MERGE_REQUEST_TARGET_BRANCH_SHA" HEAD | grep '^docker/' || true)
+      else
+        CHANGED=$(git diff --name-only HEAD~1 HEAD | grep '^docker/' || true)
+      fi
       
       if [ -z "$CHANGED" ]; then
         echo "No Docker changes detected"
@@ -59,16 +66,9 @@ validate_docker_compose:
           echo "Version updates detected in .env files:"
           for envfile in $(echo "$CHANGED" | grep ".env"); do
             echo "  - $envfile"
-            git diff-tree --no-commit-id -p -r HEAD -- "$envfile" | grep "^[+-].*_VERSION" || true
+            git show HEAD -- "$envfile" | grep "^[+-].*_VERSION" || true
           done
           echo ""
-          
-          # Check for major version updates
-          if git diff-tree --no-commit-id -p -r HEAD | grep "^+.*_VERSION" | grep -qE "v?[0-9]+\.0\.0|^[0-9]+\.0\.0"; then
-            echo "WARNING: Major version update detected!"
-            echo "Review changelog before deploying!"
-            echo ""
-          fi
         fi
       fi
       
@@ -114,16 +114,11 @@ deploy_docker:
   extends: .docker_base
   stage: deploy
   rules:
-    - changes:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
         - docker/**/*
-      when: on_success
-    - if: '$CI_MERGE_REQUEST_LABELS =~ /renovate/'
-      when: manual
-      allow_failure: true
     - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
       when: never
-  needs:
-    - validate_docker_compose
   script:
     - |
       set -eu
@@ -132,7 +127,16 @@ deploy_docker:
       echo "Docker Deployment"
       echo "================================================"
       
-      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep '^docker/' || true)
+      # For merge commits, compare against first parent to see what was merged in
+      # For regular commits, compare against previous commit
+      if git rev-parse HEAD^2 >/dev/null 2>&1; then
+        # This is a merge commit - compare HEAD^1 (main before merge) with HEAD
+        CHANGED=$(git diff --name-only HEAD^1 HEAD | grep '^docker/' || true)
+        echo "Merge commit detected - comparing merged changes"
+      else
+        # Regular commit - compare with parent
+        CHANGED=$(git diff --name-only HEAD~1 HEAD | grep '^docker/' || true)
+      fi
       
       if [ -z "$CHANGED" ]; then
         echo "No changes detected in docker/ directory"
@@ -150,15 +154,24 @@ deploy_docker:
         echo ""
       fi
       
+      # Get unique host/project combinations
+      DEPLOYMENTS=$(echo "$CHANGED" | cut -d'/' -f2,3 | sort -u)
+      
       DEPLOYMENT_FAILED=0
       
-      for file in $CHANGED; do
-        HOST=$(echo "$file" | cut -d'/' -f2)
-        PROJECT=$(echo "$file" | cut -d'/' -f3)
+      for deployment in $DEPLOYMENTS; do
+        HOST=$(echo "$deployment" | cut -d'/' -f1)
+        PROJECT=$(echo "$deployment" | cut -d'/' -f2)
         
         echo "========================================"
         echo "Deploying $PROJECT to $HOST"
         echo "========================================"
+        
+        # Check if project directory exists
+        if [ ! -d "$CI_PROJECT_DIR/docker/$HOST/$PROJECT" ]; then
+          echo "SKIP: Directory docker/$HOST/$PROJECT does not exist"
+          continue
+        fi
         
         # Add host to known_hosts
         ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
@@ -218,9 +231,9 @@ verify_docker_deployments:
   extends: .docker_base
   stage: verify
   rules:
-    - changes:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
         - docker/**/*
-      when: on_success
     - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
       when: never
   needs:
@@ -233,7 +246,12 @@ verify_docker_deployments:
       echo "Docker Deployment Verification"
       echo "================================================"
       
-      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep '^docker/' || true)
+      # Same logic as deploy_docker for detecting changes
+      if git rev-parse HEAD^2 >/dev/null 2>&1; then
+        CHANGED=$(git diff --name-only HEAD^1 HEAD | grep '^docker/' || true)
+      else
+        CHANGED=$(git diff --name-only HEAD~1 HEAD | grep '^docker/' || true)
+      fi
       
       if [ -z "$CHANGED" ]; then
         echo "No changes to verify"
@@ -243,11 +261,14 @@ verify_docker_deployments:
       echo "Waiting 10 seconds for containers to stabilize..."
       sleep 10
       
+      # Get unique host/project combinations
+      DEPLOYMENTS=$(echo "$CHANGED" | cut -d'/' -f2,3 | sort -u)
+      
       VERIFICATION_FAILED=0
       
-      for file in $CHANGED; do
-        HOST=$(echo "$file" | cut -d'/' -f2)
-        PROJECT=$(echo "$file" | cut -d'/' -f3)
+      for deployment in $DEPLOYMENTS; do
+        HOST=$(echo "$deployment" | cut -d'/' -f1)
+        PROJECT=$(echo "$deployment" | cut -d'/' -f2)
         
         echo ""
         echo "Verifying $PROJECT on $HOST..."
