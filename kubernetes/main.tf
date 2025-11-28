@@ -41,14 +41,23 @@ module "nfs_provisioner" {
   nfs_path   = var.nfs_path
 }
 
-module "metallb" {
-  source = "./_core/metallb"
+# NOTE: MetalLB removed - replaced by Cilium LB-IPAM + BGP
+# Cilium CNI installed via CLI: cilium install --set REDACTED_fd61d0fe=true
+
+module "cilium_bgp" {
+  source = "./_core/cilium"
+
+  lb_pool_start = var.REDACTED_08cea5a5
+  lb_pool_stop  = var.cilium_lb_pool_stop
+  local_asn     = var.cilium_local_asn
+  peer_asn      = var.cilium_peer_asn
+  peer_address  = var.cilium_peer_address
 }
 
 module "ingress_nginx" {
   source = "./_core/ingress-nginx"
 
-  depends_on = [module.metallb]
+  depends_on = [module.cilium_bgp]
 }
 
 module "gitlab_agent" {
@@ -145,4 +154,3 @@ module "awx" {
   REDACTED_3e5e811f = var.REDACTED_3e5e811f
   REDACTED_12032801 = var.REDACTED_12032801
 }
-
