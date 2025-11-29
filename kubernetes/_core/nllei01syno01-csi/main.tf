@@ -70,10 +70,12 @@ resource "helm_release" "synology_csi" {
   wait    = true
   timeout = 600
 
-  set {
-    name  = "clientInfoSecret.name"
-    value = kubernetes_secret.client_info.metadata[0].name
-  }
+  set = [
+    {
+      name  = "clientInfoSecret.name"
+      value = kubernetes_secret.client_info.metadata[0].name
+    },
+  ]
 
   values = [
     yamlencode({
