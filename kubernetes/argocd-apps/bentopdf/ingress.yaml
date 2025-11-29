@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bentopdf
+  namespace: bentopdf
+  labels:
+    app.kubernetes.io/name: bentopdf
+    environment: production
+    managed-by: argocd
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: bentopdf.example.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bentopdf
+                port:
+                  number: 80
