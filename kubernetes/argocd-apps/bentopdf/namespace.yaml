@@ -7,3 +7,4 @@ metadata:
     environment: production
     managed-by: argocd
     repository: REDACTED_25022d4e
+# Test bootstrap
