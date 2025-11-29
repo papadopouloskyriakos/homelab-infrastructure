@@ -2,6 +2,9 @@
 # DOCKER DEPLOYMENT PIPELINE
 # Handles Docker Compose service deployments across hosts
 # ===========================================================================
+# Structure: docker/<hostname>/<path>/<to>/<project>/docker-compose.yml
+# Deploys to: /srv/<path>/<to>/<project>/ on <hostname>
+# ===========================================================================
 
 .docker_base:
   image: $DOCKER_IMAGE
@@ -61,18 +64,9 @@ validate_docker_compose:
         echo ""
         echo "RENOVATE UPDATE DETECTED"
         echo "------------------------------------------------"
-        
-        if echo "$CHANGED" | grep -q ".env"; then
-          echo "Version updates detected in .env files:"
-          for envfile in $(echo "$CHANGED" | grep ".env"); do
-            echo "  - $envfile"
-            git show HEAD -- "$envfile" | grep "^[+-].*_VERSION" || true
-          done
-          echo ""
-        fi
       fi
       
-      # Validate compose files exist
+      # Validate compose files
       VALIDATION_FAILED=0
       
       for file in $CHANGED; do
@@ -130,11 +124,9 @@ deploy_docker:
       # For merge commits, compare against first parent to see what was merged in
       # For regular commits, compare against previous commit
       if git rev-parse HEAD^2 >/dev/null 2>&1; then
-        # This is a merge commit - compare HEAD^1 (main before merge) with HEAD
         CHANGED=$(git diff --name-only HEAD^1 HEAD | grep '^docker/' || true)
         echo "Merge commit detected - comparing merged changes"
       else
-        # Regular commit - compare with parent
         CHANGED=$(git diff --name-only HEAD~1 HEAD | grep '^docker/' || true)
       fi
       
@@ -154,24 +146,53 @@ deploy_docker:
         echo ""
       fi
       
-      # Get unique host/project combinations
-      DEPLOYMENTS=$(echo "$CHANGED" | cut -d'/' -f2,3 | sort -u)
+      # Find all unique project directories (containing docker-compose.yml or Dockerfile)
+      # by walking up from each changed file until we find a compose file
+      PROJECTS=""
+      
+      for file in $CHANGED; do
+        # Get the directory of the changed file
+        DIR=$(dirname "$file")
+        
+        # Walk up until we find docker-compose.yml or docker-compose.yaml
+        while [ "$DIR" != "docker" ] && [ "$DIR" != "." ]; do
+          if [ -f "$CI_PROJECT_DIR/$DIR/docker-compose.yml" ] || \
+             [ -f "$CI_PROJECT_DIR/$DIR/docker-compose.yaml" ] || \
+             [ -f "$CI_PROJECT_DIR/$DIR/Dockerfile" ]; then
+            # Found a project directory
+            PROJECTS="$PROJECTS
+$DIR"
+            break
+          fi
+          DIR=$(dirname "$DIR")
+        done
+      done
+      
+      # Get unique projects
+      PROJECTS=$(echo "$PROJECTS" | grep -v '^$' | sort -u)
+      
+      if [ -z "$PROJECTS" ]; then
+        echo "No docker-compose.yml or Dockerfile found in changed directories"
+        exit 0
+      fi
+      
+      echo "Projects to deploy:"
+      echo "$PROJECTS" | sed 's/^/  /'
+      echo ""
       
       DEPLOYMENT_FAILED=0
       
-      for deployment in $DEPLOYMENTS; do
-        HOST=$(echo "$deployment" | cut -d'/' -f1)
-        PROJECT=$(echo "$deployment" | cut -d'/' -f2)
+      for project_path in $PROJECTS; do
+        # Extract host (first component after docker/)
+        HOST=$(echo "$project_path" | cut -d'/' -f2)
+        
+        # Extract deploy path (everything after docker/HOST/)
+        DEPLOY_SUBPATH=$(echo "$project_path" | sed "s|^docker/$HOST/||")
+        DEPLOY_PATH="/srv/$DEPLOY_SUBPATH"
         
         echo "========================================"
-        echo "Deploying $PROJECT to $HOST"
+        echo "Deploying to $HOST:$DEPLOY_PATH"
         echo "========================================"
-        
-        # Check if project directory exists
-        if [ ! -d "$CI_PROJECT_DIR/docker/$HOST/$PROJECT" ]; then
-          echo "SKIP: Directory docker/$HOST/$PROJECT does not exist"
-          continue
-        fi
         
         # Add host to known_hosts
         ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
@@ -186,60 +207,71 @@ deploy_docker:
         fi
         echo "  Connection validated"
         
-        # Check for custom deploy path in .deploy file
-        # Create .deploy file with: path=/srv/custom/path
-        DEPLOY_PATH="/srv/$PROJECT"
-        if [ -f "$CI_PROJECT_DIR/docker/$HOST/$PROJECT/.deploy" ]; then
-          CUSTOM_PATH=$(cat "$CI_PROJECT_DIR/docker/$HOST/$PROJECT/.deploy" | grep '^path=' | cut -d'=' -f2)
-          if [ -n "$CUSTOM_PATH" ]; then
-            DEPLOY_PATH="$CUSTOM_PATH"
-            echo "  Using custom deploy path: $DEPLOY_PATH"
-          fi
-        fi
+        # Ensure deploy directory exists
+        ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+            root@"$HOST" "mkdir -p $DEPLOY_PATH"
         
         # Rsync project files
         echo "Syncing files to $HOST:$DEPLOY_PATH/..."
         if ! rsync -avz \
           -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
-          --exclude='.deploy' \
-          "$CI_PROJECT_DIR/docker/$HOST/$PROJECT/" \
+          "$CI_PROJECT_DIR/$project_path/" \
           "root@$HOST:$DEPLOY_PATH/"; then
           echo "ERROR: Failed to sync files to $HOST"
           DEPLOYMENT_FAILED=1
           continue
         fi
         
-        # Check if Dockerfile was changed for this project - needs build instead of pull
-        PROJECT_CHANGED=$(echo "$CHANGED" | grep "^docker/$HOST/$PROJECT/" || true)
+        # Check if Dockerfile was changed for this project
+        PROJECT_CHANGED=$(echo "$CHANGED" | grep "^$project_path/" || true)
         NEEDS_BUILD=0
         if echo "$PROJECT_CHANGED" | grep -q "Dockerfile"; then
           NEEDS_BUILD=1
           echo "  Dockerfile changed - will build image"
         fi
         
-        # Deploy with docker compose
+        # Check if docker-compose.yml exists
+        HAS_COMPOSE=0
+        if [ -f "$CI_PROJECT_DIR/$project_path/docker-compose.yml" ] || \
+           [ -f "$CI_PROJECT_DIR/$project_path/docker-compose.yaml" ]; then
+          HAS_COMPOSE=1
+        fi
+        
+        # Deploy
         echo "Running docker compose on $HOST..."
-        if [ "$NEEDS_BUILD" -eq 1 ]; then
-          # Dockerfile changed - need to build
-          if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-               root@"$HOST" \
-               "cd $DEPLOY_PATH && docker compose build --no-cache && docker compose up -d --remove-orphans"; then
-            echo "ERROR: Docker compose build/up failed on $HOST"
-            DEPLOYMENT_FAILED=1
-            continue
+        if [ "$HAS_COMPOSE" -eq 1 ]; then
+          if [ "$NEEDS_BUILD" -eq 1 ]; then
+            # Dockerfile changed - need to build
+            if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+                 root@"$HOST" \
+                 "cd $DEPLOY_PATH && docker compose build --no-cache && docker compose up -d --remove-orphans"; then
+              echo "ERROR: Docker compose build/up failed on $HOST"
+              DEPLOYMENT_FAILED=1
+              continue
+            fi
+          else
+            # No Dockerfile change - just pull and restart
+            if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+                 root@"$HOST" \
+                 "cd $DEPLOY_PATH && docker compose pull && docker compose up -d --remove-orphans"; then
+              echo "ERROR: Docker compose pull/up failed on $HOST"
+              DEPLOYMENT_FAILED=1
+              continue
+            fi
           fi
         else
-          # No Dockerfile change - just pull and restart
+          # Only Dockerfile, no compose - just build
+          echo "  No docker-compose.yml found, building image only..."
           if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
                root@"$HOST" \
-               "cd $DEPLOY_PATH && docker compose pull && docker compose up -d --remove-orphans"; then
-            echo "ERROR: Docker compose pull/up failed on $HOST"
+               "cd $DEPLOY_PATH && docker build -t $(basename $DEPLOY_PATH):latest ."; then
+            echo "ERROR: Docker build failed on $HOST"
             DEPLOYMENT_FAILED=1
             continue
           fi
         fi
         
-        echo "SUCCESS: $PROJECT deployed to $HOST"
+        echo "SUCCESS: Deployed to $HOST:$DEPLOY_PATH"
         echo ""
       done
       
@@ -293,50 +325,69 @@ verify_docker_deployments:
       echo "Waiting 10 seconds for containers to stabilize..."
       sleep 10
       
-      # Get unique host/project combinations
-      DEPLOYMENTS=$(echo "$CHANGED" | cut -d'/' -f2,3 | sort -u)
+      # Find all unique project directories
+      PROJECTS=""
+      
+      for file in $CHANGED; do
+        DIR=$(dirname "$file")
+        
+        while [ "$DIR" != "docker" ] && [ "$DIR" != "." ]; do
+          if [ -f "$CI_PROJECT_DIR/$DIR/docker-compose.yml" ] || \
+             [ -f "$CI_PROJECT_DIR/$DIR/docker-compose.yaml" ] || \
+             [ -f "$CI_PROJECT_DIR/$DIR/Dockerfile" ]; then
+            PROJECTS="$PROJECTS
+$DIR"
+            break
+          fi
+          DIR=$(dirname "$DIR")
+        done
+      done
+      
+      PROJECTS=$(echo "$PROJECTS" | grep -v '^$' | sort -u)
+      
+      if [ -z "$PROJECTS" ]; then
+        echo "No projects to verify"
+        exit 0
+      fi
       
       VERIFICATION_FAILED=0
       
-      for deployment in $DEPLOYMENTS; do
-        HOST=$(echo "$deployment" | cut -d'/' -f1)
-        PROJECT=$(echo "$deployment" | cut -d'/' -f2)
+      for project_path in $PROJECTS; do
+        HOST=$(echo "$project_path" | cut -d'/' -f2)
+        DEPLOY_SUBPATH=$(echo "$project_path" | sed "s|^docker/$HOST/||")
+        DEPLOY_PATH="/srv/$DEPLOY_SUBPATH"
         
         echo ""
-        echo "Verifying $PROJECT on $HOST..."
-        
-        # Check for custom deploy path
-        DEPLOY_PATH="/srv/$PROJECT"
-        if [ -f "$CI_PROJECT_DIR/docker/$HOST/$PROJECT/.deploy" ]; then
-          CUSTOM_PATH=$(cat "$CI_PROJECT_DIR/docker/$HOST/$PROJECT/.deploy" | grep '^path=' | cut -d'=' -f2)
-          if [ -n "$CUSTOM_PATH" ]; then
-            DEPLOY_PATH="$CUSTOM_PATH"
-          fi
-        fi
+        echo "Verifying $DEPLOY_PATH on $HOST..."
         
         ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
         
-        # Check container status
-        CONTAINER_STATUS=$(ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
-          root@"$HOST" \
-          "cd $DEPLOY_PATH && docker compose ps --format '{{.Service}}: {{.State}}'" || echo "ERROR")
-        
-        if [ "$CONTAINER_STATUS" = "ERROR" ]; then
-          echo "  ERROR: Could not get container status"
-          VERIFICATION_FAILED=1
-          continue
-        fi
-        
-        echo "$CONTAINER_STATUS" | while read line; do
-          echo "  $line"
-        done
-        
-        # Check for unhealthy containers
-        if echo "$CONTAINER_STATUS" | grep -qi "exited\|restarting\|dead"; then
-          echo "  WARNING: Some containers not running properly"
-          VERIFICATION_FAILED=1
+        # Check if compose file exists
+        if [ -f "$CI_PROJECT_DIR/$project_path/docker-compose.yml" ] || \
+           [ -f "$CI_PROJECT_DIR/$project_path/docker-compose.yaml" ]; then
+          # Check container status
+          CONTAINER_STATUS=$(ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+            root@"$HOST" \
+            "cd $DEPLOY_PATH && docker compose ps --format '{{.Service}}: {{.State}}'" 2>/dev/null || echo "ERROR")
+          
+          if [ "$CONTAINER_STATUS" = "ERROR" ]; then
+            echo "  ERROR: Could not get container status"
+            VERIFICATION_FAILED=1
+            continue
+          fi
+          
+          echo "$CONTAINER_STATUS" | while read line; do
+            echo "  $line"
+          done
+          
+          if echo "$CONTAINER_STATUS" | grep -qi "exited\|restarting\|dead"; then
+            echo "  WARNING: Some containers not running properly"
+            VERIFICATION_FAILED=1
+          else
+            echo "  PASS: All containers running"
+          fi
         else
-          echo "  PASS: All containers running"
+          echo "  SKIP: No docker-compose.yml (image-only build)"
         fi
       done
       
