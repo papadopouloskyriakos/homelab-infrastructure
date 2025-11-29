@@ -20,11 +20,7 @@ variable "REDACTED_6a2724e6" {
   default     = "200Gi"
 }
 
-variable "grafana_admin_password" {
-  description = "Grafana admin password"
-  type        = string
-  sensitive   = true
-}
+# NOTE: grafana_admin_password removed - now sourced from OpenBao via ExternalSecret
 
 variable "grafana_storage_size" {
   description = "Grafana PVC size"
