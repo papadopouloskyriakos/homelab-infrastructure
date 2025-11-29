@@ -5,6 +5,59 @@
 # Prometheus and Alertmanager OFF control plane nodes
 ***REMOVED***
 
+# -----------------------------------------------------------------------------
+# ExternalSecret for Grafana Admin Credentials
+# -----------------------------------------------------------------------------
+# Creates the secret BEFORE Helm release so Grafana can use existingSecret
+# -----------------------------------------------------------------------------
+resource "kubernetes_manifest" "REDACTED_9675462a" {
+  manifest = {
+    apiVersion = "external-secrets.io/v1beta1"
+    kind       = "ExternalSecret"
+    metadata = {
+      name      = "monitoring-grafana"
+      namespace = "monitoring"
+      labels = {
+        "app.kubernetes.io/name"      = "grafana"
+        "app.kubernetes.io/component" = "admin-secret"
+        environment                   = "production"
+        "managed-by"                  = "opentofu"
+      }
+    }
+    spec = {
+      refreshInterval = "1h"
+      secretStoreRef = {
+        name = "openbao"
+        kind = "ClusterSecretStore"
+      }
+      target = {
+        name           = "monitoring-grafana"
+        creationPolicy = "Owner"
+        deletionPolicy = "Retain"
+      }
+      data = [
+        {
+          secretKey = "admin-user"
+          remoteRef = {
+            key      = "REDACTED_f6e2d5a1"
+            property = "admin-user"
+          }
+        },
+        {
+          secretKey = REDACTED_e7c10ed7
+          remoteRef = {
+            key      = "REDACTED_f6e2d5a1"
+            property = REDACTED_e7c10ed7
+          }
+        }
+      ]
+    }
+  }
+}
+
+# -----------------------------------------------------------------------------
+# Monitoring Helm Release
+# -----------------------------------------------------------------------------
 resource "helm_release" "monitoring" {
   name             = "monitoring"
   repository       = "https://prometheus-community.github.io/helm-charts"
@@ -14,6 +67,9 @@ resource "helm_release" "monitoring" {
   version          = "79.9.0"
   timeout          = 1800
   wait             = true
+
+  # Ensure ExternalSecret creates the secret first
+  depends_on = [kubernetes_manifest.REDACTED_9675462a]
 
   values = [
     yamlencode({
@@ -170,7 +226,12 @@ resource "helm_release" "monitoring" {
           minAvailable = 1
         }
 
-        adminPassword = var.grafana_admin_password
+        # Use existing secret created by ExternalSecret instead of plaintext password
+        admin = {
+          existingSecret = "monitoring-grafana"
+          userKey        = "admin-user"
+          passwordKey    = REDACTED_e7c10ed7
+        }
 
         persistence = {
           enabled          = true
