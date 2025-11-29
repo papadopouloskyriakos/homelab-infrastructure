@@ -115,14 +115,6 @@ module "monitoring" {
   depends_on = [module.nfs_provisioner]
 }
 
-module "pihole" {
-  source = "./namespaces/pihole"
-
-  common_labels = local.common_labels
-
-  pihole_password = var.pihole_password
-}
-
 # NOTE: Velero has been migrated to Argo CD management (apps/velero/)
 
 module "argocd" {

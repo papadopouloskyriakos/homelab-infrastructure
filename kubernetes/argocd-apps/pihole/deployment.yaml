@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pihole
+  namespace: pihole
+  labels:
+    app: pihole
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pihole
+  template:
+    metadata:
+      labels:
+        app: pihole
+    spec:
+      containers:
+        - name: pihole
+          image: pihole/pihole:latest
+          env:
+            - name: TZ
+              value: "Europe/Amsterdam"
+            - name: WEBPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pihole-credentials
+                  key: WEBPASSWORD
+            - name: FTLCONF_dns_listeningMode
+              value: "all"
+            - name: PIHOLE_DNS_
+              value: "8.8.8.8;8.8.4.4"
+          ports:
+            - name: dns-tcp
+              containerPort: 53
+              protocol: TCP
+            - name: dns-udp
+              containerPort: 53
+              protocol: UDP
+            - name: web
+              containerPort: 80
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /admin/
+              port: 80
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /admin/
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          volumeMounts:
+            - name: pihole-data
+              mountPath: /etc/pihole
+              subPath: pihole
+            - name: pihole-data
+              mountPath: /etc/dnsmasq.d
+              subPath: dnsmasq.d
+            - name: custom-dns
+              mountPath: /etc/dnsmasq.d/02-custom.conf
+              subPath: 02-custom.conf
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+      volumes:
+        - name: pihole-data
+          REDACTED_33feff97:
+            claimName: pihole-data
+        - name: custom-dns
+          configMap:
+            name: pihole-custom-dns
