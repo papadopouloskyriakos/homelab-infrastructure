@@ -1,0 +1,82 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pihole-web
+  namespace: pihole
+spec:
+  selector:
+    app: pihole
+  type: NodePort
+  ports:
+    - name: web
+      port: 80
+      targetPort: 80
+      protocol: TCP
+      nodePort: 30666
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pihole-dns-tcp
+  namespace: pihole
+spec:
+  selector:
+    app: pihole
+  type: ClusterIP
+  ports:
+    - name: dns-tcp
+      port: 53
+      targetPort: 53
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pihole-dns-udp
+  namespace: pihole
+spec:
+  selector:
+    app: pihole
+  type: ClusterIP
+  ports:
+    - name: dns-udp
+      port: 53
+      targetPort: 53
+      protocol: UDP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pihole-dns-lb
+  namespace: pihole
+  labels:
+    app: pihole
+    managed-by: argocd
+spec:
+  selector:
+    app: pihole
+  type: LoadBalancer
+  ports:
+    - name: dns-udp
+      port: 53
+      targetPort: 53
+      protocol: UDP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pihole-dns-tcp-lb
+  namespace: pihole
+  labels:
+    app: pihole
+    managed-by: argocd
+spec:
+  selector:
+    app: pihole
+  type: LoadBalancer
+  ports:
+    - name: dns-tcp
+      port: 53
+      targetPort: 53
+      protocol: TCP
