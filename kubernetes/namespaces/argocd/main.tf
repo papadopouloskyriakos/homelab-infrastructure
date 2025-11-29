@@ -20,6 +20,79 @@ resource "kubernetes_namespace" "argocd" {
 }
 
 # -----------------------------------------------------------------------------
+# ExternalSecret for GitLab Repository Credentials
+# -----------------------------------------------------------------------------
+# Creates the repository secret BEFORE Helm release
+# ArgoCD auto-discovers secrets with the repository label
+# -----------------------------------------------------------------------------
+resource "kubernetes_manifest" "gitlab_repo_creds" {
+  manifest = {
+    apiVersion = "external-secrets.io/v1beta1"
+    kind       = "ExternalSecret"
+    metadata = {
+      name      = "gitlab-repo-creds"
+      namespace = kubernetes_namespace.argocd.metadata[0].name
+      labels = {
+        environment  = "production"
+        "managed-by" = "opentofu"
+      }
+    }
+    spec = {
+      refreshInterval = "1h"
+      secretStoreRef = {
+        name = "openbao"
+        kind = "ClusterSecretStore"
+      }
+      target = {
+        name           = "gitlab-repo-creds"
+        creationPolicy = "Owner"
+        deletionPolicy = "Retain"
+        template = {
+          metadata = {
+            labels = {
+              # This label is required for ArgoCD to recognize it as a repository secret
+              "argocd.argoproj.io/secret-type" = "repository"
+            }
+          }
+        }
+      }
+      data = [
+        {
+          secretKey = "username"
+          remoteRef = {
+            key      = "REDACTED_79b33008"
+            property = "username"
+          }
+        },
+        {
+          secretKey = "password"
+          remoteRef = {
+            key      = "REDACTED_79b33008"
+            property = "password"
+          }
+        },
+        {
+          secretKey = "url"
+          remoteRef = {
+            key      = "REDACTED_79b33008"
+            property = "url"
+          }
+        },
+        {
+          secretKey = "type"
+          remoteRef = {
+            key      = "REDACTED_79b33008"
+            property = "type"
+          }
+        }
+      ]
+    }
+  }
+
+  depends_on = [kubernetes_namespace.argocd]
+}
+
+# -----------------------------------------------------------------------------
 # Argo CD Helm Release
 # -----------------------------------------------------------------------------
 resource "helm_release" "argocd" {
@@ -30,6 +103,12 @@ resource "helm_release" "argocd" {
   version    = var.REDACTED_be8b31fd
   timeout    = 600
   wait       = true
+
+  # Ensure ExternalSecret creates the repo credentials first
+  depends_on = [
+    kubernetes_namespace.argocd,
+    kubernetes_manifest.gitlab_repo_creds
+  ]
 
   values = [
     yamlencode({
@@ -186,6 +265,4 @@ resource "helm_release" "argocd" {
       }
     })
   ]
-
-  depends_on = [kubernetes_namespace.argocd]
 }
