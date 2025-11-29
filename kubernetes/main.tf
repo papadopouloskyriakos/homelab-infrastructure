@@ -147,3 +147,9 @@ module "awx" {
   REDACTED_12032801 = var.REDACTED_12032801
 }
 
+
+module "external_secrets" {
+  source = "./_core/external-secrets"
+
+  openbao_address = var.openbao_address
+}
