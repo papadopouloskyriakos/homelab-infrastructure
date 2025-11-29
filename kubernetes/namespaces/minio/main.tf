@@ -19,39 +19,89 @@ resource "kubernetes_namespace" "minio" {
 }
 
 # -----------------------------------------------------------------------------
-# MinIO Credentials Secret
+# MinIO Credentials Secret (via External Secrets Operator)
 # -----------------------------------------------------------------------------
-resource "kubernetes_secret" "minio_credentials" {
-  metadata {
-    name      = "minio-credentials"
-    namespace = kubernetes_namespace.minio.metadata[0].name
-    labels    = var.common_labels
+resource "kubernetes_manifest" "minio_credentials" {
+  manifest = {
+    apiVersion = "external-secrets.io/v1beta1"
+    kind       = "ExternalSecret"
+    metadata = {
+      name      = "minio-credentials"
+      namespace = kubernetes_namespace.minio.metadata[0].name
+      labels    = var.common_labels
+    }
+    spec = {
+      refreshInterval = "1h"
+      secretStoreRef = {
+        name = "openbao"
+        kind = "ClusterSecretStore"
+      }
+      target = {
+        name           = "minio-credentials"
+        creationPolicy = "Owner"
+        deletionPolicy = "Retain"
+      }
+      data = [
+        {
+          secretKey = "root-user"
+          remoteRef = {
+            key      = "secret/k8s/minio/root-credentials"
+            property = "root-user"
+          }
+        },
+        {
+          secretKey = "root-password"
+          remoteRef = {
+            key      = "secret/k8s/minio/root-credentials"
+            property = "root-password"
+          }
+        }
+      ]
+    }
   }
-
-  data = {
-    root-user     = var.minio_root_user
-    root-password = var.minio_root_password
-  }
-
-  type = "Opaque"
 }
 
 # -----------------------------------------------------------------------------
-# Snapshot Service Account Credentials Secret
+# Snapshot Service Account Credentials Secret (via External Secrets Operator)
 # -----------------------------------------------------------------------------
-resource "kubernetes_secret" "snapshot_credentials" {
-  metadata {
-    name      = "minio-snapshot-credentials"
-    namespace = kubernetes_namespace.minio.metadata[0].name
-    labels    = var.common_labels
+resource "kubernetes_manifest" "minio_snapshot_credentials" {
+  manifest = {
+    apiVersion = "external-secrets.io/v1beta1"
+    kind       = "ExternalSecret"
+    metadata = {
+      name      = "minio-snapshot-credentials"
+      namespace = kubernetes_namespace.minio.metadata[0].name
+      labels    = var.common_labels
+    }
+    spec = {
+      refreshInterval = "1h"
+      secretStoreRef = {
+        name = "openbao"
+        kind = "ClusterSecretStore"
+      }
+      target = {
+        name           = "minio-snapshot-credentials"
+        creationPolicy = "Owner"
+        deletionPolicy = "Retain"
+      }
+      data = [
+        {
+          secretKey = "access-key"
+          remoteRef = {
+            key      = "secret/k8s/minio/snapshot-credentials"
+            property = "access-key"
+          }
+        },
+        {
+          secretKey = "secret-key"
+          remoteRef = {
+            key      = "secret/k8s/minio/snapshot-credentials"
+            property = "secret-key"
+          }
+        }
+      ]
+    }
   }
-
-  data = {
-    access-key = var.minio_snapshot_access_key
-    secret-key = var.minio_snapshot_secret_key
-  }
-
-  type = "Opaque"
 }
 
 # -----------------------------------------------------------------------------
@@ -131,7 +181,7 @@ resource "kubernetes_deployment" "minio" {
             name = "MINIO_ROOT_USER"
             value_from {
               secret_key_ref {
-                name = kubernetes_secret.minio_credentials.metadata[0].name
+                name = "minio-credentials"
                 key  = "root-user"
               }
             }
@@ -141,7 +191,7 @@ resource "kubernetes_deployment" "minio" {
             name = "MINIO_ROOT_PASSWORD"
             value_from {
               secret_key_ref {
-                name = kubernetes_secret.minio_credentials.metadata[0].name
+                name = "minio-credentials"
                 key  = "root-password"
               }
             }
@@ -191,6 +241,9 @@ resource "kubernetes_deployment" "minio" {
       }
     }
   }
+
+  # Ensure ExternalSecret creates the secret before deployment
+  depends_on = [kubernetes_manifest.minio_credentials]
 }
 
 # -----------------------------------------------------------------------------
