@@ -41,3 +41,38 @@ resource "helm_release" "external_secrets" {
     }
   })]
 }
+
+***REMOVED***
+# ClusterSecretStore for OpenBao
+***REMOVED***
+
+resource "kubernetes_manifest" "cluster_secret_store" {
+  depends_on = [helm_release.external_secrets]
+
+  manifest = {
+    apiVersion = "external-secrets.io/v1beta1"
+    kind       = "ClusterSecretStore"
+    metadata = {
+      name = "openbao"
+    }
+    spec = {
+      provider = {
+        vault = {
+          server  = var.openbao_address
+          path    = "secret"
+          version = "v2"
+          auth = {
+            kubernetes = {
+              mountPath = "kubernetes"
+              role      = var.openbao_role
+              serviceAccountRef = {
+                name      = "external-secrets"
+                namespace = kubernetes_namespace.external_secrets.metadata[0].name
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
