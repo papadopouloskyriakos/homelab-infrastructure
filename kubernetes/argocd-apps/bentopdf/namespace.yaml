@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bentopdf
+  labels:
+    app.kubernetes.io/name: bentopdf
+    environment: production
+    managed-by: argocd
+    repository: REDACTED_25022d4e
