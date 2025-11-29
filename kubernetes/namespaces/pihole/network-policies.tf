@@ -62,7 +62,7 @@ resource "kubernetes_manifest" "pihole_network_policy" {
             }
           ]
           authentication = {
-            mode = "disabled"
+            mode = "required"
           }
         },
         {
@@ -82,7 +82,7 @@ resource "kubernetes_manifest" "pihole_network_policy" {
             }
           ]
           authentication = {
-            mode = "disabled"
+            mode = "required"
           }
         }
       ]
