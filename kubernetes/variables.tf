@@ -39,13 +39,6 @@ variable "nfs_path" {
 # Monitoring
 ***REMOVED***
 
-variable "grafana_admin_password" {
-  description = "Grafana admin password"
-  type        = string
-  sensitive   = true
-  default     = "changeme123"
-}
-
 variable "prometheus_retention" {
   description = "Prometheus data retention period"
   type        = string
