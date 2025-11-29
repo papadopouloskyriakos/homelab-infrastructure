@@ -1,0 +1,77 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: pihole-policy
+  namespace: pihole
+spec:
+  endpointSelector:
+    matchLabels:
+      app: pihole
+  ingress:
+    # Allow DNS from anywhere (UDP) - no mTLS for external clients
+    - fromEntities:
+        - all
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+    # Allow DNS from anywhere (TCP) - no mTLS for external clients
+    - fromEntities:
+        - all
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: TCP
+    # Allow Web UI from ingress-nginx controller - mTLS required
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: ingress-nginx
+            app.kubernetes.io/name: ingress-nginx
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP
+      authentication:
+        mode: required
+    # Allow Prometheus scraping from monitoring namespace - mTLS required
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP
+      authentication:
+        mode: required
+  egress:
+    # Allow DNS forwarding to upstream servers
+    - toEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+            - port: "853"
+              protocol: TCP
+    # Allow cluster DNS lookups (CoreDNS)
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    # Allow HTTPS for blocklist updates
+    - toEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+            - port: "80"
+              protocol: TCP
