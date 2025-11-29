@@ -279,3 +279,13 @@ variable "cilium_peer_address" {
   type        = string
   default     = "10.0.X.X"
 }
+
+# =============================================================================
+# External Secrets / OpenBao
+# =============================================================================
+
+variable "openbao_address" {
+  description = "OpenBao server address"
+  type        = string
+  default     = "http://10.0.X.X:8200"
+}
