@@ -36,31 +36,34 @@ validate_docker_compose:
     - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
       when: never
   script:
-    - set -eu
-    - echo "================================================"
-    - echo "Validating Docker Compose Changes"
-    - echo "================================================"
     - |
+      set -eu
+      
+      echo "================================================"
+      echo "Validating Docker Compose Changes"
+      echo "================================================"
+      
       if [ -n "${CI_MERGE_REQUEST_TARGET_BRANCH_SHA:-}" ]; then
         CHANGED=$(git diff --name-only "$CI_MERGE_REQUEST_TARGET_BRANCH_SHA" HEAD | grep '^docker/' || true)
       else
         CHANGED=$(git diff --name-only HEAD~1 HEAD | grep '^docker/' || true)
       fi
-    - |
+      
       if [ -z "$CHANGED" ]; then
         echo "No Docker changes detected"
         exit 0
       fi
-    - echo "Changed files:"
-    - echo "$CHANGED" | sed 's/^/  /'
-    - echo "================================================"
-    - |
+      
+      echo "Changed files:"
+      echo "$CHANGED" | sed 's/^/  /'
+      echo "================================================"
+      
       if echo "$CI_COMMIT_MESSAGE" | grep -qi "renovate\|dependencies\|chore(deps)"; then
         echo ""
         echo "RENOVATE UPDATE DETECTED"
         echo "------------------------------------------------"
       fi
-    - |
+      
       VALIDATION_FAILED=0
       for file in $CHANGED; do
         if echo "$file" | grep -q "compose.ya\?ml"; then
@@ -78,13 +81,15 @@ validate_docker_compose:
           echo "  PASS: Valid compose file"
         fi
       done
+      
       if [ $VALIDATION_FAILED -eq 1 ]; then
         echo ""
         echo "ERROR: Validation failed"
         exit 1
       fi
-    - echo ""
-    - echo "SUCCESS: All validations passed"
+      
+      echo ""
+      echo "SUCCESS: All validations passed"
   allow_failure: false
 
 # ===========================================================================
@@ -101,32 +106,35 @@ deploy_docker:
     - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
       when: never
   script:
-    - set -eu
-    - echo "================================================"
-    - echo "Docker Deployment"
-    - echo "================================================"
     - |
+      set -eu
+      
+      echo "================================================"
+      echo "Docker Deployment"
+      echo "================================================"
+      
       if git rev-parse HEAD^2 >/dev/null 2>&1; then
         CHANGED=$(git diff --name-only HEAD^1 HEAD | grep '^docker/' || true)
         echo "Merge commit detected - comparing merged changes"
       else
         CHANGED=$(git diff --name-only HEAD~1 HEAD | grep '^docker/' || true)
       fi
-    - |
+      
       if [ -z "$CHANGED" ]; then
         echo "No changes detected in docker/ directory"
         exit 0
       fi
-    - echo "Changed files:"
-    - echo "$CHANGED" | sed 's/^/  /'
-    - echo "================================================"
-    - echo ""
-    - |
+      
+      echo "Changed files:"
+      echo "$CHANGED" | sed 's/^/  /'
+      echo "================================================"
+      echo ""
+      
       if echo "$CI_COMMIT_MESSAGE" | grep -qi "renovate\|dependencies\|chore(deps)"; then
         echo "RENOVATE UPDATE - Automated dependency update"
         echo ""
       fi
-    - |
+      
       PROJECTS=""
       for file in $CHANGED; do
         DIR=$(dirname "$file")
@@ -140,26 +148,31 @@ deploy_docker:
           DIR=$(dirname "$DIR")
         done
       done
+      
       PROJECTS=$(echo "$PROJECTS" | tr ' ' '\n' | grep -v '^$' | sort -u)
+      
       if [ -z "$PROJECTS" ]; then
         echo "No docker-compose.yml or Dockerfile found in changed directories"
         exit 0
       fi
+      
       echo "Projects to deploy:"
       echo "$PROJECTS" | sed 's/^/  /'
       echo ""
-      export PROJECTS
-      export CHANGED
-    - |
+      
       DEPLOYMENT_FAILED=0
+      
       for project_path in $PROJECTS; do
         HOST=$(echo "$project_path" | cut -d'/' -f2)
         DEPLOY_SUBPATH=$(echo "$project_path" | sed "s|^docker/$HOST/||")
         DEPLOY_PATH="/srv/$DEPLOY_SUBPATH"
+        
         echo "========================================"
         echo "Deploying to $HOST:$DEPLOY_PATH"
         echo "========================================"
+        
         ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+        
         echo "Validating SSH connection to $HOST..."
         if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ConnectTimeout=5 \
              root@"$HOST" "echo 'connected'" &>/dev/null; then
@@ -168,8 +181,10 @@ deploy_docker:
           continue
         fi
         echo "  Connection validated"
+        
         ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
             root@"$HOST" "mkdir -p $DEPLOY_PATH"
+        
         echo "Syncing files to $HOST:$DEPLOY_PATH/..."
         if ! rsync -avz \
           -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
@@ -179,17 +194,20 @@ deploy_docker:
           DEPLOYMENT_FAILED=1
           continue
         fi
+        
         PROJECT_CHANGED=$(echo "$CHANGED" | grep "^$project_path/" || true)
         NEEDS_BUILD=0
         if echo "$PROJECT_CHANGED" | grep -q "Dockerfile"; then
           NEEDS_BUILD=1
           echo "  Dockerfile changed - will build image"
         fi
+        
         HAS_COMPOSE=0
         if [ -f "$CI_PROJECT_DIR/$project_path/docker-compose.yml" ] || \
            [ -f "$CI_PROJECT_DIR/$project_path/docker-compose.yaml" ]; then
           HAS_COMPOSE=1
         fi
+        
         echo "Running docker compose on $HOST..."
         if [ "$HAS_COMPOSE" -eq 1 ]; then
           if [ "$NEEDS_BUILD" -eq 1 ]; then
@@ -211,26 +229,30 @@ deploy_docker:
           fi
         else
           echo "  No docker-compose.yml found, building image only..."
+          IMGNAME=$(basename "$DEPLOY_PATH")
           if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
                root@"$HOST" \
-               "cd $DEPLOY_PATH && docker build -t \$(basename $DEPLOY_PATH):latest ."; then
+               "cd $DEPLOY_PATH && docker build -t $IMGNAME:latest ."; then
             echo "ERROR: Docker build failed on $HOST"
             DEPLOYMENT_FAILED=1
             continue
           fi
         fi
+        
         echo "SUCCESS: Deployed to $HOST:$DEPLOY_PATH"
         echo ""
       done
+      
       if [ $DEPLOYMENT_FAILED -eq 1 ]; then
         echo "================================================"
         echo "ERROR: One or more deployments failed"
         echo "================================================"
         exit 1
       fi
-    - echo "================================================"
-    - echo "SUCCESS: Docker deployment completed"
-    - echo "================================================"
+      
+      echo "================================================"
+      echo "SUCCESS: Docker deployment completed"
+      echo "================================================"
   environment: production
 
 # ===========================================================================
@@ -249,24 +271,27 @@ verify_docker_deployments:
   needs:
     - deploy_docker
   script:
-    - set -eu
-    - echo "================================================"
-    - echo "Docker Deployment Verification"
-    - echo "================================================"
     - |
+      set -eu
+      
+      echo "================================================"
+      echo "Docker Deployment Verification"
+      echo "================================================"
+      
       if git rev-parse HEAD^2 >/dev/null 2>&1; then
         CHANGED=$(git diff --name-only HEAD^1 HEAD | grep '^docker/' || true)
       else
         CHANGED=$(git diff --name-only HEAD~1 HEAD | grep '^docker/' || true)
       fi
-    - |
+      
       if [ -z "$CHANGED" ]; then
         echo "No changes to verify"
         exit 0
       fi
-    - echo "Waiting 10 seconds for containers to stabilize..."
-    - sleep 10
-    - |
+      
+      echo "Waiting 10 seconds for containers to stabilize..."
+      sleep 10
+      
       PROJECTS=""
       for file in $CHANGED; do
         DIR=$(dirname "$file")
@@ -280,33 +305,42 @@ verify_docker_deployments:
           DIR=$(dirname "$DIR")
         done
       done
+      
       PROJECTS=$(echo "$PROJECTS" | tr ' ' '\n' | grep -v '^$' | sort -u)
+      
       if [ -z "$PROJECTS" ]; then
         echo "No projects to verify"
         exit 0
       fi
-    - |
+      
       VERIFICATION_FAILED=0
+      
       for project_path in $PROJECTS; do
         HOST=$(echo "$project_path" | cut -d'/' -f2)
         DEPLOY_SUBPATH=$(echo "$project_path" | sed "s|^docker/$HOST/||")
         DEPLOY_PATH="/srv/$DEPLOY_SUBPATH"
+        
         echo ""
         echo "Verifying $DEPLOY_PATH on $HOST..."
+        
         ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+        
         if [ -f "$CI_PROJECT_DIR/$project_path/docker-compose.yml" ] || \
            [ -f "$CI_PROJECT_DIR/$project_path/docker-compose.yaml" ]; then
           CONTAINER_STATUS=$(ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
             root@"$HOST" \
             "cd $DEPLOY_PATH && docker compose ps --format '{{.Service}}: {{.State}}'" 2>/dev/null || echo "ERROR")
+          
           if [ "$CONTAINER_STATUS" = "ERROR" ]; then
             echo "  ERROR: Could not get container status"
             VERIFICATION_FAILED=1
             continue
           fi
+          
           echo "$CONTAINER_STATUS" | while read line; do
             echo "  $line"
           done
+          
           if echo "$CONTAINER_STATUS" | grep -qi "exited\|restarting\|dead"; then
             echo "  WARNING: Some containers not running properly"
             VERIFICATION_FAILED=1
@@ -317,6 +351,7 @@ verify_docker_deployments:
           echo "  SKIP: No docker-compose.yml (image-only build)"
         fi
       done
+      
       if [ $VERIFICATION_FAILED -eq 1 ]; then
         echo ""
         echo "WARNING: Some verifications failed"
