@@ -109,7 +109,6 @@ module "monitoring" {
 
   prometheus_retention    = var.prometheus_retention
   REDACTED_6a2724e6 = var.REDACTED_6a2724e6
-  grafana_admin_password  = var.grafana_admin_password
   grafana_storage_size    = var.grafana_storage_size
 
   depends_on = [module.nfs_provisioner]
