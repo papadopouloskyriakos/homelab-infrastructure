@@ -4,12 +4,12 @@
 
 output "namespace" {
   description = "Namespace where monitoring is deployed"
-  value       = helm_release.monitoring.metadata[0].namespace
+  value       = helm_release.monitoring.metadata.namespace
 }
 
 output "chart_version" {
   description = "Deployed Helm chart version"
-  value       = helm_release.monitoring.metadata[0].version
+  value       = helm_release.monitoring.metadata.version
 }
 
 output "grafana_nodeport" {
