@@ -28,7 +28,7 @@ spec:
           mountPath: /target
       containers:
       - name: velero
-        image: velero/velero:v1.14.1
+        image: velero/velero:v1.17.1
         command: ["/velero"]
         args:
         - server

@@ -21,7 +21,7 @@ spec:
       serviceAccountName: velero
       containers:
       - name: node-agent
-        image: velero/velero:v1.14.1
+        image: velero/velero:v1.17.1
         command: ["/velero"]
         args:
         - node-agent
