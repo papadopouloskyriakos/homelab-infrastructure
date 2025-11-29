@@ -110,7 +110,7 @@ validate_argocd_manifests:
         done
       done
     
-    - echo "OK - Argo CD manifests valid - Argo CD will auto-sync on merge"
+    - echo "OK - Argo CD manifests valid"
   allow_failure: false
 
 # -----------------------------------------------------------------------------
@@ -142,6 +142,40 @@ atlantis_not_required:
     - echo "=============================================="
     - echo ""
     - echo "This MR can be merged without Atlantis approval."
+  allow_failure: false
+
+# -----------------------------------------------------------------------------
+# Deploy Stage - Bootstrap Argo CD Applications (runs after merge to main)
+# -----------------------------------------------------------------------------
+bootstrap_argocd_apps:
+  stage: deploy
+  image: $K8S_IMAGE
+  tags:
+    - k8s
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - k8s/argocd-apps/**/*.yaml
+        - k8s/argocd-apps/**/*.yml
+  before_script:
+    - kubectl config use-context "$KUBE_CONTEXT"
+  script:
+    - echo "=== Bootstrapping Argo CD Applications ==="
+    
+    # Apply all application.yaml files (idempotent - safe to re-apply existing apps)
+    - |
+      for app_dir in k8s/argocd-apps/*/; do
+        app_file="${app_dir}application.yaml"
+        if [ -f "$app_file" ]; then
+          app_name=$(basename "$app_dir")
+          echo "--- Applying $app_name ---"
+          kubectl apply -f "$app_file"
+        fi
+      done
+    
+    - echo ""
+    - echo "=== Argo CD Applications Status ==="
+    - kubectl get applications -n argocd
   allow_failure: false
 
 # -----------------------------------------------------------------------------
