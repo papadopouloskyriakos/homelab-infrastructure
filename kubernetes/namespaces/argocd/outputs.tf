@@ -9,7 +9,7 @@ output "namespace" {
 
 output "chart_version" {
   description = "Deployed Argo CD Helm chart version"
-  value       = helm_release.argocd.metadata[0].version
+  value       = helm_release.argocd.metadata.version
 }
 
 output "server_nodeport" {
