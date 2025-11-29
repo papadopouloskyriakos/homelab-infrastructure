@@ -186,25 +186,57 @@ deploy_docker:
         fi
         echo "  Connection validated"
         
+        # Check for custom deploy path in .deploy file
+        # Create .deploy file with: path=/srv/custom/path
+        DEPLOY_PATH="/srv/$PROJECT"
+        if [ -f "$CI_PROJECT_DIR/docker/$HOST/$PROJECT/.deploy" ]; then
+          CUSTOM_PATH=$(cat "$CI_PROJECT_DIR/docker/$HOST/$PROJECT/.deploy" | grep '^path=' | cut -d'=' -f2)
+          if [ -n "$CUSTOM_PATH" ]; then
+            DEPLOY_PATH="$CUSTOM_PATH"
+            echo "  Using custom deploy path: $DEPLOY_PATH"
+          fi
+        fi
+        
         # Rsync project files
-        echo "Syncing files to $HOST:/srv/$PROJECT/..."
+        echo "Syncing files to $HOST:$DEPLOY_PATH/..."
         if ! rsync -avz \
           -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
+          --exclude='.deploy' \
           "$CI_PROJECT_DIR/docker/$HOST/$PROJECT/" \
-          "root@$HOST:/srv/$PROJECT/"; then
+          "root@$HOST:$DEPLOY_PATH/"; then
           echo "ERROR: Failed to sync files to $HOST"
           DEPLOYMENT_FAILED=1
           continue
         fi
         
+        # Check if Dockerfile was changed for this project - needs build instead of pull
+        PROJECT_CHANGED=$(echo "$CHANGED" | grep "^docker/$HOST/$PROJECT/" || true)
+        NEEDS_BUILD=0
+        if echo "$PROJECT_CHANGED" | grep -q "Dockerfile"; then
+          NEEDS_BUILD=1
+          echo "  Dockerfile changed - will build image"
+        fi
+        
         # Deploy with docker compose
         echo "Running docker compose on $HOST..."
-        if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-             root@"$HOST" \
-             "cd /srv/$PROJECT && docker compose pull && docker compose up -d --remove-orphans"; then
-          echo "ERROR: Docker compose failed on $HOST"
-          DEPLOYMENT_FAILED=1
-          continue
+        if [ "$NEEDS_BUILD" -eq 1 ]; then
+          # Dockerfile changed - need to build
+          if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+               root@"$HOST" \
+               "cd $DEPLOY_PATH && docker compose build --no-cache && docker compose up -d --remove-orphans"; then
+            echo "ERROR: Docker compose build/up failed on $HOST"
+            DEPLOYMENT_FAILED=1
+            continue
+          fi
+        else
+          # No Dockerfile change - just pull and restart
+          if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+               root@"$HOST" \
+               "cd $DEPLOY_PATH && docker compose pull && docker compose up -d --remove-orphans"; then
+            echo "ERROR: Docker compose pull/up failed on $HOST"
+            DEPLOYMENT_FAILED=1
+            continue
+          fi
         fi
         
         echo "SUCCESS: $PROJECT deployed to $HOST"
@@ -273,12 +305,21 @@ verify_docker_deployments:
         echo ""
         echo "Verifying $PROJECT on $HOST..."
         
+        # Check for custom deploy path
+        DEPLOY_PATH="/srv/$PROJECT"
+        if [ -f "$CI_PROJECT_DIR/docker/$HOST/$PROJECT/.deploy" ]; then
+          CUSTOM_PATH=$(cat "$CI_PROJECT_DIR/docker/$HOST/$PROJECT/.deploy" | grep '^path=' | cut -d'=' -f2)
+          if [ -n "$CUSTOM_PATH" ]; then
+            DEPLOY_PATH="$CUSTOM_PATH"
+          fi
+        fi
+        
         ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
         
         # Check container status
         CONTAINER_STATUS=$(ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
           root@"$HOST" \
-          "cd /srv/$PROJECT && docker compose ps --format '{{.Service}}: {{.State}}'" || echo "ERROR")
+          "cd $DEPLOY_PATH && docker compose ps --format '{{.Service}}: {{.State}}'" || echo "ERROR")
         
         if [ "$CONTAINER_STATUS" = "ERROR" ]; then
           echo "  ERROR: Could not get container status"
