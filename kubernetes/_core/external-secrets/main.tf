@@ -76,3 +76,42 @@ resource "kubernetes_manifest" "cluster_secret_store" {
     }
   }
 }
+
+***REMOVED***
+# OpenBao TokenReview RBAC
+# Allows OpenBao to validate K8s ServiceAccount tokens
+***REMOVED***
+
+resource "REDACTED_4ad9fc99" "openbao_auth" {
+  metadata {
+    name      = "openbao-auth"
+    namespace = "kube-system"
+  }
+}
+
+resource "REDACTED_2b73dc4c" "openbao_tokenreview" {
+  metadata {
+    name = "openbao-tokenreview"
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = "system:auth-delegator"
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = REDACTED_4ad9fc99.openbao_auth.metadata[0].name
+    namespace = "kube-system"
+  }
+}
+
+resource "kubernetes_secret" "openbao_auth_token" {
+  metadata {
+    name      = "openbao-auth-token"
+    namespace = "kube-system"
+    annotations = {
+      "kubernetes.io/service-account.name" = REDACTED_4ad9fc99.openbao_auth.metadata[0].name
+    }
+  }
+  type = "kubernetes.io/service-account-token"
+}
