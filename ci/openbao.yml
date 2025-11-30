@@ -29,12 +29,14 @@ variables:
 # =============================================================================
 test:openbao-jwt-auth:
   stage: .pre
-  image: curlimages/curl:latest
+  image: alpine:latest
   tags:
     - k8s
   id_tokens:
     VAULT_ID_TOKEN:
       aud: https://gitlab.example.net
+  before_script:
+    - apk add --no-cache curl jq
   script:
     - echo "=== Step 1 - Check ID Token Availability ==="
     - if [ -n "${VAULT_ID_TOKEN}" ]; then echo "OK - VAULT_ID_TOKEN is available (${#VAULT_ID_TOKEN} chars)"; else echo "FAIL - VAULT_ID_TOKEN is NOT available"; exit 1; fi
