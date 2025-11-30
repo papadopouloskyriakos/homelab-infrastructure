@@ -273,6 +273,20 @@ resource "helm_release" "monitoring" {
         }
 
         tolerations = []
+
+        # Loki datasource for centralized log aggregation
+        additionalDataSources = [
+          {
+            name      = "Loki"
+            type      = "loki"
+            url       = "http://loki.logging.svc.cluster.local:3100"
+            access    = "proxy"
+            isDefault = false
+            jsonData = {
+              maxLines = 1000
+            }
+          }
+        ]
       }
 
       # =========================================================================
