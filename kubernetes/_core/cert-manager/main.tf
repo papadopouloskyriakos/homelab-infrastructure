@@ -21,6 +21,9 @@ resource "helm_release" "cert_manager" {
   values = [yamlencode({
     installCRDs = false
 
+    dns01RecursiveNameservers     = "1.1.1.1:53,1.0.0.1:53"
+    dns01RecursiveNameserversOnly = true
+
     prometheus = {
       enabled = true
       servicemonitor = {
