@@ -14,18 +14,24 @@ This repository is the **single source of truth** for the entire Nuclear Lighter
 | Component | Technology | Management | Purpose |
 |-----------|------------|------------|---------|
 | ☸️ Kubernetes | K8s v1.34.2 (7 nodes) | Atlantis + Argo CD | Container orchestration |
-| 🌐 CNI | Cilium v1.18.2 (eBPF) | CLI + OpenTofu | Networking + kube-proxy replacement |
+| 🌐 CNI | Cilium v1.18.2 (eBPF) | OpenTofu | Networking + kube-proxy replacement |
 | 🔀 Load Balancing | Cilium LB-IPAM + BGP | OpenTofu | LoadBalancer services via BGP |
 | 💾 Storage | NFS + Synology iSCSI CSI | OpenTofu | Dynamic provisioning (RWX + RWO) |
+| 🔒 TLS Automation | cert-manager + Let's Encrypt | OpenTofu | Wildcard certificates, DNS-01 validation |
+| 🔐 Secrets | External Secrets + OpenBao | OpenTofu | Centralized secrets management |
+| 🛡️ Service Mesh | Cilium mTLS + SPIRE | OpenTofu | Mutual TLS REDACTED_6fa691d2 |
+| 📊 Monitoring | REDACTED_d8074874 | Helm | Prometheus, Grafana, Alertmanager |
+| 📜 Logging | syslog-ng → Loki → Grafana | LXC + K8s | Centralized log aggregation |
+| 🔄 Backup | Velero + MinIO | Argo CD | Disaster recovery, scheduled backups |
+| 🤖 Automation | AWX | OpenTofu | Scheduled jobs, cert sync, maintenance |
 | 🌐 Network | Cisco IOS/ASA | GitLab CI/CD | Routers, Switches, Firewalls, APs |
 | 🖥️ Virtualization | Proxmox VE (3 nodes) | OpenTofu | 100+ LXC, 20+ QEMU VMs |
 | 🐳 Docker | 60+ Services | GitLab CI/CD | GPU/AI, Media, Databases |
-| 🔄 Automation | GitLab CI/CD | - | Pipeline-driven deployments |
+| 🔄 GitOps | Atlantis + Argo CD | - | Pipeline-driven deployments |
 
 ---
 
 ## 🏗️ Hybrid GitOps Architecture
-
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         SOURCE OF TRUTH                                      │
@@ -33,6 +39,7 @@ This repository is the **single source of truth** for the entire Nuclear Lighter
 │  │                      📂 GitLab Repository                              │  │
 │  │  k8s/          → OpenTofu configs (Atlantis)                          │  │
 │  │  k8s/argocd-apps/ → Argo CD manifests                                 │  │
+│  │  ansible/      → AWX playbooks                                        │  │
 │  │  network/      → Cisco configs                                        │  │
 │  │  pve/          → Proxmox VM/LXC configs                               │  │
 │  │  docker/       → 60+ service definitions                              │  │
@@ -77,9 +84,10 @@ This repository is the **single source of truth** for the entire Nuclear Lighter
 │  │ • AWX          │ │                │ │ Managed        │ │              │ │
 │  │ • MinIO        │ │ Python +       │ │                │ │ CI/CD Auto   │ │
 │  │ • Argo CD      │ │ Netmiko        │ │                │ │ Deploy       │ │
-│  │                │ │                │ │                │ │              │ │
-│  │ Apps:          │ │                │ │                │ │              │ │
 │  │ • Velero       │ │                │ │                │ │              │ │
+│  │ • cert-manager │ │                │ │                │ │              │ │
+│  │ • External Sec │ │                │ │                │ │              │ │
+│  │ • Loki         │ │                │ │                │ │              │ │
 │  └────────────────┘ └────────────────┘ └────────────────┘ └──────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -92,13 +100,21 @@ This repository is the **single source of truth** for the entire Nuclear Lighter
 ---
 
 ## 📁 Repository Structure
-
 ```
 production/
 ├── 📄 .gitlab-ci.yml              # Main pipeline configuration
 ├── 📄 atlantis.yaml               # Atlantis project configuration
 ├── 📄 renovate.json               # Automated dependency updates
 ├── 📄 README.md                   # You are here! 👋
+│
+├── 📁 ansible/                    # 🤖 AWX Playbooks
+│   └── 📁 playbooks/
+│       ├── cert-manager/          #    - TLS cert sync to NPM
+│       ├── docker/                #    - Docker project collection
+│       ├── pve/                   #    - Proxmox automation
+│       ├── snmpd/                 #    - SNMP daemon management
+│       ├── ssh/                   #    - SSH key distribution
+│       └── updates/               #    - System updates
 │
 ├── 📁 ci/                         # 🔧 Modular pipeline includes
 │   ├── cisco.yml                  #    Cisco device automation
@@ -114,7 +130,9 @@ production/
 │   ├── providers.tf               #    Provider configuration
 │   │
 │   ├── 📁 _core/                  #    Core infrastructure (Atlantis)
+│   │   ├── cert-manager/          #    - TLS certificate automation
 │   │   ├── cilium/                #    - Cilium BGP configuration
+│   │   ├── external-secrets/      #    - External Secrets Operator
 │   │   ├── nfs-provisioner/       #    - NFS StorageClass
 │   │   ├── nl-nas01-csi/     #    - Synology iSCSI CSI driver
 │   │   ├── ingress-nginx/         #    - Ingress Controller
@@ -124,17 +142,17 @@ production/
 │   ├── 📁 namespaces/             #    Application namespaces (Atlantis)
 │   │   ├── argocd/                #    - Argo CD deployment
 │   │   ├── awx/                   #    - AWX Ansible automation
+│   │   ├── cert-manager/          #    - Certificate management
+│   │   ├── external-secrets/      #    - Secrets sync from OpenBao
+│   │   ├── logging/               #    - Loki log aggregation
 │   │   ├── minio/                 #    - S3-compatible storage
 │   │   ├── monitoring/            #    - Prometheus + Grafana
-│   │   └── pihole/                #    - Pi-hole DNS
+│   │   ├── pihole/                #    - Pi-hole DNS
+│   │   └── velero/                #    - Backup & DR
 │   │
 │   └── 📁 argocd-apps/            #    Argo CD managed applications
+│       ├── pihole/                #    - Pi-hole DNS ad-blocking
 │       └── velero/                #    - Backup & disaster recovery
-│           ├── application.yaml   #      Argo CD Application
-│           ├── deployment.yaml    #      Velero server
-│           ├── daemonset.yaml     #      Node agents
-│           ├── schedules.yaml     #      Backup schedules
-│           └── ui.yaml            #      Velero UI
 │
 ├── 📁 network/                    # 🌐 Cisco Network Configs
 │   ├── 📁 configs/                #    Device configurations
@@ -176,7 +194,6 @@ production/
 ## ☸️ Kubernetes Infrastructure
 
 ### 🏗️ Cluster Architecture
-
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                    Kubernetes Cluster v1.34.2                                │
@@ -193,283 +210,279 @@ production/
 │                                                                              │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
 │  │                        Worker Nodes                                   │   │
-│  │   ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐       │   │
-│  │   │   node01   │ │   node02   │ │   node03   │ │   node04   │       │   │
-│  │   │  8 CPU     │ │  8 CPU     │ │  8 CPU     │ │  8 CPU     │       │   │
-│  │   │  8 GB RAM  │ │  8 GB RAM  │ │  8 GB RAM  │ │  8 GB RAM  │       │   │
-│  │   └────────────┘ └────────────┘ └────────────┘ └────────────┘       │   │
+│  │   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐             │   │
+│  │   │ worker01│   │ worker02│   │ worker03│   │ worker04│             │   │
+│  │   │ 8 CPU   │   │ 6 CPU   │   │ 6 CPU   │   │ 4 CPU   │             │   │
+│  │   │ 8 GB    │   │ 8 GB    │   │ 8 GB    │   │ 8 GB    │             │   │
+│  │   └─────────┘   └─────────┘   └─────────┘   └─────────┘             │   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 🌐 Networking Stack
+### 🧩 Platform Components
 
-| Component | Technology | Description |
-|-----------|------------|-------------|
-| **CNI** | Cilium v1.18.2 | eBPF-based networking with kube-proxy replacement |
-| **Service Mesh** | Cilium (built-in) | L7 visibility, network policies |
-| **Load Balancer** | Cilium LB-IPAM | Native LoadBalancer IP allocation |
-| **Route Advertisement** | BGP (Cilium) | Dynamic route announcement to ASA |
-| **Ingress** | NGINX Ingress | HTTP/HTTPS routing |
-| **Observability** | Hubble | Real-time network flow visualization |
+| Category | Component | Version | Status | Description |
+|----------|-----------|---------|--------|-------------|
+| **CNI** | Cilium | v1.18.2 | ✅ | eBPF networking, kube-proxy replacement |
+| **Load Balancing** | Cilium BGP + LB-IPAM | - | ✅ | BGP peering with Cisco ASA |
+| **Storage** | Synology CSI | v1.1.4 | ✅ | iSCSI block storage (RWO) |
+| **Storage** | NFS Provisioner | - | ✅ | NFS shares (RWX) |
+| **Ingress** | NGINX Ingress | - | ✅ | External HTTP/HTTPS access |
+| **Monitoring** | REDACTED_d8074874 | v79.9.0 | ✅ | Prometheus, Grafana, Alertmanager |
+| **Logging** | Grafana Loki | - | ✅ | Log aggregation from syslog-ng |
+| **Secrets** | External Secrets | v0.x | ✅ | Sync secrets from OpenBao |
+| **TLS** | cert-manager | v1.x | ✅ | Let's Encrypt wildcard certificates |
+| **Service Mesh** | Cilium mTLS + SPIRE | - | ✅ | Mutual TLS REDACTED_6fa691d2 |
+| **Backup** | Velero + MinIO | - | ✅ | Scheduled backups, DR |
+| **DNS** | Pi-hole | - | ✅ | Ad-blocking DNS |
+| **Automation** | AWX | - | ✅ | Ansible automation platform |
+| **GitOps** | Argo CD | - | ✅ | Application delivery |
 
-### 🔀 BGP Configuration
+---
 
+## 🔐 Secrets Management
+
+### Architecture
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           BGP Peering Topology                               │
+│                         SECRETS FLOW                                         │
 │                                                                              │
-│   Cisco ASA (AS 65000)                    K8s Workers (AS 65001)            │
-│   10.0.X.X                                                               │
-│        │                                                                     │
-│        ├────────────────────────────────── node01 (10.0.X.X)           │
-│        ├────────────────────────────────── node02 (10.0.X.X)           │
-│        ├────────────────────────────────── node03 (10.0.X.X)           │
-│        └────────────────────────────────── node04 (10.0.X.X)           │
-│                                                                              │
-│   LoadBalancer IP Pool: 10.0.X.X - 10.0.X.X                      │
+│  ┌──────────────┐      ┌───────────────────┐      ┌──────────────────────┐ │
+│  │   OpenBao    │ ───▶ │ External Secrets  │ ───▶ │  K8s Secrets         │ │
+│  │ 10.0.X.X│      │    Operator       │      │  (per namespace)     │ │
+│  │              │      │                   │      │                      │ │
+│  │ secret/k8s/  │      │ ClusterSecretStore│      │ • cloudflare-api     │ │
+│  │ ├─ argocd/   │      │ "openbao"         │      │ • grafana-admin      │ │
+│  │ ├─ awx/      │      │                   │      │ • pihole-password    │ │
+│  │ ├─ monitoring│      │ ExternalSecret    │      │ • minio-credentials  │ │
+│  │ ├─ pihole/   │      │ (per namespace)   │      │ • velero-s3-creds    │ │
+│  │ ├─ velero/   │      │                   │      │ • npm-credentials    │ │
+│  │ └─ npm/      │      │ Refresh: 1h       │      │ • k8s-api-creds      │ │
+│  └──────────────┘      └───────────────────┘      └──────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 💾 Storage Architecture
+### Current ExternalSecrets
 
-| StorageClass | Provider | Access Modes | Use Case |
-|--------------|----------|--------------|----------|
-| `nfs-client` | NFS Provisioner | RWX, RWO | Multi-replica workloads, shared data |
-| `synology-iscsi` | Synology CSI | RWO | Databases, single-replica high-performance |
+| Namespace | ExternalSecret | Source Path | Purpose |
+|-----------|----------------|-------------|---------|
+| argocd | gitlab-repo-creds | secret/k8s/argocd | GitLab repository credentials |
+| awx | k8s-api-credentials | secret/k8s/awx/api-credentials | K8s API access for playbooks |
+| awx | npm-credentials | secret/k8s/npm/credentials | NPM API for cert sync |
+| cert-manager | REDACTED_fb8d60db | secret/k8s/cert-manager | DNS-01 validation |
+| logging | loki-minio-credentials | secret/k8s/logging | Loki storage backend |
+| minio | minio-credentials | secret/k8s/minio | MinIO admin credentials |
+| monitoring | monitoring-grafana | secret/k8s/monitoring | Grafana admin password |
+| pihole | pihole-credentials | secret/k8s/pihole | Pi-hole web password |
+| velero | velero-s3-credentials | secret/k8s/velero | MinIO S3 backup storage |
 
-**Storage Backend:**
-- **NFS Server:** 10.0.X.X (Synology DS1621+) - `/volume1/k8s`
-- **iSCSI Target:** 10.0.X.X (Synology DS1621+) - Block storage for PVCs
+---
 
-### 📦 Managed Workloads
+## 🔒 TLS Certificate Automation
 
-#### Platform Infrastructure (Atlantis + OpenTofu)
-
-| Workload | Namespace | Access | Description |
-|----------|-----------|--------|-------------|
-| 🌐 **Cilium** | `kube-system` | - | CNI + kube-proxy replacement + BGP |
-| 🔭 **Hubble** | `kube-system` | `hubble.example.net` | Network observability UI |
-| 🗂️ **NFS Provisioner** | `nfs-provisioner` | StorageClass: `nfs-client` | Dynamic NFS provisioning |
-| 💾 **Synology CSI** | `synology-csi` | StorageClass: `synology-iscsi` | iSCSI block storage |
-| 🌐 **Ingress NGINX** | `ingress-nginx` | LoadBalancer | HTTP/HTTPS ingress |
-| 🔗 **GitLab Agent** | `REDACTED_01b50c5d` | Internal | Cluster connectivity |
-| 🛡️ **Pod Disruption Budgets** | Multiple | - | HA guarantees for critical workloads |
-| 📊 **Prometheus** | `monitoring` | NodePort :30090 | Metrics collection (3yr retention) |
-| 📈 **Grafana** | `monitoring` | `grafana.example.net` | Dashboards & visualization |
-| 🔔 **Alertmanager** | `monitoring` | Internal | Alert routing |
-| 🛡️ **Pi-hole** | `pihole` | NodePort :30666 | DNS filtering |
-| 🤖 **AWX** | `awx` | `awx.example.net` | Ansible automation |
-| 💾 **MinIO** | `minio` | `minio.example.net` | S3-compatible storage |
-| 🔄 **Argo CD** | `argocd` | `argocd.example.net` | GitOps delivery |
-
-#### Applications (Argo CD)
-
-| Application | Namespace | Access | Description |
-|-------------|-----------|--------|-------------|
-| 📦 **Velero** | `velero` | `velero.example.net` | Backup & disaster recovery |
-
-### 🛡️ Pod Disruption Budgets
-
-PDBs are configured for all critical workloads to ensure availability during node maintenance:
-
-| Workload | Namespace | MinAvailable |
-|----------|-----------|--------------|
-| Ingress NGINX | `ingress-nginx` | 1 |
-| Prometheus | `monitoring` | 1 |
-| Alertmanager | `monitoring` | 1 |
-| Grafana | `monitoring` | 1 |
-
-### 🔄 Hybrid GitOps Flow
-
+### Flow
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                     Platform Changes (OpenTofu)                              │
+│                    TLS CERTIFICATE LIFECYCLE                                 │
 │                                                                              │
-│   Developer                  Atlantis                    Kubernetes          │
-│       │                          │                            │              │
-│       │── git push ─────────────▶│                            │              │
-│       │                          │── tofu plan ──────────────▶│              │
-│       │◀── MR comment (plan) ────│                            │              │
-│       │                          │                            │              │
-│       │── "atlantis apply" ─────▶│                            │              │
-│       │                          │── tofu apply ─────────────▶│              │
-│       │◀── MR comment (applied) ─│                            │              │
-│       │                          │                            │              │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     Application Changes (Argo CD)                            │
-│                                                                              │
-│   Developer                  Argo CD                     Kubernetes          │
-│       │                          │                            │              │
-│       │── git push (main) ──────▶│                            │              │
-│       │                          │── detect OutOfSync ───────▶│              │
-│       │                          │── auto-sync ──────────────▶│              │
-│       │                          │── self-heal if needed ────▶│              │
-│       │                          │                            │              │
-│       │◀─────────── Synced & Healthy ─────────────────────────│              │
-│       │                          │                            │              │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐  │
+│  │ cert-manager│───▶│ Let's       │───▶│ Cloudflare  │───▶│ K8s Secret  │  │
+│  │ Certificate │    │ Encrypt     │    │ DNS-01      │    │ tls.crt/key │  │
+│  │             │    │ ACME        │    │ Validation  │    │             │  │
+│  └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘  │
+│         │                                                        │          │
+│         │              ┌──────────────────────────────────────────┘          │
+│         │              ▼                                                     │
+│         │     ┌─────────────────┐                                           │
+│         │     │   AWX Job       │  Daily 6AM UTC                            │
+│         │     │   (idempotent)  │  Compares expiry dates                    │
+│         │     └────────┬────────┘                                           │
+│         │              │                                                     │
+│         │              ▼                                                     │
+│         │     ┌─────────────────┐    ┌─────────────────┐                   │
+│         │     │  NPM Master     │───▶│  Syncthing      │                   │
+│         │     │  94 proxy hosts │    │  Replication    │                   │
+│         │     │  nlnpm01   │    │                 │                   │
+│         │     └─────────────────┘    └────────┬────────┘                   │
+│         │                                      │                            │
+│         │                                      ▼                            │
+│         │                            ┌─────────────────┐                   │
+│         │                            │  NPM Slave      │                   │
+│         │                            │  grnpm01   │                   │
+│         │                            │  + watcher      │                   │
+│         │                            │  nginx reload   │                   │
+│         │                            └─────────────────┘                   │
+│         │                                                                    │
+│  Auto-renews 30 days before expiry                                          │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 🔗 Access URLs
+### Components
 
-| Service | NodePort | Ingress |
-|---------|----------|---------|
-| 🔭 Hubble | - | `hubble.example.net` |
-| 📈 Grafana | `<node-ip>:30000` | `grafana.example.net` |
-| 📊 Prometheus | `<node-ip>:30090` | - |
-| 🛡️ Pi-hole | `<node-ip>:30666` | `pihole.example.net` |
-| 🤖 AWX | `<node-ip>:30994` | `awx.example.net` |
-| 💾 MinIO Console | `<node-ip>:30010` | `minio.example.net` |
-| 🔄 Argo CD | `<node-ip>:30085` | `argocd.example.net` |
-| 📦 Velero UI | `<node-ip>:30012` | `velero.example.net` |
-| 🖥️ K8s Dashboard | `<node-ip>:32321` | `k8s.example.net` |
-
-### 🔄 K8s Pipeline Jobs
-
-| Stage | Job | Trigger | Description |
-|-------|-----|---------|-------------|
-| ✅ **validate** | `validate_k8s_opentofu` | `k8s/**/*.tf` | OpenTofu fmt + validate |
-| ✅ **validate** | `validate_argocd_manifests` | `k8s/argocd-apps/**/*.yaml` | Dry-run K8s manifests |
-| ✔️ **verify** | `verify_k8s_infrastructure` | merge to main | Check pods, services, Argo CD apps |
+| Component | Details |
+|-----------|---------|
+| **ClusterIssuer** | `letsencrypt-prod` - ACME with Cloudflare DNS-01 |
+| **Certificate** | `REDACTED_0d82b4df` - *.example.net |
+| **Expiry** | Feb 28, 2026 (auto-renews ~Jan 29, 2026) |
+| **AWX Job** | `Sync Cert-Manager Cert to NPM` - daily 6AM UTC |
+| **AWX Schedule** | ID 6 - `DTSTART:20251201T060000Z RRULE:FREQ=DAILY` |
+| **NPM Hosts** | 94 proxy hosts auto-updated |
+| **Slave Sync** | Syncthing + watcher script for nginx reload |
 
 ---
 
-## 🌐 Network Automation (Cisco)
+## 📜 Centralized Logging
 
-### 🔄 Pipeline Stages
-
-| Stage | Job | Description |
-|-------|-----|-------------|
-| 🔍 **drift-detection** | `auto_detect_and_sync_drift` | Nightly check for manual SSH changes |
-| ✅ **validate** | `pre_deploy_drift_gate` | Blocks deploy if device has unreported changes |
-| ✅ **validate** | `validate_cisco_configs` | Syntax validation, sanity checks |
-| 📝 **pre-deploy** | `generate_deployment_diffs` | Creates hierarchical diffs (adds + deletes) |
-| 🚀 **deploy** | `deploy_cisco_configs` | Applies changes via Netmiko |
-| ✔️ **verify** | `verify_cisco_deployments` | Post-deployment validation + ping test |
-
-### 📋 Supported Devices
-
-| Type | Platform | Config Path |
-|------|----------|-------------|
-| 🌐 Router | Cisco IOS | `network/configs/Router/` |
-| 🔀 Switch | Cisco IOS | `network/configs/Switch/` |
-| 🛡️ Firewall | Cisco ASA | `network/configs/Firewall/` |
-| 📶 Access Point | Cisco IOS | `network/configs/Access-Point/` |
-
-### 🚨 Drift Detection Flow
-
+### Architecture
 ```
-Someone SSHs to device and makes changes
-              │
-              ▼
-┌─────────────────────────────┐
-│  Nightly drift detection    │
-│  or pre-deploy check        │
-└──────────────┬──────────────┘
-               │
-               ▼
-┌─────────────────────────────┐
-│   Drift detected!           │
-│   🛑 DEPLOYMENT BLOCKED     │
-└──────────────┬──────────────┘
-               │
-               ▼
-┌─────────────────────────────┐
-│  MR created automatically   │
-│  with device's current      │
-│  configuration              │
-└──────────────┬──────────────┘
-               │
-               ▼
-┌─────────────────────────────┐
-│  Review & merge the MR      │
-│  Rebase your changes        │
-└──────────────┬──────────────┘
-               │
-               ▼
-┌─────────────────────────────┐
-│  Pipeline succeeds! 🎉       │
-└─────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      LOGGING PIPELINE                                        │
+│                                                                              │
+│  ┌──────────────────────────────────────────────────┐                       │
+│  │              LOG SOURCES                          │                       │
+│  │                                                   │                       │
+│  │  Cisco Devices ──┐                               │                       │
+│  │  Linux Servers ──┼──▶ syslog UDP/TCP:514         │                       │
+│  │  Proxmox Nodes ──┤                               │                       │
+│  │  Docker Hosts  ──┘                               │                       │
+│  └───────────────────────────┬──────────────────────┘                       │
+│                              │                                               │
+│                              ▼                                               │
+│  ┌──────────────────────────────────────────────────┐                       │
+│  │           syslog-ng (nlsyslogng01)          │                       │
+│  │                                                   │                       │
+│  │  • Receives all network syslogs                  │                       │
+│  │  • Writes to /mnt/logs/syslog-ng/$HOST/...       │                       │
+│  │  • Forwards to Loki via TCP:514                  │                       │
+│  │                                                   │                       │
+│  └───────────────────────────┬──────────────────────┘                       │
+│                              │                                               │
+│                              ▼                                               │
+│  ┌──────────────────────────────────────────────────┐                       │
+│  │           Promtail (10.0.X.X)               │                       │
+│  │                                                   │                       │
+│  │  • Receives forwarded syslogs                    │                       │
+│  │  • Parses and labels logs                        │                       │
+│  │  • Pushes to Loki                                │                       │
+│  └───────────────────────────┬──────────────────────┘                       │
+│                              │                                               │
+│                              ▼                                               │
+│  ┌──────────────────────────────────────────────────┐                       │
+│  │           Loki (loki.logging.svc:3100)           │                       │
+│  │                                                   │                       │
+│  │  • Log aggregation and indexing                  │                       │
+│  │  • MinIO S3 backend storage                      │                       │
+│  │  • LogQL query language                          │                       │
+│  └───────────────────────────┬──────────────────────┘                       │
+│                              │                                               │
+│                              ▼                                               │
+│  ┌──────────────────────────────────────────────────┐                       │
+│  │           Grafana (monitoring namespace)         │                       │
+│  │                                                   │                       │
+│  │  • Loki datasource configured                    │                       │
+│  │  • Log exploration and dashboards                │                       │
+│  │  • Alerting on log patterns                      │                       │
+│  └──────────────────────────────────────────────────┘                       │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🖥️ Proxmox Automation
+## 🛡️ Service Mesh & Network Policies
 
-### 📊 Infrastructure Overview
+### Cilium mTLS with SPIRE
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    MUTUAL TLS AUTHENTICATION                                 │
+│                                                                              │
+│  ┌──────────────┐                              ┌──────────────┐             │
+│  │   Pod A      │                              │   Pod B      │             │
+│  │              │◄──── mTLS (SPIFFE/SPIRE) ───▶│              │             │
+│  │  identity:   │                              │  identity:   │             │
+│  │  spiffe://   │                              │  spiffe://   │             │
+│  │  cilium/...  │                              │  cilium/...  │             │
+│  └──────────────┘                              └──────────────┘             │
+│         │                                              │                    │
+│         └──────────────────┬───────────────────────────┘                    │
+│                            │                                                 │
+│                            ▼                                                 │
+│  ┌──────────────────────────────────────────────────┐                       │
+│  │              SPIRE Server                         │                       │
+│  │              cilium-spire namespace               │                       │
+│  │                                                   │                       │
+│  │  • Trust domain: spiffe.cilium                   │                       │
+│  │  • Issues SVID certificates                      │                       │
+│  │  • Agent socket: /run/spire/sockets/agent.sock   │                       │
+│  └──────────────────────────────────────────────────┘                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
-| Node | LXC Containers | QEMU VMs |
-|------|----------------|----------|
-| nl-pve01 | 76 | 8 |
-| nl-pve02 | 7 | - |
-| nl-pve03 | 34 | 14 |
-| **Total** | **117** | **22** |
+### Network Policies (Zero Trust)
 
-### 🔄 Pipeline Stages
+| Namespace | Policy | Purpose |
+|-----------|--------|---------|
+| pihole | `pihole-policy` | Allow DNS (53/UDP,TCP), require mTLS from ingress-nginx |
+| logging | `logging-policy` | Control access to Loki |
 
-| Stage | Description |
-|-------|-------------|
-| ✅ **validate** | OpenTofu fmt check + validate |
-| 📝 **plan** | Generate execution plan |
-| 🚀 **apply** | Create/modify VMs & containers (manual trigger) |
-| ✔️ **verify** | Verify resources are running |
-
----
-
-## 🐳 Docker Fleet
-
-### 📊 Service Categories
-
-| Category | Examples | Count |
-|----------|----------|-------|
-| 🤖 GPU/AI | Ollama, Stable Diffusion, Whisper, Immich | 8+ |
-| 🎬 Media | Jellyfin, Plex, Navidrome, Audiobookshelf | 10+ |
-| 🗄️ Databases | Redis, InfluxDB, ProxySQL, PostgreSQL | 8+ |
-| 💬 Communication | Matrix Synapse, Element, LibreChat | 6+ |
-| 📁 Productivity | Nextcloud, Paperless-ngx, Vaultwarden | 10+ |
-| 🔧 Infrastructure | Traefik, Portainer, Watchtower | 8+ |
-| 📊 Monitoring | Telegraf, Uptime Kuma, Healthchecks | 6+ |
-| **Total** | | **60+** |
-
-### 🖥️ Custom Runner Images
-
-| Image | Purpose | Pre-cached |
-|-------|---------|------------|
-| `k8s-runner` | Kubernetes operations | OpenTofu providers, kubectl, helm, cilium |
-| `cisco-ee` | Network automation | Netmiko, Ansible, Python |
-| `pve-runner` | Proxmox operations | Proxmox API tools |
-| `docker-runner` | Docker operations | Docker CLI, buildx |
+**Example Policy Features:**
+- Ingress from `ingress-nginx` requires `REDACTED_6fa691d2: { mode: required }`
+- Egress limited to specific ports (DNS, HTTPS)
+- Monitoring namespace allowed for metrics scraping
 
 ---
 
-## 📊 Infrastructure Status
+## 🤖 AWX Automation
 
-| Component | Status | Version | Endpoint |
-|-----------|--------|---------|----------|
-| ☸️ Kubernetes | 🟢 Operational | v1.34.2 | api-k8s.example.net:6443 |
-| 🌐 Cilium CNI | 🟢 Operational | v1.18.2 | - |
-| 🔭 Hubble | 🟢 Operational | v1.18.2 | hubble.example.net |
-| 🔀 BGP Peering | 🟢 Established | 4 peers | AS 65001 ↔ AS 65000 |
-| 🔄 Argo CD | 🟢 Operational | v2.13.2 | argocd.example.net |
-| 📦 Velero | 🟢 Operational | v1.14.1 | velero.example.net |
-| 🌐 Cisco Network | 🟢 Operational | - | - |
-| 🖥️ Proxmox | 🟢 Operational | - | pve.example.net:8006 |
-| 📈 Grafana | 🟢 Running | v12.3.0 | grafana.example.net |
-| 📊 Prometheus | 🟢 Running | v3.7.3 | `<node-ip>:30090` |
-| 🛡️ Pi-hole | 🟢 Running | latest | `<node-ip>:30666` |
-| 🤖 AWX | 🟢 Running | v24.6.1 | awx.example.net |
-| 💾 MinIO | 🟢 Running | latest | minio.example.net |
-| 🐳 Registry | 🟢 Operational | - | registry.example.net |
+### Scheduled Jobs
 
-### 📦 Backup Status (Velero)
+| Job Template | Schedule | Purpose |
+|--------------|----------|---------|
+| Sync Cert-Manager Cert to NPM | Daily 6AM UTC | TLS cert sync to NPM (idempotent) |
+| Cleanup Job/Activity | Weekly | AWX housekeeping |
+| Update Proxmox | Manual | System updates |
+| Install SNMPD | Manual | Monitoring agent deployment |
 
-| Schedule | Frequency | Retention |
-|----------|-----------|-----------|
-| daily-backup | 2:00 AM daily | 30 days |
-| weekly-backup | 3:00 AM Sunday | 90 days |
+### Custom Credential Types
+
+| Name | Purpose | Injected Variables |
+|------|---------|-------------------|
+| Kubernetes API Token | K8s API access | K8S_HOST, K8S_TOKEN, K8S_CA_CERT |
+| NPM API Credentials | NPM certificate management | NPM_EMAIL, NPM_PASSWORD |
+| LibreNMS API Token | Monitoring integration | API token |
+| Proxmox API | VM/LXC management | API credentials |
+
+### Projects
+
+| Project | Repository | Purpose |
+|---------|------------|---------|
+| Cert-Manager NPM Sync | gitlab/.../production.git | TLS automation |
+| Proxmox Inventory | gitlab/.../production.git | PVE management |
+| Collect Docker Projects | gitlab/.../production.git | Documentation |
+
+---
+
+## 📦 Backup & Disaster Recovery
+
+### Velero Configuration
+
+| Component | Details |
+|-----------|---------|
+| **Storage** | MinIO S3 (minio.example.net) |
+| **Location** | `default` BackupStorageLocation |
+| **Node Agents** | DaemonSet on all 4 workers |
+
+### Backup Schedules
+
+| Schedule | Cron | Retention |
+|----------|------|-----------|
+| daily-backup | `0 2 * * *` | Rolling |
+| weekly-backup | `0 3 * * 0` | Rolling |
+
+### Recent Backups
+
+- `daily-backup-*` - Automated daily snapshots
+- `pre-migration-full` - Pre-change safety backup
+- `pre-cilium-migration` / `post-cilium-migration` - CNI migration snapshots
 
 ---
 
@@ -510,7 +523,6 @@ git push origin main
 ```
 
 ### Making Network Changes
-
 ```bash
 # 1. Edit the device config
 vim network/configs/Router/nl-lte01
@@ -586,6 +598,53 @@ iscsiadm -m session
 kubectl get pvc -A
 ```
 
+### 🔐 Secrets Issues
+
+**External Secrets not syncing?**
+```bash
+# Check ExternalSecret status
+kubectl get externalsecrets -A
+kubectl describe externalsecret <name> -n <namespace>
+
+# Check ClusterSecretStore
+kubectl describe clustersecretstore openbao
+
+# Check External Secrets Operator logs
+kubectl logs -n external-secrets deployment/external-secrets
+```
+
+**OpenBao connectivity?**
+```bash
+# Test from cluster
+kubectl run -it --rm debug --image=curlimages/curl -- \
+  curl -s http://10.0.X.X:8200/v1/sys/health
+```
+
+### 🔒 TLS Issues
+
+**cert-manager not issuing certificates?**
+```bash
+# Check certificate status
+kubectl get certificates -A
+kubectl describe certificate <name> -n <namespace>
+
+# Check certificate requests
+kubectl get certificaterequests -A
+
+# Check cert-manager logs
+kubectl logs -n cert-manager deployment/cert-manager
+```
+
+**NPM cert not updating?**
+```bash
+# Manually trigger AWX job
+curl -sk -X POST -u "admin:<password>" \
+  https://awx.example.net/api/v2/job_templates/33/launch/
+
+# Check NPM certificates
+curl -s http://nlnpm01:81/api/nginx/certificates | jq
+```
+
 ### 🌐 Cisco Issues
 
 **Pipeline fails at drift gate?**
@@ -611,17 +670,31 @@ velero backup-location get
 velero backup create manual-backup --include-namespaces pihole,monitoring
 ```
 
+### 📜 Logging Issues
+
+**Logs not appearing in Grafana?**
+```bash
+# Check Loki pods
+kubectl get pods -n logging
+
+# Check Promtail is receiving logs
+# On syslog-ng server:
+journalctl -u syslog-ng -f
+
+# Test Loki datasource in Grafana
+# Explore → Select Loki → Run query: {job="syslog"}
+```
+
 ---
 
 ## 🤝 Contributing
 
 ### Commit Message Format
-
 ```
 <type>(<scope>): <description>
 
 Types: feat, fix, docs, refactor, test, chore
-Scopes: k8s, argocd, cisco, pve, docker, ci, cilium
+Scopes: k8s, argocd, cisco, pve, docker, ci, cilium, cert-manager, awx
 ```
 
 **Examples:**
@@ -629,6 +702,8 @@ Scopes: k8s, argocd, cisco, pve, docker, ci, cilium
 feat(k8s): Add cert-manager for TLS certificates
 feat(argocd): Deploy external-dns application
 feat(cilium): Configure BGP peering with new router
+feat(cert-manager): Add wildcard certificate for example.net
+feat(awx): Add NPM cert sync automation
 fix(velero): Correct backup schedule timezone
 chore(ci): Update k8s-runner image version
 docs(readme): Update architecture diagram
@@ -637,7 +712,6 @@ docs(readme): Update architecture diagram
 ---
 
 ## 📜 License
-
 ```
             DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
                     Version 2, December 2004
@@ -661,6 +735,8 @@ docs(readme): Update architecture diagram
   <img src="https://img.shields.io/badge/Powered%20by-GitLab-orange" alt="Powered by GitLab">
   <img src="https://img.shields.io/badge/GitOps-Atlantis%20%2B%20Argo%20CD-blue" alt="GitOps">
   <img src="https://img.shields.io/badge/CNI-Cilium%20eBPF-purple" alt="Cilium">
+  <img src="https://img.shields.io/badge/Secrets-OpenBao-yellow" alt="OpenBao">
+  <img src="https://img.shields.io/badge/TLS-cert--manager-green" alt="cert-manager">
   <img src="https://img.shields.io/badge/Infrastructure-as%20Code-green" alt="IaC">
 </p>
 
