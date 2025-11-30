@@ -4,25 +4,84 @@
 # Usage:
 #   extends: .openbao-auth
 #   script:
-#     - export MY_SECRET=$(get_secret "ci/my-secret" "password")
+#     - # BAO_TOKEN is set, use fetch_secret function
+#     - export MY_PASS=$(fetch_secret "ci/myapp" "password")
 # =============================================================================
 
 variables:
   BAO_ADDR: "http://10.0.X.X:8200"
   BAO_ROLE: "gitlab-ci"
 
+# -----------------------------------------------------------------------------
+# Base OpenBao REDACTED_6fa691d2 template
+# -----------------------------------------------------------------------------
 .openbao-auth:
   id_tokens:
     VAULT_ID_TOKEN:
       aud: https://gitlab.example.net
   before_script:
-    - echo "[OpenBao] Authenticating with role ${BAO_ROLE}"
-    - if [ -z "${VAULT_ID_TOKEN}" ]; then echo "[OpenBao] ERROR - VAULT_ID_TOKEN is not set"; exit 1; fi
-    - AUTH_RESPONSE=$(curl -sf --max-time 30 --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"${BAO_ROLE}\"}" "${BAO_ADDR}/v1/auth/jwt/login" 2>&1)
-    - if [ $? -ne 0 ]; then echo "[OpenBao] ERROR - Failed to connect"; echo "${AUTH_RESPONSE}"; exit 1; fi
+    - echo "[OpenBao] Authenticating with role ${BAO_ROLE}..."
+    - if [ -z "${VAULT_ID_TOKEN}" ]; then echo "[OpenBao] ERROR - VAULT_ID_TOKEN not set"; exit 1; fi
+    - AUTH_RESPONSE=$(curl -sf --max-time 30 --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"${BAO_ROLE}\"}" "${BAO_ADDR}/v1/auth/jwt/login")
     - export BAO_TOKEN=$(echo "${AUTH_RESPONSE}" | jq -r '.auth.client_token // empty')
     - if [ -z "${BAO_TOKEN}" ]; then echo "[OpenBao] ERROR - Authentication failed"; echo "${AUTH_RESPONSE}"; exit 1; fi
     - echo "[OpenBao] Authentication successful"
+    - |
+      # Helper function: fetch_secret <path> <field>
+      fetch_secret() {
+        curl -sf --header "X-Vault-Token:${BAO_TOKEN}" "${BAO_ADDR}/v1/secret/data/${1}" | jq -r ".data.data.${2} // empty"
+      }
+
+# -----------------------------------------------------------------------------
+# Cisco pipelines - extends openbao-auth + sets CISCO_* env vars
+# -----------------------------------------------------------------------------
+.openbao-cisco:
+  extends: .openbao-auth
+  before_script:
+    - echo "[OpenBao] Authenticating with role ${BAO_ROLE}..."
+    - if [ -z "${VAULT_ID_TOKEN}" ]; then echo "[OpenBao] ERROR - VAULT_ID_TOKEN not set"; exit 1; fi
+    - AUTH_RESPONSE=$(curl -sf --max-time 30 --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"${BAO_ROLE}\"}" "${BAO_ADDR}/v1/auth/jwt/login")
+    - export BAO_TOKEN=$(echo "${AUTH_RESPONSE}" | jq -r '.auth.client_token // empty')
+    - if [ -z "${BAO_TOKEN}" ]; then echo "[OpenBao] ERROR - Authentication failed"; echo "${AUTH_RESPONSE}"; exit 1; fi
+    - echo "[OpenBao] Authentication successful"
+    - echo "[OpenBao] Fetching Cisco credentials..."
+    - CISCO_SECRET=$(curl -sf --header "X-Vault-Token:${BAO_TOKEN}" "${BAO_ADDR}/v1/secret/data/ci/cisco")
+    - export CISCO_USER=$(echo "${CISCO_SECRET}" | jq -r '.data.data.username')
+    - export CISCO_PASSWORD=$(echo "${CISCO_SECRET}" | jq -r '.data.data.password')
+    - export CISCO_ENABLE_SECRET=$(echo "${CISCO_SECRET}" | jq -r '.data.data.enable_secret')
+    - if [ -z "${CISCO_PASSWORD}" ]; then echo "[OpenBao] ERROR - Failed to fetch Cisco credentials"; exit 1; fi
+    - echo "[OpenBao] Cisco credentials loaded"
+    - git config --global --add safe.directory $CI_PROJECT_DIR
+
+# -----------------------------------------------------------------------------
+# Cisco pipelines with GitLab push token (for drift sync jobs)
+# -----------------------------------------------------------------------------
+.openbao-cisco-with-git:
+  extends: .openbao-auth
+  before_script:
+    - echo "[OpenBao] Authenticating with role ${BAO_ROLE}..."
+    - if [ -z "${VAULT_ID_TOKEN}" ]; then echo "[OpenBao] ERROR - VAULT_ID_TOKEN not set"; exit 1; fi
+    - AUTH_RESPONSE=$(curl -sf --max-time 30 --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"${BAO_ROLE}\"}" "${BAO_ADDR}/v1/auth/jwt/login")
+    - export BAO_TOKEN=$(echo "${AUTH_RESPONSE}" | jq -r '.auth.client_token // empty')
+    - if [ -z "${BAO_TOKEN}" ]; then echo "[OpenBao] ERROR - Authentication failed"; echo "${AUTH_RESPONSE}"; exit 1; fi
+    - echo "[OpenBao] Authentication successful"
+    - echo "[OpenBao] Fetching Cisco credentials..."
+    - CISCO_SECRET=$(curl -sf --header "X-Vault-Token:${BAO_TOKEN}" "${BAO_ADDR}/v1/secret/data/ci/cisco")
+    - export CISCO_USER=$(echo "${CISCO_SECRET}" | jq -r '.data.data.username')
+    - export CISCO_PASSWORD=$(echo "${CISCO_SECRET}" | jq -r '.data.data.password')
+    - export CISCO_ENABLE_SECRET=$(echo "${CISCO_SECRET}" | jq -r '.data.data.enable_secret')
+    - echo "[OpenBao] Fetching GitLab token..."
+    - GITLAB_SECRET=$(curl -sf --header "X-Vault-Token:${BAO_TOKEN}" "${BAO_ADDR}/v1/secret/data/ci/gitlab")
+    - export GITLAB_PUSH_TOKEN=$(echo "${GITLAB_SECRET}" | jq -r '.data.data.push_token')
+    - if [ -z "${CISCO_PASSWORD}" ] || [ -z "${GITLAB_PUSH_TOKEN}" ]; then echo "[OpenBao] ERROR - Failed to fetch credentials"; exit 1; fi
+    - echo "[OpenBao] All credentials loaded"
+    - git config --global user.email "gitlab-ci@example.net"
+    - git config --global user.name "GitLab CI Auto-Sync"
+    - git config --global --add safe.directory $CI_PROJECT_DIR
+    - git config --global pull.rebase true
+    - git remote set-url origin https://root:${GITLAB_PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
+    - git checkout main || git checkout -b main
+    - git pull origin main || echo "No remote main yet"
 
 # =============================================================================
 # Test Job - Run manually to verify OpenBao integration
