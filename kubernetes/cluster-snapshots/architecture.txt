@@ -1,4 +1,4 @@
-# Nuclear Lighters K8s Cluster - 2025-11-29 03:00:01 UTC
+# Nuclear Lighters K8s Cluster - 2025-11-30 03:00:01 UTC
 ***REMOVED***
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -10,6 +10,7 @@
 │                        INGRESS NGINX                                         │
 │  → argocd.example.net
 │  → awx.example.net
+│  → bentopdf.example.net
 │  → hubble.example.net
 │  → k8s.example.net
 │  → minio.example.net
@@ -37,4 +38,4 @@
 │    nlk8s-node04 (10.0.X.X) [worker]
 └─────────────────────────────────────────────────────────────────────────────┘
 
-STATS: Pods=89 Services=47 Helm=7 K8s=v1.34.2
+STATS: Pods=93 Services=52 Helm=8 K8s=v1.34.2
