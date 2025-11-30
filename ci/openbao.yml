@@ -41,11 +41,11 @@ test:openbao-jwt-auth:
     - echo "=== Step 1 - Check ID Token Availability ==="
     - if [ -n "${VAULT_ID_TOKEN}" ]; then echo "OK - VAULT_ID_TOKEN is available (${#VAULT_ID_TOKEN} chars)"; else echo "FAIL - VAULT_ID_TOKEN is NOT available"; exit 1; fi
     - echo ""
-    - echo "=== Step 2 - Decode JWT Claims ==="
-    - echo ${VAULT_ID_TOKEN} | cut -d'.' -f2 | base64 -d 2>/dev/null | jq .
+    - echo "=== Step 2 - Decode JWT Claims (with padding fix) ==="
+    - PAYLOAD=$(echo ${VAULT_ID_TOKEN} | cut -d'.' -f2 | tr '_-' '/+' | awk '{l=length($0)%4; if(l==2) $0=$0"=="; else if(l==3) $0=$0"="; print}' | base64 -d 2>/dev/null) && echo "$PAYLOAD" | jq . || echo "Decode failed but continuing..."
     - echo ""
     - echo "=== Step 3 - Test OpenBao Authentication ==="
-    - AUTH_RESPONSE=$(curl -sf --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"gitlab-ci\"}" ${BAO_ADDR}/v1/auth/jwt/login)
+    - AUTH_RESPONSE=$(curl -s --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"gitlab-ci\"}" ${BAO_ADDR}/v1/auth/jwt/login)
     - echo "Auth response - ${AUTH_RESPONSE}"
     - TOKEN=$(echo ${AUTH_RESPONSE} | jq -r '.auth.client_token')
     - if [ -n "${TOKEN}" ] && [ "${TOKEN}" != "null" ]; then echo "OK - Authentication successful"; export BAO_TOKEN="${TOKEN}"; else echo "FAIL - Authentication failed"; exit 1; fi
