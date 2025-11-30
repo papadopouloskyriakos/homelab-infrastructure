@@ -301,7 +301,7 @@ variable "loki_retention_days" {
 variable "loki_minio_endpoint" {
   description = "MinIO endpoint for Loki S3 storage"
   type        = string
-  default     = "minio.minio.svc.cluster.local:9000"
+  default     = "minio-api.minio.svc.cluster.local:9000"
 }
 
 variable "loki_minio_bucket" {
