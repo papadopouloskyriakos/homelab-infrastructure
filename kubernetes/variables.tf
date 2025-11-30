@@ -282,3 +282,36 @@ variable "openbao_address" {
   type        = string
   default     = "http://10.0.X.X:8200"
 }
+
+***REMOVED***
+# Logging (Loki + Promtail)
+***REMOVED***
+variable "loki_storage_size" {
+  description = "Loki WAL/cache PVC size"
+  type        = string
+  default     = "10Gi"
+}
+
+variable "loki_retention_days" {
+  description = "Log retention in days"
+  type        = number
+  default     = 30
+}
+
+variable "loki_minio_endpoint" {
+  description = "MinIO endpoint for Loki S3 storage"
+  type        = string
+  default     = "minio-api.minio.svc.cluster.local:9000"
+}
+
+variable "loki_minio_bucket" {
+  description = "MinIO bucket for Loki"
+  type        = string
+  default     = "loki"
+}
+
+variable "promtail_syslog_port" {
+  description = "Promtail syslog receiver port"
+  type        = number
+  default     = 1514
+}
