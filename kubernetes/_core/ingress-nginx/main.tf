@@ -12,17 +12,17 @@ resource "helm_release" "ingress_nginx" {
   version          = "4.14.0"
   wait             = false
   timeout          = 300
-
   values = [
     yamlencode({
       controller = {
         replicaCount = 2
-
+        extraArgs = {
+          default-ssl-certificate = "REDACTED_f89271df"
+        }
         podDisruptionBudget = {
           enabled      = true
           minAvailable = 1
         }
-
         affinity = {
           podAntiAffinity = {
             preferredDuringSchedulingIgnoredDuringExecution = [{
@@ -40,11 +40,9 @@ resource "helm_release" "ingress_nginx" {
             }]
           }
         }
-
         service = {
           type = "LoadBalancer"
         }
-
         resources = {
           requests = {
             cpu    = "500m"
