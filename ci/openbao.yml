@@ -1,0 +1,100 @@
+# =============================================================================
+# OpenBao JWT Authentication Template
+# =============================================================================
+# Usage:
+#   extends: .openbao-auth
+#   script:
+#     - export MY_SECRET=$(get_secret "ci/my-secret" "password")
+# =============================================================================
+
+variables:
+  BAO_ADDR: "http://10.0.X.X:8200"
+  BAO_ROLE: "gitlab-ci"
+
+.openbao-auth:
+  before_script:
+    - |
+      echo "[OpenBao] Authenticating with role: ${BAO_ROLE}"
+      
+      if [ -z "${CI_JOB_JWT_V2}" ]; then
+        echo "[OpenBao] ERROR: CI_JOB_JWT_V2 is not set"
+        exit 1
+      fi
+      
+      AUTH_RESPONSE=$(curl -sf --max-time 30 --request POST \
+        --header "Content-Type: application/json" \
+        --data "{\"jwt\": \"${CI_JOB_JWT_V2}\", \"role\": \"${BAO_ROLE}\"}" \
+        "${BAO_ADDR}/v1/auth/jwt/login" 2>&1)
+      
+      if [ $? -ne 0 ]; then
+        echo "[OpenBao] ERROR: Failed to connect to OpenBao"
+        echo "[OpenBao] Response: ${AUTH_RESPONSE}"
+        exit 1
+      fi
+      
+      export BAO_TOKEN=$(echo "${AUTH_RESPONSE}" | jq -r '.auth.client_token // empty')
+      
+      if [ -z "${BAO_TOKEN}" ]; then
+        echo "[OpenBao] ERROR: Authentication failed"
+        echo "[OpenBao] Response: ${AUTH_RESPONSE}"
+        exit 1
+      fi
+      
+      echo "[OpenBao] Authentication successful"
+      
+      # Helper function to retrieve secrets
+      get_secret() {
+        local path="${1}"
+        local field="${2}"
+        curl -sf --header "X-Vault-Token: ${BAO_TOKEN}" \
+          "${BAO_ADDR}/v1/secret/data/${path}" | jq -r ".data.data.${field} // empty"
+      }
+
+# =============================================================================
+# Test Job - Run manually to verify OpenBao integration
+# =============================================================================
+test:openbao-jwt-auth:
+  stage: .pre
+  image: curlimages/curl:latest
+  tags:
+    - k8s
+  script:
+    - echo "=== Step 1: Check JWT Token Availability ==="
+    - |
+      if [ -n "${CI_JOB_JWT_V2}" ]; then
+        echo "✓ CI_JOB_JWT_V2 is available (${#CI_JOB_JWT_V2} chars)"
+      else
+        echo "✗ CI_JOB_JWT_V2 is NOT available"
+        exit 1
+      fi
+    - echo ""
+    - echo "=== Step 2: Decode JWT Claims ==="
+    - |
+      echo ${CI_JOB_JWT_V2} | cut -d'.' -f2 | base64 -d 2>/dev/null | jq .
+    - echo ""
+    - echo "=== Step 3: Test OpenBao Authentication ==="
+    - |
+      AUTH_RESPONSE=$(curl -sf --request POST \
+        --header "Content-Type: application/json" \
+        --data "{\"jwt\": \"${CI_JOB_JWT_V2}\", \"role\": \"gitlab-ci\"}" \
+        ${BAO_ADDR}/v1/auth/jwt/login)
+      echo "Auth response: ${AUTH_RESPONSE}"
+      TOKEN=$(echo ${AUTH_RESPONSE} | jq -r '.auth.client_token')
+      if [ -n "${TOKEN}" ] && [ "${TOKEN}" != "null" ]; then
+        echo "✓ Authentication successful!"
+        export BAO_TOKEN="${TOKEN}"
+      else
+        echo "✗ Authentication failed"
+        exit 1
+      fi
+    - echo ""
+    - echo "=== Step 4: Retrieve Test Secret ==="
+    - |
+      SECRET=$(curl -sf --header "X-Vault-Token: ${BAO_TOKEN}" \
+        ${BAO_ADDR}/v1/secret/data/ci/test)
+      echo "Secret response: ${SECRET}"
+      API_KEY=$(echo ${SECRET} | jq -r '.data.data.api_key')
+      echo "✓ Retrieved api_key: ${API_KEY}"
+  rules:
+    - when: manual
+  allow_failure: true
