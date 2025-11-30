@@ -68,7 +68,7 @@ resource "kubernetes_manifest" "REDACTED_cad964aa" {
         {
           secretKey = "api-token"
           remoteRef = {
-            key      = "cloudflare"
+            key      = "ci/cloudflare"
             property = "api-token"
           }
         }
