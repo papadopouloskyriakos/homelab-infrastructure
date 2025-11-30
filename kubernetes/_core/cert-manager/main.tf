@@ -40,3 +40,39 @@ resource "helm_release" "cert_manager" {
     }
   })]
 }
+
+***REMOVED***
+# Cloudflare API Token (via External Secrets)
+***REMOVED***
+
+resource "kubernetes_manifest" "REDACTED_cad964aa" {
+  depends_on = [kubernetes_namespace.cert_manager]
+
+  manifest = {
+    apiVersion = "external-secrets.io/v1beta1"
+    kind       = "ExternalSecret"
+    metadata = {
+      name      = "REDACTED_fb8d60db"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      refreshInterval = "1h"
+      secretStoreRef = {
+        kind = "ClusterSecretStore"
+        name = "openbao"
+      }
+      target = {
+        name = "REDACTED_fb8d60db"
+      }
+      data = [
+        {
+          secretKey = "api-token"
+          remoteRef = {
+            key      = "cloudflare"
+            property = "api-token"
+          }
+        }
+      ]
+    }
+  }
+}
