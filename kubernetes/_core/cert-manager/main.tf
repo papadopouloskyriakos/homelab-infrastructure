@@ -19,7 +19,7 @@ resource "helm_release" "cert_manager" {
   version    = var.chart_version
 
   values = [yamlencode({
-    installCRDs = true
+    installCRDs = false
 
     prometheus = {
       enabled = true
