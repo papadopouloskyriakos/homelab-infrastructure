@@ -127,7 +127,7 @@ variable "minio_root_password" {
 variable "minio_storage_size" {
   description = "MinIO storage size"
   type        = string
-  default     = "100Gi"
+  default     = "1Ti"
 }
 
 variable "minio_version" {
