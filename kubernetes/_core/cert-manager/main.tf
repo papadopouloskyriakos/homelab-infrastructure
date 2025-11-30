@@ -1,7 +1,6 @@
 ***REMOVED***
 # cert-manager
 ***REMOVED***
-
 resource "kubernetes_namespace" "cert_manager" {
   metadata {
     name = "cert-manager"
@@ -10,28 +9,26 @@ resource "kubernetes_namespace" "cert_manager" {
     }
   }
 }
-
 resource "helm_release" "cert_manager" {
   name       = "cert-manager"
   namespace  = kubernetes_namespace.cert_manager.metadata[0].name
   repository = "https://charts.jetstack.io"
   chart      = "cert-manager"
   version    = var.chart_version
-
   values = [yamlencode({
-    installCRDs = false
-
+    installCRDs                   = false
     dns01RecursiveNameservers     = "1.1.1.1:53,1.0.0.1:53"
     dns01RecursiveNameserversOnly = true
-
     prometheus = {
       enabled = true
       servicemonitor = {
         enabled   = var.REDACTED_46d876c8
         namespace = "monitoring"
+        labels = {
+          release = "monitoring"
+        }
       }
     }
-
     resources = {
       requests = {
         cpu    = "50m"
@@ -43,14 +40,11 @@ resource "helm_release" "cert_manager" {
     }
   })]
 }
-
 ***REMOVED***
 # Cloudflare API Token (via External Secrets)
 ***REMOVED***
-
 resource "kubernetes_manifest" "REDACTED_cad964aa" {
   depends_on = [kubernetes_namespace.cert_manager]
-
   manifest = {
     apiVersion = "external-secrets.io/v1beta1"
     kind       = "ExternalSecret"
@@ -79,14 +73,11 @@ resource "kubernetes_manifest" "REDACTED_cad964aa" {
     }
   }
 }
-
 ***REMOVED***
 # ClusterIssuer - Let's Encrypt Production
 ***REMOVED***
-
 resource "kubernetes_manifest" "letsencrypt_prod" {
   depends_on = [helm_release.cert_manager]
-
   manifest = {
     apiVersion = "cert-manager.io/v1"
     kind       = "ClusterIssuer"
@@ -116,14 +107,11 @@ resource "kubernetes_manifest" "letsencrypt_prod" {
     }
   }
 }
-
 ***REMOVED***
 # Wildcard Certificate
 ***REMOVED***
-
 resource "kubernetes_manifest" "wildcard_cert" {
   depends_on = [kubernetes_manifest.letsencrypt_prod]
-
   manifest = {
     apiVersion = "cert-manager.io/v1"
     kind       = "Certificate"
