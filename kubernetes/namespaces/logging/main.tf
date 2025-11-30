@@ -29,7 +29,7 @@ resource "kubernetes_manifest" "loki_minio_external_secret" {
     spec = {
       refreshInterval = "1h"
       secretStoreRef = {
-        name = "openbao" # Fixed: was "openbao-backend"
+        name = "openbao"
         kind = "ClusterSecretStore"
       }
       target = {
@@ -69,7 +69,7 @@ resource "helm_release" "loki" {
   chart      = "loki"
   version    = "6.21.0"
 
-  timeout = 600 # 10 minutes for initial deployment
+  timeout = 600
 
   values = [yamlencode({
     deploymentMode = "SingleBinary"
@@ -127,6 +127,8 @@ resource "helm_release" "loki" {
     }
 
     singleBinary = {
+      extraArgs = ["-config.expand-env=true"]
+
       replicas = 1
 
       extraEnvFrom = [
@@ -172,7 +174,6 @@ resource "helm_release" "loki" {
       }
     }
 
-    # Disable distributed components (not needed for SingleBinary)
     backend = {
       replicas = 0
     }
@@ -187,7 +188,6 @@ resource "helm_release" "loki" {
       enabled = false
     }
 
-    # Disable caches (not needed for SingleBinary, saves memory)
     chunksCache = {
       enabled = false
     }
@@ -195,7 +195,6 @@ resource "helm_release" "loki" {
       enabled = false
     }
 
-    # Disable monitoring components
     monitoring = {
       selfMonitoring = {
         enabled = false
@@ -208,7 +207,6 @@ resource "helm_release" "loki" {
       }
     }
 
-    # Disable test
     test = {
       enabled = false
     }
@@ -259,7 +257,6 @@ resource "helm_release" "promtail" {
       }
     }
 
-    # Extra port for syslog
     extraPorts = {
       syslog = {
         name          = "syslog"
@@ -325,4 +322,3 @@ resource "kubernetes_service" "promtail_syslog" {
 
   depends_on = [helm_release.promtail]
 }
-
