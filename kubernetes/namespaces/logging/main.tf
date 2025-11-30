@@ -29,12 +29,13 @@ resource "kubernetes_manifest" "loki_minio_external_secret" {
     spec = {
       refreshInterval = "1h"
       secretStoreRef = {
-        name = "openbao-backend"
+        name = "openbao" # Fixed: was "openbao-backend"
         kind = "ClusterSecretStore"
       }
       target = {
         name           = "loki-minio-credentials"
         creationPolicy = "Owner"
+        deletionPolicy = "Retain"
       }
       data = [
         {
@@ -67,6 +68,8 @@ resource "helm_release" "loki" {
   repository = "https://grafana.github.io/helm-charts"
   chart      = "loki"
   version    = "6.21.0"
+
+  timeout = 600 # 10 minutes for initial deployment
 
   values = [yamlencode({
     deploymentMode = "SingleBinary"
@@ -169,7 +172,7 @@ resource "helm_release" "loki" {
       }
     }
 
-    # Disable components not needed for SingleBinary
+    # Disable distributed components (not needed for SingleBinary)
     backend = {
       replicas = 0
     }
@@ -184,10 +187,21 @@ resource "helm_release" "loki" {
       enabled = false
     }
 
-    # Monitoring
+    # Disable caches (not needed for SingleBinary, saves memory)
+    chunksCache = {
+      enabled = false
+    }
+    resultsCache = {
+      enabled = false
+    }
+
+    # Disable monitoring components
     monitoring = {
       selfMonitoring = {
         enabled = false
+        grafanaAgent = {
+          installOperator = false
+        }
       }
       lokiCanary = {
         enabled = false
@@ -311,3 +325,4 @@ resource "kubernetes_service" "promtail_syslog" {
 
   depends_on = [helm_release.promtail]
 }
+
