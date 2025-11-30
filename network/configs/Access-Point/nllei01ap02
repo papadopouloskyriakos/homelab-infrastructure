@@ -1,8 +1,10 @@
 Building configuration...
 
-Current configuration : 11190 bytes
+Current configuration : 11387 bytes
 !
-! No configuration change since last restart
+! Last configuration change at 19:37:39 CET Sun Nov 23 2025 by kyriakosp
+! NVRAM config last updated at 19:38:20 CET Sun Nov 23 2025 by kyriakosp
+! NVRAM config last updated at 19:38:20 CET Sun Nov 23 2025 by kyriakosp
 version 15.3
 no service pad
 service tcp-keepalives-in
