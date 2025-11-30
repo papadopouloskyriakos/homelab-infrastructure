@@ -9,3 +9,9 @@ variable "REDACTED_46d876c8" {
   type        = bool
   default     = true
 }
+
+variable "acme_email" {
+  description = "Email for Let's Encrypt notifications"
+  type        = string
+  default     = "viqufzhj@mxmx.email"
+}

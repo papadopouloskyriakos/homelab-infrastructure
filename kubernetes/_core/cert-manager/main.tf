@@ -76,3 +76,68 @@ resource "kubernetes_manifest" "REDACTED_cad964aa" {
     }
   }
 }
+
+***REMOVED***
+# ClusterIssuer - Let's Encrypt Production
+***REMOVED***
+
+resource "kubernetes_manifest" "letsencrypt_prod" {
+  depends_on = [helm_release.cert_manager]
+
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "ClusterIssuer"
+    metadata = {
+      name = "letsencrypt-prod"
+    }
+    spec = {
+      acme = {
+        server = "https://acme-v02.api.letsencrypt.org/directory"
+        email  = var.acme_email
+        privateKeySecretRef = {
+          name = "REDACTED_47c187d7"
+        }
+        solvers = [
+          {
+            dns01 = {
+              cloudflare = {
+                apiTokenSecretRef = {
+                  name = "REDACTED_fb8d60db"
+                  key  = "api-token"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+
+***REMOVED***
+# Wildcard Certificate
+***REMOVED***
+
+resource "kubernetes_manifest" "wildcard_cert" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_0d82b4df"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_0d82b4df-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.example.net",
+        "example.net"
+      ]
+    }
+  }
+}
