@@ -12,10 +12,13 @@ variables:
   BAO_ROLE: "gitlab-ci"
 
 .openbao-auth:
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://gitlab.example.net
   before_script:
     - echo "[OpenBao] Authenticating with role ${BAO_ROLE}"
-    - if [ -z "${CI_JOB_JWT_V2}" ]; then echo "[OpenBao] ERROR - CI_JOB_JWT_V2 is not set"; exit 1; fi
-    - AUTH_RESPONSE=$(curl -sf --max-time 30 --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${CI_JOB_JWT_V2}\",\"role\":\"${BAO_ROLE}\"}" "${BAO_ADDR}/v1/auth/jwt/login" 2>&1)
+    - if [ -z "${VAULT_ID_TOKEN}" ]; then echo "[OpenBao] ERROR - VAULT_ID_TOKEN is not set"; exit 1; fi
+    - AUTH_RESPONSE=$(curl -sf --max-time 30 --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"${BAO_ROLE}\"}" "${BAO_ADDR}/v1/auth/jwt/login" 2>&1)
     - if [ $? -ne 0 ]; then echo "[OpenBao] ERROR - Failed to connect"; echo "${AUTH_RESPONSE}"; exit 1; fi
     - export BAO_TOKEN=$(echo "${AUTH_RESPONSE}" | jq -r '.auth.client_token // empty')
     - if [ -z "${BAO_TOKEN}" ]; then echo "[OpenBao] ERROR - Authentication failed"; echo "${AUTH_RESPONSE}"; exit 1; fi
@@ -29,15 +32,18 @@ test:openbao-jwt-auth:
   image: curlimages/curl:latest
   tags:
     - k8s
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://gitlab.example.net
   script:
-    - echo "=== Step 1 - Check JWT Token Availability ==="
-    - if [ -n "${CI_JOB_JWT_V2}" ]; then echo "OK - CI_JOB_JWT_V2 is available (${#CI_JOB_JWT_V2} chars)"; else echo "FAIL - CI_JOB_JWT_V2 is NOT available"; exit 1; fi
+    - echo "=== Step 1 - Check ID Token Availability ==="
+    - if [ -n "${VAULT_ID_TOKEN}" ]; then echo "OK - VAULT_ID_TOKEN is available (${#VAULT_ID_TOKEN} chars)"; else echo "FAIL - VAULT_ID_TOKEN is NOT available"; exit 1; fi
     - echo ""
     - echo "=== Step 2 - Decode JWT Claims ==="
-    - echo ${CI_JOB_JWT_V2} | cut -d'.' -f2 | base64 -d 2>/dev/null | jq .
+    - echo ${VAULT_ID_TOKEN} | cut -d'.' -f2 | base64 -d 2>/dev/null | jq .
     - echo ""
     - echo "=== Step 3 - Test OpenBao Authentication ==="
-    - AUTH_RESPONSE=$(curl -sf --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${CI_JOB_JWT_V2}\",\"role\":\"gitlab-ci\"}" ${BAO_ADDR}/v1/auth/jwt/login)
+    - AUTH_RESPONSE=$(curl -sf --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"gitlab-ci\"}" ${BAO_ADDR}/v1/auth/jwt/login)
     - echo "Auth response - ${AUTH_RESPONSE}"
     - TOKEN=$(echo ${AUTH_RESPONSE} | jq -r '.auth.client_token')
     - if [ -n "${TOKEN}" ] && [ "${TOKEN}" != "null" ]; then echo "OK - Authentication successful"; export BAO_TOKEN="${TOKEN}"; else echo "FAIL - Authentication failed"; exit 1; fi
