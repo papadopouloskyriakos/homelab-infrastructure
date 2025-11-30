@@ -83,6 +83,10 @@ module "nl-nas01_csi" {
   enable_velero_integration = false
 }
 
+module "cert_manager" {
+  source = "./_core/cert-manager"
+}
+
 # ========================================================================
 # APPLICATION NAMESPACE MODULES
 # ========================================================================
