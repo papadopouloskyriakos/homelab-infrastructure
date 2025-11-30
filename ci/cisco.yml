@@ -1,35 +1,39 @@
 # ===========================================================================
 # CISCO NETWORK AUTOMATION PIPELINE
 # Handles configuration deployment for routers, switches, firewalls, APs
+# Now uses OpenBao for secrets management
 # ===========================================================================
 
+# ---------------------------------------------------------------------------
+# Base template - Cisco jobs with OpenBao secrets
+# ---------------------------------------------------------------------------
 .cisco_base:
+  extends: .openbao-cisco
   image: $EE_IMAGE
   tags:
     - cisco
-  before_script:
-    - git config --global --add safe.directory $CI_PROJECT_DIR
+
+# ---------------------------------------------------------------------------
+# Base template for jobs that need to push to Git
+# ---------------------------------------------------------------------------
+.cisco_base_with_git:
+  extends: .openbao-cisco-with-git
+  image: $EE_IMAGE
+  tags:
+    - cisco
 
 # ===========================================================================
 # DRIFT DETECTION - Device as Source of Truth
 # ===========================================================================
 
 auto_detect_and_sync_drift:
-  extends: .cisco_base
+  extends: .cisco_base_with_git
   stage: drift-detection
   rules:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
       when: always
     - when: manual
       allow_failure: true
-  before_script:
-    - git config --global user.email "gitlab-ci@example.net"
-    - git config --global user.name "GitLab CI Auto-Sync"
-    - git config --global --add safe.directory $CI_PROJECT_DIR
-    - git config --global pull.rebase true
-    - git remote set-url origin https://root:${GITLAB_PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
-    - git checkout main || git checkout -b main
-    - git pull origin main || echo "No remote main yet"
   script:
     - |
       echo "============================================================"
@@ -261,10 +265,8 @@ generate_deployment_diffs:
   needs:
     - validate_cisco_configs
     - pre_deploy_drift_gate
-  before_script:
-    - git config --global --add safe.directory $CI_PROJECT_DIR
-    - mkdir -p artifacts/diffs
   script:
+    - mkdir -p artifacts/diffs
     - |
       set -eu
       
@@ -428,13 +430,11 @@ deploy_cisco_configs:
     - validate_cisco_configs
     - pre_deploy_drift_gate
     - generate_deployment_diffs
-  before_script:
-    - git config --global --add safe.directory $CI_PROJECT_DIR
+  script:
     - mkdir -p $CI_PROJECT_DIR/backups
     - echo "Creating deployment lock at $DEPLOYMENT_LOCK_FILE"
     - echo $$ > $DEPLOYMENT_LOCK_FILE
     - trap "rm -f $DEPLOYMENT_LOCK_FILE; echo 'Deployment lock removed'" EXIT
-  script:
     - |
       set -eu
       
@@ -528,10 +528,8 @@ verify_cisco_deployments:
       when: never
   needs:
     - deploy_cisco_configs
-  before_script:
-    - git config --global --add safe.directory $CI_PROJECT_DIR
-    - mkdir -p artifacts
   script:
+    - mkdir -p artifacts
     - |
       set -eu
       
