@@ -264,6 +264,7 @@ resource "helm_release" "promtail" {
         protocol      = "TCP"
         service = {
           type = "LoadBalancer"
+          loadBalancerIP = "10.0.X.X"
           port = 514
         }
       }
