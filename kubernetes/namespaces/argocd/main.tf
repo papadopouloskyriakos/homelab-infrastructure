@@ -266,3 +266,46 @@ resource "helm_release" "argocd" {
     })
   ]
 }
+
+# -----------------------------------------------------------------------------
+# ExternalSecret for ArgoCD Redis Password
+# -----------------------------------------------------------------------------
+# Redis password stored in OpenBao for persistence across reboots
+# -----------------------------------------------------------------------------
+resource "kubernetes_manifest" "argocd_redis_secret" {
+  manifest = {
+    apiVersion = "external-secrets.io/v1beta1"
+    kind       = "ExternalSecret"
+    metadata = {
+      name      = "argocd-redis"
+      namespace = kubernetes_namespace.argocd.metadata[0].name
+      labels = {
+        environment  = "production"
+        "managed-by" = "opentofu"
+      }
+    }
+    spec = {
+      refreshInterval = "1h"
+      secretStoreRef = {
+        name = "openbao"
+        kind = "ClusterSecretStore"
+      }
+      target = {
+        name           = "argocd-redis"
+        creationPolicy = "Owner"
+        deletionPolicy = "Retain"
+      }
+      data = [
+        {
+          secretKey = "auth"
+          remoteRef = {
+            key      = "REDACTED_e4fc5799"
+            property = "auth"
+          }
+        }
+      ]
+    }
+  }
+
+  depends_on = [kubernetes_namespace.argocd]
+}
