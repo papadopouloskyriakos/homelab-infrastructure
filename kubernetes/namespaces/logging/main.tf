@@ -67,7 +67,7 @@ resource "helm_release" "loki" {
   namespace  = kubernetes_namespace.logging.metadata[0].name
   repository = "https://grafana.github.io/helm-charts"
   chart      = "loki"
-  version    = "6.21.0"
+  version    = "6.46.0"
 
   timeout = 600
 
