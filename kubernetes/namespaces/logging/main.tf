@@ -223,7 +223,7 @@ resource "helm_release" "promtail" {
   namespace  = kubernetes_namespace.logging.metadata[0].name
   repository = "https://grafana.github.io/helm-charts"
   chart      = "promtail"
-  version    = "6.16.6"
+  version    = "6.17.1"
 
   values = [yamlencode({
     config = {
@@ -257,11 +257,16 @@ resource "helm_release" "promtail" {
       }
     }
 
+    # Syslog port with LoadBalancer service (chart-managed)
     extraPorts = {
       syslog = {
-        name          = "syslog"
         containerPort = var.promtail_syslog_port
         protocol      = "TCP"
+        service = {
+          type = "LoadBalancer"
+          loadBalancerIP = "10.0.X.X"
+          port = 514
+        }
       }
     }
 
@@ -290,35 +295,4 @@ resource "helm_release" "promtail" {
   })]
 
   depends_on = [helm_release.loki]
-}
-
-# -----------------------------------------------------------------------------
-# LoadBalancer Service for Syslog Receiver
-# -----------------------------------------------------------------------------
-resource "kubernetes_service" "promtail_syslog" {
-  metadata {
-    name      = "promtail-syslog"
-    namespace = kubernetes_namespace.logging.metadata[0].name
-    labels = merge(var.common_labels, {
-      "app.kubernetes.io/name" = "promtail-syslog"
-    })
-  }
-
-  spec {
-    type = "LoadBalancer"
-
-    selector = {
-      "app.kubernetes.io/name"     = "promtail"
-      "app.kubernetes.io/instance" = "promtail"
-    }
-
-    port {
-      name        = "syslog"
-      port        = 514
-      target_port = var.promtail_syslog_port
-      protocol    = "TCP"
-    }
-  }
-
-  depends_on = [helm_release.promtail]
 }
