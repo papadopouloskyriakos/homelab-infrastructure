@@ -259,7 +259,6 @@ resource "helm_release" "promtail" {
 
     extraPorts = {
       syslog = {
-        name          = "syslog"
         containerPort = var.promtail_syslog_port
         protocol      = "TCP"
       }
