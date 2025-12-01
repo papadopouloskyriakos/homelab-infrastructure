@@ -223,7 +223,7 @@ resource "helm_release" "promtail" {
   namespace  = kubernetes_namespace.logging.metadata[0].name
   repository = "https://grafana.github.io/helm-charts"
   chart      = "promtail"
-  version    = "6.16.6"
+  version    = "6.17.1"
 
   values = [yamlencode({
     config = {
