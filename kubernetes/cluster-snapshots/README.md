@@ -4,6 +4,7 @@
 - [Architecture](architecture.txt)
 
 ## History
+- [2025-12-01](history/2025-12-01.md)
 - [2025-11-30](history/2025-11-30.md)
 - [2025-11-29](history/2025-11-29.md)
 - [2025-11-28](history/2025-11-28.md)
