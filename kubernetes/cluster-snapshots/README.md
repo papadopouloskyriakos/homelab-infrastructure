@@ -2,6 +2,7 @@
 
 - [Latest](latest.md)
 - [Architecture](architecture.txt)
+- [LLM Context](cluster-context.md)
 
 ## History
 - [2025-12-01](history/2025-12-01.md)
