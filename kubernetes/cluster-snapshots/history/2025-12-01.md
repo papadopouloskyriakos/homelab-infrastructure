@@ -1,6 +1,6 @@
 # K8s Cluster Snapshot
 
-**Date:** 2025-12-01 12:52:35 UTC | **Host:** nlk8s-ctrl01 | **Version:** 3.0.1
+**Date:** 2025-12-01 13:11:41 UTC | **Host:** nlk8s-ctrl01 | **Version:** 3.1.0
 
 > 📖 Full documentation: [Nuclear Lighters Infrastructure README](https://gitlab.example.net/infrastructure/nl/production/-/blob/main/README.md)
 
@@ -10,7 +10,7 @@
 |-------|--------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Warning Events (last 1h) | 1 |
+| Warning Events (last 1h) | 2 |
 
 ## Overview
 
@@ -62,10 +62,10 @@ bentopdf                 bentopdf                                          1/1  
 cert-manager             cert-manager                                      1/1     1            1           17h
 cert-manager             cert-manager-cainjector                           1/1     1            1           17h
 cert-manager             cert-manager-webhook                              1/1     1            1           17h
-external-secrets         external-secrets                                  1/1     1            1           40h
-external-secrets         external-secrets-cert-controller                  1/1     1            1           40h
-external-secrets         external-secrets-webhook                          1/1     1            1           40h
-REDACTED_01b50c5d   REDACTED_ab04b573-v2                         2/2     2            2           6d23h
+external-secrets         external-secrets                                  1/1     1            1           41h
+external-secrets         external-secrets-cert-controller                  1/1     1            1           41h
+external-secrets         external-secrets-webhook                          1/1     1            1           41h
+REDACTED_01b50c5d   REDACTED_ab04b573-v2                         2/2     2            2           7d
 ingress-nginx            ingress-nginx-controller                          2/2     2            2           25d
 kube-system              cilium-operator                                   1/1     1            1           2d23h
 kube-system              coredns                                           2/2     2            2           27d
@@ -90,7 +90,7 @@ NAMESPACE      NAME                                                   READY   AG
 argocd         argocd-application-controller                          1/1     5d18h
 awx            my-awx-postgres-15                                     1/1     26d
 cilium-spire   spire-server                                           1/1     2d13h
-logging        loki                                                   1/1     21h
+logging        loki                                                   1/1     22h
 monitoring     alertmanager-monitoring-kube-prometheus-alertmanager   2/2     3d17h
 monitoring     prometheus-REDACTED_6dfbe9fc       2/2     3d18h
 synology-csi   synology-csi-controller                                1/1     3d20h
@@ -114,7 +114,7 @@ awx                    awx                    nginx   awx.example.net        10.
 bentopdf               bentopdf               nginx   bentopdf.example.net   10.0.X.X   80        46h
 kube-system            hubble-ui              nginx   hubble.example.net     10.0.X.X   80, 443   2d22h
 REDACTED_d97cef76   REDACTED_d97cef76   nginx   k8s.example.net        10.0.X.X   80        4d13h
-minio                  minio-console          nginx   minio.example.net      10.0.X.X   80        6d11h
+minio                  minio-console          nginx   minio.example.net      10.0.X.X   80        6d12h
 monitoring             grafana                nginx   grafana.example.net    10.0.X.X   80        4d13h
 pihole                 pihole-ingress         nginx   pihole.example.net     10.0.X.X   80        7d8h
 velero                 velero-ui              nginx   velero.example.net     10.0.X.X   80        5d17h
@@ -124,9 +124,9 @@ velero                 velero-ui              nginx   velero.example.net     10.
 ```
 NAMESPACE      NAME                                                                                                             STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS                              VOLUMEATTRIBUTESCLASS   AGE
 awx            my-awx-projects                                                                                                  Bound    awx-projects-pv                            50Gi       RWX            nfs-sc                                    <unset>                 26d
-awx            REDACTED_0d7ca6a5                                                                                 Bound    REDACTED_c7d87e23   50Gi       RWO            REDACTED_b280aec5   <unset>                 3d16h
+awx            REDACTED_0d7ca6a5                                                                                 Bound    REDACTED_c7d87e23   50Gi       RWO            REDACTED_b280aec5   <unset>                 3d17h
 cilium-spire   spire-data-spire-server-0                                                                                        Bound    pvc-6f3da11a-d6a0-4cd0-8f14-d35dfd334075   1Gi        RWO            nfs-client                                <unset>                 2d13h
-logging        storage-loki-0                                                                                                   Bound    pvc-ead084c7-26e8-459a-99f8-93ffb62b82e9   10Gi       RWO            REDACTED_4f3da73d   <unset>                 21h
+logging        storage-loki-0                                                                                                   Bound    pvc-ead084c7-26e8-459a-99f8-93ffb62b82e9   10Gi       RWO            REDACTED_4f3da73d   <unset>                 22h
 minio          minio-data-csi                                                                                                   Bound    pvc-7ed8ddf6-ff5f-4a09-87b3-add99604e608   1Ti        RWO            REDACTED_b280aec5   <unset>                 3d19h
 monitoring     alertmanager-monitoring-kube-prometheus-alertmanager-db-alertmanager-monitoring-kube-prometheus-alertmanager-0   Bound    REDACTED_3f07e323   10Gi       RWO            REDACTED_4f3da73d   <unset>                 3d17h
 monitoring     alertmanager-monitoring-kube-prometheus-alertmanager-db-alertmanager-monitoring-kube-prometheus-alertmanager-1   Bound    REDACTED_c70a75d3   10Gi       RWO            REDACTED_4f3da73d   <unset>                 3d17h
@@ -163,15 +163,16 @@ argocd      velero     Synced        Healthy
 ## Velero Schedules
 ```
 NAME            STATUS    SCHEDULE    LASTBACKUP   AGE     PAUSED
-daily-backup    Enabled   0 2 * * *   10h          5d17h   
-weekly-backup   Enabled   0 3 * * 0   33h          5d17h   
+daily-backup    Enabled   0 2 * * *   11h          5d17h   
+weekly-backup   Enabled   0 3 * * 0   34h          5d17h   
 ```
 
 ## Warning Events (Recent)
 ```
 NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   7m47s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   18m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   3m8s        Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ---
-*Generated by k8s-cluster-snapshot.sh v3.0.1*
+*Generated by k8s-cluster-snapshot.sh v3.1.0*
