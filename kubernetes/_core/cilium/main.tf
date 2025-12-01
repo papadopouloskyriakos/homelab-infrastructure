@@ -114,6 +114,15 @@ resource "helm_release" "cilium" {
       name  = "REDACTED_6fa691d2.mutual.spire.install.server.dataStorage.storageClass"
       value = "nfs-client"
     },
+    # SPIRE server security context - required for HostPath socket permissions
+    {
+      name  = "REDACTED_6fa691d2.mutual.spire.install.server.securityContext.runAsUser"
+      value = "0"
+    },
+    {
+      name  = "REDACTED_6fa691d2.mutual.spire.install.server.securityContext.runAsGroup"
+      value = "0"
+    },
   ]
 }
 
