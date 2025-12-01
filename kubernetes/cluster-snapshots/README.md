@@ -1,8 +1,12 @@
 # K8s Cluster Snapshots
 
-- [Latest](latest.md)
-- [Architecture](architecture.txt)
-- [LLM Context](cluster-context.md)
+## LLM Context Files
+- [Lite (~3K tokens)](cluster-context-lite.md) - Quick questions, daily troubleshooting
+- [Full (~10K tokens)](cluster-context-full.md) - Deep analysis, capacity planning
+
+## Reports
+- [Latest Snapshot](latest.md)
+- [Architecture Diagram](architecture.txt)
 
 ## History
 - [2025-12-01](history/2025-12-01.md)
