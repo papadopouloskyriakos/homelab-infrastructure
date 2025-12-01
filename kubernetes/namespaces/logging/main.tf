@@ -263,9 +263,9 @@ resource "helm_release" "promtail" {
         containerPort = var.promtail_syslog_port
         protocol      = "TCP"
         service = {
-          type = "LoadBalancer"
+          type           = "LoadBalancer"
           loadBalancerIP = "10.0.X.X"
-          port = 514
+          port           = 514
         }
       }
     }
