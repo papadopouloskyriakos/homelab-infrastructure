@@ -114,14 +114,20 @@ resource "helm_release" "cilium" {
       name  = "authentication.mutual.spire.install.server.dataStorage.storageClass"
       value = "nfs-client"
     },
-    # SPIRE server security context - required for HostPath socket permissions
+
+    # SPIRE server security context - non-root with fsGroup for volume permissions
+    # Ref: https://github.com/cilium/cilium/issues/40533
     {
-      name  = "authentication.mutual.spire.install.server.securityContext.runAsUser"
-      value = "0"
+      name  = "authentication.mutual.spire.install.server.podSecurityContext.runAsUser"
+      value = "1000"
     },
     {
-      name  = "authentication.mutual.spire.install.server.securityContext.runAsGroup"
-      value = "0"
+      name  = "authentication.mutual.spire.install.server.podSecurityContext.runAsGroup"
+      value = "1000"
+    },
+    {
+      name  = "authentication.mutual.spire.install.server.podSecurityContext.fsGroup"
+      value = "1000"
     },
   ]
 }
