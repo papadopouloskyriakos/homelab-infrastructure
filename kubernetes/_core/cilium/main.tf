@@ -115,20 +115,19 @@ resource "helm_release" "cilium" {
       value = "nfs-client"
     },
 
-    # SPIRE server security context - non-root with fsGroup for volume permissions
-    # Ref: https://github.com/cilium/cilium/issues/40533
+    # SPIRE server security context - running as root due to hostPath socket permissions
+    # TODO: Revert to non-root (UID 1000) when Cilium fixes upstream issue
+    # Bug: https://github.com/cilium/cilium/issues/40533
+    # Risk: LOW - no privileged mode, no dangerous capabilities, internal-only exposure
     {
       name  = "authentication.mutual.spire.install.server.podSecurityContext.runAsUser"
-      value = "1000"
+      value = "0"
     },
     {
       name  = "authentication.mutual.spire.install.server.podSecurityContext.runAsGroup"
-      value = "1000"
+      value = "0"
     },
-    {
-      name  = "authentication.mutual.spire.install.server.podSecurityContext.fsGroup"
-      value = "1000"
-    },
+
   ]
 }
 
