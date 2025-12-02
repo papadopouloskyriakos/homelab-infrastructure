@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2025-12-01 13:11:41 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2025-12-02 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 117 |
+| Total Restarts | 212 |
 
 ## Topology
 
@@ -20,13 +20,13 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 - **Pods:** 104
 
 ### Nodes
-- **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:3886100Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
+- **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:3795Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-ctrl02** (control-plane) 10.0.X.X | CPU:4 Mem:3996Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-ctrl03** (control-plane) 10.0.X.X | CPU:4 Mem:3886092Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
-- **nlk8s-node01** (worker) 10.0.X.X | CPU:8 Mem:8006752Ki | Taints:none
-- **nlk8s-node02** (worker) 10.0.X.X | CPU:8 Mem:8006740Ki | Taints:none
+- **nlk8s-node01** (worker) 10.0.X.X | CPU:8 Mem:8006756Ki | Taints:none
+- **nlk8s-node02** (worker) 10.0.X.X | CPU:8 Mem:8006748Ki | Taints:none
 - **nlk8s-node03** (worker) 10.0.X.X | CPU:8 Mem:8006740Ki | Taints:none
-- **nlk8s-node04** (worker) 10.0.X.X | CPU:8 Mem:8006736Ki | Taints:none
+- **nlk8s-node04** (worker) 10.0.X.X | CPU:8 Mem:8006752Ki | Taints:none
 
 ## Anomalies
 
@@ -34,27 +34,33 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 _None_
 
 ### High Restart Pods (>3)
-kube-system/kube-apiserver-nlk8s-ctrl01: 16 restarts
-kube-system/kube-apiserver-nlk8s-ctrl03: 4 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 14 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl02: 7 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl03: 12 restarts
-kube-system/kube-scheduler-nlk8s-ctrl01: 11 restarts
-kube-system/kube-scheduler-nlk8s-ctrl02: 7 restarts
-kube-system/kube-scheduler-nlk8s-ctrl03: 10 restarts
-synology-csi/synology-csi-node-465rx: 6 restarts
-synology-csi/synology-csi-node-5sj22: 6 restarts
-synology-csi/synology-csi-node-5tmgb: 4 restarts
-synology-csi/synology-csi-node-7ssk7: 6 restarts
-synology-csi/synology-csi-node-hmvnt: 6 restarts
-synology-csi/synology-csi-node-jw295: 6 restarts
-synology-csi/synology-csi-node-mx7bm: 6 restarts
+awx/my-awx-web-694487457f-9r975: 7 restarts
+kube-system/cilium-envoy-ntrv6: 4 restarts
+kube-system/cilium-x58c7: 4 restarts
+kube-system/etcd-nlk8s-ctrl01: 7 restarts
+kube-system/etcd-nlk8s-ctrl03: 4 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 20 restarts
+kube-system/kube-apiserver-nlk8s-ctrl03: 5 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl01: 19 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl02: 8 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl03: 13 restarts
+kube-system/kube-scheduler-nlk8s-ctrl01: 15 restarts
+kube-system/kube-scheduler-nlk8s-ctrl02: 9 restarts
+kube-system/kube-scheduler-nlk8s-ctrl03: 11 restarts
+logging/promtail-j42hf: 4 restarts
+monitoring/monitoring-prometheus-node-exporter-95m6x: 5 restarts
+synology-csi/synology-csi-node-465rx: 10 restarts
+synology-csi/synology-csi-node-5sj22: 8 restarts
+synology-csi/synology-csi-node-5tmgb: 6 restarts
+synology-csi/synology-csi-node-7ssk7: 10 restarts
+synology-csi/synology-csi-node-hmvnt: 14 restarts
+synology-csi/synology-csi-node-jw295: 8 restarts
+synology-csi/synology-csi-node-mx7bm: 8 restarts
 
 ### Recent Warnings (5)
 ```
 NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   18m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   3m11s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   15m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
@@ -87,7 +93,7 @@ pihole/pihole-dns-tcp-lb: 10.0.X.X -> 53:30438/TCP
 - ingress-nginx (ingress-nginx-4.14.0) in ingress-nginx
 - k8s-agent (gitlab-agent-2.21.1) in REDACTED_01b50c5d
 - loki (loki-6.46.0) in logging
-- monitoring (REDACTED_d8074874-79.9.0) in monitoring
+- monitoring (REDACTED_d8074874-79.10.0) in monitoring
 - nfs-provisioner (REDACTED_5fef70be-4.0.18) in nfs-provisioner
 - promtail (promtail-6.17.1) in logging
 - synology-csi (synology-csi-0.10.1) in synology-csi
