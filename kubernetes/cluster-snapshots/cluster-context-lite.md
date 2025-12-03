@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2025-12-02 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2025-12-03 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 212 |
+| Total Restarts | 260 |
 
 ## Topology
 
@@ -34,24 +34,29 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 _None_
 
 ### High Restart Pods (>3)
+awx/awx-operator-controller-manager-79499d9678-hr474: 6 restarts
 awx/my-awx-web-694487457f-9r975: 7 restarts
 kube-system/cilium-envoy-ntrv6: 4 restarts
+kube-system/cilium-operator-67ff4f447c-7zv95: 5 restarts
 kube-system/cilium-x58c7: 4 restarts
 kube-system/etcd-nlk8s-ctrl01: 7 restarts
+kube-system/etcd-nlk8s-ctrl02: 5 restarts
 kube-system/etcd-nlk8s-ctrl03: 4 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 20 restarts
+kube-system/kube-apiserver-nlk8s-ctrl02: 5 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 5 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 19 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl02: 8 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl03: 13 restarts
-kube-system/kube-scheduler-nlk8s-ctrl01: 15 restarts
-kube-system/kube-scheduler-nlk8s-ctrl02: 9 restarts
-kube-system/kube-scheduler-nlk8s-ctrl03: 11 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl01: 22 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl02: 10 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl03: 14 restarts
+kube-system/kube-scheduler-nlk8s-ctrl01: 17 restarts
+kube-system/kube-scheduler-nlk8s-ctrl02: 12 restarts
+kube-system/kube-scheduler-nlk8s-ctrl03: 13 restarts
 logging/promtail-j42hf: 4 restarts
 monitoring/monitoring-prometheus-node-exporter-95m6x: 5 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-855bd85b44jwmvk: 4 restarts
 synology-csi/synology-csi-node-465rx: 10 restarts
 synology-csi/synology-csi-node-5sj22: 8 restarts
-synology-csi/synology-csi-node-5tmgb: 6 restarts
+synology-csi/synology-csi-node-5tmgb: 10 restarts
 synology-csi/synology-csi-node-7ssk7: 10 restarts
 synology-csi/synology-csi-node-hmvnt: 14 restarts
 synology-csi/synology-csi-node-jw295: 8 restarts
@@ -59,8 +64,11 @@ synology-csi/synology-csi-node-mx7bm: 8 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   15m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system    15m         Warning   Unhealthy                      pod/etcd-nlk8s-ctrl02                                 Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system    8m53s       Warning   Unhealthy                      pod/etcd-nlk8s-ctrl01                                 Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system    8m45s       Warning   Unhealthy                      pod/kube-scheduler-nlk8s-ctrl01                       Readiness probe failed: Get "https://127.0.0.1:10259/readyz": dial tcp 127.0.0.1:10259: connect: connection refused
+monitoring     8m41s       Warning   Unhealthy                      pod/monitoring-kube-state-metrics-75f9fff55b-sf94p          Liveness probe failed: HTTP probe failed with statuscode: 503
+kube-system    99s         Warning   Unhealthy                      pod/kube-apiserver-nlk8s-ctrl01                       Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
