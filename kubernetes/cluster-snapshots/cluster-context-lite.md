@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2025-12-03 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2025-12-04 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 260 |
+| Total Restarts | 264 |
 
 ## Topology
 
@@ -42,7 +42,7 @@ kube-system/cilium-x58c7: 4 restarts
 kube-system/etcd-nlk8s-ctrl01: 7 restarts
 kube-system/etcd-nlk8s-ctrl02: 5 restarts
 kube-system/etcd-nlk8s-ctrl03: 4 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 20 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 24 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 5 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 5 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 22 restarts
@@ -64,11 +64,9 @@ synology-csi/synology-csi-node-mx7bm: 8 restarts
 
 ### Recent Warnings (5)
 ```
-kube-system    15m         Warning   Unhealthy                      pod/etcd-nlk8s-ctrl02                                 Readiness probe failed: HTTP probe failed with statuscode: 503
-kube-system    8m53s       Warning   Unhealthy                      pod/etcd-nlk8s-ctrl01                                 Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system    8m45s       Warning   Unhealthy                      pod/kube-scheduler-nlk8s-ctrl01                       Readiness probe failed: Get "https://127.0.0.1:10259/readyz": dial tcp 127.0.0.1:10259: connect: connection refused
-monitoring     8m41s       Warning   Unhealthy                      pod/monitoring-kube-state-metrics-75f9fff55b-sf94p          Liveness probe failed: HTTP probe failed with statuscode: 503
-kube-system    99s         Warning   Unhealthy                      pod/kube-apiserver-nlk8s-ctrl01                       Readiness probe failed: HTTP probe failed with statuscode: 500
+NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
+kube-system   53m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   4m4s        Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
