@@ -1,24 +1,24 @@
 # K8s Cluster Snapshot
 
-**Date:** 2025-12-06 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **Version:** 3.1.0
+**Date:** 2025-12-06 13:11:27 UTC | **Host:** nlk8s-ctrl01 | **Version:** 3.1.0
 
 > 📖 Full documentation: [Nuclear Lighters Infrastructure README](https://gitlab.example.net/infrastructure/nl/production/-/blob/main/README.md)
 
-## Health Status: ⚠️ DEGRADED
+## Health Status: ✅ HEALTHY
 
 | Check | Status |
 |-------|--------|
-| Unhealthy Pods | 2 |
+| Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Warning Events (last 1h) | 8 |
+| Warning Events (last 1h) | 5 |
 
 ## Overview
 
 | Metric | Value |
 |--------|-------|
 | K8s Version | v1.34.2 |
-| Nodes | 8 (3 ctrl, 5 workers) |
-| Pods | 111 |
+| Nodes | 9 (3 ctrl, 6 workers) |
+| Pods | 116 |
 | Services | 61 |
 | PVCs | 11 |
 | Helm Releases | 11 |
@@ -33,21 +33,21 @@
 
 ## Nodes
 ```
-NAME                 STATUS   ROLES           AGE     VERSION   INTERNAL-IP       EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
-nlk8s-ctrl01   Ready    control-plane   32d     v1.34.2   10.0.X.X     <none>        Ubuntu 24.04.3 LTS   6.14.0-36-generic   containerd://2.1.5
-nlk8s-ctrl02   Ready    control-plane   30d     v1.34.2   10.0.X.X     <none>        Ubuntu 24.04.3 LTS   6.17.2-2-pve        containerd://2.1.5
-nlk8s-ctrl03   Ready    control-plane   32d     v1.34.2   10.0.X.X     <none>        Ubuntu 24.04.3 LTS   6.14.0-36-generic   containerd://2.1.5
-nlk8s-node01    Ready    worker          31d     v1.34.2   10.0.X.X     <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
-nlk8s-node02    Ready    worker          31d     v1.34.2   10.0.X.X     <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
-nlk8s-node03    Ready    worker          31d     v1.34.2   10.0.X.X     <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
-nlk8s-node04    Ready    worker          31d     v1.34.2   10.0.X.X     <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
-notrf01k8s-node01    Ready    <none>          9m16s   v1.34.2   185.125.171.172   <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
+NAME                 STATUS   ROLES           AGE   VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+chzrh01k8s-node01    Ready    worker          10h   v1.34.2   10.255.2.11     <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
+nlk8s-ctrl01   Ready    control-plane   32d   v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.14.0-36-generic   containerd://2.1.5
+nlk8s-ctrl02   Ready    control-plane   30d   v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.17.2-2-pve        containerd://2.1.5
+nlk8s-ctrl03   Ready    control-plane   32d   v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.14.0-36-generic   containerd://2.1.5
+nlk8s-node01    Ready    worker          32d   v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
+nlk8s-node02    Ready    worker          32d   v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
+nlk8s-node03    Ready    worker          32d   v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
+nlk8s-node04    Ready    worker          32d   v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
+notrf01k8s-node01    Ready    worker          10h   v1.34.2   10.255.3.11     <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
 ```
 
 ## Unhealthy Pods
 ```
-cilium-spire             spire-agent-8n2ff                                                 0/1   Init:0/1           5 (2m24s ago)    9m16s
-velero                   velero-node-agent-fbdfq                                           0/1   CrashLoopBackOff   6 (63s ago)      8m49s
+None - all pods healthy!
 ```
 
 ## Deployments
@@ -60,20 +60,20 @@ argocd                   argocd-server                                     2/2  
 awx                      awx-operator-controller-manager                   1/1     1            1           31d
 awx                      my-awx-task                                       1/1     1            1           31d
 awx                      my-awx-web                                        1/1     1            1           31d
-bentopdf                 bentopdf                                          1/1     1            1           6d12h
-cert-manager             cert-manager                                      1/1     1            1           5d7h
-cert-manager             cert-manager-cainjector                           1/1     1            1           5d7h
-cert-manager             cert-manager-webhook                              1/1     1            1           5d7h
-external-secrets         external-secrets                                  1/1     1            1           6d7h
-external-secrets         external-secrets-cert-controller                  1/1     1            1           6d7h
-external-secrets         external-secrets-webhook                          1/1     1            1           6d7h
-REDACTED_01b50c5d   REDACTED_ab04b573-v2                         2/2     2            2           11d
+bentopdf                 bentopdf                                          1/1     1            1           6d22h
+cert-manager             cert-manager                                      1/1     1            1           5d17h
+cert-manager             cert-manager-cainjector                           1/1     1            1           5d17h
+cert-manager             cert-manager-webhook                              1/1     1            1           5d17h
+external-secrets         external-secrets                                  1/1     1            1           6d17h
+external-secrets         external-secrets-cert-controller                  1/1     1            1           6d17h
+external-secrets         external-secrets-webhook                          1/1     1            1           6d17h
+REDACTED_01b50c5d   REDACTED_ab04b573-v2                         2/2     2            2           12d
 ingress-nginx            ingress-nginx-controller                          2/2     2            2           30d
-kube-system              cilium-operator                                   1/1     1            1           7d13h
+kube-system              cilium-operator                                   1/1     1            1           7d23h
 kube-system              coredns                                           2/2     2            2           32d
-kube-system              hubble-relay                                      1/1     1            1           7d13h
-kube-system              hubble-ui                                         1/1     1            1           7d13h
-kube-system              metrics-server                                    1/1     1            1           31d
+kube-system              hubble-relay                                      1/1     1            1           7d23h
+kube-system              hubble-ui                                         1/1     1            1           7d23h
+kube-system              metrics-server                                    1/1     1            1           32d
 REDACTED_d97cef76     dashboard-metrics-scraper                         1/1     1            1           30d
 REDACTED_d97cef76     REDACTED_d97cef76                              1/1     1            1           30d
 minio                    minio                                             1/1     1            1           11d
@@ -81,7 +81,7 @@ monitoring               monitoring-grafana                                2/2  
 monitoring               monitoring-kube-prometheus-operator               1/1     1            1           30d
 monitoring               monitoring-kube-state-metrics                     1/1     1            1           30d
 nfs-provisioner          nfs-provisioner-REDACTED_5fef70be   1/1     1            1           30d
-pihole                   pihole                                            1/1     1            1           6d9h
+pihole                   pihole                                            1/1     1            1           6d19h
 velero                   velero                                            1/1     1            1           10d
 velero                   velero-ui                                         1/1     1            1           10d
 ```
@@ -91,8 +91,8 @@ velero                   velero-ui                                         1/1  
 NAMESPACE      NAME                                                   READY   AGE
 argocd         argocd-application-controller                          1/1     10d
 awx            my-awx-postgres-15                                     1/1     31d
-cilium-spire   spire-server                                           1/1     7d3h
-logging        loki                                                   1/1     5d12h
+cilium-spire   spire-server                                           1/1     7d13h
+logging        loki                                                   1/1     5d22h
 monitoring     alertmanager-monitoring-kube-prometheus-alertmanager   2/2     8d
 monitoring     prometheus-REDACTED_6dfbe9fc       2/2     8d
 synology-csi   synology-csi-controller                                1/1     8d
@@ -102,10 +102,10 @@ synology-csi   synology-csi-controller                                1/1     8d
 ```
 NAMESPACE       NAME                       TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)                      AGE
 ingress-nginx   ingress-nginx-controller   LoadBalancer   10.103.32.106    10.0.X.X   80:31689/TCP,443:30327/TCP   30d
-kube-system     hubble-relay-lb            LoadBalancer   10.110.32.130    10.0.X.X   80:30629/TCP                 7d6h
-logging         promtail-syslog            LoadBalancer   10.105.64.19     10.0.X.X   514:30623/TCP                5d1h
-pihole          pihole-dns-lb              LoadBalancer   10.99.196.72     10.0.X.X   53:31803/UDP                 7d5h
-pihole          pihole-dns-tcp-lb          LoadBalancer   10.106.199.199   10.0.X.X   53:30438/TCP                 7d5h
+kube-system     hubble-relay-lb            LoadBalancer   10.110.32.130    10.0.X.X   80:30629/TCP                 7d16h
+logging         promtail-syslog            LoadBalancer   10.105.64.19     10.0.X.X   514:30623/TCP                5d11h
+pihole          pihole-dns-lb              LoadBalancer   10.99.196.72     10.0.X.X   53:31803/UDP                 7d15h
+pihole          pihole-dns-tcp-lb          LoadBalancer   10.106.199.199   10.0.X.X   53:30438/TCP                 7d15h
 ```
 
 ## Ingresses
@@ -113,12 +113,12 @@ pihole          pihole-dns-tcp-lb          LoadBalancer   10.106.199.199   10.0.
 NAMESPACE              NAME                   CLASS   HOSTS                          ADDRESS         PORTS     AGE
 argocd                 argocd-server          nginx   argocd.example.net     10.0.X.X   80, 443   10d
 awx                    awx                    nginx   awx.example.net        10.0.X.X   80        9d
-bentopdf               bentopdf               nginx   bentopdf.example.net   10.0.X.X   80        6d12h
-kube-system            hubble-ui              nginx   hubble.example.net     10.0.X.X   80, 443   7d12h
+bentopdf               bentopdf               nginx   bentopdf.example.net   10.0.X.X   80        6d22h
+kube-system            hubble-ui              nginx   hubble.example.net     10.0.X.X   80, 443   7d22h
 REDACTED_d97cef76   REDACTED_d97cef76   nginx   k8s.example.net        10.0.X.X   80        9d
 minio                  minio-console          nginx   minio.example.net      10.0.X.X   80        11d
 monitoring             grafana                nginx   grafana.example.net    10.0.X.X   80        9d
-pihole                 pihole-ingress         nginx   pihole.example.net     10.0.X.X   80        11d
+pihole                 pihole-ingress         nginx   pihole.example.net     10.0.X.X   80        12d
 velero                 velero-ui              nginx   velero.example.net     10.0.X.X   80        10d
 ```
 
@@ -127,15 +127,15 @@ velero                 velero-ui              nginx   velero.example.net     10.
 NAMESPACE      NAME                                                                                                             STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS                              VOLUMEATTRIBUTESCLASS   AGE
 awx            my-awx-projects                                                                                                  Bound    awx-projects-pv                            50Gi       RWX            nfs-sc                                    <unset>                 31d
 awx            REDACTED_0d7ca6a5                                                                                 Bound    REDACTED_c7d87e23   50Gi       RWO            REDACTED_b280aec5   <unset>                 8d
-cilium-spire   spire-data-spire-server-0                                                                                        Bound    pvc-6f3da11a-d6a0-4cd0-8f14-d35dfd334075   1Gi        RWO            nfs-client                                <unset>                 7d3h
-logging        storage-loki-0                                                                                                   Bound    pvc-ead084c7-26e8-459a-99f8-93ffb62b82e9   10Gi       RWO            REDACTED_4f3da73d   <unset>                 5d12h
+cilium-spire   spire-data-spire-server-0                                                                                        Bound    pvc-6f3da11a-d6a0-4cd0-8f14-d35dfd334075   1Gi        RWO            nfs-client                                <unset>                 7d13h
+logging        storage-loki-0                                                                                                   Bound    pvc-ead084c7-26e8-459a-99f8-93ffb62b82e9   10Gi       RWO            REDACTED_4f3da73d   <unset>                 5d22h
 minio          minio-data-csi                                                                                                   Bound    pvc-7ed8ddf6-ff5f-4a09-87b3-add99604e608   1Ti        RWO            REDACTED_b280aec5   <unset>                 8d
 monitoring     alertmanager-monitoring-kube-prometheus-alertmanager-db-alertmanager-monitoring-kube-prometheus-alertmanager-0   Bound    REDACTED_3f07e323   10Gi       RWO            REDACTED_4f3da73d   <unset>                 8d
 monitoring     alertmanager-monitoring-kube-prometheus-alertmanager-db-alertmanager-monitoring-kube-prometheus-alertmanager-1   Bound    REDACTED_c70a75d3   10Gi       RWO            REDACTED_4f3da73d   <unset>                 8d
 monitoring     monitoring-grafana                                                                                               Bound    pvc-55805781-0f58-4d80-9074-a62cec165932   20Gi       RWO            nfs-client                                <unset>                 8d
 monitoring     prometheus-REDACTED_6dfbe9fc-db-prometheus-REDACTED_6dfbe9fc-0           Bound    REDACTED_b1b2f2d4   200Gi      RWO            REDACTED_4f3da73d   <unset>                 8d
 monitoring     prometheus-REDACTED_6dfbe9fc-db-prometheus-REDACTED_6dfbe9fc-1           Bound    REDACTED_628b3ba4   200Gi      RWO            REDACTED_4f3da73d   <unset>                 8d
-pihole         pihole-data                                                                                                      Bound    pvc-b45463d9-aa5b-483e-92b8-54fee6635219   1Gi        RWO            nfs-client                                <unset>                 11d
+pihole         pihole-data                                                                                                      Bound    pvc-b45463d9-aa5b-483e-92b8-54fee6635219   1Gi        RWO            nfs-client                                <unset>                 12d
 ```
 
 ## Helm Releases
@@ -143,7 +143,7 @@ pihole         pihole-data                                                      
 NAME            	NAMESPACE             	REVISION	UPDATED                                	STATUS  	CHART                                 	APP VERSION
 argocd          	argocd                	3       	2025-11-29 02:18:52.98547378 +0000 UTC 	deployed	argo-cd-7.7.10                        	v2.13.2    
 cert-manager    	cert-manager          	3       	2025-11-30 21:22:09.520251302 +0000 UTC	deployed	cert-manager-v1.17.1                  	v1.17.1    
-cilium          	kube-system           	8       	2025-12-02 22:13:01.778472201 +0000 UTC	deployed	cilium-1.18.4                         	1.18.4     
+cilium          	kube-system           	11      	2025-12-06 12:13:41.457097251 +0000 UTC	deployed	cilium-1.18.4                         	1.18.4     
 external-secrets	external-secrets      	1       	2025-11-29 19:53:58.182715236 +0000 UTC	deployed	external-secrets-0.12.1               	v0.12.1    
 ingress-nginx   	ingress-nginx         	6       	2025-11-30 20:29:39.171185711 +0000 UTC	deployed	ingress-nginx-4.14.0                  	1.14.0     
 k8s-agent       	REDACTED_01b50c5d	6       	2025-11-29 02:18:29.271243252 +0000 UTC	deployed	gitlab-agent-2.21.1                   	v18.6.1    
@@ -159,27 +159,24 @@ synology-csi    	synology-csi          	2       	2025-11-29 02:18:25.854988376 +
 NAMESPACE   NAME       SYNC STATUS   HEALTH STATUS
 argocd      bentopdf   Unknown       Healthy
 argocd      pihole     Unknown       Healthy
-argocd      velero     Unknown       Progressing
+argocd      velero     Unknown       Healthy
 ```
 
 ## Velero Schedules
 ```
 NAME            STATUS    SCHEDULE    LASTBACKUP   AGE   PAUSED
-daily-backup    Enabled   0 2 * * *   60m          10d   
-weekly-backup   Enabled   0 3 * * 0   5d23h        10d   
+daily-backup    Enabled   0 2 * * *   11h          10d   
+weekly-backup   Enabled   0 3 * * 0   6d10h        10d   
 ```
 
 ## Warning Events (Recent)
 ```
 NAMESPACE      LAST SEEN   TYPE      REASON             OBJECT                                          MESSAGE
-kube-system    9m18s       Warning   FailedScheduling   pod/cilium-envoy-77slm                          0/8 nodes are available: 1 node(s) didn't match pod affinity rules, 7 node(s) didn't satisfy plugin(s) [NodeAffinity]. no new claims to deallocate, preemption: 0/8 nodes are available: 8 Preemption is not helpful for scheduling.
-kube-system    25m         Warning   Unhealthy          pod/kube-apiserver-nlk8s-ctrl01           Readiness probe failed: HTTP probe failed with statuscode: 500
-velero         101s        Warning   BackOff            pod/velero-node-agent-fbdfq                     Back-off restarting failed container node-agent in pod velero-node-agent-fbdfq_velero(d36ab493-1887-4554-a32b-4cba8c39f99d)
-synology-csi   88s         Warning   DNSConfigForming   pod/synology-csi-node-w4rrp                     Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-kube-system    79s         Warning   DNSConfigForming   pod/cilium-fvklh                                Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-kube-system    71s         Warning   DNSConfigForming   pod/cilium-envoy-77slm                          Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-cilium-spire   67s         Warning   BackOff            pod/spire-agent-8n2ff                           Back-off restarting failed container init in pod spire-agent-8n2ff_cilium-spire(3f8eefc4-a263-4385-9750-01760a4d1dbf)
-monitoring     30s         Warning   DNSConfigForming   pod/monitoring-prometheus-node-exporter-9m8bt   Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    14m         Warning   Unhealthy          pod/kube-apiserver-nlk8s-ctrl01           Readiness probe failed: HTTP probe failed with statuscode: 500
+monitoring     3m29s       Warning   DNSConfigForming   pod/monitoring-prometheus-node-exporter-9m8bt   Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+synology-csi   3m11s       Warning   DNSConfigForming   pod/synology-csi-node-w4rrp                     Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    2m47s       Warning   DNSConfigForming   pod/cilium-envoy-77slm                          Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    74s         Warning   DNSConfigForming   pod/cilium-zptgw                                Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
 ```
 
 ---

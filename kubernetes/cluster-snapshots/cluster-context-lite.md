@@ -3,23 +3,24 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2025-12-06 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2025-12-06 13:11:27 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
-## Health: DEGRADED ⚠️
+## Health: HEALTHY ✅
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 2 |
+| Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 270 |
+| Total Restarts | 253 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.18.4
-- **Nodes:** 8 (3 control-plane, 5 workers)
-- **Pods:** 111
+- **Nodes:** 9 (3 control-plane, 6 workers)
+- **Pods:** 116
 
 ### Nodes
+- **chzrh01k8s-node01** (worker) 10.255.2.11 | CPU:2 Mem:3907488Ki | Taints:node-type=edge:NoSchedule
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:3795Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-ctrl02** (control-plane) 10.0.X.X | CPU:4 Mem:3996Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-ctrl03** (control-plane) 10.0.X.X | CPU:4 Mem:3886092Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -27,26 +28,22 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 - **nlk8s-node02** (worker) 10.0.X.X | CPU:8 Mem:8006748Ki | Taints:none
 - **nlk8s-node03** (worker) 10.0.X.X | CPU:8 Mem:8006740Ki | Taints:none
 - **nlk8s-node04** (worker) 10.0.X.X | CPU:8 Mem:8006752Ki | Taints:none
-- **notrf01k8s-node01** (worker) 185.125.171.172 | CPU:2 Mem:3907488Ki | Taints:none
+- **notrf01k8s-node01** (worker) 10.255.3.11 | CPU:2 Mem:3907488Ki | Taints:node-type=edge:NoSchedule
 
 ## Anomalies
 
 ### Unhealthy Pods
-```
-cilium-spire             spire-agent-8n2ff                                                 0/1   Init:0/1           5 (2m28s ago)    9m20s
-velero                   velero-node-agent-fbdfq                                           0/1   CrashLoopBackOff   6 (67s ago)      8m53s
-```
+_None_
 
 ### High Restart Pods (>3)
 awx/awx-operator-controller-manager-79499d9678-hr474: 6 restarts
 awx/my-awx-web-694487457f-9r975: 7 restarts
 kube-system/cilium-envoy-ntrv6: 4 restarts
 kube-system/cilium-operator-67ff4f447c-7zv95: 5 restarts
-kube-system/cilium-x58c7: 4 restarts
 kube-system/etcd-nlk8s-ctrl01: 7 restarts
 kube-system/etcd-nlk8s-ctrl02: 5 restarts
 kube-system/etcd-nlk8s-ctrl03: 4 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 24 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 26 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 5 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 5 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 22 restarts
@@ -65,15 +62,14 @@ synology-csi/synology-csi-node-7ssk7: 10 restarts
 synology-csi/synology-csi-node-hmvnt: 14 restarts
 synology-csi/synology-csi-node-jw295: 8 restarts
 synology-csi/synology-csi-node-mx7bm: 8 restarts
-velero/velero-node-agent-fbdfq: 6 restarts
 
 ### Recent Warnings (5)
 ```
-velero         103s        Warning   BackOff            pod/velero-node-agent-fbdfq                     Back-off restarting failed container node-agent in pod velero-node-agent-fbdfq_velero(d36ab493-1887-4554-a32b-4cba8c39f99d)
-kube-system    81s         Warning   DNSConfigForming   pod/cilium-fvklh                                Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-kube-system    73s         Warning   DNSConfigForming   pod/cilium-envoy-77slm                          Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-cilium-spire   69s         Warning   BackOff            pod/spire-agent-8n2ff                           Back-off restarting failed container init in pod spire-agent-8n2ff_cilium-spire(3f8eefc4-a263-4385-9750-01760a4d1dbf)
-monitoring     32s         Warning   DNSConfigForming   pod/monitoring-prometheus-node-exporter-9m8bt   Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+NAMESPACE      LAST SEEN   TYPE      REASON             OBJECT                                          MESSAGE
+kube-system    14m         Warning   Unhealthy          pod/kube-apiserver-nlk8s-ctrl01           Readiness probe failed: HTTP probe failed with statuscode: 500
+monitoring     3m31s       Warning   DNSConfigForming   pod/monitoring-prometheus-node-exporter-9m8bt   Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+synology-csi   3m13s       Warning   DNSConfigForming   pod/synology-csi-node-w4rrp                     Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    2m49s       Warning   DNSConfigForming   pod/cilium-envoy-77slm                          Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
 ```
 
 ## Key Resources
