@@ -132,7 +132,8 @@ resource "helm_release" "cilium" {
       value = "0"
     },
 
-    # SPIRE Agent toleration for edge nodes
+    # SPIRE Agent tolerations - must include ALL tolerations as array is replaced, not merged
+    # Index 0: Edge nodes
     {
       name  = "authentication.mutual.spire.install.agent.tolerations[0].key"
       value = "node-type"
@@ -147,6 +148,51 @@ resource "helm_release" "cilium" {
     },
     {
       name  = "authentication.mutual.spire.install.agent.tolerations[0].effect"
+      value = "NoSchedule"
+    },
+    # Index 1: Control plane
+    {
+      name  = "authentication.mutual.spire.install.agent.tolerations[1].key"
+      value = "node-role.kubernetes.io/control-plane"
+    },
+    {
+      name  = "authentication.mutual.spire.install.agent.tolerations[1].effect"
+      value = "NoSchedule"
+    },
+    # Index 2: Master (legacy)
+    {
+      name  = "authentication.mutual.spire.install.agent.tolerations[2].key"
+      value = "node-role.kubernetes.io/master"
+    },
+    {
+      name  = "authentication.mutual.spire.install.agent.tolerations[2].effect"
+      value = "NoSchedule"
+    },
+    # Index 3: Not ready nodes
+    {
+      name  = "authentication.mutual.spire.install.agent.tolerations[3].key"
+      value = "node.kubernetes.io/not-ready"
+    },
+    {
+      name  = "authentication.mutual.spire.install.agent.tolerations[3].effect"
+      value = "NoSchedule"
+    },
+    # Index 4: Critical addons
+    {
+      name  = "authentication.mutual.spire.install.agent.tolerations[4].key"
+      value = "CriticalAddonsOnly"
+    },
+    {
+      name  = "authentication.mutual.spire.install.agent.tolerations[4].operator"
+      value = "Exists"
+    },
+    # Index 5: Cilium agent not ready
+    {
+      name  = "authentication.mutual.spire.install.agent.tolerations[5].key"
+      value = "node.cilium.io/agent-not-ready"
+    },
+    {
+      name  = "authentication.mutual.spire.install.agent.tolerations[5].effect"
       value = "NoSchedule"
     },
 
