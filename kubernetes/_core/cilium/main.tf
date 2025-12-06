@@ -132,6 +132,24 @@ resource "helm_release" "cilium" {
       value = "0"
     },
 
+    # SPIRE Agent toleration for edge nodes
+    {
+      name  = "authentication.mutual.spire.install.agent.tolerations[0].key"
+      value = "node-type"
+    },
+    {
+      name  = "authentication.mutual.spire.install.agent.tolerations[0].operator"
+      value = "Equal"
+    },
+    {
+      name  = "authentication.mutual.spire.install.agent.tolerations[0].value"
+      value = "edge"
+    },
+    {
+      name  = "authentication.mutual.spire.install.agent.tolerations[0].effect"
+      value = "NoSchedule"
+    },
+
   ]
 }
 
