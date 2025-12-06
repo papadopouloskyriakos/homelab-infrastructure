@@ -40,6 +40,10 @@ resource "helm_release" "cilium" {
       name  = "tunnelProtocol"
       value = "vxlan"
     },
+    {
+      name  = "MTU"
+      value = "1350"
+    },
     # Operator
     {
       name  = "operator.replicas"
