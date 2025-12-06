@@ -3,21 +3,21 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2025-12-05 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2025-12-06 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
-## Health: HEALTHY ✅
+## Health: DEGRADED ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 0 |
+| Unhealthy Pods | 2 |
 | Pending PVCs | 0 |
-| Total Restarts | 264 |
+| Total Restarts | 270 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.18.4
-- **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 104
+- **Nodes:** 8 (3 control-plane, 5 workers)
+- **Pods:** 111
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:3795Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -27,11 +27,15 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 - **nlk8s-node02** (worker) 10.0.X.X | CPU:8 Mem:8006748Ki | Taints:none
 - **nlk8s-node03** (worker) 10.0.X.X | CPU:8 Mem:8006740Ki | Taints:none
 - **nlk8s-node04** (worker) 10.0.X.X | CPU:8 Mem:8006752Ki | Taints:none
+- **notrf01k8s-node01** (worker) 185.125.171.172 | CPU:2 Mem:3907488Ki | Taints:none
 
 ## Anomalies
 
 ### Unhealthy Pods
-_None_
+```
+cilium-spire             spire-agent-8n2ff                                                 0/1   Init:0/1           5 (2m28s ago)    9m20s
+velero                   velero-node-agent-fbdfq                                           0/1   CrashLoopBackOff   6 (67s ago)      8m53s
+```
 
 ### High Restart Pods (>3)
 awx/awx-operator-controller-manager-79499d9678-hr474: 6 restarts
@@ -61,11 +65,15 @@ synology-csi/synology-csi-node-7ssk7: 10 restarts
 synology-csi/synology-csi-node-hmvnt: 14 restarts
 synology-csi/synology-csi-node-jw295: 8 restarts
 synology-csi/synology-csi-node-mx7bm: 8 restarts
+velero/velero-node-agent-fbdfq: 6 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   107s        Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+velero         103s        Warning   BackOff            pod/velero-node-agent-fbdfq                     Back-off restarting failed container node-agent in pod velero-node-agent-fbdfq_velero(d36ab493-1887-4554-a32b-4cba8c39f99d)
+kube-system    81s         Warning   DNSConfigForming   pod/cilium-fvklh                                Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    73s         Warning   DNSConfigForming   pod/cilium-envoy-77slm                          Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+cilium-spire   69s         Warning   BackOff            pod/spire-agent-8n2ff                           Back-off restarting failed container init in pod spire-agent-8n2ff_cilium-spire(3f8eefc4-a263-4385-9750-01760a4d1dbf)
+monitoring     32s         Warning   DNSConfigForming   pod/monitoring-prometheus-node-exporter-9m8bt   Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
 ```
 
 ## Key Resources
