@@ -37,3 +37,19 @@ variable "peer_address" {
   type        = string
   default     = "10.0.X.X"
 }
+
+# ========================================================================
+# Cluster Mesh Variables - GR Cluster Connection
+# ========================================================================
+
+variable "REDACTED_0333f99b" {
+  description = "Enable cluster mesh connection to GR cluster"
+  type        = bool
+  default     = true
+}
+
+variable "REDACTED_f0726f1d" {
+  description = "GR cluster clustermesh-apiserver endpoint"
+  type        = string
+  default     = "https://10.0.X.X:2379"
+}
