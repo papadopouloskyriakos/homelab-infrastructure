@@ -214,6 +214,18 @@ resource "helm_release" "cilium" {
       name  = "clustermesh.apiserver.service.type"
       value = "LoadBalancer"
     },
+    # ========================================================================
+    # Cluster Mesh - Remote cluster hostAliases for TLS
+    # Maps hostname to IP for certificate validation
+    # ========================================================================
+    {
+      name  = "hostAliases[0].ip"
+      value = "10.0.X.X"
+    },
+    {
+      name  = "hostAliases[0].hostnames[0]"
+      value = "grcl01k8s.mesh.cilium.io"
+    },
   ]
 }
 
@@ -369,5 +381,3 @@ resource "kubernetes_service_v1" "hubble_relay_lb" {
     }
   }
 }
-
-# ========================================================================
