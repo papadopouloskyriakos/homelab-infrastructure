@@ -199,7 +199,21 @@ resource "helm_release" "cilium" {
       name  = "authentication.mutual.spire.install.agent.tolerations[5].effect"
       value = "NoSchedule"
     },
-
+    # ========================================================================
+    # Cluster Mesh - Multi-cluster connectivity
+    # ========================================================================
+    {
+      name  = "clustermesh.useAPIServer"
+      value = "true"
+    },
+    {
+      name  = "clustermesh.apiserver.replicas"
+      value = "1"
+    },
+    {
+      name  = "clustermesh.apiserver.service.type"
+      value = "LoadBalancer"
+    },
   ]
 }
 
