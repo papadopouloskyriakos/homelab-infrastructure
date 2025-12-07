@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2025-12-06 13:11:27 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2025-12-07 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,13 +11,13 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 253 |
+| Total Restarts | 148 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.18.4
 - **Nodes:** 9 (3 control-plane, 6 workers)
-- **Pods:** 116
+- **Pods:** 113
 
 ### Nodes
 - **chzrh01k8s-node01** (worker) 10.255.2.11 | CPU:2 Mem:3907488Ki | Taints:node-type=edge:NoSchedule
@@ -36,10 +36,6 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 _None_
 
 ### High Restart Pods (>3)
-awx/awx-operator-controller-manager-79499d9678-hr474: 6 restarts
-awx/my-awx-web-694487457f-9r975: 7 restarts
-kube-system/cilium-envoy-ntrv6: 4 restarts
-kube-system/cilium-operator-67ff4f447c-7zv95: 5 restarts
 kube-system/etcd-nlk8s-ctrl01: 7 restarts
 kube-system/etcd-nlk8s-ctrl02: 5 restarts
 kube-system/etcd-nlk8s-ctrl03: 4 restarts
@@ -52,24 +48,14 @@ kube-system/kube-controller-manager-nlk8s-ctrl03: 14 restarts
 kube-system/kube-scheduler-nlk8s-ctrl01: 17 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 12 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 13 restarts
-logging/promtail-j42hf: 4 restarts
-monitoring/monitoring-prometheus-node-exporter-95m6x: 5 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-855bd85b44jwmvk: 4 restarts
-synology-csi/synology-csi-node-465rx: 10 restarts
-synology-csi/synology-csi-node-5sj22: 8 restarts
-synology-csi/synology-csi-node-5tmgb: 10 restarts
-synology-csi/synology-csi-node-7ssk7: 10 restarts
-synology-csi/synology-csi-node-hmvnt: 14 restarts
-synology-csi/synology-csi-node-jw295: 8 restarts
-synology-csi/synology-csi-node-mx7bm: 8 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE      LAST SEEN   TYPE      REASON             OBJECT                                          MESSAGE
-kube-system    14m         Warning   Unhealthy          pod/kube-apiserver-nlk8s-ctrl01           Readiness probe failed: HTTP probe failed with statuscode: 500
-monitoring     3m31s       Warning   DNSConfigForming   pod/monitoring-prometheus-node-exporter-9m8bt   Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-synology-csi   3m13s       Warning   DNSConfigForming   pod/synology-csi-node-w4rrp                     Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-kube-system    2m49s       Warning   DNSConfigForming   pod/cilium-envoy-77slm                          Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    32m         Warning   FailedMount        pod/clustermesh-apiserver-6bd685b5d9-85grz   MountVolume.SetUp failed for volume "etcd-admin-client" : secret "REDACTED_9a867374" not found
+kube-system    32m         Warning   FailedMount        pod/clustermesh-apiserver-6bd685b5d9-85grz   MountVolume.SetUp failed for volume "etcd-server-secrets" : secret "clustermesh-apiserver-server-cert" not found
+kube-system    32m         Warning   Unhealthy          pod/clustermesh-apiserver-6bd685b5d9-85grz   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system    3m41s       Warning   DNSConfigForming   pod/cilium-kh6f8                             Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    100s        Warning   DNSConfigForming   pod/cilium-envoy-6ws74                       Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
 ```
 
 ## Key Resources
@@ -77,6 +63,7 @@ kube-system    2m49s       Warning   DNSConfigForming   pod/cilium-envoy-77slm  
 ### LoadBalancer Services
 ```
 ingress-nginx/ingress-nginx-controller: 10.0.X.X -> 80:31689/TCP,443:30327/TCP
+kube-system/clustermesh-apiserver: 10.0.X.X -> 2379:30462/TCP
 kube-system/hubble-relay-lb: 10.0.X.X -> 80:30629/TCP
 logging/promtail-syslog: 10.0.X.X -> 514:30623/TCP
 pihole/pihole-dns-lb: 10.0.X.X -> 53:31803/UDP
