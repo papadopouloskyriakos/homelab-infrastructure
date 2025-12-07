@@ -17,7 +17,11 @@ resource "helm_release" "cilium" {
     # Cluster settings
     {
       name  = "cluster.name"
-      value = "kubernetes"
+      value = "nlcl01k8s"
+    },
+    {
+      name  = "cluster.id"
+      value = "1"
     },
     {
       name  = "k8sServiceHost"
