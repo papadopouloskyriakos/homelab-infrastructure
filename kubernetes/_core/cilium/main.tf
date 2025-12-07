@@ -258,11 +258,11 @@ resource "helm_release" "cilium" {
   set_sensitive = [
     {
       name  = "tls.ca.cert"
-      value = data.kubernetes_secret.cilium_ca_shared.data["ca.crt"]
+      value = base64encode(data.kubernetes_secret.cilium_ca_shared.data["ca.crt"])
     },
     {
       name  = "tls.ca.key"
-      value = data.kubernetes_secret.cilium_ca_shared.data["ca.key"]
+      value = base64encode(data.kubernetes_secret.cilium_ca_shared.data["ca.key"])
     },
   ]
 }
