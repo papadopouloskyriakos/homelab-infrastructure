@@ -3,7 +3,18 @@
 # ========================================================================
 # Manages Cilium installation via Helm through OpenTofu
 # Enables Service Mesh mTLS with SPIRE
+# ClusterMesh with shared CA for NL ↔ GR connectivity
 # ========================================================================
+
+# ========================================================================
+# Data source for shared CA (synced by ExternalSecret)
+# ========================================================================
+data "kubernetes_secret" "cilium_ca_shared" {
+  metadata {
+    name      = "cilium-ca-shared"
+    namespace = "kube-system"
+  }
+}
 
 resource "helm_release" "cilium" {
   name             = "cilium"
@@ -215,20 +226,46 @@ resource "helm_release" "cilium" {
       value = "LoadBalancer"
     },
     # ========================================================================
-    # Cluster Mesh - Remote cluster hostAliases for TLS
-    # Maps hostname to IP for certificate validation
+    # Cluster Mesh - Remote cluster configuration
+    # Automatically creates hostAliases and clustermesh secret
     # ========================================================================
     {
-      name  = "hostAliases[0].ip"
+      name  = "clustermesh.config.enabled"
+      value = "true"
+    },
+    {
+      name  = "clustermesh.config.domain"
+      value = "mesh.cilium.io"
+    },
+    {
+      name  = "clustermesh.config.clusters[0].name"
+      value = "grcl01k8s"
+    },
+    {
+      name  = "clustermesh.config.clusters[0].ips[0]"
       value = "10.0.X.X"
     },
     {
-      name  = "hostAliases[0].hostnames[0]"
-      value = "grcl01k8s.mesh.cilium.io"
+      name  = "clustermesh.config.clusters[0].port"
+      value = "2379"
+    },
+  ]
+
+  # ========================================================================
+  # Shared CA for ClusterMesh TLS
+  # CA synced from OpenBao via ExternalSecret
+  # ========================================================================
+  set_sensitive = [
+    {
+      name  = "tls.ca.cert"
+      value = data.kubernetes_secret.cilium_ca_shared.data["ca.crt"]
+    },
+    {
+      name  = "tls.ca.key"
+      value = data.kubernetes_secret.cilium_ca_shared.data["ca.key"]
     },
   ]
 }
-
 # ========================================================================
 # Cilium BGP Configuration
 # Manages LB-IPAM pool and BGP peering for LoadBalancer services
