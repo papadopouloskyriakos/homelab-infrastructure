@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2025-12-07 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2025-12-08 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,16 +11,15 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 148 |
+| Total Restarts | 145 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.18.4
-- **Nodes:** 9 (3 control-plane, 6 workers)
-- **Pods:** 113
+- **Nodes:** 8 (3 control-plane, 5 workers)
+- **Pods:** 117
 
 ### Nodes
-- **chzrh01k8s-node01** (worker) 10.255.2.11 | CPU:2 Mem:3907488Ki | Taints:node-type=edge:NoSchedule
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:3795Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-ctrl02** (control-plane) 10.0.X.X | CPU:4 Mem:3996Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-ctrl03** (control-plane) 10.0.X.X | CPU:4 Mem:3886092Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -51,11 +50,10 @@ kube-system/kube-scheduler-nlk8s-ctrl03: 13 restarts
 
 ### Recent Warnings (5)
 ```
-kube-system    32m         Warning   FailedMount        pod/clustermesh-apiserver-6bd685b5d9-85grz   MountVolume.SetUp failed for volume "etcd-admin-client" : secret "REDACTED_9a867374" not found
-kube-system    32m         Warning   FailedMount        pod/clustermesh-apiserver-6bd685b5d9-85grz   MountVolume.SetUp failed for volume "etcd-server-secrets" : secret "clustermesh-apiserver-server-cert" not found
-kube-system    32m         Warning   Unhealthy          pod/clustermesh-apiserver-6bd685b5d9-85grz   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system    3m41s       Warning   DNSConfigForming   pod/cilium-kh6f8                             Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-kube-system    100s        Warning   DNSConfigForming   pod/cilium-envoy-6ws74                       Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+NAMESPACE      LAST SEEN   TYPE      REASON             OBJECT                        MESSAGE
+kube-system    108s        Warning   DNSConfigForming   pod/cilium-envoy-6ws74        Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    78s         Warning   DNSConfigForming   pod/cilium-knmg7              Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+synology-csi   67s         Warning   DNSConfigForming   pod/synology-csi-node-n4rjm   Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
 ```
 
 ## Key Resources
@@ -77,6 +75,7 @@ pihole/pihole-dns-tcp-lb: 10.0.X.X -> 53:30438/TCP
 - hubble.example.net → kube-system/hubble-ui
 - k8s.example.net → REDACTED_d97cef76/REDACTED_d97cef76
 - minio.example.net → minio/minio-console
+- goldpinger.example.net → monitoring/goldpinger
 - grafana.example.net → monitoring/grafana
 - pihole.example.net → pihole/pihole-ingress
 - velero.example.net → velero/velero-ui
