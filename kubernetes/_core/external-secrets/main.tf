@@ -58,9 +58,10 @@ resource "kubernetes_manifest" "cluster_secret_store" {
     spec = {
       provider = {
         vault = {
-          server  = var.openbao_address
-          path    = "secret"
-          version = "v2"
+          server   = var.openbao_address
+          path     = "secret"
+          version  = "v2"
+          caBundle = var.openbao_ca_cert
           auth = {
             kubernetes = {
               mountPath = "kubernetes"
