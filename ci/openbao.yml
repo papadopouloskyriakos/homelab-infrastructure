@@ -9,7 +9,7 @@
 # =============================================================================
 
 variables:
-  BAO_ADDR: "http://10.0.X.X:8200"
+  BAO_ADDR: "https://openbao.example.net:8200"
   BAO_ROLE: "gitlab-ci"
 
 # -----------------------------------------------------------------------------
@@ -20,16 +20,47 @@ variables:
     VAULT_ID_TOKEN:
       aud: https://gitlab.example.net
   before_script:
+    - |
+      # Write CA cert for TLS
+      cat > /tmp/openbao-ca.crt << 'CACERT'
+      -----BEGIN CERTIFICATE-----
+      MIIEYjCCAsqgAwIBAgIBATANBgkqhkiG9w0BAQsFADBCMSAwHgYDVQQKDBdTRUMu
+      TlVDTEVBUkxJR0hURVJTLk5FVDEeMBwGA1UEAwwVQ2VydGlmaWNhdGUgQXV0aG9y
+      aXR5MB4XDTI0MTEyMTA3NDYzM1oXDTQ0MTEyMTA3NDYzM1owQjEgMB4GA1UECgwX
+      U0VDLk5VQ0xFQVJMSUdIVEVSUy5ORVQxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1
+      dGhvcml0eTCCAaIwDQYJKoZIhvcNAQEBBQADggGPADCCAYoCggGBAMHTWN5dwU3p
+      A2GaFyi+pUiU5/+QFjZuB0DSvXFBcr5oe4AOHfH/wLOIIUHyTixKb2kjyIKfEGsy
+      FwkP/eagHWcy2s1eRH1LzFMXtk8zKEmMOKhUqSrwYaOeTsrWdeKpWlQNMOXsKgQu
+      vBjn6/Cll8+tHkJ3XCyLrGArxposgJPby54nAMizA53DH5LcgrV1xlqYU7B7G1/i
+      fRuAgXMoAnKcrGX6WGGSeKdwICYbLXOTwNHr9Hr8+fsRH9CVmHGDmF71W+5T+TGN
+      1OxtGQ2X6+wFtELz0Yy3FEGZ5raAYt4V+rbC2iq6MZruTN6272Lgl0bGvYL4K+BK
+      98x4T4ZZprOjKI4Za81TsaKazoO92sso4UC7CHD61L71b0wQPEoPHN3J/igZBzb+
+      mBErX5Bwqm/JYjirHQDSa7ygriQ0DWtqYfmTTrYRtEBM12y73FmwD+DMVK23ay8R
+      OzNgL5FgboC4XZSRBmbK9ZA6yJi/aL801jyVRlM0mu32r6Ke7MqwrQIDAQABo2Mw
+      YTAdBgNVHQ4EFgQU5as/yzZUY2tXkfa1OHCq2XXDWwAwHwYDVR0jBBgwFoAU5as/
+      yzZUY2tXkfa1OHCq2XXDWwAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC
+      AcYwDQYJKoZIhvcNAQELBQADggGBAJnIPtmWvVsuzDP7Yc2rhl0BLXT0ZmHYQtDT
+      CvWVCj/ThUi4lKeWMuq/FEgRHbhhGBBByDvcuEpDBvO7HvlGHbWY0tBvmDTn8csV
+      iLTr1lNYD9DIic0zBVToJ5R2Gtv4gUpdm0/qeeipgRZ+bgXzIAVobp+ccsie68PK
+      bBbgHQVtw/AlGklFyQ24L+vYvHtD8pWZP5H1He+6kCkC0AZpt08+27UeoX1Norx2
+      S5+V3zS2zPnnbJbWUIE6gFgSkIc7h4aFoWm9Kq05/X8Fw3SWWJB8xtlSwDQN9mBJ
+      FrAf6jc5H11kzke4akp/Zo/7HtO6fxREUlkAkbd8eQPByvCp3odDZ4U/K/UE5GGb
+      2uLGboJQa5bkjuiQWYkuIYhd4oUB7PUiohjafDheWPVdhg5oJEbqHk7AZrdt0R+b
+      lDnPyCrI2wmFZ1/208GEsLtLNpbg10zZciTngZYE03aWS8+6h1HFIIeD9oBSNiim
+      iYanODdc8yU1yNhOmUEIKP/1Eu3bVQ==
+      -----END CERTIFICATE-----
+      CACERT
+      export BAO_CACERT="/tmp/openbao-ca.crt"
     - echo "[OpenBao] Authenticating with role ${BAO_ROLE}..."
     - if [ -z "${VAULT_ID_TOKEN}" ]; then echo "[OpenBao] ERROR - VAULT_ID_TOKEN not set"; exit 1; fi
-    - AUTH_RESPONSE=$(curl -sf --max-time 30 --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"${BAO_ROLE}\"}" "${BAO_ADDR}/v1/auth/jwt/login")
+    - AUTH_RESPONSE=$(curl -sf --cacert ${BAO_CACERT} --max-time 30 --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"${BAO_ROLE}\"}" "${BAO_ADDR}/v1/auth/jwt/login")
     - export BAO_TOKEN=$(echo "${AUTH_RESPONSE}" | jq -r '.auth.client_token // empty')
     - if [ -z "${BAO_TOKEN}" ]; then echo "[OpenBao] ERROR - Authentication failed"; echo "${AUTH_RESPONSE}"; exit 1; fi
     - echo "[OpenBao] Authentication successful"
     - |
       # Helper function: fetch_secret <path> <field>
       fetch_secret() {
-        curl -sf --header "X-Vault-Token:${BAO_TOKEN}" "${BAO_ADDR}/v1/secret/data/${1}" | jq -r ".data.data.${2} // empty"
+        curl -sf --cacert ${BAO_CACERT} --header "X-Vault-Token:${BAO_TOKEN}" "${BAO_ADDR}/v1/secret/data/${1}" | jq -r ".data.data.${2} // empty"
       }
 
 # -----------------------------------------------------------------------------
@@ -38,14 +69,44 @@ variables:
 .openbao-cisco:
   extends: .openbao-auth
   before_script:
+    - |
+      cat > /tmp/openbao-ca.crt << 'CACERT'
+      -----BEGIN CERTIFICATE-----
+      MIIEYjCCAsqgAwIBAgIBATANBgkqhkiG9w0BAQsFADBCMSAwHgYDVQQKDBdTRUMu
+      TlVDTEVBUkxJR0hURVJTLk5FVDEeMBwGA1UEAwwVQ2VydGlmaWNhdGUgQXV0aG9y
+      aXR5MB4XDTI0MTEyMTA3NDYzM1oXDTQ0MTEyMTA3NDYzM1owQjEgMB4GA1UECgwX
+      U0VDLk5VQ0xFQVJMSUdIVEVSUy5ORVQxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1
+      dGhvcml0eTCCAaIwDQYJKoZIhvcNAQEBBQADggGPADCCAYoCggGBAMHTWN5dwU3p
+      A2GaFyi+pUiU5/+QFjZuB0DSvXFBcr5oe4AOHfH/wLOIIUHyTixKb2kjyIKfEGsy
+      FwkP/eagHWcy2s1eRH1LzFMXtk8zKEmMOKhUqSrwYaOeTsrWdeKpWlQNMOXsKgQu
+      vBjn6/Cll8+tHkJ3XCyLrGArxposgJPby54nAMizA53DH5LcgrV1xlqYU7B7G1/i
+      fRuAgXMoAnKcrGX6WGGSeKdwICYbLXOTwNHr9Hr8+fsRH9CVmHGDmF71W+5T+TGN
+      1OxtGQ2X6+wFtELz0Yy3FEGZ5raAYt4V+rbC2iq6MZruTN6272Lgl0bGvYL4K+BK
+      98x4T4ZZprOjKI4Za81TsaKazoO92sso4UC7CHD61L71b0wQPEoPHN3J/igZBzb+
+      mBErX5Bwqm/JYjirHQDSa7ygriQ0DWtqYfmTTrYRtEBM12y73FmwD+DMVK23ay8R
+      OzNgL5FgboC4XZSRBmbK9ZA6yJi/aL801jyVRlM0mu32r6Ke7MqwrQIDAQABo2Mw
+      YTAdBgNVHQ4EFgQU5as/yzZUY2tXkfa1OHCq2XXDWwAwHwYDVR0jBBgwFoAU5as/
+      yzZUY2tXkfa1OHCq2XXDWwAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC
+      AcYwDQYJKoZIhvcNAQELBQADggGBAJnIPtmWvVsuzDP7Yc2rhl0BLXT0ZmHYQtDT
+      CvWVCj/ThUi4lKeWMuq/FEgRHbhhGBBByDvcuEpDBvO7HvlGHbWY0tBvmDTn8csV
+      iLTr1lNYD9DIic0zBVToJ5R2Gtv4gUpdm0/qeeipgRZ+bgXzIAVobp+ccsie68PK
+      bBbgHQVtw/AlGklFyQ24L+vYvHtD8pWZP5H1He+6kCkC0AZpt08+27UeoX1Norx2
+      S5+V3zS2zPnnbJbWUIE6gFgSkIc7h4aFoWm9Kq05/X8Fw3SWWJB8xtlSwDQN9mBJ
+      FrAf6jc5H11kzke4akp/Zo/7HtO6fxREUlkAkbd8eQPByvCp3odDZ4U/K/UE5GGb
+      2uLGboJQa5bkjuiQWYkuIYhd4oUB7PUiohjafDheWPVdhg5oJEbqHk7AZrdt0R+b
+      lDnPyCrI2wmFZ1/208GEsLtLNpbg10zZciTngZYE03aWS8+6h1HFIIeD9oBSNiim
+      iYanODdc8yU1yNhOmUEIKP/1Eu3bVQ==
+      -----END CERTIFICATE-----
+      CACERT
+      export BAO_CACERT="/tmp/openbao-ca.crt"
     - echo "[OpenBao] Authenticating with role ${BAO_ROLE}..."
     - if [ -z "${VAULT_ID_TOKEN}" ]; then echo "[OpenBao] ERROR - VAULT_ID_TOKEN not set"; exit 1; fi
-    - AUTH_RESPONSE=$(curl -sf --max-time 30 --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"${BAO_ROLE}\"}" "${BAO_ADDR}/v1/auth/jwt/login")
+    - AUTH_RESPONSE=$(curl -sf --cacert ${BAO_CACERT} --max-time 30 --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"${BAO_ROLE}\"}" "${BAO_ADDR}/v1/auth/jwt/login")
     - export BAO_TOKEN=$(echo "${AUTH_RESPONSE}" | jq -r '.auth.client_token // empty')
     - if [ -z "${BAO_TOKEN}" ]; then echo "[OpenBao] ERROR - Authentication failed"; echo "${AUTH_RESPONSE}"; exit 1; fi
     - echo "[OpenBao] Authentication successful"
     - echo "[OpenBao] Fetching Cisco credentials..."
-    - CISCO_SECRET=$(curl -sf --header "X-Vault-Token:${BAO_TOKEN}" "${BAO_ADDR}/v1/secret/data/ci/cisco")
+    - CISCO_SECRET=$(curl -sf --cacert ${BAO_CACERT} --header "X-Vault-Token:${BAO_TOKEN}" "${BAO_ADDR}/v1/secret/data/ci/cisco")
     - export CISCO_USER=$(echo "${CISCO_SECRET}" | jq -r '.data.data.username')
     - export CISCO_PASSWORD=$(echo "${CISCO_SECRET}" | jq -r '.data.data.password')
     - export CISCO_ENABLE_SECRET=$(echo "${CISCO_SECRET}" | jq -r '.data.data.enable_secret')
@@ -59,19 +120,49 @@ variables:
 .openbao-cisco-with-git:
   extends: .openbao-auth
   before_script:
+    - |
+      cat > /tmp/openbao-ca.crt << 'CACERT'
+      -----BEGIN CERTIFICATE-----
+      MIIEYjCCAsqgAwIBAgIBATANBgkqhkiG9w0BAQsFADBCMSAwHgYDVQQKDBdTRUMu
+      TlVDTEVBUkxJR0hURVJTLk5FVDEeMBwGA1UEAwwVQ2VydGlmaWNhdGUgQXV0aG9y
+      aXR5MB4XDTI0MTEyMTA3NDYzM1oXDTQ0MTEyMTA3NDYzM1owQjEgMB4GA1UECgwX
+      U0VDLk5VQ0xFQVJMSUdIVEVSUy5ORVQxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1
+      dGhvcml0eTCCAaIwDQYJKoZIhvcNAQEBBQADggGPADCCAYoCggGBAMHTWN5dwU3p
+      A2GaFyi+pUiU5/+QFjZuB0DSvXFBcr5oe4AOHfH/wLOIIUHyTixKb2kjyIKfEGsy
+      FwkP/eagHWcy2s1eRH1LzFMXtk8zKEmMOKhUqSrwYaOeTsrWdeKpWlQNMOXsKgQu
+      vBjn6/Cll8+tHkJ3XCyLrGArxposgJPby54nAMizA53DH5LcgrV1xlqYU7B7G1/i
+      fRuAgXMoAnKcrGX6WGGSeKdwICYbLXOTwNHr9Hr8+fsRH9CVmHGDmF71W+5T+TGN
+      1OxtGQ2X6+wFtELz0Yy3FEGZ5raAYt4V+rbC2iq6MZruTN6272Lgl0bGvYL4K+BK
+      98x4T4ZZprOjKI4Za81TsaKazoO92sso4UC7CHD61L71b0wQPEoPHN3J/igZBzb+
+      mBErX5Bwqm/JYjirHQDSa7ygriQ0DWtqYfmTTrYRtEBM12y73FmwD+DMVK23ay8R
+      OzNgL5FgboC4XZSRBmbK9ZA6yJi/aL801jyVRlM0mu32r6Ke7MqwrQIDAQABo2Mw
+      YTAdBgNVHQ4EFgQU5as/yzZUY2tXkfa1OHCq2XXDWwAwHwYDVR0jBBgwFoAU5as/
+      yzZUY2tXkfa1OHCq2XXDWwAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC
+      AcYwDQYJKoZIhvcNAQELBQADggGBAJnIPtmWvVsuzDP7Yc2rhl0BLXT0ZmHYQtDT
+      CvWVCj/ThUi4lKeWMuq/FEgRHbhhGBBByDvcuEpDBvO7HvlGHbWY0tBvmDTn8csV
+      iLTr1lNYD9DIic0zBVToJ5R2Gtv4gUpdm0/qeeipgRZ+bgXzIAVobp+ccsie68PK
+      bBbgHQVtw/AlGklFyQ24L+vYvHtD8pWZP5H1He+6kCkC0AZpt08+27UeoX1Norx2
+      S5+V3zS2zPnnbJbWUIE6gFgSkIc7h4aFoWm9Kq05/X8Fw3SWWJB8xtlSwDQN9mBJ
+      FrAf6jc5H11kzke4akp/Zo/7HtO6fxREUlkAkbd8eQPByvCp3odDZ4U/K/UE5GGb
+      2uLGboJQa5bkjuiQWYkuIYhd4oUB7PUiohjafDheWPVdhg5oJEbqHk7AZrdt0R+b
+      lDnPyCrI2wmFZ1/208GEsLtLNpbg10zZciTngZYE03aWS8+6h1HFIIeD9oBSNiim
+      iYanODdc8yU1yNhOmUEIKP/1Eu3bVQ==
+      -----END CERTIFICATE-----
+      CACERT
+      export BAO_CACERT="/tmp/openbao-ca.crt"
     - echo "[OpenBao] Authenticating with role ${BAO_ROLE}..."
     - if [ -z "${VAULT_ID_TOKEN}" ]; then echo "[OpenBao] ERROR - VAULT_ID_TOKEN not set"; exit 1; fi
-    - AUTH_RESPONSE=$(curl -sf --max-time 30 --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"${BAO_ROLE}\"}" "${BAO_ADDR}/v1/auth/jwt/login")
+    - AUTH_RESPONSE=$(curl -sf --cacert ${BAO_CACERT} --max-time 30 --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"${BAO_ROLE}\"}" "${BAO_ADDR}/v1/auth/jwt/login")
     - export BAO_TOKEN=$(echo "${AUTH_RESPONSE}" | jq -r '.auth.client_token // empty')
     - if [ -z "${BAO_TOKEN}" ]; then echo "[OpenBao] ERROR - Authentication failed"; echo "${AUTH_RESPONSE}"; exit 1; fi
     - echo "[OpenBao] Authentication successful"
     - echo "[OpenBao] Fetching Cisco credentials..."
-    - CISCO_SECRET=$(curl -sf --header "X-Vault-Token:${BAO_TOKEN}" "${BAO_ADDR}/v1/secret/data/ci/cisco")
+    - CISCO_SECRET=$(curl -sf --cacert ${BAO_CACERT} --header "X-Vault-Token:${BAO_TOKEN}" "${BAO_ADDR}/v1/secret/data/ci/cisco")
     - export CISCO_USER=$(echo "${CISCO_SECRET}" | jq -r '.data.data.username')
     - export CISCO_PASSWORD=$(echo "${CISCO_SECRET}" | jq -r '.data.data.password')
     - export CISCO_ENABLE_SECRET=$(echo "${CISCO_SECRET}" | jq -r '.data.data.enable_secret')
     - echo "[OpenBao] Fetching GitLab token..."
-    - GITLAB_SECRET=$(curl -sf --header "X-Vault-Token:${BAO_TOKEN}" "${BAO_ADDR}/v1/secret/data/ci/gitlab")
+    - GITLAB_SECRET=$(curl -sf --cacert ${BAO_CACERT} --header "X-Vault-Token:${BAO_TOKEN}" "${BAO_ADDR}/v1/secret/data/ci/gitlab")
     - export GITLAB_PUSH_TOKEN=$(echo "${GITLAB_SECRET}" | jq -r '.data.data.push_token')
     - if [ -z "${CISCO_PASSWORD}" ] || [ -z "${GITLAB_PUSH_TOKEN}" ]; then echo "[OpenBao] ERROR - Failed to fetch credentials"; exit 1; fi
     - echo "[OpenBao] All credentials loaded"
@@ -96,6 +187,36 @@ test:openbao-jwt-auth:
       aud: https://gitlab.example.net
   before_script:
     - apk add --no-cache curl jq
+    - |
+      cat > /tmp/openbao-ca.crt << 'CACERT'
+      -----BEGIN CERTIFICATE-----
+      MIIEYjCCAsqgAwIBAgIBATANBgkqhkiG9w0BAQsFADBCMSAwHgYDVQQKDBdTRUMu
+      TlVDTEVBUkxJR0hURVJTLk5FVDEeMBwGA1UEAwwVQ2VydGlmaWNhdGUgQXV0aG9y
+      aXR5MB4XDTI0MTEyMTA3NDYzM1oXDTQ0MTEyMTA3NDYzM1owQjEgMB4GA1UECgwX
+      U0VDLk5VQ0xFQVJMSUdIVEVSUy5ORVQxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1
+      dGhvcml0eTCCAaIwDQYJKoZIhvcNAQEBBQADggGPADCCAYoCggGBAMHTWN5dwU3p
+      A2GaFyi+pUiU5/+QFjZuB0DSvXFBcr5oe4AOHfH/wLOIIUHyTixKb2kjyIKfEGsy
+      FwkP/eagHWcy2s1eRH1LzFMXtk8zKEmMOKhUqSrwYaOeTsrWdeKpWlQNMOXsKgQu
+      vBjn6/Cll8+tHkJ3XCyLrGArxposgJPby54nAMizA53DH5LcgrV1xlqYU7B7G1/i
+      fRuAgXMoAnKcrGX6WGGSeKdwICYbLXOTwNHr9Hr8+fsRH9CVmHGDmF71W+5T+TGN
+      1OxtGQ2X6+wFtELz0Yy3FEGZ5raAYt4V+rbC2iq6MZruTN6272Lgl0bGvYL4K+BK
+      98x4T4ZZprOjKI4Za81TsaKazoO92sso4UC7CHD61L71b0wQPEoPHN3J/igZBzb+
+      mBErX5Bwqm/JYjirHQDSa7ygriQ0DWtqYfmTTrYRtEBM12y73FmwD+DMVK23ay8R
+      OzNgL5FgboC4XZSRBmbK9ZA6yJi/aL801jyVRlM0mu32r6Ke7MqwrQIDAQABo2Mw
+      YTAdBgNVHQ4EFgQU5as/yzZUY2tXkfa1OHCq2XXDWwAwHwYDVR0jBBgwFoAU5as/
+      yzZUY2tXkfa1OHCq2XXDWwAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC
+      AcYwDQYJKoZIhvcNAQELBQADggGBAJnIPtmWvVsuzDP7Yc2rhl0BLXT0ZmHYQtDT
+      CvWVCj/ThUi4lKeWMuq/FEgRHbhhGBBByDvcuEpDBvO7HvlGHbWY0tBvmDTn8csV
+      iLTr1lNYD9DIic0zBVToJ5R2Gtv4gUpdm0/qeeipgRZ+bgXzIAVobp+ccsie68PK
+      bBbgHQVtw/AlGklFyQ24L+vYvHtD8pWZP5H1He+6kCkC0AZpt08+27UeoX1Norx2
+      S5+V3zS2zPnnbJbWUIE6gFgSkIc7h4aFoWm9Kq05/X8Fw3SWWJB8xtlSwDQN9mBJ
+      FrAf6jc5H11kzke4akp/Zo/7HtO6fxREUlkAkbd8eQPByvCp3odDZ4U/K/UE5GGb
+      2uLGboJQa5bkjuiQWYkuIYhd4oUB7PUiohjafDheWPVdhg5oJEbqHk7AZrdt0R+b
+      lDnPyCrI2wmFZ1/208GEsLtLNpbg10zZciTngZYE03aWS8+6h1HFIIeD9oBSNiim
+      iYanODdc8yU1yNhOmUEIKP/1Eu3bVQ==
+      -----END CERTIFICATE-----
+      CACERT
+      export BAO_CACERT="/tmp/openbao-ca.crt"
   script:
     - echo "=== Step 1 - Check ID Token Availability ==="
     - if [ -n "${VAULT_ID_TOKEN}" ]; then echo "OK - VAULT_ID_TOKEN is available (${#VAULT_ID_TOKEN} chars)"; else echo "FAIL - VAULT_ID_TOKEN is NOT available"; exit 1; fi
@@ -104,13 +225,13 @@ test:openbao-jwt-auth:
     - PAYLOAD=$(echo ${VAULT_ID_TOKEN} | cut -d'.' -f2 | tr '_-' '/+' | awk '{l=length($0)%4; if(l==2) $0=$0"=="; else if(l==3) $0=$0"="; print}' | base64 -d 2>/dev/null) && echo "$PAYLOAD" | jq . || echo "Decode failed but continuing..."
     - echo ""
     - echo "=== Step 3 - Test OpenBao Authentication ==="
-    - AUTH_RESPONSE=$(curl -s --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"gitlab-ci\"}" ${BAO_ADDR}/v1/auth/jwt/login)
+    - AUTH_RESPONSE=$(curl -s --cacert ${BAO_CACERT} --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"gitlab-ci\"}" ${BAO_ADDR}/v1/auth/jwt/login)
     - echo "Auth response - ${AUTH_RESPONSE}"
     - TOKEN=$(echo ${AUTH_RESPONSE} | jq -r '.auth.client_token')
     - if [ -n "${TOKEN}" ] && [ "${TOKEN}" != "null" ]; then echo "OK - Authentication successful"; export BAO_TOKEN="${TOKEN}"; else echo "FAIL - Authentication failed"; exit 1; fi
     - echo ""
     - echo "=== Step 4 - Retrieve Test Secret ==="
-    - SECRET=$(curl -sf --header "X-Vault-Token:${BAO_TOKEN}" ${BAO_ADDR}/v1/secret/data/ci/test)
+    - SECRET=$(curl -sf --cacert ${BAO_CACERT} --header "X-Vault-Token:${BAO_TOKEN}" ${BAO_ADDR}/v1/secret/data/ci/test)
     - echo "Secret response - ${SECRET}"
     - API_KEY=$(echo ${SECRET} | jq -r '.data.data.api_key')
     - echo "OK - Retrieved api_key - ${API_KEY}"
