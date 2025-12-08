@@ -167,6 +167,11 @@ resource "REDACTED_9bcb792e" "goldpinger" {
               }
             }
           }
+	  
+	  env {
+            name  = "LABEL_SELECTOR"
+            value = "app.kubernetes.io/name=goldpinger"
+          }
 
           resources {
             requests = {
