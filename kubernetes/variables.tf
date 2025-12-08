@@ -280,7 +280,7 @@ variable "cilium_peer_address" {
 variable "openbao_address" {
   description = "OpenBao server address"
   type        = string
-  default     = "http://10.0.X.X:8200"
+  default     = "https://openbao.example.net:8200"
 }
 
 ***REMOVED***
@@ -314,4 +314,10 @@ variable "promtail_syslog_port" {
   description = "Promtail syslog receiver port"
   type        = number
   default     = 1514
+}
+
+variable "openbao_ca_cert" {
+  description = "OpenBao CA certificate (base64 encoded)"
+  type        = string
+  sensitive   = true
 }

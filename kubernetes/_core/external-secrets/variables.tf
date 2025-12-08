@@ -13,11 +13,16 @@ variable "REDACTED_46d876c8" {
 variable "openbao_address" {
   description = "OpenBao server address"
   type        = string
-  default     = "http://10.0.X.X:8200"
+  default     = "https://openbao.example.net:8200"
 }
 
 variable "openbao_role" {
   description = "OpenBao Kubernetes auth role"
   type        = string
   default     = "external-secrets"
+}
+
+variable "openbao_ca_cert" {
+  description = "OpenBao CA certificate (base64 encoded)"
+  type        = string
 }

@@ -157,6 +157,7 @@ module "external_secrets" {
   source = "./_core/external-secrets"
 
   openbao_address = var.openbao_address
+  openbao_ca_cert = var.openbao_ca_cert
 }
 
 ***REMOVED***
