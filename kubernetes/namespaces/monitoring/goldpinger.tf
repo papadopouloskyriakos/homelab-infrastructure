@@ -117,7 +117,7 @@ resource "REDACTED_9bcb792e" "goldpinger" {
 
         container {
           name  = "goldpinger"
-          image = "ghcr.io/bloomberg/goldpinger:v3.10.1"
+          image = "docker.io/bloomberg/goldpinger:3.10.2"
 
           port {
             name           = "http"
