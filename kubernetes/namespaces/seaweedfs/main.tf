@@ -23,9 +23,9 @@ resource "kubernetes_namespace" "seaweedfs" {
   metadata {
     name = "seaweedfs"
     labels = {
-      "app.kubernetes.io/name"       = "seaweedfs"
-      "app.kubernetes.io/managed-by" = "opentofu"
-      "environment"                  = "production"
+      "app.kubernetes.io/name"             = "seaweedfs"
+      "app.kubernetes.io/managed-by"       = "opentofu"
+      "environment"                        = "production"
       "pod-security.kubernetes.io/enforce" = "privileged"
     }
   }
@@ -33,13 +33,6 @@ resource "kubernetes_namespace" "seaweedfs" {
 
 ***REMOVED***
 # ExternalSecret - S3 Credentials from OpenBao
-***REMOVED***
-# IMPORTANT: The secret key MUST be named "seaweedfs_s3_config" and contain
-# inline JSON with the S3 identity configuration.
-# 
-# OpenBao path: secret/REDACTED_65baa84d
-# OpenBao key: seaweedfs_s3_config
-# Value format: {"identities":[{"name":"admin","credentials":[{"accessKey":"...","secretKey":"..."}],"actions":["Admin","Read","Write"]}]}
 ***REMOVED***
 resource "kubernetes_manifest" "seaweedfs_externalsecret" {
   manifest = {
@@ -77,7 +70,6 @@ resource "kubernetes_manifest" "seaweedfs_externalsecret" {
       ]
     }
   }
-
   depends_on = [kubernetes_namespace.seaweedfs]
 }
 
@@ -142,6 +134,67 @@ resource "kubernetes_manifest" "REDACTED_f7ae41ec" {
       ]
     }
   }
-
   depends_on = [helm_release.seaweedfs]
+}
+
+***REMOVED***
+# Ingress for Web UI access
+***REMOVED***
+resource "kubernetes_ingress_v1" "seaweedfs_master" {
+  metadata {
+    name      = "seaweedfs-master"
+    namespace = kubernetes_namespace.seaweedfs.metadata[0].name
+    annotations = {
+      "kubernetes.io/ingress.class" = "nginx"
+    }
+  }
+  spec {
+    rule {
+      host = "nl-seaweedfs.example.net"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "seaweedfs-master"
+              port {
+                number = 9333
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_ingress_v1" "seaweedfs_s3" {
+  metadata {
+    name      = "seaweedfs-s3"
+    namespace = kubernetes_namespace.seaweedfs.metadata[0].name
+    annotations = {
+      "kubernetes.io/ingress.class"                 = "nginx"
+      "nginx.ingress.kubernetes.io/proxy-body-size" = "0"
+    }
+  }
+  spec {
+    rule {
+      host = "nl-s3.example.net"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "seaweedfs-filer"
+              port {
+                number = 8333
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
