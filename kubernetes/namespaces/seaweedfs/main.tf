@@ -1,33 +1,59 @@
 ***REMOVED***
-# SeaweedFS - Distributed Object Storage
+# SeaweedFS Module
 ***REMOVED***
-# Replaces MinIO with HA cross-site capable S3 storage
-# S3 API: http://seaweedfs-filer.seaweedfs.svc.cluster.local:8333
+# Distributed storage for S3-compatible object storage
+# Replaces MinIO for HA cross-site replication
 ***REMOVED***
 
-# -----------------------------------------------------------------------------
-# Namespace
-# -----------------------------------------------------------------------------
-resource "kubernetes_namespace" "seaweedfs" {
-  metadata {
-    name = "seaweedfs"
-    labels = merge(var.common_labels, {
-      "app.kubernetes.io/name" = "seaweedfs"
-    })
+terraform {
+  required_providers {
+    kubernetes = {
+      source = "REDACTED_1158da07"
+    }
+    helm = {
+      source = "hashicorp/helm"
+    }
   }
 }
 
-# -----------------------------------------------------------------------------
-# S3 Credentials Secret (via External Secrets Operator)
-# -----------------------------------------------------------------------------
-resource "kubernetes_manifest" "seaweedfs_s3_credentials" {
+***REMOVED***
+# Namespace
+***REMOVED***
+resource "kubernetes_namespace" "seaweedfs" {
+  metadata {
+    name = "seaweedfs"
+    labels = {
+      "app.kubernetes.io/name"       = "seaweedfs"
+      "app.kubernetes.io/managed-by" = "opentofu"
+      "environment"                  = "production"
+      "pod-security.kubernetes.io/enforce" = "privileged"
+    }
+  }
+}
+
+***REMOVED***
+# ExternalSecret - S3 Credentials from OpenBao
+***REMOVED***
+# IMPORTANT: The secret key MUST be named "seaweedfs_s3_config" and contain
+# inline JSON with the S3 identity configuration.
+# 
+# OpenBao path: secret/REDACTED_65baa84d
+# OpenBao key: seaweedfs_s3_config
+# Value format: {"identities":[{"name":"admin","credentials":[{"accessKey":"...","secretKey":"..."}],"actions":["Admin","Read","Write"]}]}
+***REMOVED***
+resource "kubernetes_manifest" "seaweedfs_externalsecret" {
   manifest = {
     apiVersion = "external-secrets.io/v1beta1"
     kind       = "ExternalSecret"
     metadata = {
       name      = "seaweedfs-s3-config"
       namespace = kubernetes_namespace.seaweedfs.metadata[0].name
-      labels    = var.common_labels
+      labels = {
+        "app.kubernetes.io/name"       = "seaweedfs"
+        "app.kubernetes.io/component"  = "s3"
+        "app.kubernetes.io/managed-by" = "opentofu"
+        "environment"                  = "production"
+      }
     }
     spec = {
       refreshInterval = "1h"
@@ -42,27 +68,22 @@ resource "kubernetes_manifest" "seaweedfs_s3_credentials" {
       }
       data = [
         {
-          secretKey = "admin_access_key_id"
+          secretKey = "seaweedfs_s3_config"
           remoteRef = {
-            key      = "secret/REDACTED_65baa84d"
-            property = "admin-access-key"
-          }
-        },
-        {
-          secretKey = "admin_secret_access_key"
-          remoteRef = {
-            key      = "secret/REDACTED_65baa84d"
-            property = "admin-secret-key"
+            key      = "REDACTED_65baa84d"
+            property = "seaweedfs_s3_config"
           }
         }
       ]
     }
   }
+
+  depends_on = [kubernetes_namespace.seaweedfs]
 }
 
-# -----------------------------------------------------------------------------
-# SeaweedFS Helm Release
-# -----------------------------------------------------------------------------
+***REMOVED***
+# Helm Release - SeaweedFS
+***REMOVED***
 resource "helm_release" "seaweedfs" {
   name       = "seaweedfs"
   namespace  = kubernetes_namespace.seaweedfs.metadata[0].name
@@ -73,8 +94,6 @@ resource "helm_release" "seaweedfs" {
   timeout = 600
   wait    = true
 
-  depends_on = [kubernetes_manifest.seaweedfs_s3_credentials]
-
   values = [
     templatefile("${path.module}/values.yaml.tpl", {
       storage_class       = var.storage_class
@@ -84,11 +103,16 @@ resource "helm_release" "seaweedfs" {
       node_region         = var.node_region
     })
   ]
+
+  depends_on = [
+    kubernetes_namespace.seaweedfs,
+    kubernetes_manifest.seaweedfs_externalsecret
+  ]
 }
 
-# -----------------------------------------------------------------------------
-# ServiceMonitor for Prometheus
-# -----------------------------------------------------------------------------
+***REMOVED***
+# ServiceMonitor - Prometheus Metrics
+***REMOVED***
 resource "kubernetes_manifest" "REDACTED_f7ae41ec" {
   manifest = {
     apiVersion = "monitoring.coreos.com/v1"
@@ -96,9 +120,12 @@ resource "kubernetes_manifest" "REDACTED_f7ae41ec" {
     metadata = {
       name      = "seaweedfs"
       namespace = kubernetes_namespace.seaweedfs.metadata[0].name
-      labels = merge(var.common_labels, {
-        release = "monitoring"
-      })
+      labels = {
+        "release"     = "monitoring"
+        "environment" = "production"
+        "managed-by"  = "opentofu"
+        "repository"  = "REDACTED_25022d4e"
+      }
     }
     spec = {
       selector = {
