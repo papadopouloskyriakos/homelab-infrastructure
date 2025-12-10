@@ -1,6 +1,10 @@
 ***REMOVED***
 # SeaweedFS Helm Values
 ***REMOVED***
+# IMPORTANT: This chart expects affinity/nodeSelector/tolerations/resources
+# as STRINGS (multi-line YAML using |), NOT as YAML objects.
+# See: https://github.com/seaweedfs/seaweedfs/issues/5681
+***REMOVED***
 
 # Master servers - Raft consensus
 master:
@@ -11,14 +15,16 @@ master:
     enabled: true
     storageClass: "${storage_class}"
     size: "${master_storage_size}"
-  resources:
+  # Resources must be a string (SeaweedFS chart quirk)
+  resources: |
     requests:
       cpu: 100m
       memory: 256Mi
     limits:
       cpu: 500m
       memory: 512Mi
-  affinity:
+  # Affinity must be a string (SeaweedFS chart quirk)
+  affinity: |
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
@@ -43,14 +49,16 @@ volume:
     enabled: true
     storageClass: "${storage_class}"
     size: "${volume_storage_size}"
-  resources:
+  # Resources must be a string
+  resources: |
     requests:
       cpu: 200m
       memory: 512Mi
     limits:
       cpu: "1"
       memory: 2Gi
-  affinity:
+  # Affinity must be a string
+  affinity: |
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
@@ -77,14 +85,16 @@ filer:
     enabled: true
     storageClass: "${storage_class}"
     size: "${filer_storage_size}"
-  resources:
+  # Resources must be a string
+  resources: |
     requests:
       cpu: 200m
       memory: 512Mi
     limits:
       cpu: "1"
       memory: 1Gi
-  affinity:
+  # Affinity must be a string
+  affinity: |
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
