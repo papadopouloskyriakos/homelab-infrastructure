@@ -1,9 +1,9 @@
 ***REMOVED***
 # SeaweedFS Helm Values
 ***REMOVED***
-# IMPORTANT: This chart expects affinity/nodeSelector/tolerations/resources
-# as STRINGS (multi-line YAML using |), NOT as YAML objects.
-# See: https://github.com/seaweedfs/seaweedfs/issues/5681
+# IMPORTANT: This chart has INCONSISTENT value handling:
+# - affinity/tolerations/nodeSelector: STRINGS (using |)
+# - resources: YAML OBJECTS (NOT strings!)
 ***REMOVED***
 
 # Master servers - Raft consensus
@@ -15,15 +15,15 @@ master:
     enabled: true
     storageClass: "${storage_class}"
     size: "${master_storage_size}"
-  # Resources must be a string (SeaweedFS chart quirk)
-  resources: |
+  # Resources as YAML object (NOT string)
+  resources:
     requests:
       cpu: 100m
       memory: 256Mi
     limits:
       cpu: 500m
       memory: 512Mi
-  # Affinity must be a string (SeaweedFS chart quirk)
+  # Affinity as STRING (using |)
   affinity: |
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -49,15 +49,15 @@ volume:
     enabled: true
     storageClass: "${storage_class}"
     size: "${volume_storage_size}"
-  # Resources must be a string
-  resources: |
+  # Resources as YAML object
+  resources:
     requests:
       cpu: 200m
       memory: 512Mi
     limits:
       cpu: "1"
       memory: 2Gi
-  # Affinity must be a string
+  # Affinity as STRING
   affinity: |
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -85,15 +85,15 @@ filer:
     enabled: true
     storageClass: "${storage_class}"
     size: "${filer_storage_size}"
-  # Resources must be a string
-  resources: |
+  # Resources as YAML object
+  resources:
     requests:
       cpu: 200m
       memory: 512Mi
     limits:
       cpu: "1"
       memory: 1Gi
-  # Affinity must be a string
+  # Affinity as STRING
   affinity: |
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
