@@ -1,21 +1,25 @@
 ***REMOVED***
 # SeaweedFS Helm Values
 ***REMOVED***
-# IMPORTANT: This chart has INCONSISTENT value handling:
-# - affinity/tolerations/nodeSelector: STRINGS (using |)
-# - resources: YAML OBJECTS (NOT strings!)
+# IMPORTANT CHART QUIRKS:
+# 1. affinity/tolerations/nodeSelector: STRINGS (using |)
+# 2. resources: YAML OBJECTS (NOT strings!)
+# 3. persistence: uses data/dataDirs structure, NOT persistence.enabled!
 ***REMOVED***
 
-# Master servers - Raft consensus
+# Master servers - Raft consensus (metadata only)
 master:
   replicas: 3
   port: 9333
   grpcPort: 19333
-  persistence:
-    enabled: true
-    storageClass: "${storage_class}"
+  # Persistence uses data/logs structure, NOT persistence.enabled
+  data:
+    type: "REDACTED_33feff97"
     size: "${master_storage_size}"
-  # Resources as YAML object (NOT string)
+    storageClass: "${storage_class}"
+  logs:
+    type: "emptyDir"
+  # Resources as YAML object
   resources:
     requests:
       cpu: 100m
@@ -23,7 +27,7 @@ master:
     limits:
       cpu: 500m
       memory: 512Mi
-  # Affinity as STRING (using |)
+  # Affinity as STRING
   affinity: |
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -45,10 +49,15 @@ volume:
   replicas: 2
   port: 8080
   grpcPort: 18080
-  persistence:
-    enabled: true
-    storageClass: "${storage_class}"
-    size: "${volume_storage_size}"
+  # Volume servers use dataDirs array, NOT persistence.enabled
+  dataDirs:
+    - name: data
+      type: "REDACTED_33feff97"
+      size: "${volume_storage_size}"
+      storageClass: "${storage_class}"
+      maxVolumes: 0  # auto-configure based on disk space
+  idx: {}
+  logs: {}
   # Resources as YAML object
   resources:
     requests:
@@ -81,10 +90,13 @@ filer:
   replicas: 2
   port: 8888
   grpcPort: 18888
-  persistence:
-    enabled: true
-    storageClass: "${storage_class}"
+  # Filer uses data structure, NOT persistence.enabled
+  data:
+    type: "REDACTED_33feff97"
     size: "${filer_storage_size}"
+    storageClass: "${storage_class}"
+  logs:
+    type: "emptyDir"
   # Resources as YAML object
   resources:
     requests:
@@ -124,4 +136,6 @@ global:
 
 # Disable unused components
 cosi:
+  enabled: false
+s3:
   enabled: false
