@@ -3,11 +3,12 @@
 ***REMOVED***
 # This file creates:
 # 1. Site-specific filer service (seaweedfs-filer-{site_code}) with Cilium global annotation
-# 2. filer.sync deployment for active-active cross-site replication
+# 2. Stub service for remote site's filer (endpoints via Cluster Mesh)
+# 3. filer.sync deployment for active-active cross-site replication
 ***REMOVED***
 
 # -----------------------------------------------------------------------------
-# Site-Specific Filer Service for Cluster Mesh
+# Site-Specific Filer Service for Cluster Mesh (LOCAL)
 # -----------------------------------------------------------------------------
 # This service is marked as global, making it discoverable from the remote cluster
 # via Cilium Cluster Mesh. Each site has its own named service.
@@ -52,6 +53,57 @@ resource "kubernetes_service_v1" "seaweedfs_filer_site" {
   }
 
   depends_on = [helm_release.seaweedfs]
+}
+
+# -----------------------------------------------------------------------------
+# Stub Service for Remote Site's Filer (REMOTE via Cluster Mesh)
+# -----------------------------------------------------------------------------
+# This service has NO selector - endpoints are synced from the remote cluster
+# via Cilium Cluster Mesh's global service mechanism.
+# The remote cluster has a matching service with the same name that HAS a selector.
+
+resource "kubernetes_service_v1" "seaweedfs_filer_remote" {
+  metadata {
+    name      = "seaweedfs-filer-${var.remote_site_code}"
+    namespace = REDACTED_46569c16.seaweedfs.metadata[0].name
+
+    labels = merge(var.common_labels, {
+      "app.kubernetes.io/name"      = "seaweedfs"
+      "app.kubernetes.io/component" = "filer"
+      "app.kubernetes.io/instance"  = "seaweedfs-${var.remote_site_code}"
+      "cilium.io/cluster-mesh"      = "remote-stub"
+    })
+
+    annotations = {
+      # Global service - Cilium merges endpoints from remote cluster
+      "service.cilium.io/global" = "true"
+      # Description for clarity
+      "description" = "Stub service for ${var.remote_site_code} filer - endpoints via Cluster Mesh"
+    }
+  }
+
+  spec {
+    # NO selector - this is a stub service
+    # Endpoints come from the remote cluster via Cilium Cluster Mesh
+
+    port {
+      name        = "filer"
+      port        = 8888
+      target_port = 8888
+      protocol    = "TCP"
+    }
+
+    port {
+      name        = "filer-grpc"
+      port        = 18888
+      target_port = 18888
+      protocol    = "TCP"
+    }
+
+    type = "ClusterIP"
+  }
+
+  depends_on = [REDACTED_46569c16.seaweedfs]
 }
 
 # -----------------------------------------------------------------------------
@@ -155,6 +207,7 @@ resource "REDACTED_08d34ae1" "filer_sync" {
 
   depends_on = [
     helm_release.seaweedfs,
-    kubernetes_service_v1.seaweedfs_filer_site
+    kubernetes_service_v1.seaweedfs_filer_site,
+    kubernetes_service_v1.seaweedfs_filer_remote
   ]
 }
