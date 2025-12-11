@@ -93,6 +93,24 @@ resource "helm_release" "cilium" {
       value = "true"
     },
     # ========================================================================
+    # Hubble TLS Configuration
+    # Explicit config to force cert regeneration with cluster-specific SANs
+    # SAN pattern: *.{cluster.name}.hubble-grpc.cilium.io
+    # ========================================================================
+    {
+      name  = "hubble.tls.auto.enabled"
+      value = "true"
+    },
+    {
+      name  = "hubble.tls.auto.method"
+      value = "helm"
+    },
+    # Force Hubble relay pod recreation to pick up new certs
+    {
+      name  = "hubble.relay.podAnnotations.cert-regen-trigger"
+      value = "REDACTED_a36086b6"
+    },
+    # ========================================================================
     # Prometheus Metrics
     # ========================================================================
     {
