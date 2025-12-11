@@ -13,9 +13,9 @@ spec:
   objectStorage:
     bucket: velero
   config:
-    region: minio
+    region: seaweedfs
     s3ForcePathStyle: "true"
-    s3Url: http://minio-api.minio.svc.cluster.local:9000
+    s3Url: http://seaweedfs-s3.seaweedfs.svc.cluster.local:8333
 ---
 apiVersion: velero.io/v1
 kind: VolumeSnapshotLocation
@@ -28,4 +28,4 @@ metadata:
 spec:
   provider: aws
   config:
-    region: minio
+    region: seaweedfs
