@@ -154,8 +154,8 @@ module "logging" {
   common_labels        = local.common_labels
   loki_storage_size    = var.loki_storage_size
   loki_retention_days  = var.loki_retention_days
-  minio_endpoint       = var.loki_minio_endpoint
-  minio_bucket         = var.loki_minio_bucket
+  s3_endpoint          = var.loki_s3_endpoint
+  s3_bucket            = var.loki_s3_bucket
   promtail_syslog_port = var.promtail_syslog_port
 }
 
