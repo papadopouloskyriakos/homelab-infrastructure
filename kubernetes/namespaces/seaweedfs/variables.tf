@@ -60,3 +60,57 @@ variable "node_region" {
   type        = string
   default     = "nl-lei"
 }
+
+# -----------------------------------------------------------------------------
+# Cross-Site Replication (Cluster Mesh)
+# -----------------------------------------------------------------------------
+variable "REDACTED_4bbaa453" {
+  description = "Enable filer.sync deployment for cross-site replication"
+  type        = bool
+  default     = false
+}
+
+variable "site_code" {
+  description = "Short site identifier for this cluster (nl or gr)"
+  type        = string
+  default     = "nl"
+}
+
+variable "remote_site_code" {
+  description = "Short site identifier for the remote cluster"
+  type        = string
+  default     = "gr"
+}
+
+variable "REDACTED_a4f42897" {
+  description = "SeaweedFS container image version for filer.sync"
+  type        = string
+  default     = "4.01"
+}
+
+# -----------------------------------------------------------------------------
+# filer.sync Resource Allocation
+# -----------------------------------------------------------------------------
+variable "REDACTED_11f97ee2" {
+  description = "CPU request for filer.sync container"
+  type        = string
+  default     = "100m"
+}
+
+variable "REDACTED_8e93a7d2" {
+  description = "Memory request for filer.sync container"
+  type        = string
+  default     = "128Mi"
+}
+
+variable "REDACTED_7c4dc246" {
+  description = "CPU limit for filer.sync container"
+  type        = string
+  default     = "500m"
+}
+
+variable "REDACTED_5bbf190b" {
+  description = "Memory limit for filer.sync container"
+  type        = string
+  default     = "512Mi"
+}
