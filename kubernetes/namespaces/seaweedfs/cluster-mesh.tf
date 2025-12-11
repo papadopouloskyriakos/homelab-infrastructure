@@ -174,7 +174,8 @@ resource "REDACTED_08d34ae1" "filer_sync" {
             "-a.path", "/buckets",
             "-b.path", "/buckets",
             "-concurrency", "4",
-            "-debug",
+            "-a.debug",
+            "-b.debug",
           ]
 
           resources {
