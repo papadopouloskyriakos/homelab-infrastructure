@@ -123,6 +123,23 @@ resource "kubernetes_manifest" "REDACTED_46f7c9ba" {
             }
           ]
         },
+        # Allow Loki to reach SeaweedFS S3 (new storage backend)
+        {
+          toEndpoints = [
+            {
+              matchLabels = {
+                "k8s:io.kubernetes.pod.namespace" = "seaweedfs"
+              }
+            }
+          ]
+          toPorts = [
+            {
+              ports = [
+                { port = "8333", protocol = "TCP" }
+              ]
+            }
+          ]
+        },
         # Allow intra-namespace communication
         {
           toEndpoints = [
