@@ -106,23 +106,6 @@ resource "kubernetes_manifest" "REDACTED_46f7c9ba" {
             }
           ]
         },
-        # Allow Loki to reach MinIO (S3 storage)
-        {
-          toEndpoints = [
-            {
-              matchLabels = {
-                "k8s:io.kubernetes.pod.namespace" = "minio"
-              }
-            }
-          ]
-          toPorts = [
-            {
-              ports = [
-                { port = "9000", protocol = "TCP" }
-              ]
-            }
-          ]
-        },
         # Allow Loki to reach SeaweedFS S3 (new storage backend)
         {
           toEndpoints = [
