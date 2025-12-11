@@ -17,12 +17,12 @@ resource "kubernetes_namespace" "logging" {
 # -----------------------------------------------------------------------------
 # External Secret - Loki MinIO Credentials
 # -----------------------------------------------------------------------------
-resource "kubernetes_manifest" "loki_minio_external_secret" {
+resource "kubernetes_manifest" "REDACTED_4d3fed8e" {
   manifest = {
     apiVersion = "external-secrets.io/v1beta1"
     kind       = "ExternalSecret"
     metadata = {
-      name      = "loki-minio-credentials"
+      name      = "loki-s3-credentials"
       namespace = kubernetes_namespace.logging.metadata[0].name
       labels    = var.common_labels
     }
@@ -33,7 +33,7 @@ resource "kubernetes_manifest" "loki_minio_external_secret" {
         kind = "ClusterSecretStore"
       }
       target = {
-        name           = "loki-minio-credentials"
+        name           = "loki-s3-credentials"
         creationPolicy = "Owner"
         deletionPolicy = "Retain"
       }
@@ -42,14 +42,14 @@ resource "kubernetes_manifest" "loki_minio_external_secret" {
           secretKey = "AWS_ACCESS_KEY_ID"
           remoteRef = {
             key      = "ci/loki"
-            property = "minio_access_key"
+            property = "s3_access_key"
           }
         },
         {
           secretKey = "AWS_SECRET_ACCESS_KEY"
           remoteRef = {
             key      = "ci/loki"
-            property = "minio_secret_key"
+            property = "s3_secret_key"
           }
         }
       ]
@@ -84,12 +84,12 @@ resource "helm_release" "loki" {
       storage = {
         type = "s3"
         bucketNames = {
-          chunks = var.minio_bucket
-          ruler  = var.minio_bucket
-          admin  = var.minio_bucket
+          chunks = var.s3_bucket
+          ruler  = var.s3_bucket
+          admin  = var.s3_bucket
         }
         s3 = {
-          endpoint         = var.minio_endpoint
+          endpoint         = var.s3_endpoint
           region           = "us-east-1"
           accessKeyId      = "$${AWS_ACCESS_KEY_ID}"
           secretAccessKey  = "$${AWS_SECRET_ACCESS_KEY}"
@@ -134,7 +134,7 @@ resource "helm_release" "loki" {
       extraEnvFrom = [
         {
           secretRef = {
-            name = "loki-minio-credentials"
+            name = "loki-s3-credentials"
           }
         }
       ]
@@ -212,7 +212,7 @@ resource "helm_release" "loki" {
     }
   })]
 
-  depends_on = [kubernetes_manifest.loki_minio_external_secret]
+  depends_on = [kubernetes_manifest.REDACTED_4d3fed8e]
 }
 
 # -----------------------------------------------------------------------------

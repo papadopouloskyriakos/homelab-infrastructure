@@ -20,13 +20,13 @@ variable "loki_retention_days" {
   default     = 30
 }
 
-variable "minio_endpoint" {
+variable "s3_endpoint" {
   description = "MinIO S3 endpoint for Loki storage"
   type        = string
-  default     = "minio.minio.svc.cluster.local:9000"
+  default     = "seaweedfs-s3.seaweedfs.svc.cluster.local:8333"
 }
 
-variable "minio_bucket" {
+variable "s3_bucket" {
   description = "MinIO bucket name for Loki"
   type        = string
   default     = "loki"
