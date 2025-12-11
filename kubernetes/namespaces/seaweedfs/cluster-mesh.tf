@@ -165,7 +165,7 @@ resource "REDACTED_08d34ae1" "filer_sync" {
           # -a: local site filer
           # -b: remote site filer (via Cluster Mesh)
           # filerProxy: route data transfers through filers (required for cross-site)
-          args = [
+	  args = [
             "filer.sync",
             "-a", "seaweedfs-filer-${var.site_code}.seaweedfs.svc.cluster.local:8888",
             "-b", "seaweedfs-filer-${var.remote_site_code}.seaweedfs.svc.cluster.local:8888",
@@ -173,6 +173,8 @@ resource "REDACTED_08d34ae1" "filer_sync" {
             "-b.filerProxy",
             "-a.path", "/buckets",
             "-b.path", "/buckets",
+            "-a.excludePaths", "/buckets/thanos-nl,/buckets/thanos-gr",
+            "-b.excludePaths", "/buckets/thanos-nl,/buckets/thanos-gr",
             "-concurrency", "4",
             "-a.debug",
             "-b.debug",
