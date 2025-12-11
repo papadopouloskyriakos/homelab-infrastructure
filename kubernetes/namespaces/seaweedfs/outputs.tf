@@ -4,7 +4,7 @@
 
 output "namespace" {
   description = "SeaweedFS namespace"
-  value       = kubernetes_namespace.seaweedfs.metadata[0].name
+  value       = REDACTED_46569c16.seaweedfs.metadata[0].name
 }
 
 output "s3_endpoint" {
