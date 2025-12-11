@@ -61,21 +61,6 @@ output "deployment_summary" {
   EOF
 }
 # =============================================================================
-# MinIO Outputs
-# =============================================================================
-output "minio_console_url" {
-  description = "MinIO Console URL (NodePort)"
-  value       = "http://<node-ip>:30010"
-}
-output "minio_api_url" {
-  description = "MinIO API URL (NodePort)"
-  value       = "http://<node-ip>:30011"
-}
-output "minio_console_ingress" {
-  description = "MinIO Console Ingress URL"
-  value       = "https://minio.${var.domain}"
-}
-# =============================================================================
 # Argo CD Outputs
 # =============================================================================
 output "argocd_url_nodeport" {
