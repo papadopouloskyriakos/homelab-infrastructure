@@ -321,3 +321,30 @@ variable "openbao_ca_cert" {
   type        = string
   sensitive   = true
 }
+
+***REMOVED***
+# SeaweedFS Variables
+***REMOVED***
+variable "REDACTED_c1342204" {
+  description = "SeaweedFS Helm chart version"
+  type        = string
+  default     = "4.0.401"
+}
+
+variable "REDACTED_a8217c41" {
+  description = "Storage size per volume server"
+  type        = string
+  default     = "500Gi"
+}
+
+variable "seaweedfs_master_storage_size" {
+  description = "Storage size for master metadata"
+  type        = string
+  default     = "10Gi"
+}
+
+variable "REDACTED_b907bdb5" {
+  description = "Storage size for filer metadata"
+  type        = string
+  default     = "20Gi"
+}
