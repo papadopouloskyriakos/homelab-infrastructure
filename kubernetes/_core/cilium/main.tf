@@ -225,6 +225,10 @@ resource "helm_release" "cilium" {
       value = "true"
     },
     {
+      name  = "clustermesh.enableEndpointSliceSynchronization"
+      value = "true"
+    },
+    {
       name  = "clustermesh.apiserver.replicas"
       value = "1"
     },
