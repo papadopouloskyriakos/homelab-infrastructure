@@ -21,3 +21,26 @@ output "prometheus_nodeport" {
   description = "Prometheus NodePort"
   value       = 30090
 }
+***REMOVED***
+# Thanos Outputs (add to existing outputs.tf)
+***REMOVED***
+
+output "REDACTED_ae9917e5" {
+  description = "Thanos Query endpoint (internal)"
+  value       = "http://thanos-query.monitoring.svc.cluster.local:9090"
+}
+
+output "thanos_query_url" {
+  description = "Thanos Query URL (ingress)"
+  value       = var.REDACTED_844fade0 ? "https://${var.REDACTED_928c2d3a}" : null
+}
+
+output "thanos_store_endpoint" {
+  description = "Thanos Store Gateway endpoint (internal)"
+  value       = "thanos-store.monitoring.svc.cluster.local:10901"
+}
+
+output "REDACTED_08288a2e" {
+  description = "Thanos Sidecar endpoint (internal)"
+  value       = "REDACTED_e135e9ed.monitoring.svc.cluster.local:10901"
+}

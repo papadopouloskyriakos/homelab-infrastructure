@@ -85,8 +85,37 @@ resource "helm_release" "monitoring" {
             minAvailable = 1
           }
 
-          retention     = var.prometheus_retention
-          retentionSize = "190GB"
+          retention     = "6h"
+          retentionSize = "50GB"
+
+          # Thanos sidecar configuration
+          thanos = {
+            image = "quay.io/thanos/thanos:v0.37.2"
+            objectStorageConfig = {
+              existingSecret = {
+                name = "REDACTED_5f4971dc"
+                key  = "objstore.yml"
+              }
+            }
+            resources = {
+              requests = {
+                cpu    = "50m"
+                memory = "128Mi"
+              }
+              limits = {
+                cpu    = "200m"
+                memory = "512Mi"
+              }
+            }
+          }
+
+          # External labels for Thanos deduplication
+          externalLabels = {
+            cluster = "nl"
+            site    = "nl"
+          }
+
+          replicaExternalLabelName = "prometheus_replica"
 
           resources = {
             requests = {
