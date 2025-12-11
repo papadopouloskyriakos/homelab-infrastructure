@@ -190,5 +190,9 @@ module "seaweedfs" {
   cluster_name            = "nlcl01k8s"
   node_region             = "nl-lei"
 
-  depends_on = [module.nl-nas01_csi, module.external_secrets]
+  # Cross-site replication settings
+  site_code                     = "nl"
+  remote_site_code              = "gr"
+  REDACTED_4bbaa453 = true
+  depends_on                    = [module.nl-nas01_csi, module.external_secrets]
 }
