@@ -322,6 +322,9 @@ resource "REDACTED_2f6bdfa2" "thanos_store" {
 
       spec {
         service_account_name = "thanos-store"
+        security_context {
+          fs_group = 65534
+        }
 
         affinity {
           node_affinity {
@@ -548,6 +551,9 @@ resource "REDACTED_2f6bdfa2" "thanos_compactor" {
 
       spec {
         service_account_name = "thanos-compactor"
+        security_context {
+          fs_group = 65534
+        }
 
         affinity {
           node_affinity {
