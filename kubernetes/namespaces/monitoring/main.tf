@@ -85,7 +85,7 @@ resource "helm_release" "monitoring" {
             minAvailable = 1
           }
 
-          retention     = "6h"
+          retention     = "24h"
           retentionSize = "50GB"
 
           # Thanos sidecar configuration
