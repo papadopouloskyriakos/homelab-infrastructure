@@ -19,7 +19,7 @@ terraform {
 ***REMOVED***
 # Namespace
 ***REMOVED***
-resource "kubernetes_namespace" "seaweedfs" {
+resource "REDACTED_46569c16" "seaweedfs" {
   metadata {
     name = "seaweedfs"
     labels = {
@@ -40,7 +40,7 @@ resource "kubernetes_manifest" "seaweedfs_externalsecret" {
     kind       = "ExternalSecret"
     metadata = {
       name      = "seaweedfs-s3-config"
-      namespace = kubernetes_namespace.seaweedfs.metadata[0].name
+      namespace = REDACTED_46569c16.seaweedfs.metadata[0].name
       labels = {
         "app.kubernetes.io/name"       = "seaweedfs"
         "app.kubernetes.io/component"  = "s3"
@@ -70,7 +70,7 @@ resource "kubernetes_manifest" "seaweedfs_externalsecret" {
       ]
     }
   }
-  depends_on = [kubernetes_namespace.seaweedfs]
+  depends_on = [REDACTED_46569c16.seaweedfs]
 }
 
 ***REMOVED***
@@ -78,7 +78,7 @@ resource "kubernetes_manifest" "seaweedfs_externalsecret" {
 ***REMOVED***
 resource "helm_release" "seaweedfs" {
   name       = "seaweedfs"
-  namespace  = kubernetes_namespace.seaweedfs.metadata[0].name
+  namespace  = REDACTED_46569c16.seaweedfs.metadata[0].name
   repository = "https://seaweedfs.github.io/seaweedfs/helm"
   chart      = "seaweedfs"
   version    = var.REDACTED_c1342204
@@ -97,7 +97,7 @@ resource "helm_release" "seaweedfs" {
   ]
 
   depends_on = [
-    kubernetes_namespace.seaweedfs,
+    REDACTED_46569c16.seaweedfs,
     kubernetes_manifest.seaweedfs_externalsecret
   ]
 }
@@ -111,7 +111,7 @@ resource "kubernetes_manifest" "REDACTED_f7ae41ec" {
     kind       = "ServiceMonitor"
     metadata = {
       name      = "seaweedfs"
-      namespace = kubernetes_namespace.seaweedfs.metadata[0].name
+      namespace = REDACTED_46569c16.seaweedfs.metadata[0].name
       labels = {
         "release"     = "monitoring"
         "environment" = "production"
@@ -143,7 +143,7 @@ resource "kubernetes_manifest" "REDACTED_f7ae41ec" {
 resource "kubernetes_ingress_v1" "seaweedfs_master" {
   metadata {
     name      = "seaweedfs-master"
-    namespace = kubernetes_namespace.seaweedfs.metadata[0].name
+    namespace = REDACTED_46569c16.seaweedfs.metadata[0].name
     annotations = {
       "kubernetes.io/ingress.class" = "nginx"
     }
@@ -172,7 +172,7 @@ resource "kubernetes_ingress_v1" "seaweedfs_master" {
 resource "kubernetes_ingress_v1" "seaweedfs_s3" {
   metadata {
     name      = "seaweedfs-s3"
-    namespace = kubernetes_namespace.seaweedfs.metadata[0].name
+    namespace = REDACTED_46569c16.seaweedfs.metadata[0].name
     annotations = {
       "kubernetes.io/ingress.class"                 = "nginx"
       "nginx.ingress.kubernetes.io/proxy-body-size" = "0"
