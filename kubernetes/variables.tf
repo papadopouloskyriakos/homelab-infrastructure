@@ -106,36 +106,6 @@ variable "domain" {
   type        = string
   default     = "example.net"
 }
-
-***REMOVED***
-# MinIO
-***REMOVED***
-
-variable "minio_root_user" {
-  description = "MinIO root username"
-  type        = string
-  default     = "admin"
-  sensitive   = true
-}
-
-variable "minio_root_password" {
-  description = "MinIO root password"
-  type        = string
-  sensitive   = true
-}
-
-variable "minio_storage_size" {
-  description = "MinIO storage size"
-  type        = string
-  default     = "1Ti"
-}
-
-variable "minio_version" {
-  description = "MinIO Docker image version"
-  type        = string
-  default     = "RELEASE.2024-11-07T00-52-20Z"
-}
-
 ***REMOVED***
 # Argo CD
 ***REMOVED***
@@ -186,23 +156,6 @@ variable "argocd_ssh_known_hosts" {
   description = "SSH known hosts for Git repositories"
   type        = string
   default     = ""
-}
-
-***REMOVED***
-# MinIO Snapshot Service Account
-***REMOVED***
-
-variable "minio_snapshot_access_key" {
-  description = "Access key for cluster snapshot service account"
-  type        = string
-  sensitive   = true
-  default     = "snapshot-admin"
-}
-
-variable "minio_snapshot_secret_key" {
-  description = "Secret key for cluster snapshot service account"
-  type        = string
-  sensitive   = true
 }
 
 ***REMOVED***

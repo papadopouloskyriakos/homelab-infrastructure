@@ -16,7 +16,6 @@ spec:
     excludedNamespaces:
     - kube-system
     - velero
-    - minio
     includeClusterResources: true
     storageLocation: default
     volumeSnapshotLocations:
@@ -40,7 +39,6 @@ spec:
     excludedNamespaces:
     - kube-system
     - velero
-    - minio
     includeClusterResources: true
     storageLocation: default
     volumeSnapshotLocations:
