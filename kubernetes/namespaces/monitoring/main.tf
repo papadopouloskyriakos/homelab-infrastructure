@@ -80,6 +80,14 @@ resource "helm_release" "monitoring" {
         prometheusSpec = {
           replicas = 2
 
+          # Scrape all ServiceMonitors and PodMonitors (not just release=monitoring)
+          serviceMonitorSelector                  = {}
+          serviceMonitorSelectorNilUsesHelmValues = false
+          serviceMonitorNamespaceSelector         = {}
+          podMonitorSelector                      = {}
+          podMonitorSelectorNilUsesHelmValues     = false
+          podMonitorNamespaceSelector             = {}
+
           podDisruptionBudget = {
             enabled      = true
             minAvailable = 1
@@ -274,6 +282,14 @@ resource "helm_release" "monitoring" {
         alertmanagerSpec = {
           replicas = 2
 
+          # Scrape all ServiceMonitors and PodMonitors (not just release=monitoring)
+          serviceMonitorSelector                  = {}
+          serviceMonitorSelectorNilUsesHelmValues = false
+          serviceMonitorNamespaceSelector         = {}
+          podMonitorSelector                      = {}
+          podMonitorSelectorNilUsesHelmValues     = false
+          podMonitorNamespaceSelector             = {}
+
           podDisruptionBudget = {
             enabled      = true
             minAvailable = 1
@@ -337,6 +353,14 @@ resource "helm_release" "monitoring" {
       # =========================================================================
       grafana = {
         replicas = 2
+
+        # Scrape all ServiceMonitors and PodMonitors (not just release=monitoring)
+        serviceMonitorSelector                  = {}
+        serviceMonitorSelectorNilUsesHelmValues = false
+        serviceMonitorNamespaceSelector         = {}
+        podMonitorSelector                      = {}
+        podMonitorSelectorNilUsesHelmValues     = false
+        podMonitorNamespaceSelector             = {}
 
         podDisruptionBudget = {
           enabled      = true
