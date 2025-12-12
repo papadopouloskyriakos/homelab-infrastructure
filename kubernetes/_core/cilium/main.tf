@@ -447,3 +447,38 @@ resource "kubernetes_service_v1" "hubble_relay_lb" {
     }
   }
 }
+
+# Hubble UI Ingress
+resource "kubernetes_ingress_v1" "hubble_ui" {
+  metadata {
+    name      = "hubble-ui"
+    namespace = "kube-system"
+    labels = {
+      "k8s-app" = "hubble-ui"
+    }
+  }
+
+  spec {
+    ingress_class_name = "nginx"
+
+    rule {
+      host = "nl-hubble.example.net"
+
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+
+          backend {
+            service {
+              name = "hubble-ui"
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
