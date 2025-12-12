@@ -296,3 +296,19 @@ variable "snmp_asa_targets" {
     "10.0.X.X", # GR ASA
   ]
 }
+
+***REMOVED***
+# Prometheus Ingress
+***REMOVED***
+
+variable "REDACTED_4c06acbb" {
+  description = "Enable ingress for Prometheus"
+  type        = bool
+  default     = true
+}
+
+variable "prometheus_hostname" {
+  description = "Hostname for Prometheus ingress"
+  type        = string
+  default     = "nl-prometheus.example.net"
+}
