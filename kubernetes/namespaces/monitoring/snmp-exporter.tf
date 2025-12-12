@@ -1,8 +1,9 @@
 ***REMOVED***
-# SNMP Exporter - Cisco ASA Monitoring
+# SNMP Exporter - Cisco ASA Monitoring (NL Cluster)
 ***REMOVED***
-# Scrapes BGP and interface metrics from ASA firewalls via SNMP v2c
-# Targets: NL ASA (10.0.X.X), GR ASA (10.0.X.X)
+# Scrapes BGP and IPsec metrics from local ASA firewall via SNMP v2c
+# Target: NL ASA (10.0.X.X / nlfw01)
+# Note: GR cluster will have its own snmp-exporter scraping grfw01
 ***REMOVED***
 
 # -----------------------------------------------------------------------------

@@ -237,7 +237,7 @@ resource "helm_release" "monitoring" {
                 { source_labels = ["__address__"], regex = "10\\.255\\.3\\.11:.*", target_label = "site", replacement = "no" },
               ]
             },
-            # SNMP Exporter - Cisco ASA Firewalls
+            # SNMP Exporter - Cisco ASA Firewall (local site only)
             {
               job_name     = "snmp-asa"
               metrics_path = "/snmp"
@@ -246,18 +246,13 @@ resource "helm_release" "monitoring" {
                 auth   = ["asa_v2"]
               }
               static_configs = [{
-                targets = [
-                  "10.0.X.X",
-                  "10.0.X.X",
-                ]
+                targets = ["10.0.X.X"] # NL ASA only - GR cluster scrapes its own ASA
               }]
               relabel_configs = [
                 { source_labels = ["__address__"], target_label = "__param_target" },
                 { source_labels = ["__param_target"], target_label = "instance" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.85\\.1", target_label = "device", replacement = "nlfw01" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.85\\.1", target_label = "site", replacement = "nl" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.58\\.1", target_label = "device", replacement = "grfw01" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.58\\.1", target_label = "site", replacement = "gr" },
+                { target_label = "device", replacement = "nlfw01" },
+                { target_label = "site", replacement = "nl" },
                 { target_label = "__address__", replacement = "snmp-exporter.monitoring.svc:9116" },
               ]
             },
