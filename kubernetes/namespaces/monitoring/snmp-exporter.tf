@@ -32,8 +32,6 @@ modules:
   cisco_asa:
     walk:
       - 1.3.6.1.2.1.1                    # system
-      - 1.3.6.1.2.1.2.2.1                # ifTable
-      - 1.3.6.1.2.1.31.1.1               # ifXTable  
       - 1.3.6.1.2.1.15.3                 # bgpPeerTable
       - 1.3.6.1.4.1.9.9.171.1.3.2        # cipSecTunnelTable (CISCO-IPSEC-FLOW-MONITOR-MIB)
       - 1.3.6.1.4.1.9.9.171.1.2.3        # cikePhase1GWStatsTable
@@ -42,45 +40,6 @@ modules:
         oid: 1.3.6.1.2.1.1.3.0
         type: gauge
         help: System uptime in hundredths of a second
-
-      - name: ifOperStatus
-        oid: 1.3.6.1.2.1.2.2.1.8
-        type: gauge
-        help: Interface operational status
-        indexes:
-          - labelname: ifIndex
-            type: Integer
-        lookups:
-          - labels: [ifIndex]
-            labelname: ifDescr
-            oid: 1.3.6.1.2.1.2.2.1.2
-            type: DisplayString
-
-      - name: ifHCInOctets
-        oid: 1.3.6.1.2.1.31.1.1.1.6
-        type: counter
-        help: Total bytes received
-        indexes:
-          - labelname: ifIndex
-            type: Integer
-        lookups:
-          - labels: [ifIndex]
-            labelname: ifDescr
-            oid: 1.3.6.1.2.1.2.2.1.2
-            type: DisplayString
-
-      - name: ifHCOutOctets
-        oid: 1.3.6.1.2.1.31.1.1.1.10
-        type: counter
-        help: Total bytes sent
-        indexes:
-          - labelname: ifIndex
-            type: Integer
-        lookups:
-          - labels: [ifIndex]
-            labelname: ifDescr
-            oid: 1.3.6.1.2.1.2.2.1.2
-            type: DisplayString
 
       - name: bgpPeerState
         oid: 1.3.6.1.2.1.15.3.1.2
