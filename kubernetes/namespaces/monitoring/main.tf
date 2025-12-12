@@ -240,6 +240,8 @@ resource "helm_release" "monitoring" {
             # SNMP Exporter - Cisco ASA Firewall (local site only)
             {
               job_name     = "snmp-asa"
+              scrape_interval = "60s"
+              scrape_timeout  = "55s"
               metrics_path = "/snmp"
               params = {
                 module = ["cisco_asa"]
