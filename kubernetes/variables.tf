@@ -301,3 +301,13 @@ variable "REDACTED_b907bdb5" {
   type        = string
   default     = "20Gi"
 }
+
+# =============================================================================
+# Network Monitoring
+# =============================================================================
+
+variable "snmp_community" {
+  description = "SNMP community string for ASA firewalls"
+  type        = string
+  sensitive   = true
+}
