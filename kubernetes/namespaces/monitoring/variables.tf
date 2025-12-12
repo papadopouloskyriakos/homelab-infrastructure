@@ -235,5 +235,5 @@ variable "REDACTED_844fade0" {
 variable "REDACTED_928c2d3a" {
   description = "Hostname for Thanos Query ingress"
   type        = string
-  default     = "thanos.example.net"
+  default     = "nl-thanos.example.net"
 }
