@@ -171,6 +171,97 @@ resource "helm_release" "monitoring" {
           }
 
           tolerations = []
+
+          # =================================================================
+          # Additional Scrape Configs - Network Infrastructure Exporters
+          # =================================================================
+          additionalScrapeConfigs = [
+            # FRR BGP Exporters - Route Reflector VMs
+            {
+              job_name = "frr-route-reflectors"
+              static_configs = [{
+                targets = [
+                  "10.0.X.X:9342",
+                  "10.0.X.X:9342",
+                  "10.0.X.X:9342",
+                  "10.0.X.X:9342",
+                ]
+                labels = {
+                  role = "route-reflector"
+                }
+              }]
+              relabel_configs = [
+                { source_labels = ["__address__"], regex = "192\\.168\\.85\\.3:.*", target_label = "instance", replacement = "nl-rtr01" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.85\\.4:.*", target_label = "instance", replacement = "nl-rtr02" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.58\\.3:.*", target_label = "instance", replacement = "gr-rtr01" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.58\\.4:.*", target_label = "instance", replacement = "gr-rtr02" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.85\\..*", target_label = "site", replacement = "nl" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.58\\..*", target_label = "site", replacement = "gr" },
+              ]
+            },
+            # FRR BGP Exporters - Edge Nodes
+            {
+              job_name = "frr-edge-nodes"
+              static_configs = [{
+                targets = [
+                  "10.255.2.11:9342",
+                  "10.255.3.11:9342",
+                ]
+                labels = {
+                  role = "edge-node"
+                }
+              }]
+              relabel_configs = [
+                { source_labels = ["__address__"], regex = "10\\.255\\.2\\.11:.*", target_label = "instance", replacement = "ch-edge" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.2\\.11:.*", target_label = "site", replacement = "ch" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.3\\.11:.*", target_label = "instance", replacement = "no-edge" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.3\\.11:.*", target_label = "site", replacement = "no" },
+              ]
+            },
+            # IPsec Exporters - Edge Nodes
+            {
+              job_name = "ipsec-edge-nodes"
+              static_configs = [{
+                targets = [
+                  "10.255.2.11:9536",
+                  "10.255.3.11:9536",
+                ]
+                labels = {
+                  role = "ipsec-gateway"
+                }
+              }]
+              relabel_configs = [
+                { source_labels = ["__address__"], regex = "10\\.255\\.2\\.11:.*", target_label = "instance", replacement = "ch-edge" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.2\\.11:.*", target_label = "site", replacement = "ch" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.3\\.11:.*", target_label = "instance", replacement = "no-edge" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.3\\.11:.*", target_label = "site", replacement = "no" },
+              ]
+            },
+            # SNMP Exporter - Cisco ASA Firewalls
+            {
+              job_name     = "snmp-asa"
+              metrics_path = "/snmp"
+              params = {
+                module = ["cisco_asa"]
+                auth   = ["asa_v2"]
+              }
+              static_configs = [{
+                targets = [
+                  "10.0.X.X",
+                  "10.0.X.X",
+                ]
+              }]
+              relabel_configs = [
+                { source_labels = ["__address__"], target_label = "__param_target" },
+                { source_labels = ["__param_target"], target_label = "instance" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.85\\.1", target_label = "device", replacement = "nlfw01" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.85\\.1", target_label = "site", replacement = "nl" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.58\\.1", target_label = "device", replacement = "grfw01" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.58\\.1", target_label = "site", replacement = "gr" },
+                { target_label = "__address__", replacement = "snmp-exporter.monitoring.svc:9116" },
+              ]
+            },
+          ]
         }
 
         service = {
