@@ -181,3 +181,10 @@ module "seaweedfs" {
   REDACTED_4bbaa453 = true
   depends_on                    = [module.nl-nas01_csi, module.external_secrets]
 }
+
+# Kubernetes Dashboard
+module "REDACTED_ac4dcdf5" {
+  source = "./_core/REDACTED_d97cef76"
+
+  dashboard_hostname = "nl-k8s.example.net"
+}
