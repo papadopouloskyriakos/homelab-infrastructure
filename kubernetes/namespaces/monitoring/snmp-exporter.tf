@@ -202,8 +202,6 @@ modules:
         oid: 1.3.6.1.4.1.9.9.171.1.2.1.6.0
         type: counter
         help: Total IKE outbound bytes
-    auth:
-      community: ${var.snmp_community}
 EOT
   }
 
