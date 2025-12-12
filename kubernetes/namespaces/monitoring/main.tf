@@ -512,3 +512,42 @@ resource "helm_release" "monitoring" {
     })
   ]
 }
+
+# -----------------------------------------------------------------------------
+# Prometheus Ingress
+# -----------------------------------------------------------------------------
+resource "kubernetes_ingress_v1" "prometheus" {
+  count = var.REDACTED_4c06acbb ? 1 : 0
+
+  metadata {
+    name      = "prometheus"
+    namespace = "monitoring"
+    labels = {
+      "app.kubernetes.io/name" = "prometheus"
+      environment              = "production"
+      "managed-by"             = "opentofu"
+      site                     = "nl"
+    }
+  }
+
+  spec {
+    ingress_class_name = "nginx"
+    rule {
+      host = var.prometheus_hostname
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "REDACTED_6dfbe9fc"
+              port {
+                number = 9090
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
