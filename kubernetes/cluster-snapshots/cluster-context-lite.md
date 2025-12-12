@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2025-12-11 19:58:18 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2025-12-12 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,13 +11,13 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 159 |
+| Total Restarts | 150 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.18.4
 - **Nodes:** 8 (3 control-plane, 5 workers)
-- **Pods:** 129
+- **Pods:** 133
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:3795Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -47,14 +47,14 @@ kube-system/kube-controller-manager-nlk8s-ctrl03: 14 restarts
 kube-system/kube-scheduler-nlk8s-ctrl01: 17 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 12 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 13 restarts
-logging/loki-0: 9 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE      LAST SEEN   TYPE      REASON             OBJECT                        MESSAGE
-kube-system    4m25s       Warning   DNSConfigForming   pod/cilium-envoy-6ws74        Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-synology-csi   4m23s       Warning   DNSConfigForming   pod/synology-csi-node-n4rjm   Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-kube-system    2m38s       Warning   DNSConfigForming   pod/cilium-rhcsd              Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+NAMESPACE      LAST SEEN   TYPE      REASON             OBJECT                                  MESSAGE
+kube-system    57m         Warning   Unhealthy          pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system    75s         Warning   DNSConfigForming   pod/cilium-envoy-6ws74                  Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+synology-csi   64s         Warning   DNSConfigForming   pod/synology-csi-node-n4rjm             Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    9s          Warning   DNSConfigForming   pod/cilium-rhcsd                        Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
 ```
 
 ## Key Resources
@@ -73,11 +73,11 @@ pihole/pihole-dns-tcp-lb: 10.0.X.X -> 53:30438/TCP
 - argocd.example.net → argocd/argocd-server
 - awx.example.net → awx/awx
 - bentopdf.example.net → bentopdf/bentopdf
-- hubble.example.net → kube-system/hubble-ui
+- nl-hubble.example.net → kube-system/hubble-ui
 - k8s.example.net → REDACTED_d97cef76/REDACTED_d97cef76
-- minio.example.net → minio/minio-console
 - goldpinger.example.net → monitoring/goldpinger
 - grafana.example.net → monitoring/grafana
+- nl-thanos.example.net → monitoring/thanos-query
 - pihole.example.net → pihole/pihole-ingress
 - nl-seaweedfs.example.net → seaweedfs/seaweedfs-master
 - nl-s3.example.net → seaweedfs/seaweedfs-s3
