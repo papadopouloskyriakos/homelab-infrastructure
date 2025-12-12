@@ -81,10 +81,12 @@ resource "helm_release" "monitoring" {
           replicas = 2
 
           # Scrape all ServiceMonitors and PodMonitors (not just release=monitoring)
-          serviceMonitorSelector          = {}
-          serviceMonitorNamespaceSelector = {}
-          podMonitorSelector              = {}
-          podMonitorNamespaceSelector     = {}
+          serviceMonitorSelector                  = {}
+          serviceMonitorSelectorNilUsesHelmValues = false
+          serviceMonitorNamespaceSelector         = {}
+          podMonitorSelector                      = {}
+          podMonitorSelectorNilUsesHelmValues     = false
+          podMonitorNamespaceSelector             = {}
 
           podDisruptionBudget = {
             enabled      = true
@@ -281,10 +283,12 @@ resource "helm_release" "monitoring" {
           replicas = 2
 
           # Scrape all ServiceMonitors and PodMonitors (not just release=monitoring)
-          serviceMonitorSelector          = {}
-          serviceMonitorNamespaceSelector = {}
-          podMonitorSelector              = {}
-          podMonitorNamespaceSelector     = {}
+          serviceMonitorSelector                  = {}
+          serviceMonitorSelectorNilUsesHelmValues = false
+          serviceMonitorNamespaceSelector         = {}
+          podMonitorSelector                      = {}
+          podMonitorSelectorNilUsesHelmValues     = false
+          podMonitorNamespaceSelector             = {}
 
           podDisruptionBudget = {
             enabled      = true
@@ -351,10 +355,12 @@ resource "helm_release" "monitoring" {
         replicas = 2
 
         # Scrape all ServiceMonitors and PodMonitors (not just release=monitoring)
-        serviceMonitorSelector          = {}
-        serviceMonitorNamespaceSelector = {}
-        podMonitorSelector              = {}
-        podMonitorNamespaceSelector     = {}
+        serviceMonitorSelector                  = {}
+        serviceMonitorSelectorNilUsesHelmValues = false
+        serviceMonitorNamespaceSelector         = {}
+        podMonitorSelector                      = {}
+        podMonitorSelectorNilUsesHelmValues     = false
+        podMonitorNamespaceSelector             = {}
 
         podDisruptionBudget = {
           enabled      = true
