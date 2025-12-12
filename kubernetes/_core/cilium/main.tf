@@ -42,6 +42,23 @@ resource "helm_release" "cilium" {
       name  = "k8sServicePort"
       value = "6443"
     },
+    # =========================================================================
+    # IPAM Configuration - CRITICAL FOR CLUSTERMESH
+    # NL Cluster uses 10.0.0.0/16, GR Cluster uses 10.1.0.0/16
+    # This prevents pod CIDR collisions across clusters
+    # =========================================================================
+    {
+      name  = "ipam.mode"
+      value = "cluster-pool"
+    },
+    {
+      name  = "ipam.operator.clusterPoolIPv4PodCIDRList"
+      value = "10.0.0.0/16"
+    },
+    {
+      name  = "ipam.operator.clusterPoolIPv4MaskSize"
+      value = "24"
+    },
     # Networking
     {
       name  = "REDACTED_fd61d0fe"
