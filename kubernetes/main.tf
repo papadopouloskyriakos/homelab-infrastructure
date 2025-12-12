@@ -102,7 +102,8 @@ module "monitoring" {
   REDACTED_6a2724e6 = var.REDACTED_6a2724e6
   grafana_storage_size    = var.grafana_storage_size
 
-  depends_on = [module.nfs_provisioner]
+  snmp_community = var.snmp_community
+  depends_on     = [module.nfs_provisioner]
 }
 
 # NOTE: Velero has been migrated to Argo CD management (apps/velero/)

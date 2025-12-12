@@ -237,3 +237,62 @@ variable "REDACTED_928c2d3a" {
   type        = string
   default     = "nl-thanos.example.net"
 }
+***REMOVED***
+# Network Monitoring - ADD TO variables.tf
+***REMOVED***
+
+variable "snmp_community" {
+  description = "SNMP community string for ASA firewalls"
+  type        = string
+  sensitive   = true
+}
+
+***REMOVED***
+# FRR Exporter Targets
+***REMOVED***
+
+variable "frr_route_reflector_targets" {
+  description = "FRR exporter targets for route reflector VMs"
+  type        = list(string)
+  default = [
+    "10.0.X.X:9342", # NL-FRR01
+    "10.0.X.X:9342", # NL-FRR02
+    "10.0.X.X:9342", # GR-FRR01
+    "10.0.X.X:9342", # GR-FRR02
+  ]
+}
+
+variable "frr_edge_targets" {
+  description = "FRR exporter targets for edge nodes"
+  type        = list(string)
+  default = [
+    "10.255.2.11:9342", # CH Edge
+    "10.255.3.11:9342", # NO Edge
+  ]
+}
+
+***REMOVED***
+# IPsec Exporter Targets
+***REMOVED***
+
+variable "ipsec_edge_targets" {
+  description = "IPsec exporter targets for edge nodes"
+  type        = list(string)
+  default = [
+    "10.255.2.11:9536", # CH Edge
+    "10.255.3.11:9536", # NO Edge
+  ]
+}
+
+***REMOVED***
+# SNMP Targets
+***REMOVED***
+
+variable "snmp_asa_targets" {
+  description = "ASA firewall SNMP targets"
+  type        = list(string)
+  default = [
+    "10.0.X.X", # NL ASA
+    "10.0.X.X", # GR ASA
+  ]
+}
