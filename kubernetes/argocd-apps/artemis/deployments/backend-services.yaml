@@ -157,7 +157,7 @@ spec:
           command: ['sh', '-c', 'until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done']
       containers:
         - name: pg-amqp-bridge
-          image: subzerocloud/pg-amqp-bridge:0.0.6
+          image: curiouzk0d3r/pg-amqp-bridge:latest
           env:
             - name: DB_PASS
               valueFrom:
