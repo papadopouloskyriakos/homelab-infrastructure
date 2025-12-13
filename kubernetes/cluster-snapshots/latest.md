@@ -1,6 +1,6 @@
 # K8s Cluster Snapshot
 
-**Date:** 2025-12-13 02:03:56 UTC | **Host:** nlk8s-ctrl01 | **Version:** 3.1.0
+**Date:** 2025-12-13 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **Version:** 3.1.0
 
 > 📖 Full documentation: [Nuclear Lighters Infrastructure README](https://gitlab.example.net/infrastructure/nl/production/-/blob/main/README.md)
 
@@ -10,7 +10,7 @@
 |-------|--------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Warning Events (last 1h) | 4 |
+| Warning Events (last 1h) | 9 |
 
 ## Overview
 
@@ -33,15 +33,15 @@
 
 ## Nodes
 ```
-NAME                 STATUS   ROLES           AGE     VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
-nlk8s-ctrl01   Ready    control-plane   39d     v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.14.0-36-generic   containerd://2.1.5
-nlk8s-ctrl02   Ready    control-plane   37d     v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.17.2-2-pve        containerd://2.1.5
-nlk8s-ctrl03   Ready    control-plane   39d     v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.14.0-36-generic   containerd://2.1.5
-nlk8s-node01    Ready    worker          38d     v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
-nlk8s-node02    Ready    worker          38d     v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
-nlk8s-node03    Ready    worker          38d     v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
-nlk8s-node04    Ready    worker          38d     v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
-notrf01k8s-node01    Ready    worker          6d23h   v1.34.2   10.255.3.11     <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
+NAME                 STATUS   ROLES           AGE   VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+nlk8s-ctrl01   Ready    control-plane   39d   v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.14.0-36-generic   containerd://2.1.5
+nlk8s-ctrl02   Ready    control-plane   37d   v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.17.2-2-pve        containerd://2.1.5
+nlk8s-ctrl03   Ready    control-plane   39d   v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.14.0-36-generic   containerd://2.1.5
+nlk8s-node01    Ready    worker          38d   v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
+nlk8s-node02    Ready    worker          38d   v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
+nlk8s-node03    Ready    worker          38d   v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
+nlk8s-node04    Ready    worker          38d   v1.34.2   10.0.X.X   <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
+notrf01k8s-node01    Ready    worker          7d    v1.34.2   10.255.3.11     <none>        Ubuntu 24.04.3 LTS   6.8.0-88-generic    containerd://2.1.5
 ```
 
 ## Unhealthy Pods
@@ -69,24 +69,24 @@ external-secrets         external-secrets-webhook                          1/1  
 REDACTED_01b50c5d   REDACTED_ab04b573-v2                         2/2     2            2           18d
 ingress-nginx            ingress-nginx-controller                          2/2     2            2           37d
 kube-system              cilium-operator                                   1/1     1            1           14d
-kube-system              clustermesh-apiserver                             1/1     1            1           5d23h
+kube-system              clustermesh-apiserver                             1/1     1            1           6d
 kube-system              coredns                                           2/2     2            2           39d
 kube-system              hubble-relay                                      1/1     1            1           14d
 kube-system              hubble-ui                                         1/1     1            1           14d
 kube-system              metrics-server                                    1/1     1            1           38d
-REDACTED_d97cef76     REDACTED_d97cef76-api                          1/1     1            1           14h
-REDACTED_d97cef76     REDACTED_d97cef76-auth                         1/1     1            1           14h
-REDACTED_d97cef76     REDACTED_d97cef76-kong                         1/1     1            1           14h
-REDACTED_d97cef76     REDACTED_d97cef76-metrics-scraper              1/1     1            1           14h
-REDACTED_d97cef76     REDACTED_d97cef76-web                          1/1     1            1           14h
+REDACTED_d97cef76     REDACTED_d97cef76-api                          1/1     1            1           15h
+REDACTED_d97cef76     REDACTED_d97cef76-auth                         1/1     1            1           15h
+REDACTED_d97cef76     REDACTED_d97cef76-kong                         1/1     1            1           15h
+REDACTED_d97cef76     REDACTED_d97cef76-metrics-scraper              1/1     1            1           15h
+REDACTED_d97cef76     REDACTED_d97cef76-web                          1/1     1            1           15h
 monitoring               monitoring-grafana                                2/2     2            2           15d
 monitoring               monitoring-kube-prometheus-operator               1/1     1            1           37d
 monitoring               monitoring-kube-state-metrics                     1/1     1            1           37d
-monitoring               snmp-exporter                                     1/1     1            1           6h6m
-monitoring               thanos-query                                      2/2     2            2           26h
+monitoring               snmp-exporter                                     1/1     1            1           7h2m
+monitoring               thanos-query                                      2/2     2            2           27h
 nfs-provisioner          nfs-provisioner-REDACTED_5fef70be   1/1     1            1           37d
 pihole                   pihole                                            1/1     1            1           13d
-seaweedfs                seaweedfs-filer-sync                              1/1     1            1           33h
+seaweedfs                seaweedfs-filer-sync                              1/1     1            1           34h
 velero                   velero                                            1/1     1            1           17d
 velero                   velero-ui                                         1/1     1            1           17d
 ```
@@ -100,11 +100,11 @@ cilium-spire   spire-server                                           1/1     14
 logging        loki                                                   1/1     12d
 monitoring     alertmanager-monitoring-kube-prometheus-alertmanager   2/2     15d
 monitoring     prometheus-REDACTED_6dfbe9fc       2/2     15d
-monitoring     thanos-compactor                                       1/1     26h
-monitoring     thanos-store                                           2/2     26h
-seaweedfs      seaweedfs-filer                                        2/2     2d3h
-seaweedfs      seaweedfs-master                                       3/3     2d3h
-seaweedfs      seaweedfs-volume                                       2/2     2d3h
+monitoring     thanos-compactor                                       1/1     27h
+monitoring     thanos-store                                           2/2     27h
+seaweedfs      seaweedfs-filer                                        2/2     2d4h
+seaweedfs      seaweedfs-master                                       3/3     2d4h
+seaweedfs      seaweedfs-volume                                       2/2     2d4h
 synology-csi   synology-csi-controller                                1/1     15d
 ```
 
@@ -112,7 +112,7 @@ synology-csi   synology-csi-controller                                1/1     15
 ```
 NAMESPACE       NAME                       TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)                      AGE
 ingress-nginx   ingress-nginx-controller   LoadBalancer   10.103.32.106    10.0.X.X   80:31689/TCP,443:30327/TCP   37d
-kube-system     clustermesh-apiserver      LoadBalancer   10.102.123.248   10.0.X.X   2379:30462/TCP               5d23h
+kube-system     clustermesh-apiserver      LoadBalancer   10.102.123.248   10.0.X.X   2379:30462/TCP               6d
 kube-system     hubble-relay-lb            LoadBalancer   10.110.32.130    10.0.X.X   80:30629/TCP                 14d
 logging         promtail-syslog            LoadBalancer   10.105.64.19     10.0.X.X   514:30623/TCP                12d
 pihole          pihole-dns-lb              LoadBalancer   10.99.196.72     10.0.X.X   53:31803/UDP                 14d
@@ -125,15 +125,15 @@ NAMESPACE              NAME                   CLASS    HOSTS                    
 argocd                 argocd-server          nginx    argocd.example.net          10.0.X.X   80, 443   17d
 awx                    awx                    nginx    awx.example.net             10.0.X.X   80        16d
 bentopdf               bentopdf               nginx    bentopdf.example.net        10.0.X.X   80        13d
-kube-system            hubble-ui              nginx    nl-hubble.example.net       10.0.X.X   80        25h
-REDACTED_d97cef76   REDACTED_d97cef76   nginx    nl-k8s.example.net          10.0.X.X   80        14h
-monitoring             goldpinger             nginx    goldpinger.example.net      10.0.X.X   80        5d2h
+kube-system            hubble-ui              nginx    nl-hubble.example.net       10.0.X.X   80        26h
+REDACTED_d97cef76   REDACTED_d97cef76   nginx    nl-k8s.example.net          10.0.X.X   80        15h
+monitoring             goldpinger             nginx    goldpinger.example.net      10.0.X.X   80        5d3h
 monitoring             grafana                nginx    grafana.example.net         10.0.X.X   80        16d
-monitoring             prometheus             nginx    nl-prometheus.example.net   10.0.X.X   80        4h55m
-monitoring             thanos-query           nginx    nl-thanos.example.net       10.0.X.X   80        26h
+monitoring             prometheus             nginx    nl-prometheus.example.net   10.0.X.X   80        5h52m
+monitoring             thanos-query           nginx    nl-thanos.example.net       10.0.X.X   80        27h
 pihole                 pihole-ingress         nginx    pihole.example.net          10.0.X.X   80        18d
-seaweedfs              seaweedfs-master       <none>   nl-seaweedfs.example.net    10.0.X.X   80        2d2h
-seaweedfs              seaweedfs-s3           <none>   nl-s3.example.net           10.0.X.X   80        2d2h
+seaweedfs              seaweedfs-master       <none>   nl-seaweedfs.example.net    10.0.X.X   80        2d3h
+seaweedfs              seaweedfs-s3           <none>   nl-s3.example.net           10.0.X.X   80        2d3h
 velero                 velero-ui              nginx    velero.example.net          10.0.X.X   80        17d
 ```
 
@@ -146,20 +146,20 @@ cilium-spire   spire-data-spire-server-0                                        
 logging        storage-loki-0                                                                                                   Bound    pvc-ead084c7-26e8-459a-99f8-93ffb62b82e9   10Gi       RWO            REDACTED_4f3da73d   <unset>                 12d
 monitoring     alertmanager-monitoring-kube-prometheus-alertmanager-db-alertmanager-monitoring-kube-prometheus-alertmanager-0   Bound    REDACTED_3f07e323   10Gi       RWO            REDACTED_4f3da73d   <unset>                 15d
 monitoring     alertmanager-monitoring-kube-prometheus-alertmanager-db-alertmanager-monitoring-kube-prometheus-alertmanager-1   Bound    REDACTED_c70a75d3   10Gi       RWO            REDACTED_4f3da73d   <unset>                 15d
-monitoring     data-thanos-compactor-0                                                                                          Bound    pvc-084b276c-cd96-418b-b812-8ab544f266e0   50Gi       RWO            REDACTED_4f3da73d   <unset>                 26h
-monitoring     data-thanos-store-0                                                                                              Bound    pvc-4626b504-0d0e-400f-bcad-11bac07a620e   20Gi       RWO            REDACTED_4f3da73d   <unset>                 26h
+monitoring     data-thanos-compactor-0                                                                                          Bound    pvc-084b276c-cd96-418b-b812-8ab544f266e0   50Gi       RWO            REDACTED_4f3da73d   <unset>                 27h
+monitoring     data-thanos-store-0                                                                                              Bound    pvc-4626b504-0d0e-400f-bcad-11bac07a620e   20Gi       RWO            REDACTED_4f3da73d   <unset>                 27h
 monitoring     data-thanos-store-1                                                                                              Bound    pvc-8131f71b-9d24-4dff-9921-a7c29f7e685f   20Gi       RWO            REDACTED_4f3da73d   <unset>                 26h
 monitoring     monitoring-grafana                                                                                               Bound    pvc-55805781-0f58-4d80-9074-a62cec165932   20Gi       RWO            nfs-client                                <unset>                 15d
 monitoring     prometheus-REDACTED_6dfbe9fc-db-prometheus-REDACTED_6dfbe9fc-0           Bound    REDACTED_b1b2f2d4   200Gi      RWO            REDACTED_4f3da73d   <unset>                 15d
 monitoring     prometheus-REDACTED_6dfbe9fc-db-prometheus-REDACTED_6dfbe9fc-1           Bound    REDACTED_628b3ba4   200Gi      RWO            REDACTED_4f3da73d   <unset>                 15d
 pihole         pihole-data                                                                                                      Bound    pvc-b45463d9-aa5b-483e-92b8-54fee6635219   1Gi        RWO            nfs-client                                <unset>                 18d
-seaweedfs      data-filer-seaweedfs-filer-0                                                                                     Bound    pvc-e574729a-4132-468f-b4af-d88ce08468f0   20Gi       RWO            REDACTED_b280aec5   <unset>                 2d3h
-seaweedfs      data-filer-seaweedfs-filer-1                                                                                     Bound    pvc-42bee4bd-ab46-42be-8ccd-642ec74221ee   20Gi       RWO            REDACTED_b280aec5   <unset>                 2d3h
-seaweedfs      data-seaweedfs-seaweedfs-master-0                                                                                Bound    pvc-39f3167b-3e0e-42e3-a75d-72873e0a7bfd   10Gi       RWO            REDACTED_b280aec5   <unset>                 2d3h
-seaweedfs      data-seaweedfs-seaweedfs-master-1                                                                                Bound    pvc-4a8dfc7c-b16a-44b5-9cc4-333d0a1701a4   10Gi       RWO            REDACTED_b280aec5   <unset>                 2d3h
-seaweedfs      data-seaweedfs-seaweedfs-master-2                                                                                Bound    pvc-f0189cfc-c9df-4767-b6e5-8aa6b18c86e2   10Gi       RWO            REDACTED_b280aec5   <unset>                 2d3h
-seaweedfs      data-seaweedfs-volume-0                                                                                          Bound    pvc-07566600-8138-491c-81cc-91980c3e6439   500Gi      RWO            REDACTED_b280aec5   <unset>                 2d3h
-seaweedfs      data-seaweedfs-volume-1                                                                                          Bound    pvc-0aae4175-8eae-4b7b-bede-f4567046720c   500Gi      RWO            REDACTED_b280aec5   <unset>                 2d3h
+seaweedfs      data-filer-seaweedfs-filer-0                                                                                     Bound    pvc-e574729a-4132-468f-b4af-d88ce08468f0   20Gi       RWO            REDACTED_b280aec5   <unset>                 2d4h
+seaweedfs      data-filer-seaweedfs-filer-1                                                                                     Bound    pvc-42bee4bd-ab46-42be-8ccd-642ec74221ee   20Gi       RWO            REDACTED_b280aec5   <unset>                 2d4h
+seaweedfs      data-seaweedfs-seaweedfs-master-0                                                                                Bound    pvc-39f3167b-3e0e-42e3-a75d-72873e0a7bfd   10Gi       RWO            REDACTED_b280aec5   <unset>                 2d4h
+seaweedfs      data-seaweedfs-seaweedfs-master-1                                                                                Bound    pvc-4a8dfc7c-b16a-44b5-9cc4-333d0a1701a4   10Gi       RWO            REDACTED_b280aec5   <unset>                 2d4h
+seaweedfs      data-seaweedfs-seaweedfs-master-2                                                                                Bound    pvc-f0189cfc-c9df-4767-b6e5-8aa6b18c86e2   10Gi       RWO            REDACTED_b280aec5   <unset>                 2d4h
+seaweedfs      data-seaweedfs-volume-0                                                                                          Bound    pvc-07566600-8138-491c-81cc-91980c3e6439   500Gi      RWO            REDACTED_b280aec5   <unset>                 2d4h
+seaweedfs      data-seaweedfs-volume-1                                                                                          Bound    pvc-0aae4175-8eae-4b7b-bede-f4567046720c   500Gi      RWO            REDACTED_b280aec5   <unset>                 2d4h
 ```
 
 ## Helm Releases
@@ -191,17 +191,22 @@ argocd      velero     Synced        Healthy
 ## Velero Schedules
 ```
 NAME            STATUS    SCHEDULE    LASTBACKUP   AGE   PAUSED
-daily-backup    Enabled   0 2 * * *   4m10s        17d   
-weekly-backup   Enabled   0 3 * * 0   5d23h        17d   
+daily-backup    Enabled   0 2 * * *   60m          17d   
+weekly-backup   Enabled   0 3 * * 0   6d           17d   
 ```
 
 ## Warning Events (Recent)
 ```
 NAMESPACE      LAST SEEN   TYPE      REASON             OBJECT                                  MESSAGE
-kube-system    54m         Warning   Unhealthy          pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system    2m53s       Warning   DNSConfigForming   pod/cilium-rhcsd                        Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-kube-system    58s         Warning   DNSConfigForming   pod/cilium-envoy-6ws74                  Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-synology-csi   8s          Warning   DNSConfigForming   pod/synology-csi-node-n4rjm             Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+cilium-spire   53m         Warning   NodeNotReady       pod/spire-agent-zkhs6                   Node is not ready
+kube-system    53m         Warning   NodeNotReady       pod/cilium-envoy-6ws74                  Node is not ready
+kube-system    53m         Warning   NodeNotReady       pod/cilium-rhcsd                        Node is not ready
+monitoring     53m         Warning   NodeNotReady       pod/goldpinger-plxgm                    Node is not ready
+synology-csi   53m         Warning   NodeNotReady       pod/synology-csi-node-n4rjm             Node is not ready
+kube-system    10m         Warning   Unhealthy          pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system    5m6s        Warning   DNSConfigForming   pod/cilium-rhcsd                        Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    2m24s       Warning   DNSConfigForming   pod/cilium-envoy-6ws74                  Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+synology-csi   108s        Warning   DNSConfigForming   pod/synology-csi-node-n4rjm             Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
 ```
 
 ---
