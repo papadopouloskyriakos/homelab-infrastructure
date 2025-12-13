@@ -47,8 +47,6 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
-      nodeSelector:
-        kubernetes.io/role: worker
 ---
 apiVersion: v1
 kind: Service
@@ -109,8 +107,6 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
-      nodeSelector:
-        kubernetes.io/role: worker
 ---
 apiVersion: v1
 kind: Service
@@ -171,8 +167,6 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
-      nodeSelector:
-        kubernetes.io/role: worker
 ---
 apiVersion: v1
 kind: Service
@@ -233,8 +227,6 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
-      nodeSelector:
-        kubernetes.io/role: worker
 ---
 apiVersion: v1
 kind: Service
@@ -295,8 +287,6 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
-      nodeSelector:
-        kubernetes.io/role: worker
 ---
 apiVersion: v1
 kind: Service
