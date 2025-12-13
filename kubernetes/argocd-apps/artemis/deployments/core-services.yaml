@@ -517,6 +517,11 @@ spec:
                 REDACTED_5dfff400:
                   name: artemis-secrets
                   key: RABBITMQ_PASS
+            - name: DB_PASS
+              valueFrom:
+                REDACTED_5dfff400:
+                  name: artemis-secrets
+                  key: DB_PASS
           resources:
             requests:
               memory: "64Mi"
