@@ -1,0 +1,192 @@
+---
+# PostgREST - REST API for PostgreSQL
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgrest
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: postgrest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: artemis
+      app.kubernetes.io/component: postgrest
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: artemis
+        app.kubernetes.io/component: postgrest
+    spec:
+      containers:
+        - name: postgrest
+          image: postgrest/postgrest:v10.0.0
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PGRST_DB_URI
+              value: "postgres://artemis_user:$(DB_PASS)@postgres:5432/artemis_db"
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: DB_PASS
+            - name: PGRST_DB_SCHEMA
+              value: public
+            - name: PGRST_DB_ANON_ROLE
+              value: artemis_user
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      nodeSelector:
+        kubernetes.io/role: worker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgrest
+  namespace: artemis
+spec:
+  selector:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: postgrest
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+# Hasura GraphQL Engine
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: graphql
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: graphql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: artemis
+      app.kubernetes.io/component: graphql
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: artemis
+        app.kubernetes.io/component: graphql
+    spec:
+      containers:
+        - name: graphql
+          image: hasura/graphql-engine:v2.10.2
+          ports:
+            - containerPort: 8080
+          env:
+            - name: HASURA_GRAPHQL_DATABASE_URL
+              value: "postgres://artemis_user:$(DB_PASS)@postgres:5432/artemis_db"
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: DB_PASS
+            - name: HASURA_GRAPHQL_ADMIN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: HASURA_SECRET
+            - name: HASURA_GRAPHQL_ENABLE_CONSOLE
+              value: "false"
+            - name: HASURA_GRAPHQL_JWT_SECRET
+              value: '{"type":"HS256","key":"$(JWT_SECRET)"}'
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: JWT_SECRET
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "300m"
+      nodeSelector:
+        kubernetes.io/role: worker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: graphql
+  namespace: artemis
+spec:
+  selector:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: graphql
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+# pg-amqp-bridge - Connects PostgreSQL to RabbitMQ
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pg-amqp-bridge
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: pg-amqp-bridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: artemis
+      app.kubernetes.io/component: pg-amqp-bridge
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: artemis
+        app.kubernetes.io/component: pg-amqp-bridge
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done']
+        - name: wait-for-rabbitmq
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done']
+      containers:
+        - name: pg-amqp-bridge
+          image: subzerocloud/pg-amqp-bridge:0.0.6
+          env:
+            - name: RUST_LOG
+              value: info
+            - name: POSTGRESQL_URI
+              value: "postgres://artemis_user:$(DB_PASS)@postgres:5432/artemis_db"
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: DB_PASS
+            - name: AMQP_URI
+              value: "amqp://guest:$(RABBITMQ_PASS)@rabbitmq:5672/%2f"
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: RABBITMQ_PASS
+            - name: BRIDGE_CHANNELS
+              value: "events:amq.direct"
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "25m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+      nodeSelector:
+        kubernetes.io/role: worker
