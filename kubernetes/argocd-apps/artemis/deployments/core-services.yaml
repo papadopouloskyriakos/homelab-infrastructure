@@ -48,6 +48,11 @@ spec:
                 secretKeyRef:
                   name: artemis-secrets
                   key: HASURA_SECRET_KEY
+            - name: HASURA_GRAPHQL_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: HASURA_SECRET_KEY
           volumeMounts:
             - name: config
               mountPath: /etc/artemis
@@ -125,6 +130,11 @@ spec:
                   name: artemis-secrets
                   key: RABBITMQ_PASS
             - name: HASURA_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: HASURA_SECRET_KEY
+            - name: HASURA_GRAPHQL_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
                   name: artemis-secrets
@@ -430,6 +440,11 @@ spec:
                   name: artemis-secrets
                   key: RABBITMQ_PASS
             - name: HASURA_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: HASURA_SECRET_KEY
+            - name: HASURA_GRAPHQL_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
                   name: artemis-secrets
