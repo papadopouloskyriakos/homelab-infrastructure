@@ -1,0 +1,56 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: artemis
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: bgp-hijack-detection
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  # Multi-source deployment: Helm chart + local values/manifests
+  sources:
+    # Source 1: Official ARTEMIS helm chart
+    - repoURL: https://forth-ics-inspire.github.io/artemis
+      chart: artemis-chart
+      targetRevision: "*"  # Use latest, or pin to specific version like "2.0.0"
+      helm:
+        releaseName: artemis
+        valueFiles:
+          - $values/k8s/argocd-apps/artemis/values.yaml
+    # Source 2: Your GitLab repository for values and additional manifests
+    - repoURL: https://gitlab.example.net/infrastructure/nl/production.git
+      targetRevision: main
+      ref: values
+    # Source 3: Additional manifests (external-secrets, network-policy, etc.)
+    - repoURL: https://gitlab.example.net/infrastructure/nl/production.git
+      targetRevision: main
+      path: k8s/argocd-apps/artemis
+      directory:
+        include: "*.yaml"
+        exclude: "{application.yaml,values.yaml,artemis-config.yaml,README.md}"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: artemis
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      jsonPointers:
+        - /data

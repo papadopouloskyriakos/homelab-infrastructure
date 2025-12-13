@@ -1,0 +1,156 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: artemis-network-policy
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: bgp-hijack-detection
+    environment: production
+    managed-by: argocd
+spec:
+  description: "Network policy for ARTEMIS BGP hijack detection"
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: artemis
+  ingress:
+    # Allow ingress traffic from nginx-ingress controller
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: ingress-nginx
+            io.kubernetes.pod.namespace: ingress-nginx
+      toPorts:
+        - ports:
+            - port: "4200"
+              protocol: TCP
+            - port: "8080"
+              protocol: TCP
+    # Allow internal communication between ARTEMIS microservices
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: artemis
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
+            - port: "4200"
+              protocol: TCP
+            - port: "5432"
+              protocol: TCP
+            - port: "5672"
+              protocol: TCP
+            - port: "6379"
+              protocol: TCP
+            - port: "8080"
+              protocol: TCP
+            - port: "27017"
+              protocol: TCP
+    # Allow Prometheus scraping from monitoring namespace
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
+            - port: "9090"
+              protocol: TCP
+  egress:
+    # Allow DNS resolution
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    # Allow internal communication between ARTEMIS microservices
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: artemis
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
+            - port: "4200"
+              protocol: TCP
+            - port: "5432"
+              protocol: TCP
+            - port: "5672"
+              protocol: TCP
+            - port: "6379"
+              protocol: TCP
+            - port: "8080"
+              protocol: TCP
+            - port: "27017"
+              protocol: TCP
+    # Allow egress to RIPE RIS Live streaming service
+    - toFQDNs:
+        - matchName: "ris-live.ripe.net"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    # Allow egress to RouteViews streaming service
+    - toFQDNs:
+        - matchPattern: "*.routeviews.org"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+            - port: "8282"
+              protocol: TCP
+    # Allow egress to CAIDA BGPStream services
+    - toFQDNs:
+        - matchPattern: "*.caida.org"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    # Allow egress for RPKI validation (if routinator enabled)
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: routinator
+      toPorts:
+        - ports:
+            - port: "3323"
+              protocol: TCP
+---
+# Additional policy for database persistence
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: artemis-postgres-policy
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: database
+    environment: production
+    managed-by: argocd
+spec:
+  description: "Network policy for ARTEMIS PostgreSQL database"
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/component: postgres
+  ingress:
+    # Only allow connections from ARTEMIS services
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: artemis
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+  egress:
+    # Allow DNS
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
