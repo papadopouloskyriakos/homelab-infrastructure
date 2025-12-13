@@ -26,13 +26,13 @@ spec:
           ports:
             - containerPort: 3000
           env:
-            - name: PGRST_DB_URI
-              value: "postgres://artemis_user:$(DB_PASS)@postgres:5432/artemis_db"
             - name: DB_PASS
               valueFrom:
                 secretKeyRef:
                   name: artemis-secrets
                   key: DB_PASS
+            - name: PGRST_DB_URI
+              value: "postgres://artemis_user:$(DB_PASS)@postgres:5432/artemis_db"
             - name: PGRST_DB_SCHEMA
               value: public
             - name: PGRST_DB_ANON_ROLE
@@ -85,13 +85,18 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: HASURA_GRAPHQL_DATABASE_URL
-              value: "postgres://artemis_user:$(DB_PASS)@postgres:5432/artemis_db"
             - name: DB_PASS
               valueFrom:
                 secretKeyRef:
                   name: artemis-secrets
                   key: DB_PASS
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: JWT_SECRET
+            - name: HASURA_GRAPHQL_DATABASE_URL
+              value: "postgres://artemis_user:$(DB_PASS)@postgres:5432/artemis_db"
             - name: HASURA_GRAPHQL_ADMIN_SECRET
               valueFrom:
                 secretKeyRef:
@@ -101,11 +106,6 @@ spec:
               value: "false"
             - name: HASURA_GRAPHQL_JWT_SECRET
               value: '{"type":"HS256","key":"$(JWT_SECRET)"}'
-            - name: JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: artemis-secrets
-                  key: JWT_SECRET
           resources:
             requests:
               memory: "128Mi"
@@ -159,22 +159,22 @@ spec:
         - name: pg-amqp-bridge
           image: subzerocloud/pg-amqp-bridge:0.0.6
           env:
-            - name: RUST_LOG
-              value: info
-            - name: POSTGRESQL_URI
-              value: "postgres://artemis_user:$(DB_PASS)@postgres:5432/artemis_db"
             - name: DB_PASS
               valueFrom:
                 secretKeyRef:
                   name: artemis-secrets
                   key: DB_PASS
-            - name: AMQP_URI
-              value: "amqp://guest:$(RABBITMQ_PASS)@rabbitmq:5672/%2f"
             - name: RABBITMQ_PASS
               valueFrom:
                 secretKeyRef:
                   name: artemis-secrets
                   key: RABBITMQ_PASS
+            - name: RUST_LOG
+              value: info
+            - name: POSTGRESQL_URI
+              value: "postgres://artemis_user:$(DB_PASS)@postgres:5432/artemis_db"
+            - name: AMQP_URI
+              value: "amqp://guest:$(RABBITMQ_PASS)@rabbitmq:5672/%2f"
             - name: BRIDGE_CHANNELS
               value: "events:amq.direct"
           resources:
