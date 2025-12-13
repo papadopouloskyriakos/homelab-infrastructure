@@ -9,7 +9,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: synology-iscsi-storage
+  storageClassName: synology-csi-iscsi-retain
   resources:
     requests:
       storage: 10Gi
@@ -25,7 +25,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: synology-iscsi-storage
+  storageClassName: synology-csi-iscsi-retain
   resources:
     requests:
       storage: 5Gi
@@ -41,7 +41,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: synology-iscsi-storage
+  storageClassName: synology-csi-iscsi-retain
   resources:
     requests:
       storage: 2Gi
