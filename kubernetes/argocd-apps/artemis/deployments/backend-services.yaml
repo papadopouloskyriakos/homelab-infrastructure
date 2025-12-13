@@ -90,22 +90,22 @@ spec:
                 secretKeyRef:
                   name: artemis-secrets
                   key: DB_PASS
-            - name: JWT_SECRET
+            - name: JWT_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: artemis-secrets
-                  key: JWT_SECRET
+                  key: JWT_SECRET_KEY
             - name: HASURA_GRAPHQL_DATABASE_URL
               value: "postgres://artemis_user:$(DB_PASS)@postgres:5432/artemis_db"
             - name: HASURA_GRAPHQL_ADMIN_SECRET
               valueFrom:
                 secretKeyRef:
                   name: artemis-secrets
-                  key: HASURA_SECRET
+                  key: HASURA_SECRET_KEY
             - name: HASURA_GRAPHQL_ENABLE_CONSOLE
               value: "false"
             - name: HASURA_GRAPHQL_JWT_SECRET
-              value: '{"type":"HS256","key":"$(JWT_SECRET)"}'
+              value: '{"type":"HS256","key":"$(JWT_SECRET_KEY)"}'
           resources:
             requests:
               memory: "128Mi"
