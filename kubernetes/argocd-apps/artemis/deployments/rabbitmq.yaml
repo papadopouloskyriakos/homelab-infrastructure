@@ -66,8 +66,6 @@ spec:
         - name: rabbitmq-data
           REDACTED_33feff97:
             claimName: rabbitmq-data
-      nodeSelector:
-        kubernetes.io/role: worker
 ---
 apiVersion: v1
 kind: Service
