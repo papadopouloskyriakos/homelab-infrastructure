@@ -862,6 +862,7 @@ resource "kubernetes_service_v1" "thanos_store_global" {
     }
     annotations = {
       "service.cilium.io/global" = "true"
+      "service.cilium.io/shared" = "true"
     }
   }
 
@@ -901,6 +902,7 @@ resource "kubernetes_service_v1" "thanos_store_remote" {
     }
     annotations = {
       "service.cilium.io/global" = "true"
+      "service.cilium.io/shared" = "true"
       "description"              = "Stub service for ${var.remote_site_code} Thanos Store - endpoints via Cluster Mesh"
     }
   }
