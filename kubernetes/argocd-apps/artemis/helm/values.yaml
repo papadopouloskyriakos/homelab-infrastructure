@@ -226,7 +226,7 @@ services:
 # Ingress Configuration
 ***REMOVED***
 ingress:
-  enabled: true
+  enabled: false
   host: artemis.example.net
   tlsEnabled: true
   annotations:
