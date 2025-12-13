@@ -54,7 +54,7 @@ spec:
                 - ping
             initialDelaySeconds: 60
             timeoutSeconds: 10
-            periodSeconds: 10
+            periodSeconds: 30
           readinessProbe:
             exec:
               command:
@@ -63,7 +63,7 @@ spec:
                 - ping
             initialDelaySeconds: 30
             timeoutSeconds: 10
-            periodSeconds: 5
+            periodSeconds: 10
       volumes:
         - name: rabbitmq-data
           REDACTED_33feff97:
