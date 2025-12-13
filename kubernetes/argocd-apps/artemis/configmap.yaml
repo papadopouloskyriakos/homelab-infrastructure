@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: artemis-config
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: bgp-hijack-detection
+    environment: production
+    managed-by: argocd
+data:
+  config.yaml: |
+    prefixes:
+      nuclearlighters_v6: &nuclearlighters_v6
+        - "2a0c:9a40:8e20::/48"
+
+    asns:
+      my_asn: &my_asn
+        - 214304
+      transit_asns: &transit_asns
+        - 34927  # iFog GmbH
+        - 56655  # Terrahost
+
+    monitors:
+      riperis:
+        - rrc00
+        - rrc03
+        - rrc12
+        - rrc21
+        - rrc25
+      bgpstreamlive:
+        - routeviews
+        - ris
+
+    rules:
+      - prefixes:
+          - *nuclearlighters_v6
+        origin_asns:
+          - *my_asn
