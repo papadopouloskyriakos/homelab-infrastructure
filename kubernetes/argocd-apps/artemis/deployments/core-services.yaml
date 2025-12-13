@@ -43,11 +43,11 @@ spec:
                 secretKeyRef:
                   name: artemis-secrets
                   key: RABBITMQ_PASS
-            - name: HASURA_SECRET
+            - name: HASURA_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: artemis-secrets
-                  key: HASURA_SECRET
+                  key: HASURA_SECRET_KEY
           volumeMounts:
             - name: config
               mountPath: /etc/artemis
@@ -124,11 +124,11 @@ spec:
                 secretKeyRef:
                   name: artemis-secrets
                   key: RABBITMQ_PASS
-            - name: HASURA_SECRET
+            - name: HASURA_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: artemis-secrets
-                  key: HASURA_SECRET
+                  key: HASURA_SECRET_KEY
           resources:
             requests:
               memory: "64Mi"
@@ -429,11 +429,11 @@ spec:
                 secretKeyRef:
                   name: artemis-secrets
                   key: RABBITMQ_PASS
-            - name: HASURA_SECRET
+            - name: HASURA_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: artemis-secrets
-                  key: HASURA_SECRET
+                  key: HASURA_SECRET_KEY
           volumeMounts:
             - name: config
               mountPath: /etc/artemis
