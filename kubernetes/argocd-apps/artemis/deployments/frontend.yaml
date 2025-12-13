@@ -51,17 +51,17 @@ spec:
               value: graphql
             - name: HASURA_PORT
               value: "8080"
-            - name: HASURA_SECRET
+            - name: HASURA_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: artemis-secrets
-                  key: HASURA_SECRET
+                  key: HASURA_SECRET_KEY
             # JWT
-            - name: JWT_SECRET
+            - name: JWT_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: artemis-secrets
-                  key: JWT_SECRET
+                  key: JWT_SECRET_KEY
             # CSRF
             - name: CSRF_SECRET
               valueFrom:
