@@ -517,6 +517,11 @@ spec:
                 secretKeyRef:
                   name: artemis-secrets
                   key: RABBITMQ_PASS
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: DB_PASS
           resources:
             requests:
               memory: "64Mi"
