@@ -275,3 +275,15 @@ probes:
     failureThreshold: 3
     periodSeconds: 10
     initialDelaySeconds: 30
+
+***REMOVED***
+***REMOVED***
+# Secrets (required by helm chart)
+***REMOVED***
+hasuraSecret: "OWsBkRuAeTGsPTauickOqI29Az84HONuNkGnhHqLtQt8gZq1nB8b8tne1sKZL2L8
+atmkaCz7D01Pt7LPZ4GRsQ=="
+jwtSecret: "IVxxbRLFXUXu1oGpiW2HzyOvTAck4BS0nwB1utnH1gzM9O+an15oTo5G7EuVOgTC
+3GxhQw9jcPFXI6lEs59g4w=="
+csrfSecret: "wtrDA5YC6ay5lWLDxNpSthXku31FmL0ImyRVarbi9us="
+apiKey: "d1iXo/x+1HBws3pSSnNwVoA4DWXqcNdD2/i8nZNflas="
+captchaSecret: "VROAsvD7a9h7yHKBydGTkqUnPt+uJfOBi6fl0M0zSTU="
