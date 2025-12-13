@@ -6,5 +6,3 @@ metadata:
     app.kubernetes.io/name: artemis
     app.kubernetes.io/component: bgp-hijack-detection
     environment: production
-    managed-by: argocd
-    repository: REDACTED_25022d4e
