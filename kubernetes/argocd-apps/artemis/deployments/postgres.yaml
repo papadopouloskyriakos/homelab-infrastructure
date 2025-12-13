@@ -70,8 +70,6 @@ spec:
         - name: postgres-data
           REDACTED_33feff97:
             claimName: postgres-data
-      nodeSelector:
-        kubernetes.io/role: worker
 ---
 apiVersion: v1
 kind: Service
