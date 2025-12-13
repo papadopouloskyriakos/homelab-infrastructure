@@ -52,7 +52,8 @@ spec:
                 - rabbitmq-diagnostics
                 - -q
                 - ping
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
             periodSeconds: 10
           readinessProbe:
             exec:
@@ -60,7 +61,8 @@ spec:
                 - rabbitmq-diagnostics
                 - -q
                 - ping
-            initialDelaySeconds: 10
+            initialDelaySeconds: 30
+            timeoutSeconds: 10
             periodSeconds: 5
       volumes:
         - name: rabbitmq-data
