@@ -19,7 +19,7 @@ spec:
       helm:
         releaseName: artemis
         valueFiles:
-          - $values/k8s/argocd-apps/artemis/values.yaml
+          - $values/k8s/argocd-apps/artemis/helm/values.yaml
     # Source 2: Your GitLab repository for values and additional manifests
     - repoURL: https://gitlab.example.net/infrastructure/nl/production.git
       targetRevision: main
