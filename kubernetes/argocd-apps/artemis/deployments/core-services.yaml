@@ -124,6 +124,11 @@ spec:
                 secretKeyRef:
                   name: artemis-secrets
                   key: RABBITMQ_PASS
+            - name: HASURA_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: HASURA_SECRET
           resources:
             requests:
               memory: "64Mi"
