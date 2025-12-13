@@ -1,0 +1,113 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: artemis
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: bgp-hijack-detection
+    environment: production
+    managed-by: argocd
+    release: REDACTED_d8074874
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: artemis
+  namespaceSelector:
+    matchNames:
+      - artemis
+  endpoints:
+    # Frontend metrics
+    - port: frontend
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+    # Backend service metrics
+    - port: backend
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+# PrometheusRule for ARTEMIS alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: artemis-alerts
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: bgp-hijack-detection
+    environment: production
+    managed-by: argocd
+    release: REDACTED_d8074874
+spec:
+  groups:
+    - name: artemis.rules
+      interval: 30s
+      rules:
+        # Alert when ARTEMIS detects a BGP hijack
+        - alert: ARTEMISBGPHijackDetected
+          annotations:
+            summary: "BGP hijack detected by ARTEMIS"
+            description: "ARTEMIS has detected a potential BGP hijack event. Check the ARTEMIS dashboard for details."
+            runbook_url: "https://artemis.example.net"
+          expr: |
+            increase(artemis_hijacks_detected_total[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+            service: artemis
+            team: network
+
+        # Alert when ARTEMIS services are down
+        - alert: ARTEMISServiceDown
+          annotations:
+            summary: "ARTEMIS service is down"
+            description: "One or more ARTEMIS services have been down for more than 5 minutes."
+          expr: |
+            up{job=~"artemis.*"} == 0
+          for: 5m
+          labels:
+            severity: warning
+            service: artemis
+            team: network
+
+        # Alert when no BGP updates received for extended period
+        - alert: ARTEMISNoBGPUpdates
+          annotations:
+            summary: "No BGP updates received"
+            description: "ARTEMIS has not received BGP updates for more than 30 minutes. Check monitor connectivity."
+          expr: |
+            time() - artemis_last_bgp_update_timestamp > 1800
+          for: 5m
+          labels:
+            severity: warning
+            service: artemis
+            team: network
+
+        # Alert when ARTEMIS database is getting full
+        - alert: ARTEMISDatabaseStorageHigh
+          annotations:
+            summary: "ARTEMIS database storage usage high"
+            description: "ARTEMIS PostgreSQL database storage usage is above 80%."
+          expr: |
+            (kubelet_volume_stats_used_bytes{persistentvolumeclaim=~"artemis-postgres.*"} 
+            / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~"artemis-postgres.*"}) * 100 > 80
+          for: 15m
+          labels:
+            severity: warning
+            service: artemis
+            team: network
+
+        # Alert for ARTEMIS pod restarts
+        - alert: ARTEMISPodRestarting
+          annotations:
+            summary: "ARTEMIS pod is restarting frequently"
+            description: "ARTEMIS pod {{ $labels.pod }} has restarted {{ $value }} times in the last hour."
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="artemis"}[1h]) > 3
+          for: 0m
+          labels:
+            severity: warning
+            service: artemis
+            team: network
