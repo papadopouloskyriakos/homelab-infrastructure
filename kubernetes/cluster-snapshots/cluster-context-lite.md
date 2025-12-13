@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2025-12-12 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2025-12-13 02:03:56 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,13 +11,13 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 150 |
+| Total Restarts | 194 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.18.4
 - **Nodes:** 8 (3 control-plane, 5 workers)
-- **Pods:** 133
+- **Pods:** 138
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:3795Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -38,23 +38,25 @@ _None_
 kube-system/etcd-nlk8s-ctrl01: 7 restarts
 kube-system/etcd-nlk8s-ctrl02: 5 restarts
 kube-system/etcd-nlk8s-ctrl03: 4 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 26 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 27 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 5 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 5 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 23 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl02: 11 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl03: 14 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl03: 15 restarts
 kube-system/kube-scheduler-nlk8s-ctrl01: 17 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 12 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 13 restarts
+monitoring/goldpinger-qs5xt: 4 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956swwjx: 5 restarts
 
 ### Recent Warnings (5)
 ```
 NAMESPACE      LAST SEEN   TYPE      REASON             OBJECT                                  MESSAGE
-kube-system    57m         Warning   Unhealthy          pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system    75s         Warning   DNSConfigForming   pod/cilium-envoy-6ws74                  Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-synology-csi   64s         Warning   DNSConfigForming   pod/synology-csi-node-n4rjm             Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-kube-system    9s          Warning   DNSConfigForming   pod/cilium-rhcsd                        Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    54m         Warning   Unhealthy          pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system    2m56s       Warning   DNSConfigForming   pod/cilium-rhcsd                        Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    61s         Warning   DNSConfigForming   pod/cilium-envoy-6ws74                  Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+synology-csi   11s         Warning   DNSConfigForming   pod/synology-csi-node-n4rjm             Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
 ```
 
 ## Key Resources
@@ -74,9 +76,10 @@ pihole/pihole-dns-tcp-lb: 10.0.X.X -> 53:30438/TCP
 - awx.example.net → awx/awx
 - bentopdf.example.net → bentopdf/bentopdf
 - nl-hubble.example.net → kube-system/hubble-ui
-- k8s.example.net → REDACTED_d97cef76/REDACTED_d97cef76
+- nl-k8s.example.net → REDACTED_d97cef76/REDACTED_d97cef76
 - goldpinger.example.net → monitoring/goldpinger
 - grafana.example.net → monitoring/grafana
+- nl-prometheus.example.net → monitoring/prometheus
 - nl-thanos.example.net → monitoring/thanos-query
 - pihole.example.net → pihole/pihole-ingress
 - nl-seaweedfs.example.net → seaweedfs/seaweedfs-master
@@ -90,6 +93,7 @@ pihole/pihole-dns-tcp-lb: 10.0.X.X -> 53:30438/TCP
 - external-secrets (external-secrets-0.12.1) in external-secrets
 - ingress-nginx (ingress-nginx-4.14.0) in ingress-nginx
 - k8s-agent (gitlab-agent-2.21.1) in REDACTED_01b50c5d
+- REDACTED_d97cef76 (REDACTED_d97cef76-7.14.0) in REDACTED_d97cef76
 - loki (loki-6.46.0) in logging
 - monitoring (REDACTED_d8074874-79.10.0) in monitoring
 - nfs-provisioner (REDACTED_5fef70be-4.0.18) in nfs-provisioner
