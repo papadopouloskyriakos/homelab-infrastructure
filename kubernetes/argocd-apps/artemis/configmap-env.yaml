@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: artemis-env
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+data:
+  # General
+  GUI_ENABLED: "true"
+  HISTORIC: "false"
+  
+  # Database
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "artemis_db"
+  DB_USER: "artemis_user"
+  DB_SCHEMA: "public"
+  DB_VERSION: "24"
+  DB_AUTOCLEAN: "false"
+  DB_BACKUP: "true"
+  
+  # Redis
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  
+  # RabbitMQ
+  RABBITMQ_HOST: "rabbitmq"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_USER: "guest"
+  
+  # MongoDB
+  MONGODB_HOST: "mongodb"
+  MONGODB_PORT: "27017"
+  MONGODB_NAME: "artemis-web"
+  MONGODB_USER: "admin"
+  
+  # Hasura/GraphQL
+  HASURA_HOST: "graphql"
+  HASURA_PORT: "8080"
+  HASURA_GUI: "false"
+  
+  # API
+  API_HOST: "postgrest"
+  API_PORT: "3000"
+  REST_PORT: "3000"
+  CONFIG_HOST: "configuration"
+  CONFIG_PORT: "3000"
+  DATABASE_HOST: "database"
+  
+  # Frontend
+  WEBAPP_HOST: "frontend"
+  WEBAPP_PORT: "4200"
+  
+  # Monitor settings
+  MON_TIMEOUT_LAST_BGP_UPDATE: "3600"
+  
+  # RPKI (disabled)
+  RPKI_VALIDATOR_ENABLED: "false"
+  
+  # Test environment
+  TEST_ENV: "false"
+  AUTO_RECOVER_PROCESS_STATE: "true"
