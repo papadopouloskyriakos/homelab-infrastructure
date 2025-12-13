@@ -49,8 +49,6 @@ spec:
                 - ping
             initialDelaySeconds: 5
             periodSeconds: 5
-      nodeSelector:
-        kubernetes.io/role: worker
 ---
 apiVersion: v1
 kind: Service
