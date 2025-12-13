@@ -1,0 +1,587 @@
+---
+# Configuration service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: configuration
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: configuration
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: artemis
+      app.kubernetes.io/component: configuration
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: artemis
+        app.kubernetes.io/component: configuration
+    spec:
+      initContainers:
+        - name: wait-for-rabbitmq
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done']
+      containers:
+        - name: configuration
+          image: inspiregroup/artemis-configuration:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: artemis-env
+          env:
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: DB_PASS
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: RABBITMQ_PASS
+          volumeMounts:
+            - name: config
+              mountPath: /etc/artemis
+              readOnly: true
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: config
+          configMap:
+            name: artemis-config
+      nodeSelector:
+        kubernetes.io/role: worker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: configuration
+  namespace: artemis
+spec:
+  selector:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: configuration
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+# Database microservice
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: artemis
+      app.kubernetes.io/component: database
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: artemis
+        app.kubernetes.io/component: database
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done']
+        - name: wait-for-rabbitmq
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done']
+      containers:
+        - name: database
+          image: inspiregroup/artemis-database:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: artemis-env
+          env:
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: DB_PASS
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: RABBITMQ_PASS
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      nodeSelector:
+        kubernetes.io/role: worker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: database
+  namespace: artemis
+spec:
+  selector:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: database
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+# Detection service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: detection
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: detection
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: artemis
+      app.kubernetes.io/component: detection
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: artemis
+        app.kubernetes.io/component: detection
+    spec:
+      initContainers:
+        - name: wait-for-rabbitmq
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done']
+      containers:
+        - name: detection
+          image: inspiregroup/artemis-detection:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: artemis-env
+          env:
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: RABBITMQ_PASS
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      nodeSelector:
+        kubernetes.io/role: worker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: detection
+  namespace: artemis
+spec:
+  selector:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: detection
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+# Mitigation service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mitigation
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: mitigation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: artemis
+      app.kubernetes.io/component: mitigation
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: artemis
+        app.kubernetes.io/component: mitigation
+    spec:
+      initContainers:
+        - name: wait-for-rabbitmq
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done']
+      containers:
+        - name: mitigation
+          image: inspiregroup/artemis-mitigation:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: artemis-env
+          env:
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: RABBITMQ_PASS
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      nodeSelector:
+        kubernetes.io/role: worker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mitigation
+  namespace: artemis
+spec:
+  selector:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: mitigation
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+# Notifier service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notifier
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: notifier
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: artemis
+      app.kubernetes.io/component: notifier
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: artemis
+        app.kubernetes.io/component: notifier
+    spec:
+      initContainers:
+        - name: wait-for-rabbitmq
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done']
+      containers:
+        - name: notifier
+          image: inspiregroup/artemis-notifier:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: artemis-env
+          env:
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: RABBITMQ_PASS
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      nodeSelector:
+        kubernetes.io/role: worker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notifier
+  namespace: artemis
+spec:
+  selector:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: notifier
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+# Prefixtree service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prefixtree
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: prefixtree
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: artemis
+      app.kubernetes.io/component: prefixtree
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: artemis
+        app.kubernetes.io/component: prefixtree
+    spec:
+      initContainers:
+        - name: wait-for-rabbitmq
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done']
+      containers:
+        - name: prefixtree
+          image: inspiregroup/artemis-prefixtree:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: artemis-env
+          env:
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: RABBITMQ_PASS
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      nodeSelector:
+        kubernetes.io/role: worker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prefixtree
+  namespace: artemis
+spec:
+  selector:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: prefixtree
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+# Fileobserver service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fileobserver
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: fileobserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: artemis
+      app.kubernetes.io/component: fileobserver
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: artemis
+        app.kubernetes.io/component: fileobserver
+    spec:
+      initContainers:
+        - name: wait-for-rabbitmq
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done']
+      containers:
+        - name: fileobserver
+          image: inspiregroup/artemis-fileobserver:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: artemis-env
+          env:
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: RABBITMQ_PASS
+          volumeMounts:
+            - name: config
+              mountPath: /etc/artemis
+              readOnly: true
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: config
+          configMap:
+            name: artemis-config
+      nodeSelector:
+        kubernetes.io/role: worker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fileobserver
+  namespace: artemis
+spec:
+  selector:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: fileobserver
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+# Autostarter service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autostarter
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: autostarter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: artemis
+      app.kubernetes.io/component: autostarter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: artemis
+        app.kubernetes.io/component: autostarter
+    spec:
+      initContainers:
+        - name: wait-for-rabbitmq
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done']
+      containers:
+        - name: autostarter
+          image: inspiregroup/artemis-autostarter:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: artemis-env
+          env:
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: RABBITMQ_PASS
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      nodeSelector:
+        kubernetes.io/role: worker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: autostarter
+  namespace: artemis
+spec:
+  selector:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: autostarter
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+# Autoignore service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autoignore
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: autoignore
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: artemis
+      app.kubernetes.io/component: autoignore
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: artemis
+        app.kubernetes.io/component: autoignore
+    spec:
+      initContainers:
+        - name: wait-for-rabbitmq
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done']
+      containers:
+        - name: autoignore
+          image: inspiregroup/artemis-autoignore:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: artemis-env
+          env:
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: artemis-secrets
+                  key: RABBITMQ_PASS
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      nodeSelector:
+        kubernetes.io/role: worker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: autoignore
+  namespace: artemis
+spec:
+  selector:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: autoignore
+  ports:
+    - port: 3000
+      targetPort: 3000
