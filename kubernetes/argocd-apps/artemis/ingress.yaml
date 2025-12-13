@@ -1,0 +1,39 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: artemis-frontend
+  namespace: artemis
+  labels:
+    app.kubernetes.io/name: artemis
+    app.kubernetes.io/component: frontend
+    environment: production
+    managed-by: argocd
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - artemis.example.net
+      secretName: artemis-tls
+  rules:
+    - host: artemis.example.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 4200
+          - path: /v1alpha1/graphql
+            pathType: Prefix
+            backend:
+              service:
+                name: graphql
+                port:
+                  number: 8080
