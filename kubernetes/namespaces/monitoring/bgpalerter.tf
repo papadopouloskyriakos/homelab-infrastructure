@@ -2,8 +2,8 @@
 # BGPalerter - BGP Monitoring and Alerting
 ***REMOVED***
 # Monitors AS214304 prefix for hijacks, route leaks, and RPKI issues
-# Based on official BGPalerter config format from:
-# https://raw.githubusercontent.com/nttgin/BGPalerter/v1.27.1/config.yml.example
+# Based on BGPalerter v2.x config format from:
+# https://raw.githubusercontent.com/nttgin/BGPalerter/main/config.yml.example
 ***REMOVED***
 
 # -----------------------------------------------------------------------------
@@ -22,6 +22,9 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
 
   data = {
     "config.yml" = yamlencode({
+      # v2.x config marker - REQUIRED for v2.x
+      configVersion = 2
+
       connectors = [
         {
           file = "connectorRIS"
@@ -30,6 +33,7 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
             carefulSubscription = true
             url                 = "wss://ris-live.ripe.net/v1/ws/"
             perMessageDeflate   = true
+            authorizationHeader = null
             subscription = {
               moreSpecific = true
               type         = "UPDATE"
@@ -64,7 +68,8 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
           channel = "visibility"
           name    = "withdrawal-detection"
           params = {
-            thresholdMinPeers = 10
+            thresholdMinPeers            = 10
+            notificationIntervalSeconds  = 3600
           }
         },
         {
@@ -72,6 +77,7 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
           channel = "misconfiguration"
           name    = "asn-monitor"
           params = {
+            skipPrefixMatch   = false
             thresholdMinPeers = 2
           }
         },
@@ -82,6 +88,7 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
           params = {
             thresholdMinPeers = 1
             checkUncovered    = true
+            checkDisappearing = false
           }
         },
         {
@@ -94,15 +101,31 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
         },
         {
           file    = "monitorROAS"
-          channel = "rpki"
+          channel = "roa"
           name    = "roa-monitor"
+          params = {
+            enableDiffAlerts        = true
+            enableExpirationAlerts  = true
+            enableExpirationCheckTA = true
+            enableDeletedCheckTA    = true
+            roaExpirationAlertHours = 2
+            checkOnlyASns           = true
+          }
+        },
+        {
+          file    = "monitorPathNeighbors"
+          channel = "path"
+          name    = "path-neighbors"
+          params = {
+            thresholdMinPeers = 2
+          }
         }
       ]
 
       reports = [
         {
           file     = "reportFile"
-          channels = ["hijack", "newprefix", "visibility", "path", "misconfiguration", "rpki"]
+          channels = ["hijack", "newprefix", "visibility", "path", "misconfiguration", "rpki", "roa"]
           params = {
             persistAlertData   = false
             alertDataDirectory = "alertdata/"
@@ -110,7 +133,7 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
         },
         {
           file     = "reportEmail"
-          channels = ["hijack", "visibility", "rpki", "misconfiguration"]
+          channels = ["hijack", "visibility", "rpki", "roa", "misconfiguration"]
           params = {
             showPaths   = 5
             senderEmail = "BGPalerter@mxmx.email"
@@ -127,14 +150,15 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
         },
         {
           file     = "reportHTTP"
-          channels = ["hijack", "visibility", "rpki", "misconfiguration"]
+          channels = ["hijack", "visibility", "rpki", "roa", "misconfiguration"]
           params = {
-            templates = {
-              default = "{\"text\": \"BGP Alert: $${channel} - $${summary}\"}"
-            }
+            method         = "post"
             headers        = {}
             isTemplateJSON = true
             showPaths      = 0
+            templates = {
+              default = "{\"text\": \"BGP Alert: $${channel} - $${summary}\"}"
+            }
             hooks = {
               default = "https://matrix.example.net/webhook/d2774582-ca35-4348-ac57-cbf7fd781589"
             }
@@ -142,21 +166,18 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
         }
       ]
 
+      # v2.x REST API configuration (replaces processMonitors.uptimeApi)
+      rest = {
+        host = "0.0.0.0"
+        port = 8011
+      }
+
+      # Notification settings
       notificationIntervalSeconds = 300
       alertOnlyOnce               = false
       persistStatus               = false
 
-      processMonitors = [
-        {
-          file = "uptimeApi"
-          params = {
-            useStatusCodes = true
-            host           = "0.0.0.0"
-            port           = 8011
-          }
-        }
-      ]
-
+      # Logging
       logging = {
         directory          = "logs"
         logRotatePattern   = "YYYY-MM-DD"
@@ -166,15 +187,23 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
         useUTC             = true
       }
 
+      # RPKI settings (v2.x default vrpProvider is rpkiclient)
       rpki = {
-        vrpProvider                 = "ntt"
-        preCacheROAs                = true
+        vrpProvider                 = "rpkiclient"
         refreshVrpListMinutes       = 15
         markDataAsStaleAfterMinutes = 120
       }
 
+      # Other settings
       checkForUpdatesAtBoot       = false
       generatePrefixListEveryDays = 0
+      environment                 = "production"
+
+      # Advanced settings
+      fadeOffSeconds            = 360
+      checkFadeOffGroupsSeconds = 30
+      maxMessagesPerSecond      = 6000
+      multiProcess              = false
 
       monitoredPrefixesFiles = ["prefixes.yml"]
     })
@@ -245,7 +274,7 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
           image = "busybox:1.36"
           command = [
             "sh", "-c",
-            "cp /config-readonly/* REDACTED_729ea3cb/ && echo 'Config files:' && ls -la REDACTED_729ea3cb/ && echo '--- config.yml ---' && cat REDACTED_729ea3cb/config.yml"
+            "cp /config-readonly/* REDACTED_729ea3cb/"
           ]
 
           volume_mount {
@@ -289,7 +318,7 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
               path = "/status"
               port = 8011
             }
-            initial_delay_seconds = 60
+            initial_delay_seconds = 90
             period_seconds        = 60
             timeout_seconds       = 5
             failure_threshold     = 3
@@ -300,7 +329,7 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
               path = "/status"
               port = 8011
             }
-            initial_delay_seconds = 30
+            initial_delay_seconds = 60
             period_seconds        = 30
             timeout_seconds       = 5
             failure_threshold     = 3
