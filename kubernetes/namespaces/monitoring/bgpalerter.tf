@@ -275,12 +275,12 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
 
           resources {
             requests = {
-              cpu    = "100m"
-              memory = "256Mi"
+              cpu    = "200m"
+              memory = "512Mi"
             }
             limits = {
-              cpu    = "500m"
-              memory = "768Mi"
+              cpu    = "1000m"
+              memory = "1536Mi"
             }
           }
 
