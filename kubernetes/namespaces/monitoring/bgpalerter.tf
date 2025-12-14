@@ -246,6 +246,10 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
           name  = "bgpalerter"
           image = "nttgin/bgpalerter:latest"
 
+          # Required: tell BGPalerter to use config from volume directory
+          command = ["npm"]
+          args    = ["run", "serve", "--", "--d", "REDACTED_729ea3cb/"]
+
           port {
             name           = "http"
             container_port = 8011
@@ -286,10 +290,10 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
             failure_threshold     = 3
           }
 
-          # Mount config files
+          # Mount config files to REDACTED_729ea3cb (NOT /opt/bgpalerter)
           volume_mount {
             name       = "config"
-            mount_path = "/opt/bgpalerter"
+            mount_path = "REDACTED_729ea3cb"
             read_only  = true
           }
 
