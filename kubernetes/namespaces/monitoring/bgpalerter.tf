@@ -2,8 +2,16 @@
 # BGPalerter - BGP Monitoring and Alerting
 ***REMOVED***
 # Monitors AS214304 prefix for hijacks, route leaks, and RPKI issues
-# Based on BGPalerter v2.x config format from:
+# Based on BGPalerter v2.0.1 config format from:
 # https://raw.githubusercontent.com/nttgin/BGPalerter/main/config.yml.example
+#
+# Key v2.x changes applied:
+# - configVersion: 2
+# - processMonitors with uptimeApi ENABLED (required for /status endpoint)
+# - rest section configures host/port for APIs
+# - preCacheROAs REMOVED (deprecated in v2.0, was causing OOM)
+# - monitorROAS uses channel: roa (not rpki)
+# - vrpProvider: rpkiclient (v2.x default)
 ***REMOVED***
 
 # -----------------------------------------------------------------------------
@@ -22,16 +30,16 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
 
   data = {
     "config.yml" = yamlencode({
-      # v2.x config marker - REQUIRED for v2.x
-      configVersion = 2
-
+      # =========================================================================
+      # CONNECTORS - Data sources
+      # =========================================================================
       connectors = [
         {
           file = "connectorRIS"
           name = "ris"
           params = {
             carefulSubscription = true
-            url                 = "wss://ris-live.ripe.net/v1/ws/"
+            url                 = "ws://ris-live.ripe.net/v1/ws/"
             perMessageDeflate   = true
             authorizationHeader = null
             subscription = {
@@ -46,6 +54,9 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
         }
       ]
 
+      # =========================================================================
+      # MONITORS - Alert detection
+      # =========================================================================
       monitors = [
         {
           file    = "monitorHijack"
@@ -68,8 +79,8 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
           channel = "visibility"
           name    = "withdrawal-detection"
           params = {
-            thresholdMinPeers            = 10
-            notificationIntervalSeconds  = 3600
+            thresholdMinPeers           = 10
+            notificationIntervalSeconds = 3600
           }
         },
         {
@@ -102,12 +113,13 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
         {
           file    = "monitorROAS"
           channel = "roa"
-          name    = "roa-monitor"
+          name    = "rpki-diff"
           params = {
             enableDiffAlerts        = true
             enableExpirationAlerts  = true
             enableExpirationCheckTA = true
             enableDeletedCheckTA    = true
+            enableAdvancedRpkiStats = false
             roaExpirationAlertHours = 2
             checkOnlyASns           = true
           }
@@ -122,6 +134,9 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
         }
       ]
 
+      # =========================================================================
+      # REPORTS - Alert destinations
+      # =========================================================================
       reports = [
         {
           file     = "reportFile"
@@ -166,18 +181,36 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
         }
       ]
 
-      # v2.x REST API configuration (replaces processMonitors.uptimeApi)
+      # =========================================================================
+      # NOTIFICATION SETTINGS
+      # =========================================================================
+      notificationIntervalSeconds = 300
+      persistStatus               = false
+
+      # =========================================================================
+      # REST API SETTINGS - Configures where APIs listen
+      # =========================================================================
       rest = {
         host = "0.0.0.0"
         port = 8011
       }
 
-      # Notification settings
-      notificationIntervalSeconds = 300
-      alertOnlyOnce               = false
-      persistStatus               = false
+      # =========================================================================
+      # PROCESS MONITORS - REQUIRED for /status endpoint!
+      # This was commented out by default - must be explicitly enabled
+      # =========================================================================
+      processMonitors = [
+        {
+          file = "uptimeApi"
+          params = {
+            useStatusCodes = true
+          }
+        }
+      ]
 
-      # Logging
+      # =========================================================================
+      # LOGGING
+      # =========================================================================
       logging = {
         directory          = "logs"
         logRotatePattern   = "YYYY-MM-DD"
@@ -187,24 +220,37 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
         useUTC             = true
       }
 
-      # RPKI settings (v2.x default vrpProvider is rpkiclient)
+      # =========================================================================
+      # RPKI SETTINGS
+      # Note: preCacheROAs was REMOVED in v2.0 (was causing OOM issues)
+      # =========================================================================
       rpki = {
         vrpProvider                 = "rpkiclient"
         refreshVrpListMinutes       = 15
         markDataAsStaleAfterMinutes = 120
       }
 
-      # Other settings
+      # =========================================================================
+      # OTHER SETTINGS
+      # =========================================================================
       checkForUpdatesAtBoot       = false
       generatePrefixListEveryDays = 0
-      environment                 = "production"
 
-      # Advanced settings
+      # =========================================================================
+      # ADVANCED SETTINGS
+      # =========================================================================
+      alertOnlyOnce             = false
       fadeOffSeconds            = 360
       checkFadeOffGroupsSeconds = 30
+      pidFile                   = "bgpalerter.pid"
       maxMessagesPerSecond      = 6000
       multiProcess              = false
+      environment               = "production"
+      configVersion             = 2
 
+      # =========================================================================
+      # MONITORED PREFIXES FILES
+      # =========================================================================
       monitoredPrefixesFiles = ["prefixes.yml"]
     })
 
@@ -318,10 +364,10 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
               path = "/status"
               port = 8011
             }
-            initial_delay_seconds = 90
+            initial_delay_seconds = 120
             period_seconds        = 60
-            timeout_seconds       = 5
-            failure_threshold     = 3
+            timeout_seconds       = 10
+            failure_threshold     = 5
           }
 
           readiness_probe {
@@ -329,10 +375,10 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
               path = "/status"
               port = 8011
             }
-            initial_delay_seconds = 60
+            initial_delay_seconds = 90
             period_seconds        = 30
-            timeout_seconds       = 5
-            failure_threshold     = 3
+            timeout_seconds       = 10
+            failure_threshold     = 5
           }
 
           volume_mount {
