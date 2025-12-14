@@ -32,9 +32,7 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
       # Logging Configuration
       # -----------------------------------------------------------------------------
       logging:
-        # Log level: debug, info, warn, error
         level: info
-        # Output format: json for Loki parsing
         format: json
 
       # -----------------------------------------------------------------------------
@@ -48,10 +46,8 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
       # Report Channels (Alerting)
       # -----------------------------------------------------------------------------
       reports:
-        # File output (also captured by Promtail via stdout)
         - file:
             logFile: /tmp/bgpalerter.log
-            # Also output to stdout for Promtail
             channels:
               - hijack
               - newprefix
@@ -62,11 +58,9 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
               - heartbeat
               - withdrawal
 
-        # Email notifications
         - email:
             showPaths: 5
             senderEmail: BGPalerter@mxmx.email
-            # SMTP without auth/TLS
             smtp:
               host: 10.0.X.X
               port: 25
@@ -81,7 +75,6 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
               - rpki
               - misconfiguration
 
-        # Matrix webhook (generic HTTP hook)
         - webHook:
             name: matrix
             url: https://matrix.example.net/webhook/d2774582-ca35-4348-ac57-cbf7fd781589
@@ -106,97 +99,63 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
       # Monitors Configuration
       # -----------------------------------------------------------------------------
       monitors:
-        # Detect BGP hijacks (most critical)
         monitorHijack:
           enabled: true
-          # Alert on exact prefix match hijacks
           thresholdMinPeers: 2
 
-        # Detect new sub-prefix announcements (potential hijack indicator)
         monitorNewPrefix:
           enabled: true
-          # Alert when new more-specific is seen
           thresholdMinPeers: 2
 
-        # Monitor prefix visibility
         monitorVisibility:
           enabled: true
-          # Alert if seen by fewer than this many peers
           thresholdMinPeers: 10
 
-        # Monitor RPKI validation status
         monitorRPKI:
           enabled: true
-          # Alert on invalid RPKI status
           checkUncovered: true
 
-        # Monitor AS path changes (informational)
         monitorPath:
           enabled: true
-          # Alert when AS path changes significantly
           thresholdMinPeers: 2
 
-        # Monitor for common misconfigurations
         monitorAS:
           enabled: true
 
-        # Heartbeat for proof of life
         monitorHeartbeat:
           enabled: true
-          # Heartbeat every hour
           intervalSeconds: 3600
 
       # -----------------------------------------------------------------------------
       # Connectors (Data Sources)
       # -----------------------------------------------------------------------------
       connectors:
-        # RIPE RIS Live streaming (primary)
         - connectorRIS:
             url: wss://ris-live.ripe.net/v1/ws/
             subscription:
               type: UPDATE
-            # Filter to our prefix for efficiency
             perMessageDeflate: true
-
-        # RouteViews (backup, uses archived data)
-        # Disabled by default, enable if RIS has issues
-        # - connectorRouteViews:
-        #     enabled: false
 
       # -----------------------------------------------------------------------------
       # Processing Options
       # -----------------------------------------------------------------------------
       processMonitors:
-        # How long to wait before alerting (avoids flapping alerts)
         notificationIntervalSeconds: 300
-        # Store state in memory (no persistence needed)
         persistStatus: false
     EOT
 
     "prefixes.yml" = <<-EOT
-      ***REMOVED***
-      # Monitored Prefixes Configuration
-      ***REMOVED***
-      # Your ASN and prefix allocations
-      ***REMOVED***
-
       # AS214304 - Nuclear Lighters Network
       214304:
-        # IPv6 prefix from iFog
         - prefix: "2a0c:9a40:8e20::/48"
           description: "Nuclear Lighters primary IPv6 prefix"
-          # Don't alert on more specifics you might announce
           ignoreMorespecifics: false
-          # Monitor all visibility from this prefix
           monitorVisibility: true
-          # Monitor RPKI status
           monitorRPKI: true
-          # Monitor AS path changes
           monitorPath: true
-          # Expected upstream ASNs (for path monitoring)
           expectedUpstreams:
-            - 34927   # iFog GmbH
-            - 56655   # Terrahost/Gigahost
+            - 34927
+            - 56655
     EOT
   }
 }
@@ -231,22 +190,40 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
           "app.kubernetes.io/component" = "monitor"
         }
         annotations = {
-          # Trigger redeploy on config changes
           "checksum/config" = sha256(REDACTED_9343442e.bgpalerter_config.data["config.yml"])
         }
       }
 
       spec {
-        # Run on NL nodes only
         node_selector = {
           "topology.kubernetes.io/region" = "nl-lei"
+        }
+
+        # Init container copies config files to writable volume
+        init_container {
+          name  = "copy-config"
+          image = "busybox:1.36"
+          command = [
+            "sh", "-c",
+            "cp /config-readonly/* REDACTED_729ea3cb/"
+          ]
+
+          volume_mount {
+            name       = "config-readonly"
+            mount_path = "/config-readonly"
+            read_only  = true
+          }
+
+          volume_mount {
+            name       = "volume"
+            mount_path = "REDACTED_729ea3cb"
+          }
         }
 
         container {
           name  = "bgpalerter"
           image = "nttgin/bgpalerter:latest"
 
-          # Required: tell BGPalerter to use config from volume directory
           command = ["npm"]
           args    = ["run", "serve", "--", "--d", "REDACTED_729ea3cb/"]
 
@@ -267,7 +244,6 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
             }
           }
 
-          # Health checks
           liveness_probe {
             http_get {
               path = "/status"
@@ -290,25 +266,30 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
             failure_threshold     = 3
           }
 
-          # Mount config files to REDACTED_729ea3cb (NOT /opt/bgpalerter)
+          # Writable volume for config + runtime data
           volume_mount {
-            name       = "config"
+            name       = "volume"
             mount_path = "REDACTED_729ea3cb"
-            read_only  = true
           }
 
-          # Temp directory for log file
           volume_mount {
             name       = "tmp"
             mount_path = "/tmp"
           }
         }
 
+        # ConfigMap (read-only source)
         volume {
-          name = "config"
+          name = "config-readonly"
           config_map {
             name = REDACTED_9343442e.bgpalerter_config.metadata[0].name
           }
+        }
+
+        # Writable emptyDir for BGPalerter runtime
+        volume {
+          name = "volume"
+          empty_dir {}
         }
 
         volume {
@@ -354,7 +335,7 @@ resource "kubernetes_service_v1" "bgpalerter" {
 }
 
 # -----------------------------------------------------------------------------
-# ServiceMonitor - Prometheus metrics (optional, BGPalerter has basic metrics)
+# ServiceMonitor - Prometheus metrics
 # -----------------------------------------------------------------------------
 resource "kubernetes_manifest" "REDACTED_6b288666" {
   manifest = {
