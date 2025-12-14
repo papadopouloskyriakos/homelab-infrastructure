@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: artemis
-  labels:
-    app.kubernetes.io/name: artemis
-    app.kubernetes.io/component: bgp-hijack-detection
-    environment: production
