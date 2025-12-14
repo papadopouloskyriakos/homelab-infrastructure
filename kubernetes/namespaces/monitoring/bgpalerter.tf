@@ -2,8 +2,8 @@
 # BGPalerter - BGP Monitoring and Alerting
 ***REMOVED***
 # Monitors AS214304 prefix for hijacks, route leaks, and RPKI issues
-# Alerts via Email and Matrix webhook
-# Logs to Loki via Promtail for Grafana dashboard
+# Based on official BGPalerter config format from:
+# https://raw.githubusercontent.com/nttgin/BGPalerter/v1.27.1/config.yml.example
 ***REMOVED***
 
 # -----------------------------------------------------------------------------
@@ -21,142 +21,182 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
   }
 
   data = {
-    "config.yml" = <<-EOT
-      ***REMOVED***
-      # BGPalerter Configuration
-      ***REMOVED***
-      # Documentation: https://github.com/nttgin/BGPalerter/blob/main/docs/configuration.md
-      ***REMOVED***
+    "config.yml" = yamlencode({
+      connectors = [
+        {
+          file = "connectorRIS"
+          name = "ris"
+          params = {
+            carefulSubscription = true
+            url                 = "wss://ris-live.ripe.net/v1/ws/"
+            perMessageDeflate   = true
+            subscription = {
+              moreSpecific = true
+              type         = "UPDATE"
+              host         = null
+              socketOptions = {
+                includeRaw = false
+              }
+            }
+          }
+        }
+      ]
 
-      # -----------------------------------------------------------------------------
-      # Logging Configuration
-      # -----------------------------------------------------------------------------
-      logging:
-        level: info
-        format: json
+      monitors = [
+        {
+          file    = "monitorHijack"
+          channel = "hijack"
+          name    = "basic-hijack-detection"
+          params = {
+            thresholdMinPeers = 2
+          }
+        },
+        {
+          file    = "monitorNewPrefix"
+          channel = "newprefix"
+          name    = "prefix-detection"
+          params = {
+            thresholdMinPeers = 2
+          }
+        },
+        {
+          file    = "monitorVisibility"
+          channel = "visibility"
+          name    = "withdrawal-detection"
+          params = {
+            thresholdMinPeers = 10
+          }
+        },
+        {
+          file    = "monitorAS"
+          channel = "misconfiguration"
+          name    = "asn-monitor"
+          params = {
+            thresholdMinPeers = 2
+          }
+        },
+        {
+          file    = "monitorRPKI"
+          channel = "rpki"
+          name    = "rpki-monitor"
+          params = {
+            thresholdMinPeers = 1
+            checkUncovered    = true
+          }
+        },
+        {
+          file    = "monitorPath"
+          channel = "path"
+          name    = "path-matching"
+          params = {
+            thresholdMinPeers = 2
+          }
+        },
+        {
+          file    = "monitorROAS"
+          channel = "rpki"
+          name    = "roa-monitor"
+        }
+      ]
 
-      # -----------------------------------------------------------------------------
-      # HTTP API (for status endpoint)
-      # -----------------------------------------------------------------------------
-      rest:
-        host: 0.0.0.0
-        port: 8011
+      reports = [
+        {
+          file     = "reportFile"
+          channels = ["hijack", "newprefix", "visibility", "path", "misconfiguration", "rpki"]
+          params = {
+            persistAlertData   = false
+            alertDataDirectory = "alertdata/"
+          }
+        },
+        {
+          file     = "reportEmail"
+          channels = ["hijack", "visibility", "rpki", "misconfiguration"]
+          params = {
+            showPaths   = 5
+            senderEmail = "BGPalerter@mxmx.email"
+            smtp = {
+              host      = "10.0.X.X"
+              port      = 25
+              secure    = false
+              ignoreTLS = true
+            }
+            notifiedEmails = {
+              default = ["BGPalerter@mxmx.email"]
+            }
+          }
+        },
+        {
+          file     = "reportHTTP"
+          channels = ["hijack", "visibility", "rpki", "misconfiguration"]
+          params = {
+            templates = {
+              default = "{\"text\": \"BGP Alert: $${channel} - $${summary}\"}"
+            }
+            headers        = {}
+            isTemplateJSON = true
+            showPaths      = 0
+            hooks = {
+              default = "https://matrix.example.net/webhook/d2774582-ca35-4348-ac57-cbf7fd781589"
+            }
+          }
+        }
+      ]
 
-      # -----------------------------------------------------------------------------
-      # Report Channels (Alerting)
-      # -----------------------------------------------------------------------------
-      reports:
-        - file:
-            logFile: /tmp/bgpalerter.log
-            channels:
-              - hijack
-              - newprefix
-              - visibility
-              - rpki
-              - path
-              - misconfiguration
-              - heartbeat
-              - withdrawal
+      notificationIntervalSeconds = 300
+      alertOnlyOnce               = false
+      persistStatus               = false
 
-        - email:
-            showPaths: 5
-            senderEmail: BGPalerter@mxmx.email
-            smtp:
-              host: 10.0.X.X
-              port: 25
-              secure: false
-              ignoreTLS: true
-            notifiedEmails:
-              default:
-                - BGPalerter@mxmx.email
-            channels:
-              - hijack
-              - visibility
-              - rpki
-              - misconfiguration
+      processMonitors = [
+        {
+          file = "uptimeApi"
+          params = {
+            useStatusCodes = true
+            host           = "0.0.0.0"
+            port           = 8011
+          }
+        }
+      ]
 
-        - webHook:
-            name: matrix
-            url: https://matrix.example.net/webhook/d2774582-ca35-4348-ac57-cbf7fd781589
-            method: POST
-            headers:
-              Content-Type: application/json
-            templates:
-              default: |
-                {
-                  "text": "BGP Alert: $${type} - $${message}",
-                  "prefix": "$${prefix}",
-                  "type": "$${type}",
-                  "timestamp": "$${timestamp}"
-                }
-            channels:
-              - hijack
-              - visibility
-              - rpki
-              - misconfiguration
+      logging = {
+        directory          = "logs"
+        logRotatePattern   = "YYYY-MM-DD"
+        maxRetainedFiles   = 10
+        maxFileSizeMB      = 15
+        compressOnRotation = false
+        useUTC             = true
+      }
 
-      # -----------------------------------------------------------------------------
-      # Monitors Configuration
-      # -----------------------------------------------------------------------------
-      monitors:
-        monitorHijack:
-          enabled: true
-          thresholdMinPeers: 2
+      rpki = {
+        vrpProvider                 = "ntt"
+        preCacheROAs                = true
+        refreshVrpListMinutes       = 15
+        markDataAsStaleAfterMinutes = 120
+      }
 
-        monitorNewPrefix:
-          enabled: true
-          thresholdMinPeers: 2
+      checkForUpdatesAtBoot       = false
+      generatePrefixListEveryDays = 0
 
-        monitorVisibility:
-          enabled: true
-          thresholdMinPeers: 10
+      monitoredPrefixesFiles = ["prefixes.yml"]
+    })
 
-        monitorRPKI:
-          enabled: true
-          checkUncovered: true
+    "prefixes.yml" = yamlencode({
+      "2a0c:9a40:8e20::/48" = {
+        description         = "Nuclear Lighters primary IPv6 prefix"
+        asn                 = 214304
+        ignoreMorespecifics = false
+        ignore              = false
+        group               = "default"
+      }
 
-        monitorPath:
-          enabled: true
-          thresholdMinPeers: 2
-
-        monitorAS:
-          enabled: true
-
-        monitorHeartbeat:
-          enabled: true
-          intervalSeconds: 3600
-
-      # -----------------------------------------------------------------------------
-      # Connectors (Data Sources)
-      # -----------------------------------------------------------------------------
-      connectors:
-        - connectorRIS:
-            url: wss://ris-live.ripe.net/v1/ws/
-            subscription:
-              type: UPDATE
-            perMessageDeflate: true
-
-      # -----------------------------------------------------------------------------
-      # Processing Options
-      # -----------------------------------------------------------------------------
-      processMonitors:
-        notificationIntervalSeconds: 300
-        persistStatus: false
-    EOT
-
-    "prefixes.yml" = <<-EOT
-      # AS214304 - Nuclear Lighters Network
-      214304:
-        - prefix: "2a0c:9a40:8e20::/48"
-          description: "Nuclear Lighters primary IPv6 prefix"
-          ignoreMorespecifics: false
-          monitorVisibility: true
-          monitorRPKI: true
-          monitorPath: true
-          expectedUpstreams:
-            - 34927
-            - 56655
-    EOT
+      options = {
+        monitorASns = {
+          "214304" = {
+            group     = "default"
+            upstreams = [34927, 56655]
+          }
+        }
+      }
+    })
   }
 }
 
@@ -205,7 +245,7 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
           image = "busybox:1.36"
           command = [
             "sh", "-c",
-            "cp /config-readonly/* REDACTED_729ea3cb/"
+            "cp /config-readonly/* REDACTED_729ea3cb/ && echo 'Config files:' && ls -la REDACTED_729ea3cb/ && echo '--- config.yml ---' && cat REDACTED_729ea3cb/config.yml"
           ]
 
           volume_mount {
@@ -249,7 +289,7 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
               path = "/status"
               port = 8011
             }
-            initial_delay_seconds = 30
+            initial_delay_seconds = 60
             period_seconds        = 60
             timeout_seconds       = 5
             failure_threshold     = 3
@@ -260,25 +300,18 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
               path = "/status"
               port = 8011
             }
-            initial_delay_seconds = 10
+            initial_delay_seconds = 30
             period_seconds        = 30
             timeout_seconds       = 5
             failure_threshold     = 3
           }
 
-          # Writable volume for config + runtime data
           volume_mount {
             name       = "volume"
             mount_path = "REDACTED_729ea3cb"
           }
-
-          volume_mount {
-            name       = "tmp"
-            mount_path = "/tmp"
-          }
         }
 
-        # ConfigMap (read-only source)
         volume {
           name = "config-readonly"
           config_map {
@@ -286,14 +319,8 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
           }
         }
 
-        # Writable emptyDir for BGPalerter runtime
         volume {
           name = "volume"
-          empty_dir {}
-        }
-
-        volume {
-          name = "tmp"
           empty_dir {}
         }
 
@@ -359,7 +386,7 @@ resource "kubernetes_manifest" "REDACTED_6b288666" {
       endpoints = [
         {
           port     = "http"
-          path     = "/metrics"
+          path     = "/status"
           interval = "60s"
         }
       ]
