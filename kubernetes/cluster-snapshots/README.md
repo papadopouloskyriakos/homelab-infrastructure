@@ -9,6 +9,7 @@
 - [Architecture Diagram](architecture.txt)
 
 ## History
+- [2025-12-14](history/2025-12-14.md)
 - [2025-12-13](history/2025-12-13.md)
 - [2025-12-12](history/2025-12-12.md)
 - [2025-12-11](history/2025-12-11.md)
