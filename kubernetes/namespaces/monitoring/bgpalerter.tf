@@ -246,12 +246,6 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
           name  = "bgpalerter"
           image = "nttgin/bgpalerter:latest"
 
-          # Override default config location
-          args = [
-            "--config=/etc/bgpalerter/config.yml",
-            "--prefixes=/etc/bgpalerter/prefixes.yml"
-          ]
-
           port {
             name           = "http"
             container_port = 8011
@@ -295,7 +289,7 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
           # Mount config files
           volume_mount {
             name       = "config"
-            mount_path = "/etc/bgpalerter"
+            mount_path = "/opt/bgpalerter"
             read_only  = true
           }
 
