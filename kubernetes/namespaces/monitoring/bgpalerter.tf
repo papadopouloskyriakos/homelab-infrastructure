@@ -139,6 +139,8 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
       # =========================================================================
       reports = [
         # Syslog reporter - sends alerts to syslog-ng -> Loki
+
+
         {
           file     = "reportSyslog"
           channels = ["hijack", "newprefix", "visibility", "path", "misconfiguration", "rpki", "roa"]
@@ -146,8 +148,13 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
             host      = "10.0.X.X"
             port      = 514
             transport = "udp"
+            templates = {
+              default = "$${channel}: $${summary}"
+            }
           }
         },
+
+
         {
           file     = "reportFile"
           channels = ["hijack", "newprefix", "visibility", "path", "misconfiguration", "rpki", "roa"]
@@ -365,7 +372,7 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
             }
             limits = {
               cpu    = "1000m"
-              memory = "1536Mi"
+              memory = "2048Mi"
             }
           }
 
