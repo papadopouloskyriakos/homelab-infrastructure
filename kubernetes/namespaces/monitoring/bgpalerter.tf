@@ -138,6 +138,16 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
       # REPORTS - Alert destinations
       # =========================================================================
       reports = [
+        # Syslog reporter - sends alerts to syslog-ng -> Loki
+        {
+          file     = "reportSyslog"
+          channels = ["hijack", "newprefix", "visibility", "path", "misconfiguration", "rpki", "roa"]
+          params = {
+            host      = "10.0.X.X"
+            port      = 514
+            transport = "udp"
+          }
+        },
         {
           file     = "reportFile"
           channels = ["hijack", "newprefix", "visibility", "path", "misconfiguration", "rpki", "roa"]
