@@ -5,13 +5,9 @@
 # Based on BGPalerter v2.0.1 config format from:
 # https://raw.githubusercontent.com/nttgin/BGPalerter/main/config.yml.example
 #
-# Key v2.x changes applied:
-# - configVersion: 2
-# - processMonitors with uptimeApi ENABLED (required for /status endpoint)
-# - rest section configures host/port for APIs
-# - preCacheROAs REMOVED (deprecated in v2.0, was causing OOM)
-# - monitorROAS uses channel: roa (not rpki)
-# - vrpProvider: rpkiclient (v2.x default)
+# IMPORTANT: Using heredoc YAML instead of yamlencode() because yamlencode()
+# doesn't guarantee key ordering, which was causing 'channels' to be incorrectly
+# associated with wrong reporters. This broke reportSyslog and reportEmail.
 ***REMOVED***
 
 # -----------------------------------------------------------------------------
@@ -29,247 +25,194 @@ resource "REDACTED_9343442e" "bgpalerter_config" {
   }
 
   data = {
-    "config.yml" = yamlencode({
-      # =========================================================================
-      # CONNECTORS - Data sources
-      # =========================================================================
-      connectors = [
-        {
-          file = "connectorRIS"
-          name = "ris"
-          params = {
-            carefulSubscription = true
-            url                 = "ws://ris-live.ripe.net/v1/ws/"
-            perMessageDeflate   = true
-            authorizationHeader = null
-            subscription = {
-              moreSpecific = true
-              type         = "UPDATE"
-              host         = null
-              socketOptions = {
-                includeRaw = false
-              }
-            }
-          }
-        }
-      ]
+    # Using heredoc to ensure proper YAML structure
+    # The $${} escaping is for Terraform - BGPalerter receives ${channel}, ${summary}, etc.
+    "config.yml" = <<-YAML
+connectors:
+  - file: connectorRIS
+    name: ris
+    params:
+      carefulSubscription: true
+      url: ws://ris-live.ripe.net/v1/ws/
+      perMessageDeflate: true
+      authorizationHeader: null
+      subscription:
+        moreSpecific: true
+        type: UPDATE
+        host: null
+        socketOptions:
+          includeRaw: false
 
-      # =========================================================================
-      # MONITORS - Alert detection
-      # =========================================================================
-      monitors = [
-        {
-          file    = "monitorHijack"
-          channel = "hijack"
-          name    = "basic-hijack-detection"
-          params = {
-            thresholdMinPeers = 2
-          }
-        },
-        {
-          file    = "monitorNewPrefix"
-          channel = "newprefix"
-          name    = "prefix-detection"
-          params = {
-            thresholdMinPeers = 2
-          }
-        },
-        {
-          file    = "monitorVisibility"
-          channel = "visibility"
-          name    = "withdrawal-detection"
-          params = {
-            thresholdMinPeers           = 10
-            notificationIntervalSeconds = 3600
-          }
-        },
-        {
-          file    = "monitorAS"
-          channel = "misconfiguration"
-          name    = "asn-monitor"
-          params = {
-            skipPrefixMatch   = false
-            thresholdMinPeers = 2
-          }
-        },
-        {
-          file    = "monitorRPKI"
-          channel = "rpki"
-          name    = "rpki-monitor"
-          params = {
-            thresholdMinPeers = 1
-            checkUncovered    = true
-            checkDisappearing = false
-          }
-        },
-        {
-          file    = "monitorPath"
-          channel = "path"
-          name    = "path-matching"
-          params = {
-            thresholdMinPeers = 2
-          }
-        },
-        {
-          file    = "monitorROAS"
-          channel = "roa"
-          name    = "rpki-diff"
-          params = {
-            enableDiffAlerts        = true
-            enableExpirationAlerts  = true
-            enableExpirationCheckTA = true
-            enableDeletedCheckTA    = true
-            enableAdvancedRpkiStats = false
-            roaExpirationAlertHours = 2
-            checkOnlyASns           = true
-          }
-        },
-        {
-          file    = "monitorPathNeighbors"
-          channel = "path"
-          name    = "path-neighbors"
-          params = {
-            thresholdMinPeers = 2
-          }
-        }
-      ]
+monitors:
+  - file: monitorHijack
+    channel: hijack
+    name: basic-hijack-detection
+    params:
+      thresholdMinPeers: 2
 
-      # =========================================================================
-      # REPORTS - Alert destinations
-      # =========================================================================
-      reports = [
-        # Syslog reporter - sends alerts to syslog-ng -> Loki
+  - file: monitorNewPrefix
+    channel: newprefix
+    name: prefix-detection
+    params:
+      thresholdMinPeers: 2
 
+  - file: monitorVisibility
+    channel: visibility
+    name: withdrawal-detection
+    params:
+      thresholdMinPeers: 10
+      notificationIntervalSeconds: 3600
 
-        {
-          file     = "reportSyslog"
-          channels = ["hijack", "newprefix", "visibility", "path", "misconfiguration", "rpki", "roa"]
-          params = {
-            host      = "10.0.X.X"
-            port      = 514
-            transport = "udp"
-            templates = {
-              default = "$${channel}: $${summary}"
-            }
-          }
-        },
+  - file: monitorAS
+    channel: misconfiguration
+    name: asn-monitor
+    params:
+      skipPrefixMatch: false
+      thresholdMinPeers: 2
 
+  - file: monitorRPKI
+    channel: rpki
+    name: rpki-monitor
+    params:
+      thresholdMinPeers: 1
+      checkUncovered: true
+      checkDisappearing: false
 
-        {
-          file     = "reportFile"
-          channels = ["hijack", "newprefix", "visibility", "path", "misconfiguration", "rpki", "roa"]
-          params = {
-            persistAlertData   = false
-            alertDataDirectory = "alertdata/"
-          }
-        },
-        {
-          file     = "reportEmail"
-          channels = ["hijack", "visibility", "rpki", "roa", "misconfiguration"]
-          params = {
-            showPaths   = 5
-            senderEmail = "BGPalerter@mxmx.email"
-            smtp = {
-              host      = "10.0.X.X"
-              port      = 25
-              secure    = false
-              ignoreTLS = true
-            }
-            notifiedEmails = {
-              default = ["BGPalerter@mxmx.email"]
-            }
-          }
-        },
-        {
-          file     = "reportHTTP"
-          channels = ["hijack", "visibility", "rpki", "roa", "misconfiguration"]
-          params = {
-            method         = "post"
-            headers        = {}
-            isTemplateJSON = true
-            showPaths      = 0
-            templates = {
-              default = "{\"text\": \"BGP Alert: $${channel} - $${summary}\"}"
-            }
-            hooks = {
-              default = "https://matrix.example.net/webhook/d2774582-ca35-4348-ac57-cbf7fd781589"
-            }
-          }
-        }
-      ]
+  - file: monitorPath
+    channel: path
+    name: path-matching
+    params:
+      thresholdMinPeers: 2
 
-      # =========================================================================
-      # NOTIFICATION SETTINGS
-      # =========================================================================
-      notificationIntervalSeconds = 300
-      persistStatus               = false
+  - file: monitorROAS
+    channel: roa
+    name: rpki-diff
+    params:
+      enableDiffAlerts: true
+      enableExpirationAlerts: true
+      enableExpirationCheckTA: true
+      enableDeletedCheckTA: true
+      enableAdvancedRpkiStats: false
+      roaExpirationAlertHours: 2
+      checkOnlyASns: true
 
-      # =========================================================================
-      # REST API SETTINGS - Configures where APIs listen
-      # =========================================================================
-      rest = {
-        host = "0.0.0.0"
-        port = 8011
-      }
+  - file: monitorPathNeighbors
+    channel: path
+    name: path-neighbors
+    params:
+      thresholdMinPeers: 2
 
-      # =========================================================================
-      # PROCESS MONITORS - REQUIRED for /status endpoint!
-      # This was commented out by default - must be explicitly enabled
-      # =========================================================================
-      processMonitors = [
-        {
-          file = "uptimeApi"
-          params = {
-            useStatusCodes = true
-          }
-        }
-      ]
+reports:
+  # Syslog reporter - sends alerts to syslog-ng -> Loki
+  # Using TCP instead of UDP for reliable delivery
+  - file: reportSyslog
+    channels:
+      - hijack
+      - newprefix
+      - visibility
+      - path
+      - misconfiguration
+      - rpki
+      - roa
+    params:
+      host: 10.0.X.X
+      port: 514
+      transport: tcp
+      templates:
+        default: "$${channel}: $${summary}"
 
-      # =========================================================================
-      # LOGGING
-      # =========================================================================
-      logging = {
-        directory          = "logs"
-        logRotatePattern   = "YYYY-MM-DD"
-        maxRetainedFiles   = 10
-        maxFileSizeMB      = 15
-        compressOnRotation = false
-        useUTC             = true
-      }
+  # File reporter - local logs
+  - file: reportFile
+    channels:
+      - hijack
+      - newprefix
+      - visibility
+      - path
+      - misconfiguration
+      - rpki
+      - roa
+    params:
+      persistAlertData: false
+      alertDataDirectory: alertdata/
 
-      # =========================================================================
-      # RPKI SETTINGS
-      # Note: preCacheROAs was REMOVED in v2.0 (was causing OOM issues)
-      # =========================================================================
-      rpki = {
-        vrpProvider                 = "rpkiclient"
-        refreshVrpListMinutes       = 15
-        markDataAsStaleAfterMinutes = 120
-      }
+  # Email reporter
+  - file: reportEmail
+    channels:
+      - hijack
+      - visibility
+      - rpki
+      - roa
+      - misconfiguration
+    params:
+      showPaths: 5
+      senderEmail: BGPalerter@mxmx.email
+      smtp:
+        host: 10.0.X.X
+        port: 25
+        secure: false
+        ignoreTLS: true
+      notifiedEmails:
+        default:
+          - BGPalerter@mxmx.email
 
-      # =========================================================================
-      # OTHER SETTINGS
-      # =========================================================================
-      checkForUpdatesAtBoot       = false
-      generatePrefixListEveryDays = 0
+  # HTTP/Webhook reporter - Matrix
+  - file: reportHTTP
+    channels:
+      - hijack
+      - visibility
+      - rpki
+      - roa
+      - misconfiguration
+    params:
+      method: post
+      headers: {}
+      isTemplateJSON: true
+      showPaths: 0
+      templates:
+        default: '{"text": "BGP Alert: $${channel} - $${summary}"}'
+      hooks:
+        default: https://matrix.example.net/webhook/d2774582-ca35-4348-ac57-cbf7fd781589
 
-      # =========================================================================
-      # ADVANCED SETTINGS
-      # =========================================================================
-      alertOnlyOnce             = false
-      fadeOffSeconds            = 360
-      checkFadeOffGroupsSeconds = 30
-      pidFile                   = "bgpalerter.pid"
-      maxMessagesPerSecond      = 6000
-      multiProcess              = false
-      environment               = "production"
-      configVersion             = 2
+notificationIntervalSeconds: 300
+persistStatus: false
 
-      # =========================================================================
-      # MONITORED PREFIXES FILES
-      # =========================================================================
-      monitoredPrefixesFiles = ["prefixes.yml"]
-    })
+rest:
+  host: 0.0.0.0
+  port: 8011
+
+processMonitors:
+  - file: uptimeApi
+    params:
+      useStatusCodes: true
+
+logging:
+  directory: logs
+  logRotatePattern: YYYY-MM-DD
+  maxRetainedFiles: 10
+  maxFileSizeMB: 15
+  compressOnRotation: false
+  useUTC: true
+
+rpki:
+  vrpProvider: rpkiclient
+  refreshVrpListMinutes: 15
+  markDataAsStaleAfterMinutes: 120
+
+checkForUpdatesAtBoot: false
+generatePrefixListEveryDays: 0
+
+alertOnlyOnce: false
+fadeOffSeconds: 360
+checkFadeOffGroupsSeconds: 30
+pidFile: bgpalerter.pid
+maxMessagesPerSecond: 6000
+multiProcess: false
+environment: production
+configVersion: 2
+
+monitoredPrefixesFiles:
+  - prefixes.yml
+YAML
 
     "prefixes.yml" = yamlencode({
       "2a0c:9a40:8e20::/48" = {
