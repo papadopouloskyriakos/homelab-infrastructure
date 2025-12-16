@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: portfolio-kyriakos
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: papadopoulos-tech
+    environment: production
+    managed-by: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://gitlab.example.net/infrastructure/common/production.git
+    targetRevision: main
+    path: apps/papadopoulos.tech/kyriakos/overlays/nl
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: portfolio
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
