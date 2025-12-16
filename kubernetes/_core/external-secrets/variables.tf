@@ -1,7 +1,7 @@
 variable "chart_version" {
   description = "External Secrets Operator Helm chart version"
   type        = string
-  default     = "0.12.1"
+  default     = "1.1.1"
 }
 
 variable "REDACTED_46d876c8" {
