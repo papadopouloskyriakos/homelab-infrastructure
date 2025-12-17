@@ -189,3 +189,12 @@ module "REDACTED_ac4dcdf5" {
 
   dashboard_hostname = "nl-k8s.example.net"
 }
+
+***REMOVED***
+# Gatus - Status Page
+***REMOVED***
+module "gatus" {
+  source = "./namespaces/gatus"
+
+  depends_on = [module.ingress_nginx, module.cert_manager]
+}

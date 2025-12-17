@@ -36,7 +36,7 @@ resource "REDACTED_46569c16" "seaweedfs" {
 ***REMOVED***
 resource "kubernetes_manifest" "seaweedfs_externalsecret" {
   manifest = {
-    apiVersion = "external-secrets.io/v1beta1"
+    apiVersion = "external-secrets.io/v1"
     kind       = "ExternalSecret"
     metadata = {
       name      = "seaweedfs-s3-config"
