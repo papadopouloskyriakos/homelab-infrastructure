@@ -51,14 +51,13 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
 
       endpoints = concat(
         # =====================================================================
-        # NETHERLANDS KUBERNETES CLUSTER
+        # 🌐 PUBLIC SERVICES
         # =====================================================================
         [
           {
             name     = "Portfolio"
-            group    = "🇳🇱 Netherlands K8s"
+            group    = "🌐 Public"
             url      = "https://kyriakos.papadopoulos.tech"
-            headers  = { Host = "kyriakos.papadopoulos.tech" }
             interval = "30s"
             conditions = [
               "[STATUS] == 200",
@@ -66,9 +65,24 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             ]
           },
           {
+            name     = "Status Page"
+            group    = "🌐 Public"
+            url      = "https://status.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+          }
+        ],
+        # =====================================================================
+        # 🇳🇱 NETHERLANDS - CORE INFRASTRUCTURE
+        # =====================================================================
+        [
+          {
             name     = "Kubernetes API"
-            group    = "🇳🇱 Netherlands K8s"
-            url      = "https://${var.nl_k8s_api_ip}:6443/healthz"
+            group    = "🇳🇱 Netherlands"
+            url      = "https://api-k8s.example.net:6443/healthz"
             client   = { insecure = true }
             interval = "30s"
             conditions = [
@@ -78,7 +92,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
           },
           {
             name     = "ArgoCD"
-            group    = "🇳🇱 Netherlands K8s"
+            group    = "🇳🇱 Netherlands"
             url      = "https://argocd.example.net"
             interval = "60s"
             conditions = [
@@ -87,8 +101,33 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             ]
           },
           {
+            name     = "GitLab"
+            group    = "🇳🇱 Netherlands"
+            url      = "https://gitlab.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+          },
+          {
+            name     = "Atlantis"
+            group    = "🇳🇱 Netherlands"
+            url      = "https://atlantis.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+          }
+        ],
+        # =====================================================================
+        # 🇳🇱 NETHERLANDS - OBSERVABILITY
+        # =====================================================================
+        [
+          {
             name     = "Grafana"
-            group    = "🇳🇱 Netherlands K8s"
+            group    = "🇳🇱 NL Observability"
             url      = "https://grafana.example.net"
             interval = "60s"
             conditions = [
@@ -98,7 +137,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
           },
           {
             name     = "Prometheus"
-            group    = "🇳🇱 Netherlands K8s"
+            group    = "🇳🇱 NL Observability"
             url      = "https://nl-prometheus.example.net"
             interval = "60s"
             conditions = [
@@ -108,7 +147,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
           },
           {
             name     = "Thanos"
-            group    = "🇳🇱 Netherlands K8s"
+            group    = "🇳🇱 NL Observability"
             url      = "https://nl-thanos.example.net"
             interval = "60s"
             conditions = [
@@ -117,8 +156,8 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             ]
           },
           {
-            name     = "Hubble"
-            group    = "🇳🇱 Netherlands K8s"
+            name     = "Hubble UI"
+            group    = "🇳🇱 NL Observability"
             url      = "https://nl-hubble.example.net"
             interval = "60s"
             conditions = [
@@ -128,7 +167,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
           },
           {
             name     = "K8s Dashboard"
-            group    = "🇳🇱 Netherlands K8s"
+            group    = "🇳🇱 NL Observability"
             url      = "https://nl-k8s.example.net"
             interval = "60s"
             conditions = [
@@ -138,17 +177,22 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
           },
           {
             name     = "Goldpinger"
-            group    = "🇳🇱 Netherlands K8s"
+            group    = "🇳🇱 NL Observability"
             url      = "https://goldpinger.example.net"
             interval = "60s"
             conditions = [
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-          },
+          }
+        ],
+        # =====================================================================
+        # 🇳🇱 NETHERLANDS - STORAGE & BACKUP
+        # =====================================================================
+        [
           {
             name     = "SeaweedFS Master"
-            group    = "🇳🇱 Netherlands K8s"
+            group    = "🇳🇱 NL Storage"
             url      = "https://nl-seaweedfs.example.net"
             interval = "60s"
             conditions = [
@@ -158,7 +202,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
           },
           {
             name     = "SeaweedFS S3"
-            group    = "🇳🇱 Netherlands K8s"
+            group    = "🇳🇱 NL Storage"
             url      = "https://nl-s3.example.net"
             interval = "60s"
             conditions = [
@@ -167,18 +211,8 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             ]
           },
           {
-            name     = "AWX"
-            group    = "🇳🇱 Netherlands K8s"
-            url      = "https://awx.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 5000"
-            ]
-          },
-          {
             name     = "Velero UI"
-            group    = "🇳🇱 Netherlands K8s"
+            group    = "🇳🇱 NL Storage"
             url      = "https://velero.example.net"
             interval = "60s"
             conditions = [
@@ -188,24 +222,28 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
           }
         ],
         # =====================================================================
-        # GREECE KUBERNETES CLUSTER
+        # 🇳🇱 NETHERLANDS - AUTOMATION
         # =====================================================================
         [
           {
-            name     = "Portfolio"
-            group    = "🇬🇷 Greece K8s"
-            url      = "http://${var.gr_ingress_ip}"
-            headers  = { Host = "kyriakos.papadopoulos.tech" }
-            interval = "30s"
+            name     = "AWX"
+            group    = "🇳🇱 NL Automation"
+            url      = "https://awx.example.net"
+            interval = "60s"
             conditions = [
               "[STATUS] == 200",
-              "[RESPONSE_TIME] < 2000"
+              "[RESPONSE_TIME] < 5000"
             ]
-          },
+          }
+        ],
+        # =====================================================================
+        # 🇬🇷 GREECE - CORE INFRASTRUCTURE (DR SITE)
+        # =====================================================================
+        [
           {
             name     = "Kubernetes API"
-            group    = "🇬🇷 Greece K8s"
-            url      = "https://${var.gr_k8s_api_ip}:6443/healthz"
+            group    = "🇬🇷 Greece"
+            url      = "https://gr-api-k8s.example.net:6443/healthz"
             client   = { insecure = true }
             interval = "30s"
             conditions = [
@@ -215,7 +253,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
           },
           {
             name     = "ArgoCD"
-            group    = "🇬🇷 Greece K8s"
+            group    = "🇬🇷 Greece"
             url      = "https://gr-argocd.example.net"
             interval = "60s"
             conditions = [
@@ -224,103 +262,8 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             ]
           },
           {
-            name     = "Grafana"
-            group    = "🇬🇷 Greece K8s"
-            url      = "https://gr-grafana.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-          },
-          {
-            name     = "Prometheus"
-            group    = "🇬🇷 Greece K8s"
-            url      = "https://gr-prometheus.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-          },
-          {
-            name     = "Thanos"
-            group    = "🇬🇷 Greece K8s"
-            url      = "https://gr-thanos.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-          },
-          {
-            name     = "Hubble"
-            group    = "🇬🇷 Greece K8s"
-            url      = "https://gr-hubble.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-          },
-          {
-            name     = "K8s Dashboard"
-            group    = "🇬🇷 Greece K8s"
-            url      = "https://gr-k8s.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] < 500",
-              "[RESPONSE_TIME] < 3000"
-            ]
-          },
-          {
-            name     = "Goldpinger"
-            group    = "🇬🇷 Greece K8s"
-            url      = "https://gr-goldpinger.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-          },
-          {
-            name     = "SeaweedFS Master"
-            group    = "🇬🇷 Greece K8s"
-            url      = "https://gr-seaweedfs.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-          },
-          {
-            name     = "SeaweedFS S3"
-            group    = "🇬🇷 Greece K8s"
-            url      = "https://gr-s3.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] < 500",
-              "[RESPONSE_TIME] < 3000"
-            ]
-          }
-        ],
-        # =====================================================================
-        # DEVOPS INFRASTRUCTURE
-        # =====================================================================
-        [
-          {
-            name     = "GitLab (NL)"
-            group    = "🔧 DevOps"
-            url      = "https://gitlab.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-          },
-          {
-            name     = "GitLab (GR)"
-            group    = "🔧 DevOps"
+            name     = "GitLab (Mirror)"
+            group    = "🇬🇷 Greece"
             url      = "https://gr-gitlab.example.net"
             interval = "60s"
             conditions = [
@@ -329,18 +272,8 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             ]
           },
           {
-            name     = "Atlantis (NL)"
-            group    = "🔧 DevOps"
-            url      = "https://atlantis.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-          },
-          {
-            name     = "Atlantis (GR)"
-            group    = "🔧 DevOps"
+            name     = "Atlantis"
+            group    = "🇬🇷 Greece"
             url      = "https://gr-atlantis.example.net"
             interval = "60s"
             conditions = [
@@ -350,12 +283,102 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
           }
         ],
         # =====================================================================
-        # SHARED SERVICES (Non-K8s)
+        # 🇬🇷 GREECE - OBSERVABILITY
+        # =====================================================================
+        [
+          {
+            name     = "Grafana"
+            group    = "🇬🇷 GR Observability"
+            url      = "https://gr-grafana.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+          },
+          {
+            name     = "Prometheus"
+            group    = "🇬🇷 GR Observability"
+            url      = "https://gr-prometheus.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+          },
+          {
+            name     = "Thanos"
+            group    = "🇬🇷 GR Observability"
+            url      = "https://gr-thanos.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+          },
+          {
+            name     = "Hubble UI"
+            group    = "🇬🇷 GR Observability"
+            url      = "https://gr-hubble.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+          },
+          {
+            name     = "K8s Dashboard"
+            group    = "🇬🇷 GR Observability"
+            url      = "https://gr-k8s.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] < 500",
+              "[RESPONSE_TIME] < 3000"
+            ]
+          },
+          {
+            name     = "Goldpinger"
+            group    = "🇬🇷 GR Observability"
+            url      = "https://gr-goldpinger.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+          }
+        ],
+        # =====================================================================
+        # 🇬🇷 GREECE - STORAGE
+        # =====================================================================
+        [
+          {
+            name     = "SeaweedFS Master"
+            group    = "🇬🇷 GR Storage"
+            url      = "https://gr-seaweedfs.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+          },
+          {
+            name     = "SeaweedFS S3"
+            group    = "🇬🇷 GR Storage"
+            url      = "https://gr-s3.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] < 500",
+              "[RESPONSE_TIME] < 3000"
+            ]
+          }
+        ],
+        # =====================================================================
+        # 🏠 SHARED SERVICES
         # =====================================================================
         [
           {
             name     = "Nextcloud"
-            group    = "🌐 Shared Services"
+            group    = "🏠 Home Services"
             url      = "https://nextcloud.example.net"
             interval = "60s"
             conditions = [
@@ -365,7 +388,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
           },
           {
             name     = "Home Assistant"
-            group    = "🌐 Shared Services"
+            group    = "🏠 Home Services"
             url      = "https://homeassistant.example.net"
             interval = "60s"
             conditions = [
@@ -375,12 +398,12 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
           }
         ],
         # =====================================================================
-        # EXTERNAL CONNECTIVITY CHECKS
+        # 🔗 EXTERNAL CONNECTIVITY
         # =====================================================================
         [
           {
             name     = "Internet (Cloudflare)"
-            group    = "🔗 External"
+            group    = "🔗 Connectivity"
             url      = "https://1.1.1.1"
             interval = "60s"
             conditions = [
