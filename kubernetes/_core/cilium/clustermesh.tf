@@ -12,7 +12,7 @@ resource "kubernetes_manifest" "cilium_clustermesh_external_secret" {
   count = var.clustermesh_gr_enabled ? 1 : 0
 
   manifest = {
-    apiVersion = "external-secrets.io/v1beta1"
+    apiVersion = "external-secrets.io/v1"
     kind       = "ExternalSecret"
     metadata = {
       name      = "cilium-clustermesh"
