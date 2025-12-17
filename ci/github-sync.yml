@@ -112,39 +112,92 @@ sync_to_github:
       EOF
       git filter-repo --force --replace-text /tmp/replacements.txt
       
-      echo "[4/6] Scanning and sanitizing secrets (multi-pass)..."
+      echo "[4/6] Scanning and sanitizing secrets (multi-pass, multi-tool)..."
+      
+      # Create aggressive gitleaks config
+      cat > /tmp/gitleaks.toml << 'GITLEAKSCONFIG'
+      [extend]
+      useDefault = true
+      
+      [[rules]]
+      id = "generic-password"
+      description = "Generic password in quotes"
+      regex = '''(?i)password["\s:=]+["']?([A-Za-z0-9+/=_\-]{12,})["']?'''
+      secretGroup = 1
+      
+      [[rules]]
+      id = "generic-password-flag"
+      description = "Password as command flag"
+      regex = '''--password\s+["']?([A-Za-z0-9+/=_\-]{12,})["']?'''
+      secretGroup = 1
+      
+      [[rules]]
+      id = "high-entropy-string"
+      description = "High entropy string in quotes"
+      regex = '''["']([A-Za-z0-9+/=_\-]{20,})["']'''
+      secretGroup = 1
+      entropy = 3.5
+      
+      [[rules]]
+      id = "base64-secret"
+      description = "Base64 encoded secret"
+      regex = '''["']([A-Za-z0-9+/]{24,}={0,2})["']'''
+      secretGroup = 1
+      entropy = 4.0
+      GITLEAKSCONFIG
+      
       PASS=1
       MAX_PASSES=10
       while [ $PASS -le $MAX_PASSES ]; do
         echo ""
         echo "--- Secret scan pass $PASS of $MAX_PASSES ---"
         
-        # Scan for secrets
+        # Scan with gitleaks using custom config
         rm -f /tmp/leaks.json
-        gitleaks detect --source . --no-git --report-format json --report-path /tmp/leaks.json 2>/dev/null || true
+        gitleaks detect --source . --no-git --config /tmp/gitleaks.toml --report-format json --report-path /tmp/leaks.json 2>/dev/null || true
+        
+        # Also scan with trufflehog for entropy-based detection
+        rm -f /tmp/trufflehog.json
+        trufflehog filesystem . --no-update --json 2>/dev/null | jq -s '.' > /tmp/trufflehog.json || true
+        
+        # Merge findings
+        rm -f /tmp/all_secrets.txt
+        touch /tmp/all_secrets.txt
+        
+        # Extract gitleaks findings
+        if [ -f /tmp/leaks.json ] && [ -s /tmp/leaks.json ] && [ "$(cat /tmp/leaks.json)" != "[]" ]; then
+          cat /tmp/leaks.json | jq -r '.[].Secret // empty' >> /tmp/all_secrets.txt
+        fi
+        
+        # Extract trufflehog findings
+        if [ -f /tmp/trufflehog.json ] && [ -s /tmp/trufflehog.json ] && [ "$(cat /tmp/trufflehog.json)" != "[]" ]; then
+          cat /tmp/trufflehog.json | jq -r '.[].Raw // empty' >> /tmp/all_secrets.txt
+        fi
+        
+        # Deduplicate and filter
+        sort -u /tmp/all_secrets.txt > /tmp/unique_secrets.txt
         
         # Check if any secrets found
-        if [ ! -f /tmp/leaks.json ] || [ ! -s /tmp/leaks.json ] || [ "$(cat /tmp/leaks.json)" = "[]" ]; then
+        if [ ! -s /tmp/unique_secrets.txt ]; then
           echo "✅ No secrets found - repository is clean!"
           break
         fi
         
-        LEAK_COUNT=$(cat /tmp/leaks.json | jq 'length')
-        echo "Found $LEAK_COUNT potential secrets"
+        SECRET_COUNT=$(wc -l < /tmp/unique_secrets.txt)
+        echo "Found $SECRET_COUNT potential secrets"
         
-        # Generate replacements from findings (skip already redacted)
+        # Generate replacements (skip already redacted)
         rm -f /tmp/dynamic_replacements.txt
         touch /tmp/dynamic_replacements.txt
         
-        FOUND_NEW=0
-        cat /tmp/leaks.json | jq -r '.[].Secret // empty' | sort -u | while read -r secret; do
-          # Skip already redacted strings, short strings, and empty
-          if [ -n "$secret" ] && [ ${#secret} -gt 6 ] && ! echo "$secret" | grep -qE "^REDACTED_"; then
+        while read -r secret; do
+          # Skip already redacted, short strings, empty
+          if [ -n "$secret" ] && [ ${#secret} -gt 8 ] && ! echo "$secret" | grep -qE "^REDACTED_"; then
             HASH=$(echo -n "$secret" | md5sum | cut -c1-8)
             echo "${secret}==>REDACTED_${HASH}" >> /tmp/dynamic_replacements.txt
-            echo "  Redacting: ${secret:0:6}... (${#secret} chars) -> REDACTED_${HASH}"
+            echo "  Redacting: ${secret:0:8}... (${#secret} chars) -> REDACTED_${HASH}"
           fi
-        done
+        done < /tmp/unique_secrets.txt
         
         # Check if we generated any NEW replacements
         if [ ! -s /tmp/dynamic_replacements.txt ]; then
@@ -167,13 +220,14 @@ sync_to_github:
       echo ""
       echo "[5/6] Reorganizing structure..."
       git filter-repo --force --path-rename k8s/:kubernetes/
+      git filter-repo --force --path-rename docker/nl-matrix01/:docker/matrix/
       
       echo ""
       echo "[6/6] Final verification and push..."
       
       # Final scan - only report non-redacted secrets
       rm -f /tmp/final_leaks.json
-      gitleaks detect --source . --no-git --report-format json --report-path /tmp/final_leaks.json 2>/dev/null || true
+      gitleaks detect --source . --no-git --config /tmp/gitleaks.toml --report-format json --report-path /tmp/final_leaks.json 2>/dev/null || true
       
       if [ -f /tmp/final_leaks.json ] && [ -s /tmp/final_leaks.json ] && [ "$(cat /tmp/final_leaks.json)" != "[]" ]; then
         # Filter out already redacted false positives
@@ -244,9 +298,41 @@ github_sync_dry_run:
         --path ci/github-sync.yml \
         --path docker/nl-matrix01/matrix/
       
+      # Create aggressive gitleaks config
+      cat > /tmp/gitleaks.toml << 'GITLEAKSCONFIG'
+      [extend]
+      useDefault = true
+      
+      [[rules]]
+      id = "generic-password"
+      description = "Generic password in quotes"
+      regex = '''(?i)password["\s:=]+["']?([A-Za-z0-9+/=_\-]{12,})["']?'''
+      secretGroup = 1
+      
+      [[rules]]
+      id = "generic-password-flag"
+      description = "Password as command flag"
+      regex = '''--password\s+["']?([A-Za-z0-9+/=_\-]{12,})["']?'''
+      secretGroup = 1
+      
+      [[rules]]
+      id = "high-entropy-string"
+      description = "High entropy string in quotes"
+      regex = '''["']([A-Za-z0-9+/=_\-]{20,})["']'''
+      secretGroup = 1
+      entropy = 3.5
+      
+      [[rules]]
+      id = "base64-secret"
+      description = "Base64 encoded secret"
+      regex = '''["']([A-Za-z0-9+/]{24,}={0,2})["']'''
+      secretGroup = 1
+      entropy = 4.0
+      GITLEAKSCONFIG
+      
       echo ""
       echo "[2/4] Pre-sanitization scan..."
-      gitleaks detect --source . --no-git --report-format json --report-path /tmp/pre_leaks.json 2>/dev/null || true
+      gitleaks detect --source . --no-git --config /tmp/gitleaks.toml --report-format json --report-path /tmp/pre_leaks.json 2>/dev/null || true
       if [ -f /tmp/pre_leaks.json ] && [ "$(cat /tmp/pre_leaks.json)" != "[]" ]; then
         PRE_COUNT=$(cat /tmp/pre_leaks.json | jq 'length')
         echo "Found $PRE_COUNT secrets before sanitization:"
@@ -294,28 +380,39 @@ github_sync_dry_run:
       PASS=1
       MAX_PASSES=10
       while [ $PASS -le $MAX_PASSES ]; do
-        rm -f /tmp/leaks.json
-        gitleaks detect --source . --no-git --report-format json --report-path /tmp/leaks.json 2>/dev/null || true
+        rm -f /tmp/leaks.json /tmp/trufflehog.json /tmp/all_secrets.txt
+        touch /tmp/all_secrets.txt
         
-        if [ ! -f /tmp/leaks.json ] || [ ! -s /tmp/leaks.json ] || [ "$(cat /tmp/leaks.json)" = "[]" ]; then
+        gitleaks detect --source . --no-git --config /tmp/gitleaks.toml --report-format json --report-path /tmp/leaks.json 2>/dev/null || true
+        trufflehog filesystem . --no-update --json 2>/dev/null | jq -s '.' > /tmp/trufflehog.json || true
+        
+        if [ -f /tmp/leaks.json ] && [ -s /tmp/leaks.json ] && [ "$(cat /tmp/leaks.json)" != "[]" ]; then
+          cat /tmp/leaks.json | jq -r '.[].Secret // empty' >> /tmp/all_secrets.txt
+        fi
+        if [ -f /tmp/trufflehog.json ] && [ -s /tmp/trufflehog.json ] && [ "$(cat /tmp/trufflehog.json)" != "[]" ]; then
+          cat /tmp/trufflehog.json | jq -r '.[].Raw // empty' >> /tmp/all_secrets.txt
+        fi
+        
+        sort -u /tmp/all_secrets.txt > /tmp/unique_secrets.txt
+        
+        if [ ! -s /tmp/unique_secrets.txt ]; then
           echo "Pass $PASS: Clean"
           break
         fi
         
-        LEAK_COUNT=$(cat /tmp/leaks.json | jq 'length')
+        LEAK_COUNT=$(wc -l < /tmp/unique_secrets.txt)
         echo "Pass $PASS: Found $LEAK_COUNT potential secrets"
         
         rm -f /tmp/dynamic_replacements.txt
         touch /tmp/dynamic_replacements.txt
         
-        cat /tmp/leaks.json | jq -r '.[].Secret // empty' | sort -u | while read -r secret; do
-          # Skip already redacted strings
-          if [ -n "$secret" ] && [ ${#secret} -gt 6 ] && ! echo "$secret" | grep -qE "^REDACTED_"; then
+        while read -r secret; do
+          if [ -n "$secret" ] && [ ${#secret} -gt 8 ] && ! echo "$secret" | grep -qE "^REDACTED_"; then
             HASH=$(echo -n "$secret" | md5sum | cut -c1-8)
             echo "${secret}==>REDACTED_${HASH}" >> /tmp/dynamic_replacements.txt
-            echo "  Redacting: ${secret:0:6}... -> REDACTED_${HASH}"
+            echo "  Redacting: ${secret:0:8}... -> REDACTED_${HASH}"
           fi
-        done
+        done < /tmp/unique_secrets.txt
         
         if [ ! -s /tmp/dynamic_replacements.txt ]; then
           echo "Pass $PASS: Only false positives remain"
@@ -327,12 +424,12 @@ github_sync_dry_run:
       done
       
       git filter-repo --force --path-rename k8s/:kubernetes/
+      git filter-repo --force --path-rename docker/nl-matrix01/:docker/matrix/
       
       echo ""
       echo "[4/4] Post-sanitization scan..."
-      gitleaks detect --source . --no-git --report-format json --report-path /tmp/post_leaks.json 2>/dev/null || true
+      gitleaks detect --source . --no-git --config /tmp/gitleaks.toml --report-format json --report-path /tmp/post_leaks.json 2>/dev/null || true
       if [ -f /tmp/post_leaks.json ] && [ "$(cat /tmp/post_leaks.json)" != "[]" ]; then
-        # Filter out redacted false positives
         REAL_LEAKS=$(cat /tmp/post_leaks.json | jq '[.[] | select(.Secret | startswith("REDACTED_") | not)]')
         REAL_COUNT=$(echo "$REAL_LEAKS" | jq 'length')
         
