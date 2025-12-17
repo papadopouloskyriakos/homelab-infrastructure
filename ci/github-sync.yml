@@ -89,7 +89,6 @@ github_sync_scan_only:
       # Clone and filter, then scan (no push)
       git clone --mirror "${CI_REPOSITORY_URL}" repo.git
       cd repo.git
-      git config --bool core.bare false
       git checkout main
       
       # Filter to public paths
