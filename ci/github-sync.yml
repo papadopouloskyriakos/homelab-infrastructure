@@ -2,21 +2,20 @@
 # GITHUB PUBLIC MIRROR PIPELINE
 # Sanitizes and syncs selected content to public GitHub repository
 # ===========================================================================
-# Triggers: Manual or scheduled (not on every push)
-# Target: github.com/papadopouloskyriakos/homelab-infrastructure
+# Uses: github-sync-runner image with pre-installed tools
+# Triggers: Manual or scheduled
+# Target: github.com/$GITHUB_REPO
 # ===========================================================================
 
+variables:
+  GITHUB_SYNC_IMAGE: "registry.example.net/infrastructure/nl/production/github-sync-runner:latest"
+
 .github_sync_base:
-  image: python:3.11-slim
+  image: $GITHUB_SYNC_IMAGE
   tags:
     - docker
   variables:
     GIT_STRATEGY: none
-  before_script:
-    - apt-get update && apt-get install -y git rsync
-    - pip install git-filter-repo --quiet
-    - git config --global user.email "ci@example.net"
-    - git config --global user.name "GitHub Sync Bot"
 
 # ===========================================================================
 # SYNC TO GITHUB
@@ -26,189 +25,112 @@ sync_to_github:
   extends: .github_sync_base
   stage: deploy
   rules:
-    # Manual trigger only (safety first)
     - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "web"'
       when: manual
-    # Or via schedule
     - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "schedule"'
-    # Never on regular pushes
     - when: never
   script:
     - |
-      set -e
-      
       echo "================================================"
       echo "GitHub Public Mirror - Sanitization Sync"
       echo "================================================"
-      echo "Source: $CI_PROJECT_URL"
-      echo "Target: github.com/$GITHUB_REPO"
-      echo "================================================"
-      echo ""
       
-      # -----------------------------------------------------
-      # Clone source repository
-      # -----------------------------------------------------
-      echo "[1/5] Cloning source repository..."
-      git clone --mirror "${CI_REPOSITORY_URL}" repo.git
-      cd repo.git
-      git config --bool core.bare false
-      git checkout main
-      echo "  Commit: $(git rev-parse --short HEAD)"
-      echo "  Done"
-      echo ""
-      
-      # -----------------------------------------------------
-      # Filter to public paths only
-      # -----------------------------------------------------
-      echo "[2/5] Filtering to public paths..."
-      git filter-repo --force \
-        --path README.md \
-        --path LICENSE \
-        --path atlantis.yaml \
-        --path renovate.json \
-        --path k8s/ \
-        --path network/configs/ \
-        --path network/scripts/ \
-        --path ansible/playbooks/ \
-        --path ci/cisco.yml \
-        --path ci/docker.yml \
-        --path ci/k8s.yml \
-        --path docker/nlgpu01/ollama/ \
-        --path docker/nlgpu01/stable-diffusion/ \
-        --path docker/nlgpu01/immich/ \
-        --path docker/nlgpu01/jellyfin/ \
-        --path docker/nlgpu01/faster-whisper/ \
-        --path docker/nl-matrix01/matrix/ \
-        --path docker/nllibrechat01/ \
-        --path docker/nlfrigate01/
-      echo "  Done"
-      echo ""
-      
-      # -----------------------------------------------------
-      # Apply content sanitization
-      # -----------------------------------------------------
-      echo "[3/5] Sanitizing content..."
-      
-      cat > /tmp/replacements.txt << 'REPLACEMENTS'
-      # Site prefixes
-      nl==>nl
-      gr==>gr
-      
-      # Internal domains
-      gitlab.example.net==>gitlab.example.net
-      registry.example.net==>registry.example.net
-      api-k8s.example.net==>api-k8s.example.net
-      gr-api-k8s.example.net==>gr-api-k8s.example.net
-      
-      # Node naming
-      ctrl01==>ctrl01
-      ctrl02==>ctrl02
-      ctrl03==>ctrl03
-      
-      # IP addresses (adjust these to your actual internal ranges)
-      regex:192\.168\.10\.\d{1,3}==>10.0.10.X
-      regex:192\.168\.20\.\d{1,3}==>10.0.20.X
-      regex:192\.168\.30\.\d{1,3}==>10.0.30.X
-      regex:192\.168\.100\.\d{1,3}==>10.0.100.X
-      regex:172\.16\.\d{1,3}\.\d{1,3}==>10.1.X.X
-      
-      # SSH keys (safety net - should not be in repo anyway)
-      regex:ssh-ed25519 AAAA\S+==>ssh-ed25519 REDACTED
-      regex:ssh-rsa AAAA\S+==>ssh-rsa REDACTED
-      
-      # SNMP communities
-      regex:community \S+==>community REDACTED
-      REPLACEMENTS
-      
-      git filter-repo --force --replace-text /tmp/replacements.txt
-      echo "  Done"
-      echo ""
-      
-      # -----------------------------------------------------
-      # Reorganize directory structure
-      # -----------------------------------------------------
-      echo "[4/5] Reorganizing structure..."
-      git filter-repo --force \
-        --path-rename k8s/:kubernetes/ \
-        --path-rename docker/nl:docker/
-      echo "  Done"
-      echo ""
-      
-      # -----------------------------------------------------
-      # Push to GitHub
-      # -----------------------------------------------------
-      echo "[5/5] Pushing to GitHub..."
-      git remote add github "https://${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git"
-      git push github main --force
-      echo "  Done"
-      echo ""
-      
-      echo "================================================"
-      echo "SUCCESS: Sync complete"
-      echo "View at: https://github.com/${GITHUB_REPO}"
-      echo "================================================"
+      # Use the built-in script from the runner image
+      /usr/local/share/github-sync/sync-to-github.sh
   environment:
     name: github-public
     url: https://github.com/$GITHUB_REPO
 
 # ===========================================================================
-# VERIFY SYNC (Optional - runs after sync)
+# DRY RUN - Test without pushing
 # ===========================================================================
 
-verify_github_sync:
+github_sync_dry_run:
   extends: .github_sync_base
-  stage: verify
+  stage: validate
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - k8s/**/*
+        - network/**/*
+        - docker/**/*
+        - ansible/**/*
       when: manual
-    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "schedule"'
-    - when: never
-  needs:
-    - sync_to_github
+      allow_failure: true
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+      allow_failure: true
   script:
     - |
-      set -e
-      
       echo "================================================"
-      echo "Verifying GitHub Sync"
+      echo "GitHub Sync - DRY RUN"
       echo "================================================"
       
-      # Clone the public repo and check for leaks
-      git clone "https://github.com/${GITHUB_REPO}.git" public-repo
-      cd public-repo
+      /usr/local/share/github-sync/sync-to-github.sh --dry-run --verbose
+
+# ===========================================================================
+# SECRETS SCAN ONLY - Quick check without sync
+# ===========================================================================
+
+github_sync_scan_only:
+  extends: .github_sync_base
+  stage: validate
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+      allow_failure: true
+  script:
+    - |
+      echo "================================================"
+      echo "Secrets Scan Only"
+      echo "================================================"
       
-      echo "Checking for sensitive patterns..."
+      # Clone and filter, then scan (no push)
+      git clone --mirror "${CI_REPOSITORY_URL}" repo.git
+      cd repo.git
+      git config --bool core.bare false
+      git checkout main
       
-      LEAK_FOUND=0
+      # Filter to public paths
+      git filter-repo --force \
+        --path README.md \
+        --path k8s/ \
+        --path network/ \
+        --path ansible/ \
+        --path ci/ \
+        --path docker/
       
-      # Check for internal hostnames
-      if grep -r "nl\|gr" --include="*.tf" --include="*.yml" --include="*.yaml" . 2>/dev/null; then
-        echo "WARNING: Internal hostname pattern found!"
-        LEAK_FOUND=1
-      fi
+      # Apply sanitization
+      git filter-repo --force --replace-text /etc/github-sync/replacements.txt
       
-      # Check for internal domains
-      if grep -r "gitlab\.nuclearlighters\.net\|registry-gitlab\.nuclearlighters" . 2>/dev/null; then
-        echo "WARNING: Internal domain found!"
-        LEAK_FOUND=1
-      fi
-      
-      # Check for real IPs (adjust pattern to your ranges)
-      if grep -rE "192\.168\.(10|20|30|100)\.[0-9]+" . 2>/dev/null; then
-        echo "WARNING: Internal IP address found!"
-        LEAK_FOUND=1
-      fi
-      
-      if [ $LEAK_FOUND -eq 1 ]; then
-        echo ""
-        echo "ERROR: Sensitive data may have leaked!"
-        echo "Review the output above and update replacements.txt"
-        exit 1
-      fi
+      # Run comprehensive scan
+      /usr/local/share/github-sync/scan-secrets.sh .
       
       echo ""
-      echo "SUCCESS: No sensitive patterns detected"
-      echo ""
-      echo "Repository contents:"
-      find . -type f -name "*.tf" -o -name "*.yml" -o -name "*.yaml" | head -20
-  allow_failure: true
+      echo "Scan complete - check output above"
+
+# ===========================================================================
+# BUILD THE RUNNER IMAGE
+# ===========================================================================
+
+build_github_sync_runner:
+  stage: .pre
+  image: docker:24
+  services:
+    - docker:24-dind
+  tags:
+    - docker
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - docker/nlgitlab01/github-sync-runner/**/*
+      when: manual
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - |
+      cd docker/nlgitlab01/github-sync-runner
+      docker build -t $GITHUB_SYNC_IMAGE .
+      docker push $GITHUB_SYNC_IMAGE
+  environment:
+    name: docker-registry
