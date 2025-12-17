@@ -64,16 +64,6 @@ resource "REDACTED_9343442e" "gatus_config" {
               "[RESPONSE_TIME] < 2000"
             ]
           },
-          {
-            name     = "Status Page (Self)"
-            group    = "🌐 Public"
-            url      = "https://status.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-          }
         ],
         # =====================================================================
         # 🇳🇱 NETHERLANDS - CORE INFRASTRUCTURE
