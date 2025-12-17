@@ -54,7 +54,8 @@ sync_to_github:
         --path ci/cisco.yml \
         --path ci/docker.yml \
         --path ci/k8s.yml \
-        --path ci/github-sync.yml
+        --path ci/github-sync.yml \
+        --path docker/services/matrix/
       
       echo "[3/5] Sanitizing content..."
       cat > /tmp/replacements.txt << 'EOF'
