@@ -12,7 +12,7 @@
 # -----------------------------------------------------------------------------
 resource "kubernetes_manifest" "REDACTED_9675462a" {
   manifest = {
-    apiVersion = "external-secrets.io/v1beta1"
+    apiVersion = "external-secrets.io/v1"
     kind       = "ExternalSecret"
     metadata = {
       name      = "monitoring-grafana"

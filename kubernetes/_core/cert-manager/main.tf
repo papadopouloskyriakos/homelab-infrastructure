@@ -46,7 +46,7 @@ resource "helm_release" "cert_manager" {
 resource "kubernetes_manifest" "REDACTED_cad964aa" {
   depends_on = [kubernetes_namespace.cert_manager]
   manifest = {
-    apiVersion = "external-secrets.io/v1beta1"
+    apiVersion = "external-secrets.io/v1"
     kind       = "ExternalSecret"
     metadata = {
       name      = "REDACTED_fb8d60db"
