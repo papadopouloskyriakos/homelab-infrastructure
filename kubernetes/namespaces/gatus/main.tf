@@ -633,9 +633,7 @@ resource "kubernetes_ingress_v1" "gatus" {
       environment              = "production"
       "managed-by"             = "opentofu"
     }
-    annotations = {
-      EOF
-    }
+    annotations = {}
   }
 
   spec {
