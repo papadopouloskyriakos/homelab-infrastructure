@@ -50,7 +50,7 @@ resource "kubernetes_manifest" "cluster_secret_store" {
   depends_on = [helm_release.external_secrets]
 
   manifest = {
-    apiVersion = "external-secrets.io/v1beta1"
+    apiVersion = "external-secrets.io/v1"
     kind       = "ClusterSecretStore"
     metadata = {
       name = "openbao"
