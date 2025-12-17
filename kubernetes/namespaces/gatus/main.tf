@@ -12,10 +12,10 @@ resource "REDACTED_46569c16" "gatus" {
   metadata {
     name = "gatus"
     labels = {
-      name                                     = "gatus"
-      environment                              = "production"
-      "managed-by"                             = "opentofu"
-      "pod-security.kubernetes.io/enforce"     = "restricted"
+      name                                 = "gatus"
+      environment                          = "production"
+      "managed-by"                         = "opentofu"
+      "pod-security.kubernetes.io/enforce" = "restricted"
     }
   }
 }
