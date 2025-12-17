@@ -37,11 +37,11 @@ sync_to_github:
       echo "Target: github.com/${GITHUB_REPO}"
       echo "================================================"
       
-      echo "[1/7] Cloning source repository..."
+      echo "[1/6] Cloning source repository..."
       git clone "${CI_REPOSITORY_URL}" repo
       cd repo
       
-      echo "[2/7] Filtering to public paths..."
+      echo "[2/6] Filtering to public paths..."
       git filter-repo --force \
         --path README.md \
         --path LICENSE \
@@ -57,7 +57,7 @@ sync_to_github:
         --path ci/github-sync.yml \
         --path docker/nl-matrix01/matrix/
       
-      echo "[3/7] Applying static sanitization patterns..."
+      echo "[3/6] Applying static sanitization patterns..."
       cat > /tmp/replacements.txt << 'EOF'
       # Docker hosts
       nl-matrix01==>nl-matrix01
@@ -112,52 +112,88 @@ sync_to_github:
       EOF
       git filter-repo --force --replace-text /tmp/replacements.txt
       
-      echo "[4/7] Scanning for secrets with gitleaks..."
-      # Run gitleaks and capture findings (don't fail on findings)
-      gitleaks detect --source . --no-git --report-format json --report-path /tmp/leaks.json 2>/dev/null || true
-      
-      echo "[5/7] Auto-sanitizing detected secrets..."
-      if [ -f /tmp/leaks.json ] && [ -s /tmp/leaks.json ] && [ "$(cat /tmp/leaks.json)" != "[]" ]; then
-        echo "Found secrets, generating dynamic replacements..."
+      echo "[4/6] Scanning and sanitizing secrets (multi-pass)..."
+      PASS=1
+      MAX_PASSES=10
+      while [ $PASS -le $MAX_PASSES ]; do
+        echo ""
+        echo "--- Secret scan pass $PASS of $MAX_PASSES ---"
         
-        # Extract unique secrets and create replacements
-        COUNTER=1
-        for secret in $(cat /tmp/leaks.json | jq -r '.[].Secret // empty' | sort -u); do
+        # Scan for secrets
+        rm -f /tmp/leaks.json
+        gitleaks detect --source . --no-git --report-format json --report-path /tmp/leaks.json 2>/dev/null || true
+        
+        # Check if any secrets found
+        if [ ! -f /tmp/leaks.json ] || [ ! -s /tmp/leaks.json ] || [ "$(cat /tmp/leaks.json)" = "[]" ]; then
+          echo "✅ No secrets found - repository is clean!"
+          break
+        fi
+        
+        LEAK_COUNT=$(cat /tmp/leaks.json | jq 'length')
+        echo "Found $LEAK_COUNT potential secrets"
+        
+        # Generate replacements from findings
+        rm -f /tmp/dynamic_replacements.txt
+        touch /tmp/dynamic_replacements.txt
+        
+        cat /tmp/leaks.json | jq -r '.[].Secret // empty' | sort -u | while read -r secret; do
           if [ -n "$secret" ] && [ ${#secret} -gt 6 ]; then
             HASH=$(echo -n "$secret" | md5sum | cut -c1-8)
             echo "${secret}==>REDACTED_${HASH}" >> /tmp/dynamic_replacements.txt
-            echo "  - Redacting secret (${#secret} chars) -> REDACTED_${HASH}"
-            COUNTER=$((COUNTER + 1))
+            echo "  Redacting: ${secret:0:6}... (${#secret} chars) -> REDACTED_${HASH}"
           fi
         done
         
-        if [ -f /tmp/dynamic_replacements.txt ] && [ -s /tmp/dynamic_replacements.txt ]; then
-          echo "Applying $(wc -l < /tmp/dynamic_replacements.txt) dynamic replacements..."
-          git filter-repo --force --replace-text /tmp/dynamic_replacements.txt
+        # Check if we generated any replacements
+        if [ ! -s /tmp/dynamic_replacements.txt ]; then
+          echo "⚠️ Secrets detected but could not generate replacements"
+          echo "Remaining findings:"
+          cat /tmp/leaks.json | jq -r '.[] | "  - \(.RuleID): \(.File):\(.StartLine)"'
+          break
         fi
-      else
-        echo "No secrets detected by gitleaks"
+        
+        # Apply the replacements
+        REPL_COUNT=$(wc -l < /tmp/dynamic_replacements.txt)
+        echo "Applying $REPL_COUNT replacements via git-filter-repo..."
+        git filter-repo --force --replace-text /tmp/dynamic_replacements.txt
+        
+        PASS=$((PASS + 1))
+      done
+      
+      if [ $PASS -gt $MAX_PASSES ]; then
+        echo "⚠️ Reached max passes ($MAX_PASSES) - some secrets may remain"
       fi
       
-      echo "[6/7] Reorganizing structure..."
+      echo ""
+      echo "[5/6] Reorganizing structure..."
       git filter-repo --force --path-rename k8s/:kubernetes/
       
-      echo "[7/7] Final verification and push..."
-      # Final scan to confirm clean
-      FINAL_LEAKS=$(gitleaks detect --source . --no-git 2>&1 || true)
-      if echo "$FINAL_LEAKS" | grep -q "leaks found"; then
-        echo "⚠️  Warning: Some secrets may still exist after sanitization"
-        echo "$FINAL_LEAKS"
-        echo "Continuing with push - review GitHub repo after sync"
+      echo ""
+      echo "[6/6] Final verification and push..."
+      
+      # Final scan
+      rm -f /tmp/final_leaks.json
+      gitleaks detect --source . --no-git --report-format json --report-path /tmp/final_leaks.json 2>/dev/null || true
+      
+      if [ -f /tmp/final_leaks.json ] && [ -s /tmp/final_leaks.json ] && [ "$(cat /tmp/final_leaks.json)" != "[]" ]; then
+        FINAL_COUNT=$(cat /tmp/final_leaks.json | jq 'length')
+        echo "⚠️ Warning: $FINAL_COUNT potential secrets still detected after sanitization"
+        echo "Details:"
+        cat /tmp/final_leaks.json | jq -r '.[] | "  - \(.RuleID): \(.File):\(.StartLine) - \(.Secret[0:20])..."'
+        echo ""
+        echo "These may be false positives. Review GitHub after sync."
       else
-        echo "✅ Final scan clean - no secrets detected"
+        echo "✅ Final scan clean - no secrets detected!"
       fi
       
+      echo ""
+      echo "Pushing to GitHub..."
       git remote add github "https://${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git"
       git push github main --force
       
+      echo ""
       echo "================================================"
-      echo "SUCCESS: https://github.com/${GITHUB_REPO}"
+      echo "✅ SUCCESS: https://github.com/${GITHUB_REPO}"
       echo "================================================"
   environment:
     name: github-public
@@ -201,11 +237,19 @@ github_sync_dry_run:
         --path ci/github-sync.yml \
         --path docker/nl-matrix01/matrix/
       
-      echo "[2/4] Scanning BEFORE sanitization..."
-      echo "--- Pre-sanitization secrets ---"
-      gitleaks detect --source . --no-git -v 2>&1 | head -50 || true
+      echo ""
+      echo "[2/4] Pre-sanitization scan..."
+      gitleaks detect --source . --no-git --report-format json --report-path /tmp/pre_leaks.json 2>/dev/null || true
+      if [ -f /tmp/pre_leaks.json ] && [ "$(cat /tmp/pre_leaks.json)" != "[]" ]; then
+        PRE_COUNT=$(cat /tmp/pre_leaks.json | jq 'length')
+        echo "Found $PRE_COUNT secrets before sanitization:"
+        cat /tmp/pre_leaks.json | jq -r '.[] | "  - \(.RuleID): \(.File):\(.StartLine)"'
+      else
+        echo "No secrets found before sanitization"
+      fi
       
-      echo "[3/4] Applying sanitization..."
+      echo ""
+      echo "[3/4] Applying sanitization (static + dynamic)..."
       cat > /tmp/replacements.txt << 'EOF'
       nl-matrix01==>nl-matrix01
       nl==>nl
@@ -239,29 +283,54 @@ github_sync_dry_run:
       EOF
       git filter-repo --force --replace-text /tmp/replacements.txt
       
-      # Auto-sanitize detected secrets
-      gitleaks detect --source . --no-git --report-format json --report-path /tmp/leaks.json 2>/dev/null || true
-      if [ -f /tmp/leaks.json ] && [ -s /tmp/leaks.json ] && [ "$(cat /tmp/leaks.json)" != "[]" ]; then
-        for secret in $(cat /tmp/leaks.json | jq -r '.[].Secret // empty' | sort -u); do
+      # Multi-pass dynamic sanitization
+      PASS=1
+      MAX_PASSES=10
+      while [ $PASS -le $MAX_PASSES ]; do
+        rm -f /tmp/leaks.json
+        gitleaks detect --source . --no-git --report-format json --report-path /tmp/leaks.json 2>/dev/null || true
+        
+        if [ ! -f /tmp/leaks.json ] || [ ! -s /tmp/leaks.json ] || [ "$(cat /tmp/leaks.json)" = "[]" ]; then
+          echo "Pass $PASS: Clean"
+          break
+        fi
+        
+        LEAK_COUNT=$(cat /tmp/leaks.json | jq 'length')
+        echo "Pass $PASS: Found $LEAK_COUNT secrets, sanitizing..."
+        
+        rm -f /tmp/dynamic_replacements.txt
+        cat /tmp/leaks.json | jq -r '.[].Secret // empty' | sort -u | while read -r secret; do
           if [ -n "$secret" ] && [ ${#secret} -gt 6 ]; then
             HASH=$(echo -n "$secret" | md5sum | cut -c1-8)
             echo "${secret}==>REDACTED_${HASH}" >> /tmp/dynamic_replacements.txt
           fi
         done
-        if [ -f /tmp/dynamic_replacements.txt ]; then
+        
+        if [ -s /tmp/dynamic_replacements.txt ]; then
           git filter-repo --force --replace-text /tmp/dynamic_replacements.txt
+        else
+          break
         fi
-      fi
+        
+        PASS=$((PASS + 1))
+      done
       
       git filter-repo --force --path-rename k8s/:kubernetes/
       
-      echo "[4/4] Scanning AFTER sanitization..."
-      echo "--- Post-sanitization secrets ---"
-      gitleaks detect --source . --no-git -v 2>&1 | head -50 || true
+      echo ""
+      echo "[4/4] Post-sanitization scan..."
+      gitleaks detect --source . --no-git --report-format json --report-path /tmp/post_leaks.json 2>/dev/null || true
+      if [ -f /tmp/post_leaks.json ] && [ "$(cat /tmp/post_leaks.json)" != "[]" ]; then
+        POST_COUNT=$(cat /tmp/post_leaks.json | jq 'length')
+        echo "⚠️ $POST_COUNT secrets remain after sanitization:"
+        cat /tmp/post_leaks.json | jq -r '.[] | "  - \(.RuleID): \(.File):\(.StartLine) - \(.Secret[0:20])..."'
+      else
+        echo "✅ All secrets sanitized successfully!"
+      fi
       
+      echo ""
       echo "================================================"
       echo "DRY RUN COMPLETE - No push performed"
-      echo "Review output above for any remaining issues"
       echo "================================================"
 
 # ===========================================================================
