@@ -12,10 +12,10 @@ resource "REDACTED_46569c16" "gatus" {
   metadata {
     name = "gatus"
     labels = {
-      name                     = "gatus"
-      environment              = "production"
-      "managed-by"             = "opentofu"
-      "pod-security.kubernetes.io/enforce" = "restricted"
+      name                                     = "gatus"
+      environment                              = "production"
+      "managed-by"                             = "opentofu"
+      "pod-security.kubernetes.io/enforce"     = "restricted"
     }
   }
 }
@@ -185,7 +185,7 @@ resource "REDACTED_9343442e" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-          },
+          }
         ],
         # =====================================================================
         # GREECE KUBERNETES CLUSTER
@@ -347,9 +347,10 @@ resource "REDACTED_9343442e" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-          },
+          }
+        ],
         # =====================================================================
-        # SHARED / EXTERNAL SERVICES (Non-K8s)
+        # SHARED SERVICES (Non-K8s)
         # =====================================================================
         [
           {
@@ -452,7 +453,6 @@ resource "REDACTED_08d34ae1" "gatus" {
           "managed-by"             = "opentofu"
         }
         annotations = {
-          # Trigger redeploy on config change
           "checksum/config" = sha256(REDACTED_9343442e.gatus_config.data["config.yaml"])
         }
       }
@@ -719,7 +719,6 @@ resource "kubernetes_manifest" "REDACTED_74a3ea37" {
       }
 
       ingress = [
-        # Allow from ingress-nginx only
         {
           fromEndpoints = [{
             matchLabels = {
@@ -734,7 +733,6 @@ resource "kubernetes_manifest" "REDACTED_74a3ea37" {
             }]
           }]
         },
-        # Allow Prometheus scraping
         {
           fromEndpoints = [{
             matchLabels = {
@@ -752,7 +750,6 @@ resource "kubernetes_manifest" "REDACTED_74a3ea37" {
       ]
 
       egress = [
-        # DNS resolution
         {
           toEndpoints = [{
             matchLabels = {
@@ -767,7 +764,6 @@ resource "kubernetes_manifest" "REDACTED_74a3ea37" {
             ]
           }]
         },
-        # HTTPS/HTTP to monitored endpoints (external)
         {
           toEntities = ["world"]
           toPorts = [{
@@ -778,7 +774,6 @@ resource "kubernetes_manifest" "REDACTED_74a3ea37" {
             ]
           }]
         },
-        # Internal cluster communication (for cross-namespace checks)
         {
           toEntities = ["cluster"]
         }
