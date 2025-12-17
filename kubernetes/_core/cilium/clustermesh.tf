@@ -12,7 +12,7 @@ resource "kubernetes_manifest" "REDACTED_8d90a97d" {
   count = var.REDACTED_0333f99b ? 1 : 0
 
   manifest = {
-    apiVersion = "external-secrets.io/v1beta1"
+    apiVersion = "external-secrets.io/v1"
     kind       = "ExternalSecret"
     metadata = {
       name      = "cilium-clustermesh"
