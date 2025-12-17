@@ -3,7 +3,7 @@
 # Sanitizes and syncs selected content to public GitHub repository
 # ===========================================================================
 # Uses: github-sync-runner image with pre-installed tools
-# Triggers: Manual or scheduled
+# Triggers: On every push to main
 # Target: github.com/$GITHUB_REPO
 # ===========================================================================
 
@@ -26,7 +26,7 @@ sync_to_github:
   needs: []
   stage: deploy
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'    # Run on every push to main
+    - if: '$CI_COMMIT_BRANCH == "main"'
   script:
     - |
       set -e
@@ -37,11 +37,11 @@ sync_to_github:
       echo "Target: github.com/${GITHUB_REPO}"
       echo "================================================"
       
-      echo "[1/5] Cloning source repository..."
+      echo "[1/7] Cloning source repository..."
       git clone "${CI_REPOSITORY_URL}" repo
       cd repo
       
-      echo "[2/5] Filtering to public paths..."
+      echo "[2/7] Filtering to public paths..."
       git filter-repo --force \
         --path README.md \
         --path LICENSE \
@@ -57,7 +57,7 @@ sync_to_github:
         --path ci/github-sync.yml \
         --path docker/nl-matrix01/matrix/
       
-      echo "[3/5] Sanitizing content..."
+      echo "[3/7] Applying static sanitization patterns..."
       cat > /tmp/replacements.txt << 'EOF'
       # Docker hosts
       nl-matrix01==>nl-matrix01
@@ -112,10 +112,47 @@ sync_to_github:
       EOF
       git filter-repo --force --replace-text /tmp/replacements.txt
       
-      echo "[4/5] Reorganizing structure..."
+      echo "[4/7] Scanning for secrets with gitleaks..."
+      # Run gitleaks and capture findings (don't fail on findings)
+      gitleaks detect --source . --no-git --report-format json --report-path /tmp/leaks.json 2>/dev/null || true
+      
+      echo "[5/7] Auto-sanitizing detected secrets..."
+      if [ -f /tmp/leaks.json ] && [ -s /tmp/leaks.json ] && [ "$(cat /tmp/leaks.json)" != "[]" ]; then
+        echo "Found secrets, generating dynamic replacements..."
+        
+        # Extract unique secrets and create replacements
+        COUNTER=1
+        for secret in $(cat /tmp/leaks.json | jq -r '.[].Secret // empty' | sort -u); do
+          if [ -n "$secret" ] && [ ${#secret} -gt 6 ]; then
+            HASH=$(echo -n "$secret" | md5sum | cut -c1-8)
+            echo "${secret}==>REDACTED_${HASH}" >> /tmp/dynamic_replacements.txt
+            echo "  - Redacting secret (${#secret} chars) -> REDACTED_${HASH}"
+            COUNTER=$((COUNTER + 1))
+          fi
+        done
+        
+        if [ -f /tmp/dynamic_replacements.txt ] && [ -s /tmp/dynamic_replacements.txt ]; then
+          echo "Applying $(wc -l < /tmp/dynamic_replacements.txt) dynamic replacements..."
+          git filter-repo --force --replace-text /tmp/dynamic_replacements.txt
+        fi
+      else
+        echo "No secrets detected by gitleaks"
+      fi
+      
+      echo "[6/7] Reorganizing structure..."
       git filter-repo --force --path-rename k8s/:kubernetes/
       
-      echo "[5/5] Pushing to GitHub..."
+      echo "[7/7] Final verification and push..."
+      # Final scan to confirm clean
+      FINAL_LEAKS=$(gitleaks detect --source . --no-git 2>&1 || true)
+      if echo "$FINAL_LEAKS" | grep -q "leaks found"; then
+        echo "⚠️  Warning: Some secrets may still exist after sanitization"
+        echo "$FINAL_LEAKS"
+        echo "Continuing with push - review GitHub repo after sync"
+      else
+        echo "✅ Final scan clean - no secrets detected"
+      fi
+      
       git remote add github "https://${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git"
       git push github main --force
       
@@ -132,33 +169,7 @@ sync_to_github:
 
 github_sync_dry_run:
   extends: .github_sync_base
-  stage: validate
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      changes:
-        - k8s/**/*
-        - network/**/*
-        - docker/**/*
-        - ansible/**/*
-      when: manual
-      allow_failure: true
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-      when: manual
-      allow_failure: true
-  script:
-    - |
-      echo "================================================"
-      echo "GitHub Sync - DRY RUN"
-      echo "================================================"
-      
-      /usr/local/share/github-sync/sync-to-github.sh --dry-run --verbose
-
-# ===========================================================================
-# SECRETS SCAN ONLY - Quick check without sync
-# ===========================================================================
-
-github_sync_scan_only:
-  extends: .github_sync_base
+  needs: []
   stage: validate
   rules:
     - if: '$CI_PIPELINE_SOURCE == "web"'
@@ -166,32 +177,92 @@ github_sync_scan_only:
       allow_failure: true
   script:
     - |
+      set -e
       echo "================================================"
-      echo "Secrets Scan Only"
+      echo "GitHub Sync - DRY RUN (no push)"
       echo "================================================"
       
-      # Clone and filter, then scan (no push)
-      git clone --mirror "${CI_REPOSITORY_URL}" repo.git
-      cd repo.git
-      git checkout main
+      git clone "${CI_REPOSITORY_URL}" repo
+      cd repo
       
-      # Filter to public paths
+      echo "[1/4] Filtering paths..."
       git filter-repo --force \
         --path README.md \
+        --path LICENSE \
+        --path atlantis.yaml \
+        --path renovate.json \
         --path k8s/ \
-        --path network/ \
-        --path ansible/ \
-        --path ci/ \
-        --path docker/
+        --path network/configs/ \
+        --path network/scripts/ \
+        --path ansible/playbooks/ \
+        --path ci/cisco.yml \
+        --path ci/docker.yml \
+        --path ci/k8s.yml \
+        --path ci/github-sync.yml \
+        --path docker/nl-matrix01/matrix/
       
-      # Apply sanitization
-      git filter-repo --force --replace-text /etc/github-sync/replacements.txt
+      echo "[2/4] Scanning BEFORE sanitization..."
+      echo "--- Pre-sanitization secrets ---"
+      gitleaks detect --source . --no-git -v 2>&1 | head -50 || true
       
-      # Run comprehensive scan
-      /usr/local/share/github-sync/scan-secrets.sh .
+      echo "[3/4] Applying sanitization..."
+      cat > /tmp/replacements.txt << 'EOF'
+      nl-matrix01==>nl-matrix01
+      nl==>nl
+      gr==>gr
+      gitlab.example.net==>gitlab.example.net
+      registry.example.net==>registry.example.net
+      api-k8s.example.net==>api-k8s.example.net
+      gr-api-k8s.example.net==>gr-api-k8s.example.net
+      example.net==>example.net
+      nl-pve01==>nl-pve01
+      nl-pve02==>nl-pve02
+      nl-pve03==>nl-pve03
+      gr-pve01==>gr-pve01
+      gr-pve02==>gr-pve02
+      nl-vault01==>nl-vault01
+      nl-vault02==>nl-vault02
+      gr-vault01==>gr-vault01
+      nl-rtr01==>nl-rtr01
+      nl-rtr02==>nl-rtr02
+      gr-rtr01==>gr-rtr01
+      gr-rtr02==>gr-rtr02
+      nl-nas01==>nl-nas01
+      nl-lte01==>nl-lte01
+      ctrl01==>ctrl01
+      ctrl02==>ctrl02
+      ctrl03==>ctrl03
+      regex:192\.168\.\d{1,3}\.\d{1,3}==>10.0.X.X
+      regex:172\.16\.\d{1,3}\.\d{1,3}==>10.1.X.X
+      Netherlands==>Netherlands
+      Greece==>Greece
+      EOF
+      git filter-repo --force --replace-text /tmp/replacements.txt
       
-      echo ""
-      echo "Scan complete - check output above"
+      # Auto-sanitize detected secrets
+      gitleaks detect --source . --no-git --report-format json --report-path /tmp/leaks.json 2>/dev/null || true
+      if [ -f /tmp/leaks.json ] && [ -s /tmp/leaks.json ] && [ "$(cat /tmp/leaks.json)" != "[]" ]; then
+        for secret in $(cat /tmp/leaks.json | jq -r '.[].Secret // empty' | sort -u); do
+          if [ -n "$secret" ] && [ ${#secret} -gt 6 ]; then
+            HASH=$(echo -n "$secret" | md5sum | cut -c1-8)
+            echo "${secret}==>REDACTED_${HASH}" >> /tmp/dynamic_replacements.txt
+          fi
+        done
+        if [ -f /tmp/dynamic_replacements.txt ]; then
+          git filter-repo --force --replace-text /tmp/dynamic_replacements.txt
+        fi
+      fi
+      
+      git filter-repo --force --path-rename k8s/:kubernetes/
+      
+      echo "[4/4] Scanning AFTER sanitization..."
+      echo "--- Post-sanitization secrets ---"
+      gitleaks detect --source . --no-git -v 2>&1 | head -50 || true
+      
+      echo "================================================"
+      echo "DRY RUN COMPLETE - No push performed"
+      echo "Review output above for any remaining issues"
+      echo "================================================"
 
 # ===========================================================================
 # BUILD THE RUNNER IMAGE
