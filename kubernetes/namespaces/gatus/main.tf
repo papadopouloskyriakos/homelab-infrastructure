@@ -65,7 +65,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             ]
           },
           {
-            name     = "Status Page"
+            name     = "Status Page (Self)"
             group    = "🌐 Public"
             url      = "https://status.example.net"
             interval = "60s"
