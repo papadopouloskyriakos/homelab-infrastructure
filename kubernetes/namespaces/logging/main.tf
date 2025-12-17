@@ -19,7 +19,7 @@ resource "kubernetes_namespace" "logging" {
 # -----------------------------------------------------------------------------
 resource "kubernetes_manifest" "REDACTED_4d3fed8e" {
   manifest = {
-    apiVersion = "external-secrets.io/v1beta1"
+    apiVersion = "external-secrets.io/v1"
     kind       = "ExternalSecret"
     metadata = {
       name      = "loki-s3-credentials"
