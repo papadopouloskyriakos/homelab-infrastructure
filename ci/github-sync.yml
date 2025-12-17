@@ -55,10 +55,13 @@ sync_to_github:
         --path ci/docker.yml \
         --path ci/k8s.yml \
         --path ci/github-sync.yml \
-        --path docker/services/matrix/
+        --path docker/nl-matrix01/matrix/
       
       echo "[3/5] Sanitizing content..."
       cat > /tmp/replacements.txt << 'EOF'
+      # Docker hosts
+      nl-matrix01==>nl-matrix01
+      
       # Site prefixes
       nl==>nl
       gr==>gr
