@@ -32,12 +32,51 @@ sync_to_github:
     - when: never
   script:
     - |
+      set -e
       echo "================================================"
       echo "GitHub Public Mirror - Sanitization Sync"
       echo "================================================"
+      echo "Source: ${CI_REPOSITORY_URL}"
+      echo "Target: github.com/${GITHUB_REPO}"
+      echo "================================================"
       
-      # Use the built-in script from the runner image
-      /usr/local/share/github-sync/sync-to-github.sh
+      echo "[1/5] Cloning source repository..."
+      git clone "${CI_REPOSITORY_URL}" repo
+      cd repo
+      
+      echo "[2/5] Filtering to public paths..."
+      git filter-repo --force \
+        --path README.md \
+        --path LICENSE \
+        --path atlantis.yaml \
+        --path renovate.json \
+        --path k8s/ \
+        --path network/configs/ \
+        --path network/scripts/ \
+        --path ansible/playbooks/ \
+        --path ci/
+      
+      echo "[3/5] Sanitizing content..."
+      cat > /tmp/replacements.txt << 'EOF'
+      nl==>nl
+      gr==>gr
+      gitlab.example.net==>gitlab.example.net
+      registry.example.net==>registry.example.net
+      api-k8s.example.net==>api-k8s.example.net
+      regex:192\.168\.\d{1,3}\.\d{1,3}==>10.0.X.X
+      EOF
+      git filter-repo --force --replace-text /tmp/replacements.txt
+      
+      echo "[4/5] Reorganizing structure..."
+      git filter-repo --force --path-rename k8s/:kubernetes/
+      
+      echo "[5/5] Pushing to GitHub..."
+      git remote add github "https://${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git"
+      git push github main --force
+      
+      echo "================================================"
+      echo "SUCCESS: https://github.com/${GITHUB_REPO}"
+      echo "================================================"
   environment:
     name: github-public
     url: https://github.com/$GITHUB_REPO
