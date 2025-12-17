@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2025-12-16 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2025-12-17 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,13 +11,13 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 196 |
+| Total Restarts | 195 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.18.4
 - **Nodes:** 8 (3 control-plane, 5 workers)
-- **Pods:** 139
+- **Pods:** 142
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:3795Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -38,7 +38,7 @@ _None_
 kube-system/etcd-nlk8s-ctrl01: 7 restarts
 kube-system/etcd-nlk8s-ctrl02: 5 restarts
 kube-system/etcd-nlk8s-ctrl03: 4 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 29 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 30 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 5 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 5 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 23 restarts
@@ -54,10 +54,10 @@ nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956swwjx: 5 restarts
 ### Recent Warnings (5)
 ```
 NAMESPACE      LAST SEEN   TYPE      REASON             OBJECT                                  MESSAGE
-kube-system    58m         Warning   Unhealthy          pod/kube-apiserver-nlk8s-ctrl02   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system    3m38s       Warning   Unhealthy          pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
-synology-csi   115s        Warning   DNSConfigForming   pod/synology-csi-node-n4rjm             Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-kube-system    69s         Warning   DNSConfigForming   pod/cilium-envoy-6ws74                  Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    2m48s       Warning   DNSConfigForming   pod/cilium-envoy-6ws74                  Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+synology-csi   93s         Warning   DNSConfigForming   pod/synology-csi-node-n4rjm             Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    35s         Warning   Unhealthy          pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system    22s         Warning   Unhealthy          pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
@@ -76,6 +76,7 @@ pihole/pihole-dns-tcp-lb: 10.0.X.X -> 53:30438/TCP
 - argocd.example.net → argocd/argocd-server
 - awx.example.net → awx/awx
 - bentopdf.example.net → bentopdf/bentopdf
+- status.example.net → gatus/gatus
 - nl-hubble.example.net → kube-system/hubble-ui
 - nl-k8s.example.net → REDACTED_d97cef76/REDACTED_d97cef76
 - goldpinger.example.net → monitoring/goldpinger
@@ -83,6 +84,7 @@ pihole/pihole-dns-tcp-lb: 10.0.X.X -> 53:30438/TCP
 - nl-prometheus.example.net → monitoring/prometheus
 - nl-thanos.example.net → monitoring/thanos-query
 - pihole.example.net → pihole/pihole-ingress
+- kyriakos.papadopoulos.tech → portfolio/portfolio
 - nl-seaweedfs.example.net → seaweedfs/seaweedfs-master
 - nl-s3.example.net → seaweedfs/seaweedfs-s3
 - velero.example.net → velero/velero-ui
@@ -91,7 +93,7 @@ pihole/pihole-dns-tcp-lb: 10.0.X.X -> 53:30438/TCP
 - argocd (argo-cd-7.7.10) in argocd
 - cert-manager (cert-manager-v1.17.1) in cert-manager
 - cilium (cilium-1.18.4) in kube-system
-- external-secrets (external-secrets-0.12.1) in external-secrets
+- external-secrets (external-secrets-1.1.1) in external-secrets
 - ingress-nginx (ingress-nginx-4.14.0) in ingress-nginx
 - k8s-agent (gitlab-agent-2.21.1) in REDACTED_01b50c5d
 - REDACTED_d97cef76 (REDACTED_d97cef76-7.14.0) in REDACTED_d97cef76
