@@ -634,10 +634,6 @@ resource "kubernetes_ingress_v1" "gatus" {
       "managed-by"             = "opentofu"
     }
     annotations = {
-      "nginx.ingress.kubernetes.io/configuration-snippet" = <<-EOF
-        add_header X-Frame-Options "SAMEORIGIN" always;
-        add_header X-Content-Type-Options "nosniff" always;
-        add_header X-Served-By "${var.site_name}" always;
       EOF
     }
   }
