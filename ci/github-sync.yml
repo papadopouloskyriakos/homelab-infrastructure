@@ -51,7 +51,10 @@ sync_to_github:
         --path network/configs/ \
         --path network/scripts/ \
         --path ansible/playbooks/ \
-        --path ci/
+        --path ci/cisco.yml \
+        --path ci/docker.yml \
+        --path ci/k8s.yml \
+        --path ci/github-sync.yml
       
       echo "[3/5] Sanitizing content..."
       cat > /tmp/replacements.txt << 'EOF'
