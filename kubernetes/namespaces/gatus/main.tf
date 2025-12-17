@@ -186,16 +186,6 @@ resource "REDACTED_9343442e" "gatus_config" {
               "[RESPONSE_TIME] < 3000"
             ]
           },
-          {
-            name     = "PiHole"
-            group    = "🇳🇱 Netherlands K8s"
-            url      = "https://pihole.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-          }
         ],
         # =====================================================================
         # GREECE KUBERNETES CLUSTER
@@ -358,17 +348,6 @@ resource "REDACTED_9343442e" "gatus_config" {
               "[RESPONSE_TIME] < 3000"
             ]
           },
-          {
-            name     = "OpenBao (NL)"
-            group    = "🔧 DevOps"
-            url      = "https://nl-openbao.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-          }
-        ],
         # =====================================================================
         # SHARED / EXTERNAL SERVICES (Non-K8s)
         # =====================================================================
@@ -397,20 +376,6 @@ resource "REDACTED_9343442e" "gatus_config" {
         # =====================================================================
         # EXTERNAL CONNECTIVITY CHECKS
         # =====================================================================
-        [
-          {
-            name     = "DNS Resolution"
-            group    = "🔗 External"
-            url      = "8.8.8.8"
-            dns = {
-              query-name = "kyriakos.papadopoulos.tech"
-              query-type = "A"
-            }
-            interval = "60s"
-            conditions = [
-              "[DNS_RCODE] == NOERROR"
-            ]
-          },
           {
             name     = "Internet (Cloudflare)"
             group    = "🔗 External"
