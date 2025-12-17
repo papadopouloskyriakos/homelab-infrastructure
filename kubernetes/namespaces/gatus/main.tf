@@ -376,6 +376,7 @@ resource "REDACTED_9343442e" "gatus_config" {
         # =====================================================================
         # EXTERNAL CONNECTIVITY CHECKS
         # =====================================================================
+        [
           {
             name     = "Internet (Cloudflare)"
             group    = "🔗 External"
