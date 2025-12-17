@@ -18,7 +18,7 @@
 # -----------------------------------------------------------------------------
 resource "kubernetes_manifest" "REDACTED_fb3d2492" {
   manifest = {
-    apiVersion = "external-secrets.io/v1beta1"
+    apiVersion = "external-secrets.io/v1"
     kind       = "ExternalSecret"
     metadata = {
       name      = "REDACTED_5f4971dc"

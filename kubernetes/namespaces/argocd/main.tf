@@ -27,7 +27,7 @@ resource "kubernetes_namespace" "argocd" {
 # -----------------------------------------------------------------------------
 resource "kubernetes_manifest" "gitlab_repo_creds" {
   manifest = {
-    apiVersion = "external-secrets.io/v1beta1"
+    apiVersion = "external-secrets.io/v1"
     kind       = "ExternalSecret"
     metadata = {
       name      = "gitlab-repo-creds"
@@ -274,7 +274,7 @@ resource "helm_release" "argocd" {
 # -----------------------------------------------------------------------------
 resource "kubernetes_manifest" "argocd_redis_secret" {
   manifest = {
-    apiVersion = "external-secrets.io/v1beta1"
+    apiVersion = "external-secrets.io/v1"
     kind       = "ExternalSecret"
     metadata = {
       name      = "argocd-redis"
