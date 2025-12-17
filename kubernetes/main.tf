@@ -198,3 +198,28 @@ module "gatus" {
 
   depends_on = [module.ingress_nginx, module.cert_manager]
 }
+***REMOVED***
+# Well-Known Endpoints (security.txt, etc.)
+***REMOVED***
+module "well_known" {
+  source = "./namespaces/well-known"
+
+  # security.txt configuration
+  REDACTED_7a948b08 = "security@example.net"
+  security_txt_expires   = "2026-12-31T23:59:59.000Z"
+  preferred_languages    = ["en", "nl", "el"]
+
+  # Domains to serve .well-known endpoints
+  domains = [
+    "status.example.net",
+    "kyriakos.papadopoulos.tech",
+  ]
+  primary_hostname = "status.example.net"
+
+  # Certificate configuration
+  cert_issuer_name = "letsencrypt-prod"
+  cert_issuer_kind = "ClusterIssuer"
+
+  depends_on = [module.ingress_nginx, module.cert_manager]
+}
+
