@@ -58,12 +58,53 @@ sync_to_github:
       
       echo "[3/5] Sanitizing content..."
       cat > /tmp/replacements.txt << 'EOF'
+      # Site prefixes
       nl==>nl
       gr==>gr
+      
+      # Domains
       gitlab.example.net==>gitlab.example.net
       registry.example.net==>registry.example.net
       api-k8s.example.net==>api-k8s.example.net
+      gr-api-k8s.example.net==>gr-api-k8s.example.net
+      example.net==>example.net
+      
+      # Node names (Proxmox)
+      nl-pve01==>nl-pve01
+      nl-pve02==>nl-pve02
+      nl-pve03==>nl-pve03
+      gr-pve01==>gr-pve01
+      gr-pve02==>gr-pve02
+      
+      # Node names (OpenBao)
+      nl-vault01==>nl-vault01
+      nl-vault02==>nl-vault02
+      gr-vault01==>gr-vault01
+      
+      # Node names (FRR)
+      nl-rtr01==>nl-rtr01
+      nl-rtr02==>nl-rtr02
+      gr-rtr01==>gr-rtr01
+      gr-rtr02==>gr-rtr02
+      
+      # Node names (Synology)
+      nl-nas01==>nl-nas01
+      
+      # Node names (other)
+      nl-lte01==>nl-lte01
+      
+      # Controller naming
+      ctrl01==>ctrl01
+      ctrl02==>ctrl02
+      ctrl03==>ctrl03
+      
+      # IP addresses
       regex:192\.168\.\d{1,3}\.\d{1,3}==>10.0.X.X
+      regex:172\.16\.\d{1,3}\.\d{1,3}==>10.1.X.X
+      
+      # Location details
+      Netherlands==>Netherlands
+      Greece==>Greece
       EOF
       git filter-repo --force --replace-text /tmp/replacements.txt
       
