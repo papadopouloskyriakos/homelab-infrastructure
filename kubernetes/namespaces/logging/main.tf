@@ -145,6 +145,12 @@ resource "helm_release" "loki" {
         storageClass = "REDACTED_4f3da73d"
       }
 
+      # Prevent PVC deletion when scaling down - only delete when StatefulSet is deleted
+      REDACTED_33feff97RetentionPolicy = {
+        whenDeleted = "Delete"
+        whenScaled  = "Retain"
+      }
+
       resources = {
         requests = {
           cpu    = "100m"
