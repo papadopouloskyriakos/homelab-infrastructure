@@ -2,7 +2,8 @@
 # GITHUB PUBLIC MIRROR PIPELINE
 # Sanitizes and syncs selected content to public GitHub repository
 # ===========================================================================
-# Uses: github-sync-runner image with pre-installed tools
+# Uses: github-sync-runner image with pre-installed tools and configs
+# Configs: /etc/gitleaks/gitleaks.toml, /etc/github-sync/replacements.txt
 # Triggers: On every push to main
 # Target: github.com/$GITHUB_REPO
 # ===========================================================================
@@ -35,6 +36,7 @@ sync_to_github:
       echo "================================================"
       echo "Source: ${CI_REPOSITORY_URL}"
       echo "Target: github.com/${GITHUB_REPO}"
+      echo "Image:  ${GITHUB_SYNC_IMAGE}"
       echo "================================================"
       
       echo "[1/6] Cloning source repository..."
@@ -58,93 +60,11 @@ sync_to_github:
         --path docker/nl-matrix01/matrix/
       
       echo "[3/6] Applying static sanitization patterns..."
-      cat > /tmp/replacements.txt << 'EOF'
-      # Docker hosts
-      nl-matrix01==>nl-matrix01
-      
-      # Site prefixes
-      nl==>nl
-      gr==>gr
-      
-      # Domains
-      gitlab.example.net==>gitlab.example.net
-      registry.example.net==>registry.example.net
-      api-k8s.example.net==>api-k8s.example.net
-      gr-api-k8s.example.net==>gr-api-k8s.example.net
-      example.net==>example.net
-      
-      # Node names (Proxmox)
-      nl-pve01==>nl-pve01
-      nl-pve02==>nl-pve02
-      nl-pve03==>nl-pve03
-      gr-pve01==>gr-pve01
-      gr-pve02==>gr-pve02
-      
-      # Node names (OpenBao)
-      nl-vault01==>nl-vault01
-      nl-vault02==>nl-vault02
-      gr-vault01==>gr-vault01
-      
-      # Node names (FRR)
-      nl-rtr01==>nl-rtr01
-      nl-rtr02==>nl-rtr02
-      gr-rtr01==>gr-rtr01
-      gr-rtr02==>gr-rtr02
-      
-      # Node names (Synology)
-      nl-nas01==>nl-nas01
-      
-      # Node names (other)
-      nl-lte01==>nl-lte01
-      
-      # Controller naming
-      ctrl01==>ctrl01
-      ctrl02==>ctrl02
-      ctrl03==>ctrl03
-      
-      # IP addresses
-      regex:192\.168\.\d{1,3}\.\d{1,3}==>10.0.X.X
-      regex:172\.16\.\d{1,3}\.\d{1,3}==>10.1.X.X
-      
-      # Location details
-      Netherlands==>Netherlands
-      Greece==>Greece
-      EOF
-      git filter-repo --force --replace-text /tmp/replacements.txt
+      echo "Using: /etc/github-sync/replacements.txt"
+      git filter-repo --force --replace-text /etc/github-sync/replacements.txt
       
       echo "[4/6] Scanning and sanitizing secrets (multi-pass, multi-tool)..."
-      
-      # Create aggressive gitleaks config
-      cat > /tmp/gitleaks.toml << 'GITLEAKSCONFIG'
-      [extend]
-      useDefault = true
-      
-      [[rules]]
-      id = "generic-password"
-      description = "Generic password in quotes"
-      regex = '''(?i)password["\s:=]+["']?([A-Za-z0-9+/=_\-]{12,})["']?'''
-      secretGroup = 1
-      
-      [[rules]]
-      id = "generic-password-flag"
-      description = "Password as command flag"
-      regex = '''--password\s+["']?([A-Za-z0-9+/=_\-]{12,})["']?'''
-      secretGroup = 1
-      
-      [[rules]]
-      id = "high-entropy-string"
-      description = "High entropy string in quotes"
-      regex = '''["']([A-Za-z0-9+/=_\-]{20,})["']'''
-      secretGroup = 1
-      entropy = 3.5
-      
-      [[rules]]
-      id = "base64-secret"
-      description = "Base64 encoded secret"
-      regex = '''["']([A-Za-z0-9+/]{24,}={0,2})["']'''
-      secretGroup = 1
-      entropy = 4.0
-      GITLEAKSCONFIG
+      echo "Using: /etc/gitleaks/gitleaks.toml"
       
       PASS=1
       MAX_PASSES=10
@@ -152,9 +72,9 @@ sync_to_github:
         echo ""
         echo "--- Secret scan pass $PASS of $MAX_PASSES ---"
         
-        # Scan with gitleaks using custom config
+        # Scan with gitleaks using image's config
         rm -f /tmp/leaks.json
-        gitleaks detect --source . --no-git --config /tmp/gitleaks.toml --report-format json --report-path /tmp/leaks.json 2>/dev/null || true
+        gitleaks detect --source . --no-git --config /etc/gitleaks/gitleaks.toml --report-format json --report-path /tmp/leaks.json 2>/dev/null || true
         
         # Also scan with trufflehog for entropy-based detection
         rm -f /tmp/trufflehog.json
@@ -227,7 +147,7 @@ sync_to_github:
       
       # Final scan - only report non-redacted secrets
       rm -f /tmp/final_leaks.json
-      gitleaks detect --source . --no-git --config /tmp/gitleaks.toml --report-format json --report-path /tmp/final_leaks.json 2>/dev/null || true
+      gitleaks detect --source . --no-git --config /etc/gitleaks/gitleaks.toml --report-format json --report-path /tmp/final_leaks.json 2>/dev/null || true
       
       if [ -f /tmp/final_leaks.json ] && [ -s /tmp/final_leaks.json ] && [ "$(cat /tmp/final_leaks.json)" != "[]" ]; then
         # Filter out already redacted false positives
@@ -278,6 +198,10 @@ github_sync_dry_run:
       echo "================================================"
       echo "GitHub Sync - DRY RUN (no push)"
       echo "================================================"
+      echo "Using configs from image:"
+      echo "  - /etc/gitleaks/gitleaks.toml"
+      echo "  - /etc/github-sync/replacements.txt"
+      echo "================================================"
       
       git clone "${CI_REPOSITORY_URL}" repo
       cd repo
@@ -298,41 +222,9 @@ github_sync_dry_run:
         --path ci/github-sync.yml \
         --path docker/nl-matrix01/matrix/
       
-      # Create aggressive gitleaks config
-      cat > /tmp/gitleaks.toml << 'GITLEAKSCONFIG'
-      [extend]
-      useDefault = true
-      
-      [[rules]]
-      id = "generic-password"
-      description = "Generic password in quotes"
-      regex = '''(?i)password["\s:=]+["']?([A-Za-z0-9+/=_\-]{12,})["']?'''
-      secretGroup = 1
-      
-      [[rules]]
-      id = "generic-password-flag"
-      description = "Password as command flag"
-      regex = '''--password\s+["']?([A-Za-z0-9+/=_\-]{12,})["']?'''
-      secretGroup = 1
-      
-      [[rules]]
-      id = "high-entropy-string"
-      description = "High entropy string in quotes"
-      regex = '''["']([A-Za-z0-9+/=_\-]{20,})["']'''
-      secretGroup = 1
-      entropy = 3.5
-      
-      [[rules]]
-      id = "base64-secret"
-      description = "Base64 encoded secret"
-      regex = '''["']([A-Za-z0-9+/]{24,}={0,2})["']'''
-      secretGroup = 1
-      entropy = 4.0
-      GITLEAKSCONFIG
-      
       echo ""
       echo "[2/4] Pre-sanitization scan..."
-      gitleaks detect --source . --no-git --config /tmp/gitleaks.toml --report-format json --report-path /tmp/pre_leaks.json 2>/dev/null || true
+      gitleaks detect --source . --no-git --config /etc/gitleaks/gitleaks.toml --report-format json --report-path /tmp/pre_leaks.json 2>/dev/null || true
       if [ -f /tmp/pre_leaks.json ] && [ "$(cat /tmp/pre_leaks.json)" != "[]" ]; then
         PRE_COUNT=$(cat /tmp/pre_leaks.json | jq 'length')
         echo "Found $PRE_COUNT secrets before sanitization:"
@@ -343,38 +235,7 @@ github_sync_dry_run:
       
       echo ""
       echo "[3/4] Applying sanitization (static + dynamic)..."
-      cat > /tmp/replacements.txt << 'EOF'
-      nl-matrix01==>nl-matrix01
-      nl==>nl
-      gr==>gr
-      gitlab.example.net==>gitlab.example.net
-      registry.example.net==>registry.example.net
-      api-k8s.example.net==>api-k8s.example.net
-      gr-api-k8s.example.net==>gr-api-k8s.example.net
-      example.net==>example.net
-      nl-pve01==>nl-pve01
-      nl-pve02==>nl-pve02
-      nl-pve03==>nl-pve03
-      gr-pve01==>gr-pve01
-      gr-pve02==>gr-pve02
-      nl-vault01==>nl-vault01
-      nl-vault02==>nl-vault02
-      gr-vault01==>gr-vault01
-      nl-rtr01==>nl-rtr01
-      nl-rtr02==>nl-rtr02
-      gr-rtr01==>gr-rtr01
-      gr-rtr02==>gr-rtr02
-      nl-nas01==>nl-nas01
-      nl-lte01==>nl-lte01
-      ctrl01==>ctrl01
-      ctrl02==>ctrl02
-      ctrl03==>ctrl03
-      regex:192\.168\.\d{1,3}\.\d{1,3}==>10.0.X.X
-      regex:172\.16\.\d{1,3}\.\d{1,3}==>10.1.X.X
-      Netherlands==>Netherlands
-      Greece==>Greece
-      EOF
-      git filter-repo --force --replace-text /tmp/replacements.txt
+      git filter-repo --force --replace-text /etc/github-sync/replacements.txt
       
       # Multi-pass dynamic sanitization
       PASS=1
@@ -383,7 +244,7 @@ github_sync_dry_run:
         rm -f /tmp/leaks.json /tmp/trufflehog.json /tmp/all_secrets.txt
         touch /tmp/all_secrets.txt
         
-        gitleaks detect --source . --no-git --config /tmp/gitleaks.toml --report-format json --report-path /tmp/leaks.json 2>/dev/null || true
+        gitleaks detect --source . --no-git --config /etc/gitleaks/gitleaks.toml --report-format json --report-path /tmp/leaks.json 2>/dev/null || true
         trufflehog filesystem . --no-update --json 2>/dev/null | jq -s '.' > /tmp/trufflehog.json || true
         
         if [ -f /tmp/leaks.json ] && [ -s /tmp/leaks.json ] && [ "$(cat /tmp/leaks.json)" != "[]" ]; then
@@ -428,7 +289,7 @@ github_sync_dry_run:
       
       echo ""
       echo "[4/4] Post-sanitization scan..."
-      gitleaks detect --source . --no-git --config /tmp/gitleaks.toml --report-format json --report-path /tmp/post_leaks.json 2>/dev/null || true
+      gitleaks detect --source . --no-git --config /etc/gitleaks/gitleaks.toml --report-format json --report-path /tmp/post_leaks.json 2>/dev/null || true
       if [ -f /tmp/post_leaks.json ] && [ "$(cat /tmp/post_leaks.json)" != "[]" ]; then
         REAL_LEAKS=$(cat /tmp/post_leaks.json | jq '[.[] | select(.Secret | startswith("REDACTED_") | not)]')
         REAL_COUNT=$(echo "$REAL_LEAKS" | jq 'length')
