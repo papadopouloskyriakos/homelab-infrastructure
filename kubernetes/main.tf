@@ -61,10 +61,10 @@ module "tetragon" {
 
   # Disable policies for initial deploy - CRDs installed by Helm
   # Re-enable after Tetragon is running
-  REDACTED_8a8d8279         = false
-  REDACTED_ca9faf45      = false
-  REDACTED_f45ec1ce = false
-  REDACTED_936fa359         = false
+  REDACTED_8a8d8279         = true
+  REDACTED_ca9faf45      = true
+  REDACTED_f45ec1ce = true
+  REDACTED_936fa359         = true
 
   depends_on = [module.cilium_bgp]
 }
