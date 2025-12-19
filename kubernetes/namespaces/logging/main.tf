@@ -153,12 +153,12 @@ resource "helm_release" "loki" {
 
       resources = {
         requests = {
-          cpu    = "100m"
-          memory = "256Mi"
+          cpu    = "500m"
+          memory = "2Gi"
         }
         limits = {
-          cpu    = "1"
-          memory = "1Gi"
+          cpu    = "2"
+          memory = "4Gi"
         }
       }
 

@@ -22,9 +22,9 @@ resource "helm_release" "tetragon" {
     tetragon = {
       # Export settings for JSON file output
       exportFilename       = "tetragon.log"
-      exportFileMaxSizeMB  = 10
+      exportFileMaxSizeMB  = 500
       exportFileMaxBackups = 5
-      exportFileCompress   = true
+      exportFileCompress   = false
       exportFilePerm       = "600"
       exportRateLimit      = -1
 
@@ -34,6 +34,23 @@ resource "helm_release" "tetragon" {
 
       # Allow all standard event types
       exportAllowList = "{\"event_set\":[\"PROCESS_EXEC\",\"PROCESS_EXIT\",\"PROCESS_KPROBE\",\"PROCESS_UPROBE\",\"PROCESS_TRACEPOINT\",\"PROCESS_LSM\"]}"
+
+      # Container awareness - required for proper process attribution
+      # Connects to containerd CRI socket for container metadata
+      cri = {
+        enabled        = true
+        socketHostPath = "/run/containerd/containerd.sock"
+      }
+
+      # Use cgroup IDs for pod association (requires CRI)
+      cgidmap = {
+        enabled = true
+      }
+
+      # Enable process ancestors tracking for exec/kprobe/tracepoint events
+      processAncestors = {
+        enabled = "base,kprobe,tracepoint"
+      }
 
       # Enable BPF filesystem for persistence
       enableMsgHandlingLatency = false
