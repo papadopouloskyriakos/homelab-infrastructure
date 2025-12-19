@@ -241,7 +241,9 @@ resource "helm_release" "promtail" {
 
       snippets = {
         extraScrapeConfigs = <<-SCRAPE
+          # =================================================================
           # Syslog receiver for external sources (syslog-ng)
+          # =================================================================
           - job_name: syslog
             syslog:
               listen_address: 0.0.0.0:${var.promtail_syslog_port}
@@ -259,6 +261,52 @@ resource "helm_release" "promtail" {
                 target_label: 'severity'
               - source_labels: ['REDACTED_5ab426f2']
                 target_label: 'facility'
+
+          # =================================================================
+          # Tetragon Security Events
+          # =================================================================
+          # Scrapes JSON logs from Tetragon runtime security tool
+          # Events include: process exec, file access, privilege escalation
+          # =================================================================
+          - job_name: tetragon
+            static_configs:
+              - targets:
+                  - localhost
+                labels:
+                  job: tetragon
+                  __path__: REDACTED_fa94d8bd/*.log
+            pipeline_stages:
+              # Parse JSON logs from Tetragon
+              - json:
+                  expressions:
+                    time: time
+                    process_exec: process_exec
+                    process_exit: process_exit
+                    process_kprobe: process_kprobe
+              # Determine event type for filtering
+              - template:
+                  source: event_type
+                  template: '{{ if .process_exec }}process_exec{{ else if .process_exit }}process_exit{{ else if .process_kprobe }}process_kprobe{{ else }}unknown{{ end }}'
+              - labels:
+                  event_type:
+              # Extract namespace for filtering
+              - template:
+                  source: namespace
+                  template: '{{ if .process_exec }}{{ .process_exec.process.pod.namespace }}{{ else if .process_kprobe }}{{ .process_kprobe.process.pod.namespace }}{{ end }}'
+              - labels:
+                  namespace:
+              # Extract pod name
+              - template:
+                  source: pod
+                  template: '{{ if .process_exec }}{{ .process_exec.process.pod.name }}{{ else if .process_kprobe }}{{ .process_kprobe.process.pod.name }}{{ end }}'
+              - labels:
+                  pod:
+              # Extract binary name for security analysis
+              - template:
+                  source: binary
+                  template: '{{ if .process_exec }}{{ .process_exec.process.binary }}{{ else if .process_kprobe }}{{ .process_kprobe.process.binary }}{{ end }}'
+              - labels:
+                  binary:
         SCRAPE
       }
     }
@@ -276,6 +324,27 @@ resource "helm_release" "promtail" {
       }
     }
 
+    # =========================================================================
+    # Extra Volumes - Mount Tetragon export directory
+    # =========================================================================
+    extraVolumes = [
+      {
+        name = "tetragon-export"
+        hostPath = {
+          path = "REDACTED_fa94d8bd"
+          type = "DirectoryOrCreate"
+        }
+      }
+    ]
+
+    extraVolumeMounts = [
+      {
+        name      = "tetragon-export"
+        mountPath = "REDACTED_fa94d8bd"
+        readOnly  = true
+      }
+    ]
+
     resources = {
       requests = {
         cpu    = "50m"
@@ -291,6 +360,13 @@ resource "helm_release" "promtail" {
       {
         key      = "node-role.kubernetes.io/control-plane"
         operator = "Exists"
+        effect   = "NoSchedule"
+      },
+      # Edge nodes toleration (for full Tetragon coverage)
+      {
+        key      = "node-type"
+        operator = "Equal"
+        value    = "edge"
         effect   = "NoSchedule"
       }
     ]
