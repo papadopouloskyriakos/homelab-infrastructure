@@ -274,7 +274,7 @@ resource "helm_release" "promtail" {
                   - localhost
                 labels:
                   job: tetragon
-                  __path__: REDACTED_fa94d8bd/*.log
+                  __path__: /var/log/tetragon/*.log
             pipeline_stages:
               # Parse JSON logs from Tetragon
               - json:
@@ -331,7 +331,7 @@ resource "helm_release" "promtail" {
       {
         name = "tetragon-export"
         hostPath = {
-          path = "REDACTED_fa94d8bd"
+          path = "/var/log/tetragon"
           type = "DirectoryOrCreate"
         }
       }
@@ -340,7 +340,7 @@ resource "helm_release" "promtail" {
     extraVolumeMounts = [
       {
         name      = "tetragon-export"
-        mountPath = "REDACTED_fa94d8bd"
+        mountPath = "/var/log/tetragon"
         readOnly  = true
       }
     ]
