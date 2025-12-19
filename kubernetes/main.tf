@@ -56,6 +56,19 @@ module "cilium_bgp" {
   REDACTED_0333f99b = false
 }
 
+module "tetragon" {
+  source = "./_core/tetragon"
+
+  # Disable policies for initial deploy - CRDs installed by Helm
+  # Re-enable after Tetragon is running
+  REDACTED_8a8d8279         = false
+  REDACTED_ca9faf45      = false
+  REDACTED_f45ec1ce = false
+  REDACTED_936fa359         = false
+
+  depends_on = [module.cilium_bgp]
+}
+
 module "ingress_nginx" {
   source = "./_core/ingress-nginx"
 
