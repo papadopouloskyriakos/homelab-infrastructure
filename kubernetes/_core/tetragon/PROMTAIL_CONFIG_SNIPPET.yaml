@@ -1,0 +1,126 @@
+# ========================================================================
+# Promtail Configuration Snippet for Tetragon Logs
+# ========================================================================
+# Add this scrape config to your existing Promtail Helm values
+# Path: typically in your promtail values.yaml under config.snippets
+# ========================================================================
+#
+# INSTRUCTIONS:
+# 1. Add the following to your Promtail Helm values under extraScrapeConfigs
+#    or config.snippets.extraScrapeConfigs
+# 2. Apply via: tofu apply (if Promtail is managed by OpenTofu)
+#    or: helm upgrade promtail grafana/promtail -f values.yaml
+# 3. Verify with: kubectl logs -n logging -l app.kubernetes.io/name=promtail | grep tetragon
+#
+# ========================================================================
+
+# Option A: If using extraScrapeConfigs (recommended)
+# Add this to your Promtail Helm values.yaml:
+
+extraScrapeConfigs: |
+  # Tetragon Security Events
+  - job_name: tetragon
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: tetragon
+          __path__: REDACTED_fa94d8bd/*.log
+    pipeline_stages:
+      # Parse JSON logs from Tetragon
+      - json:
+          expressions:
+            time: time
+            process_exec: process_exec
+            process_exit: process_exit
+            process_kprobe: process_kprobe
+      # Extract common fields for labeling
+      - labels:
+          time:
+      # Determine event type
+      - template:
+          source: event_type
+          template: '{{ if .process_exec }}process_exec{{ else if .process_exit }}process_exit{{ else if .process_kprobe }}process_kprobe{{ else }}unknown{{ end }}'
+      - labels:
+          event_type:
+      # Extract namespace and pod for filtering
+      - template:
+          source: namespace
+          template: '{{ if .process_exec }}{{ .process_exec.process.pod.namespace }}{{ else if .process_kprobe }}{{ .process_kprobe.process.pod.namespace }}{{ end }}'
+      - labels:
+          namespace:
+      - template:
+          source: pod
+          template: '{{ if .process_exec }}{{ .process_exec.process.pod.name }}{{ else if .process_kprobe }}{{ .process_kprobe.process.pod.name }}{{ end }}'
+      - labels:
+          pod:
+      # Extract binary name for security analysis
+      - template:
+          source: binary
+          template: '{{ if .process_exec }}{{ .process_exec.process.binary }}{{ else if .process_kprobe }}{{ .process_kprobe.process.binary }}{{ end }}'
+      - labels:
+          binary:
+
+# Also add this extraVolume and extraVolumeMount to mount Tetragon's export directory:
+
+extraVolumes:
+  - name: tetragon-export
+    hostPath:
+      path: REDACTED_fa94d8bd
+      type: DirectoryOrCreate
+
+extraVolumeMounts:
+  - name: tetragon-export
+    mountPath: REDACTED_fa94d8bd
+    readOnly: true
+
+
+# ========================================================================
+# Option B: Complete Promtail values.yaml section (for reference)
+# ========================================================================
+# If you want to see this in context of a full Promtail config:
+#
+# config:
+#   clients:
+#     - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
+#   snippets:
+#     extraScrapeConfigs: |
+#       # ... (paste the extraScrapeConfigs from Option A above)
+#
+# extraVolumes:
+#   - name: tetragon-export
+#     hostPath:
+#       path: REDACTED_fa94d8bd
+#       type: DirectoryOrCreate
+#
+# extraVolumeMounts:
+#   - name: tetragon-export
+#     mountPath: REDACTED_fa94d8bd
+#     readOnly: true
+#
+# ========================================================================
+
+# ========================================================================
+# Example LogQL Queries for Grafana
+# ========================================================================
+# After applying, test in Grafana Explore with these queries:
+#
+# All Tetragon events:
+#   {job="tetragon"}
+#
+# Process executions only:
+#   {job="tetragon", event_type="process_exec"}
+#
+# Events from specific namespace:
+#   {job="tetragon", namespace="default"}
+#
+# Sensitive file access (kprobe events):
+#   {job="tetragon", event_type="process_kprobe"} |= "/etc/shadow"
+#
+# Shell executions (potential interactive access):
+#   {job="tetragon"} |= "bash" or |= "/bin/sh"
+#
+# Events with full JSON parsing:
+#   {job="tetragon"} | json | process_exec_process_binary != ""
+#
+# ========================================================================
