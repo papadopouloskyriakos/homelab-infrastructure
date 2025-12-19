@@ -253,7 +253,6 @@ resource "kubernetes_manifest" "REDACTED_827df794" {
                   operator = "Equal"
                   values = [
                     "21", # CAP_SYS_ADMIN
-                    "23", # CAP_SYS_RAWIO
                     "24", # CAP_SYS_CHROOT
                     "25", # CAP_SYS_PTRACE
                     "38", # CAP_SETFCAP
