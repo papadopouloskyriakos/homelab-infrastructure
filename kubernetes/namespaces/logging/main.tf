@@ -274,7 +274,7 @@ resource "helm_release" "promtail" {
                   - localhost
                 labels:
                   job: tetragon
-                  __path__: /var/run/cilium/tetragon/*.log
+                  __path__: /var/log/tetragon/*.log
             pipeline_stages:
               # Parse JSON logs from Tetragon
               - json:
@@ -331,7 +331,7 @@ resource "helm_release" "promtail" {
       {
         name = "tetragon-export"
         hostPath = {
-          path = "/var/run/cilium/tetragon"
+          path = "/var/log/tetragon"
           type = "DirectoryOrCreate"
         }
       }
@@ -340,7 +340,7 @@ resource "helm_release" "promtail" {
     extraVolumeMounts = [
       {
         name      = "tetragon-export"
-        mountPath = "/var/run/cilium/tetragon"
+        mountPath = "/var/log/tetragon"
         readOnly  = true
       }
     ]
