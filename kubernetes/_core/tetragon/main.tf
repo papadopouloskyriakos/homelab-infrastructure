@@ -17,13 +17,18 @@ resource "helm_release" "tetragon" {
 
   values = [yamlencode({
     # =========================================================================
+    # Export Directory - Top level setting for Tetragon agent
+    # =========================================================================
+    exportDirectory = "/var/log/tetragon"
+
+    # =========================================================================
     # Tetragon Agent Configuration
     # =========================================================================
     tetragon = {
       # Export settings for JSON file output
       exportFilename       = "tetragon.log"
-      exportFileMaxSizeMB  = 500
-      exportFileMaxBackups = 5
+      exportFileMaxSizeMB  = 50
+      exportFileMaxBackups = 2
       exportFileCompress   = false
       exportFilePerm       = "600"
       exportRateLimit      = -1
@@ -79,7 +84,7 @@ resource "helm_release" "tetragon" {
       }
 
       filenames = {
-        basePath       = "REDACTED_fa94d8bd"
+        basePath       = "/var/log/tetragon"
         exportFilename = "tetragon.log"
       }
 
