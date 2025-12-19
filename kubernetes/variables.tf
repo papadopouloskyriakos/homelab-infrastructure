@@ -242,7 +242,7 @@ variable "openbao_address" {
 variable "loki_storage_size" {
   description = "Loki WAL/cache PVC size"
   type        = string
-  default     = "10Gi"
+  default     = "100Gi"
 }
 
 variable "loki_retention_days" {
