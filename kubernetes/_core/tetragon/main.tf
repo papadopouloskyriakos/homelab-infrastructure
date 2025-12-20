@@ -31,7 +31,7 @@ resource "helm_release" "tetragon" {
       exportFileMaxBackups = 2
       exportFileCompress   = false
       exportFilePerm       = "600"
-      exportRateLimit      = -1
+      exportRateLimit      = 60000
 
       # Export filters - newline-separated JSON objects (NOT arrays)
       # Deny noisy events: health checks and host/cilium namespace
