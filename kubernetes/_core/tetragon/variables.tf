@@ -84,6 +84,16 @@ variable "REDACTED_073bcdbd" {
 }
 
 # ========================================================================
+# Export Configuration
+# ========================================================================
+
+variable "export_rate_limit" {
+  description = "Rate limit for exports in events per second (-1 for unlimited)"
+  type        = number
+  default     = 1000
+}
+
+# ========================================================================
 # Grafana Dashboard
 # ========================================================================
 
@@ -103,4 +113,13 @@ variable "grafana_sidecar_label" {
   description = "Label that Grafana sidecar watches for dashboard ConfigMaps"
   type        = string
   default     = "grafana_dashboard"
+}
+# ========================================================================
+# Monitoring
+# ========================================================================
+
+variable "REDACTED_46d876c8" {
+  description = "Enable Prometheus ServiceMonitor"
+  type        = bool
+  default     = true
 }
