@@ -61,10 +61,16 @@ module "tetragon" {
 
   # Disable policies for initial deploy - CRDs installed by Helm
   # Re-enable after Tetragon is running
-  REDACTED_8a8d8279         = true
+  REDACTED_8a8d8279         = false
   REDACTED_ca9faf45      = true
   REDACTED_f45ec1ce = true
   REDACTED_936fa359         = true
+
+  # ServiceMonitor for Prometheus
+  REDACTED_46d876c8 = true
+
+  # Rate limit exports (events per second)
+  export_rate_limit = 1000
 
   depends_on = [module.cilium_bgp]
 }
