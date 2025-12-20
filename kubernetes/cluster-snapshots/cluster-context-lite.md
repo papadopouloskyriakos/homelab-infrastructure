@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2025-12-19 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2025-12-20 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,13 +11,13 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 203 |
+| Total Restarts | 373 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.18.4
 - **Nodes:** 8 (3 control-plane, 5 workers)
-- **Pods:** 143
+- **Pods:** 153
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:3795Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -35,18 +35,20 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 _None_
 
 ### High Restart Pods (>3)
+kube-system/cilium-operator-6b94496fcd-l6cjl: 59 restarts
 kube-system/etcd-nlk8s-ctrl01: 7 restarts
 kube-system/etcd-nlk8s-ctrl02: 5 restarts
 kube-system/etcd-nlk8s-ctrl03: 4 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 30 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 5 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 5 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 23 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl01: 80 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl02: 11 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl03: 15 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl03: 65 restarts
 kube-system/kube-scheduler-nlk8s-ctrl01: 17 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 12 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 13 restarts
+logging/promtail-6d4fn: 5 restarts
 monitoring/goldpinger-qs5xt: 4 restarts
 monitoring/monitoring-grafana-9ccf6f977-w47db: 4 restarts
 nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956swwjx: 5 restarts
@@ -54,11 +56,11 @@ seaweedfs/seaweedfs-filer-1: 4 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE      LAST SEEN   TYPE      REASON             OBJECT                                  MESSAGE
-kube-system    36m         Warning   Unhealthy          pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
-synology-csi   3m54s       Warning   DNSConfigForming   pod/synology-csi-node-n4rjm             Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-kube-system    3m12s       Warning   DNSConfigForming   pod/cilium-rhcsd                        Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
-kube-system    3m2s        Warning   DNSConfigForming   pod/cilium-envoy-6ws74                  Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    45m         Warning   Unhealthy          pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system    4m13s       Warning   DNSConfigForming   pod/cilium-rhcsd                        Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+synology-csi   3m39s       Warning   DNSConfigForming   pod/synology-csi-node-n4rjm             Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    3m35s       Warning   DNSConfigForming   pod/cilium-envoy-6ws74                  Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
+kube-system    2m9s        Warning   DNSConfigForming   pod/tetragon-pmkf8                      Nameserver limits were exceeded, some nameservers have been omitted, the applied nameserver line is: 1.1.1.1 1.0.0.1 1.1.1.1
 ```
 
 ## Key Resources
@@ -105,6 +107,7 @@ pihole/pihole-dns-tcp-lb: 10.0.X.X -> 53:30438/TCP
 - promtail (promtail-6.17.1) in logging
 - seaweedfs (seaweedfs-4.0.401) in seaweedfs
 - synology-csi (synology-csi-0.10.1) in synology-csi
+- tetragon (tetragon-1.6.0) in kube-system
 
 ---
 *Lite version - see cluster-context-full.md for complete details*
