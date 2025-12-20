@@ -116,8 +116,8 @@ resource "helm_release" "loki" {
       limits_config = {
         retention_period        = "${var.loki_retention_days * 24}h"
         max_query_series        = 10000
-        ingestion_rate_mb       = 10
-        ingestion_burst_size_mb = 20
+        ingestion_rate_mb       = 20
+        ingestion_burst_size_mb = 40
       }
 
       compactor = {
