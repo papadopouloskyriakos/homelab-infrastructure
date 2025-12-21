@@ -255,10 +255,10 @@ variable "frr_route_reflector_targets" {
   description = "FRR exporter targets for route reflector VMs"
   type        = list(string)
   default = [
-    "10.0.X.X:9342", # NL-FRR01
-    "10.0.X.X:9342", # NL-FRR02
-    "10.0.X.X:9342", # GR-FRR01
-    "10.0.X.X:9342", # GR-FRR02
+    "10.0.X.X:9342", # NL-FRR01 (DMZ)
+    "10.0.X.X:9342", # NL-FRR02 (DMZ)
+    "10.0.X.X:9342",  # GR-FRR01 (DMZ)
+    "10.0.X.X:9342",  # GR-FRR02 (DMZ)
   ]
 }
 
