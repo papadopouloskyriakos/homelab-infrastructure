@@ -199,12 +199,12 @@ resource "helm_release" "monitoring" {
                 }
               }]
               relabel_configs = [
-                { source_labels = ["__address__"], regex = "192\\.168\\.85\\.3:.*", target_label = "instance", replacement = "nl-rtr01" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.85\\.4:.*", target_label = "instance", replacement = "nl-rtr02" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.58\\.3:.*", target_label = "instance", replacement = "gr-rtr01" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.58\\.4:.*", target_label = "instance", replacement = "gr-rtr02" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.85\\..*", target_label = "site", replacement = "nl" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.58\\..*", target_label = "site", replacement = "gr" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.192\\.3:.*", target_label = "instance", replacement = "nl-rtr01" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.192\\.4:.*", target_label = "instance", replacement = "nl-rtr02" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.15\\.3:.*", target_label = "instance", replacement = "gr-rtr01" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.15\\.4:.*", target_label = "instance", replacement = "gr-rtr02" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.192\\..*", target_label = "site", replacement = "nl" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.15\\..*", target_label = "site", replacement = "gr" },
               ]
             },
             # FRR BGP Exporters - Edge Nodes
