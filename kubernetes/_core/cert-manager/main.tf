@@ -132,3 +132,29 @@ resource "kubernetes_manifest" "wildcard_cert" {
     }
   }
 }
+
+***REMOVED***
+# Wildcard Certificate - papadopoulos.tech
+***REMOVED***
+resource "kubernetes_manifest" "REDACTED_501d268e" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_e5e9325b"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_e5e9325b-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.papadopoulos.tech",
+        "papadopoulos.tech"
+      ]
+    }
+  }
+}
