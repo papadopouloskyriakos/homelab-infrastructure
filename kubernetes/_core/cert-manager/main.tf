@@ -158,3 +158,38 @@ resource "kubernetes_manifest" "REDACTED_501d268e" {
     }
   }
 }
+
+***REMOVED***
+# RBAC for AWX to read TLS secrets
+***REMOVED***
+resource "kubernetes_role" "awx_cert_reader" {
+  metadata {
+    name      = "awx-cert-reader"
+    namespace = kubernetes_namespace.cert_manager.metadata[0].name
+  }
+
+  rule {
+    api_groups = [""]
+    resources  = ["secrets"]
+    verbs      = ["get", "list"]
+  }
+}
+
+resource "REDACTED_80c0cfc6" "awx_cert_reader" {
+  metadata {
+    name      = "awx-cert-reader"
+    namespace = kubernetes_namespace.cert_manager.metadata[0].name
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = kubernetes_role.awx_cert_reader.metadata[0].name
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = "my-awx"
+    namespace = "awx"
+  }
+}
