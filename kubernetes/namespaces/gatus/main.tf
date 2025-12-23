@@ -167,22 +167,28 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
           {
             name     = "Edge: Zürich (CH)"
             group    = "🌐 Network (AS214304)"
-            url      = "http://chzrh01vps01-int.example.net:8404/stats"
+            url      = "http://chzrh01vps01-int.example.net:8404/stats;csv"
             interval = "60s"
+            headers = {
+              Authorization = "Basic ${var.haproxy_stats_auth}"
+            }
             conditions = [
               "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
+              "[BODY] == pat(*BACKEND*UP*)"
             ]
             alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           },
           {
             name     = "Edge: Oslo (NO)"
             group    = "🌐 Network (AS214304)"
-            url      = "http://notrf01vps01-int.example.net:8404/stats"
+            url      = "http://notrf01vps01-int.example.net:8404/stats;csv"
             interval = "60s"
+            headers = {
+              Authorization = "Basic ${var.haproxy_stats_auth}"
+            }
             conditions = [
               "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
+              "[BODY] == pat(*BACKEND*UP*)"
             ]
             alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           }
