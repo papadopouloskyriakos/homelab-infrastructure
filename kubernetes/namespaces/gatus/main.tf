@@ -41,6 +41,20 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
         path = "/data/data.db"
       }
 
+      alerting = var.gitlab_pipeline_trigger_token != "" ? {
+        custom = {
+          url    = "https://gitlab.example.net/api/v4/projects/${var.gitlab_portfolio_project_id}/trigger/pipeline"
+          method = "POST"
+          body   = "token=${var.gitlab_pipeline_trigger_token}&ref=main&variables[TRIGGER_SOURCE]=gatus"
+          default-alert = {
+            enabled           = true
+            send-on-resolved  = true
+            failure-threshold = 2
+            success-threshold = 3
+          }
+        }
+      } : null
+
       ui = {
         title       = var.gatus_ui_title
         description = "Infrastructure Health Dashboard (Served from ${var.site_name})"
@@ -63,6 +77,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 2000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
         ],
         # =====================================================================
@@ -79,6 +96,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[BODY] == ok"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "ArgoCD"
@@ -89,6 +109,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "GitLab"
@@ -99,6 +122,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "Atlantis"
@@ -109,6 +135,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           }
         ],
         # =====================================================================
@@ -124,6 +153,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "Prometheus"
@@ -134,6 +166,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "Thanos"
@@ -144,6 +179,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "Hubble UI"
@@ -154,6 +192,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "K8s Dashboard"
@@ -164,6 +205,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "Goldpinger"
@@ -174,6 +218,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           }
         ],
         # =====================================================================
@@ -189,6 +236,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "SeaweedFS S3"
@@ -199,6 +249,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "Velero UI"
@@ -209,6 +262,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           }
         ],
         # =====================================================================
@@ -224,6 +280,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 5000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           }
         ],
         # =====================================================================
@@ -240,6 +299,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[BODY] == ok"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "ArgoCD"
@@ -250,6 +312,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "GitLab (Mirror)"
@@ -260,6 +325,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "Atlantis"
@@ -270,6 +338,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           }
         ],
         # =====================================================================
@@ -285,6 +356,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "Prometheus"
@@ -295,6 +369,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "Thanos"
@@ -305,6 +382,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "Hubble UI"
@@ -315,6 +395,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "K8s Dashboard"
@@ -325,6 +408,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "Goldpinger"
@@ -335,6 +421,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           }
         ],
         # =====================================================================
@@ -350,6 +439,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "SeaweedFS S3"
@@ -360,6 +452,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           }
         ],
         # =====================================================================
@@ -375,6 +470,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 5000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           },
           {
             name     = "Home Assistant"
@@ -385,6 +483,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           }
         ],
         # =====================================================================
@@ -400,6 +501,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 500"
             ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [
+              { type = "custom" }
+            ] : []
           }
         ],
         # Additional custom endpoints from tfvars
