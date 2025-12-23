@@ -213,8 +213,8 @@ module "REDACTED_ac4dcdf5" {
 # Gatus - Status Page
 # =============================================================================
 module "gatus" {
-  source = "./namespaces/gatus"
-  depends_on = [module.ingress_nginx, module.cert_manager]
+  source                        = "./namespaces/gatus"
+  depends_on                    = [module.ingress_nginx, module.cert_manager]
   gitlab_pipeline_trigger_token = var.gatus_gitlab_pipeline_trigger_token
 }
 # =============================================================================
