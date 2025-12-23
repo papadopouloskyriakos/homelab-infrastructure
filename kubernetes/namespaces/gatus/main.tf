@@ -36,6 +36,8 @@ resource "REDACTED_9343442e" "gatus_config" {
 
   data = {
     "config.yaml" = yamlencode({
+      metrics = true
+
       storage = {
         type = "sqlite"
         path = "/data/data.db"
