@@ -47,6 +47,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
         custom = {
           url    = "https://gitlab.example.net/api/v4/projects/${var.gitlab_portfolio_project_id}/trigger/pipeline"
           method = "POST"
+          headers = {
+            "Content-Type" = "application/x-www-form-urlencoded"
+          }
           body   = "token=${var.gitlab_pipeline_trigger_token}&ref=main&variables[TRIGGER_SOURCE]=gatus"
           default-alert = {
             enabled           = true
