@@ -50,7 +50,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
           headers = {
             "Content-Type" = "application/x-www-form-urlencoded"
           }
-          body   = "token=${var.gitlab_pipeline_trigger_token}&ref=main&variables[TRIGGER_SOURCE]=gatus"
+          body = "token=${var.gitlab_pipeline_trigger_token}&ref=main&variables[TRIGGER_SOURCE]=gatus"
           default-alert = {
             enabled           = true
             send-on-resolved  = true
