@@ -311,3 +311,13 @@ variable "snmp_community" {
   type        = string
   sensitive   = true
 }
+
+# -----------------------------------------------------------------------------
+# Gatus Alerting Configuration
+# -----------------------------------------------------------------------------
+variable "REDACTED_2636fc38" {
+  description = "GitLab pipeline trigger token for portfolio status webhook"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
