@@ -170,10 +170,11 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             url      = "http://chzrh01vps01-int.example.net:8404/stats;csv"
             interval = "60s"
             headers = {
-	      Authorization = "Basic REDACTED_38a2053f"
+              Authorization = "Basic REDACTED_38a2053f"
             }
             conditions = [
-              "[STATUS] == 200"
+              "[STATUS] == 200",
+              "[BODY] == pat(*,UP,*)"
             ]
             alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           },
@@ -183,10 +184,11 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             url      = "http://notrf01vps01-int.example.net:8404/stats;csv"
             interval = "60s"
             headers = {
-	      Authorization = "Basic REDACTED_38a2053f"
+              Authorization = "Basic REDACTED_38a2053f"
             }
             conditions = [
-              "[STATUS] == 200"
+              "[STATUS] == 200",
+              "[BODY] == pat(*,UP,*)"
             ]
             alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           }
