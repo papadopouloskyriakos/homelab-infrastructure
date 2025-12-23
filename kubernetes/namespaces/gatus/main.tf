@@ -170,7 +170,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             url      = "http://chzrh01vps01-int.example.net:8404/stats;csv"
             interval = "60s"
             headers = {
-              Authorization = "Basic ${var.haproxy_stats_auth}"
+	      Authorization = "Basic YWRtaW46SHhReGkwRVpTNlp4cmxSM0lHbE1uUT09"
             }
             conditions = [
               "[STATUS] == 200"
@@ -183,7 +183,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             url      = "http://notrf01vps01-int.example.net:8404/stats;csv"
             interval = "60s"
             headers = {
-              Authorization = "Basic ${var.haproxy_stats_auth}"
+	      Authorization = "Basic YWRtaW46SHhReGkwRVpTNlp4cmxSM0lHbE1uUT09"
             }
             conditions = [
               "[STATUS] == 200"
