@@ -236,3 +236,13 @@ variable "REDACTED_680664be" {
   type        = string
   default     = "9"
 }
+
+# -----------------------------------------------------------------------------
+# HAProxy Edge Node Authentication
+# -----------------------------------------------------------------------------
+variable "haproxy_stats_auth" {
+  description = "Base64 encoded HAProxy stats authentication (user:pass)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

@@ -321,3 +321,9 @@ variable "REDACTED_2636fc38" {
   default     = ""
   sensitive   = true
 }
+variable "haproxy_stats_auth" {
+  description = "Base64 encoded HAProxy stats authentication (user:pass)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
