@@ -47,6 +47,9 @@ resource "REDACTED_9343442e" "gatus_config" {
         custom = {
           url    = "https://gitlab.example.net/api/v4/projects/${var.REDACTED_680664be}/trigger/pipeline"
           method = "POST"
+          headers = {
+            "Content-Type" = "REDACTED_c71c8610"
+          }
           body   = "token=${var.REDACTED_4f32e8a8}&ref=main&variables[TRIGGER_SOURCE]=gatus"
           default-alert = {
             enabled           = true
