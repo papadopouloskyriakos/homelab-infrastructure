@@ -50,7 +50,7 @@ resource "REDACTED_9343442e" "gatus_config" {
           headers = {
             "Content-Type" = "REDACTED_c71c8610"
           }
-          body   = "token=${var.REDACTED_4f32e8a8}&ref=main&variables[TRIGGER_SOURCE]=gatus"
+          body = "token=${var.REDACTED_4f32e8a8}&ref=main&variables[TRIGGER_SOURCE]=gatus"
           default-alert = {
             enabled           = true
             send-on-resolved  = true
