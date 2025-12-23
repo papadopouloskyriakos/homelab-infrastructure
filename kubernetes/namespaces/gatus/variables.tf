@@ -190,3 +190,19 @@ variable "additional_endpoints" {
   }))
   default = []
 }
+
+# -----------------------------------------------------------------------------
+# Webhook Alerting Configuration
+# -----------------------------------------------------------------------------
+variable "REDACTED_4f32e8a8" {
+  description = "GitLab pipeline trigger token for portfolio status webhook"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "REDACTED_680664be" {
+  description = "GitLab project ID for portfolio site"
+  type        = string
+  default     = "9"
+}
