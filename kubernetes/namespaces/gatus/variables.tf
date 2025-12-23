@@ -29,7 +29,7 @@ variable "timezone" {
 variable "gatus_version" {
   description = "Gatus container image version"
   type        = string
-  default     = "v5.17.0"
+  default     = "v5.33.0"
 }
 
 # -----------------------------------------------------------------------------
