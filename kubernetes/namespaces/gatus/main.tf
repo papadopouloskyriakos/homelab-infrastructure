@@ -173,8 +173,7 @@ resource "REDACTED_9343442e" "gatus_config" {
               Authorization = "Basic ${var.haproxy_stats_auth}"
             }
             conditions = [
-              "[STATUS] == 200",
-              "[BODY] == pat(*UP*)"
+              "[STATUS] == 200"
             ]
             alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           },
@@ -187,8 +186,7 @@ resource "REDACTED_9343442e" "gatus_config" {
               Authorization = "Basic ${var.haproxy_stats_auth}"
             }
             conditions = [
-              "[STATUS] == 200",
-              "[BODY] == pat(*UP*)"
+              "[STATUS] == 200"
             ]
             alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           }
