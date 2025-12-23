@@ -321,3 +321,9 @@ variable "gatus_gitlab_pipeline_trigger_token" {
   default     = ""
   sensitive   = true
 }
+variable "haproxy_stats_auth" {
+  description = "Base64 encoded HAProxy stats REDACTED_6fa691d2 (user:pass)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
