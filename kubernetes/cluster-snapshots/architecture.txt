@@ -1,4 +1,4 @@
-# Nuclear Lighters K8s Cluster - 2025-12-22 03:00:01 UTC
+# Nuclear Lighters K8s Cluster - 2025-12-23 03:00:01 UTC
 ***REMOVED***
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -19,7 +19,6 @@
 │  → nl-prometheus.example.net
 │  → nl-thanos.example.net
 │  → pihole.example.net
-│  → kyriakos.papadopoulos.tech
 │  → nl-seaweedfs.example.net
 │  → nl-s3.example.net
 │  → velero.example.net
@@ -27,7 +26,7 @@
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  K8s CLUSTER: v1.34.2 | Cilium CNI | 145 pods | 85 services               │
+│  K8s CLUSTER: v1.34.2 | Cilium CNI | 143 pods | 84 services               │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -49,4 +48,4 @@
 │    nlk8s-node04 (10.0.X.X) [worker]
 └─────────────────────────────────────────────────────────────────────────────┘
 
-STATS: Pods=145 Services=85 Helm=14 K8s=v1.34.2
+STATS: Pods=143 Services=84 Helm=14 K8s=v1.34.2
