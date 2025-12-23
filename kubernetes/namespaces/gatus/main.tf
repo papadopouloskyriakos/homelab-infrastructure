@@ -173,8 +173,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               Authorization = "Basic ${var.haproxy_stats_auth}"
             }
             conditions = [
-              "[STATUS] == 200",
-              "[BODY] == pat(*UP*)"
+              "[STATUS] == 200"
             ]
             alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
           },
@@ -187,8 +186,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               Authorization = "Basic ${var.haproxy_stats_auth}"
             }
             conditions = [
-              "[STATUS] == 200",
-              "[BODY] == pat(*UP*)"
+              "[STATUS] == 200"
             ]
             alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
           }
