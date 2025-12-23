@@ -3,6 +3,7 @@
 # =============================================================================
 # Public status page served via BGP anycast
 # Monitors both NL and GR sites from each location
+# Includes Prometheus-based network health checks for AS214304
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -62,7 +63,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
 
       ui = {
         title       = var.gatus_ui_title
-        description = "Infrastructure Health Dashboard (Served from ${var.site_name})"
+        description = "Multi-Site Infrastructure Health | AS214304 | ${var.site_name}"
         header      = var.gatus_ui_header
         logo        = ""
         link        = var.gatus_ui_link
@@ -70,30 +71,12 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
 
       endpoints = concat(
         # =====================================================================
-        # 🌐 PUBLIC SERVICES
+        # 🔧 CORE PLATFORM - Kubernetes Clusters
         # =====================================================================
         [
           {
-            name     = "Portfolio"
-            group    = "🌐 Public"
-            url      = "https://kyriakos.papadopoulos.tech"
-            interval = "30s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 2000"
-            ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
-          },
-        ],
-        # =====================================================================
-        # 🇳🇱 NETHERLANDS - CORE INFRASTRUCTURE
-        # =====================================================================
-        [
-          {
-            name     = "Kubernetes API"
-            group    = "🇳🇱 Netherlands"
+            name     = "NL Kubernetes API"
+            group    = "🔧 Core Platform"
             url      = "https://api-k8s.example.net:6443/healthz"
             client   = { insecure = true }
             interval = "30s"
@@ -101,202 +84,11 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[BODY] == ok"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           },
           {
-            name     = "ArgoCD"
-            group    = "🇳🇱 Netherlands"
-            url      = "https://argocd.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] < 500",
-              "[RESPONSE_TIME] < 3000"
-            ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
-          },
-          {
-            name     = "GitLab"
-            group    = "🇳🇱 Netherlands"
-            url      = "https://gitlab.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
-          },
-          {
-            name     = "Atlantis"
-            group    = "🇳🇱 Netherlands"
-            url      = "https://atlantis.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
-          }
-        ],
-        # =====================================================================
-        # 🇳🇱 NETHERLANDS - OBSERVABILITY
-        # =====================================================================
-        [
-          {
-            name     = "Grafana"
-            group    = "🇳🇱 NL Observability"
-            url      = "https://grafana.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
-          },
-          {
-            name     = "Prometheus"
-            group    = "🇳🇱 NL Observability"
-            url      = "https://nl-prometheus.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
-          },
-          {
-            name     = "Thanos"
-            group    = "🇳🇱 NL Observability"
-            url      = "https://nl-thanos.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
-          },
-          {
-            name     = "Hubble UI"
-            group    = "🇳🇱 NL Observability"
-            url      = "https://nl-hubble.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
-          },
-          {
-            name     = "K8s Dashboard"
-            group    = "🇳🇱 NL Observability"
-            url      = "https://nl-k8s.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] < 500",
-              "[RESPONSE_TIME] < 3000"
-            ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
-          },
-          {
-            name     = "Goldpinger"
-            group    = "🇳🇱 NL Observability"
-            url      = "https://goldpinger.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
-          }
-        ],
-        # =====================================================================
-        # 🇳🇱 NETHERLANDS - STORAGE & BACKUP
-        # =====================================================================
-        [
-          {
-            name     = "SeaweedFS Master"
-            group    = "🇳🇱 NL Storage"
-            url      = "https://nl-seaweedfs.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
-          },
-          {
-            name     = "SeaweedFS S3"
-            group    = "🇳🇱 NL Storage"
-            url      = "https://nl-s3.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] < 500",
-              "[RESPONSE_TIME] < 3000"
-            ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
-          },
-          {
-            name     = "Velero UI"
-            group    = "🇳🇱 NL Storage"
-            url      = "https://velero.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 3000"
-            ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
-          }
-        ],
-        # =====================================================================
-        # 🇳🇱 NETHERLANDS - AUTOMATION
-        # =====================================================================
-        [
-          {
-            name     = "AWX"
-            group    = "🇳🇱 NL Automation"
-            url      = "https://awx.example.net"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[RESPONSE_TIME] < 5000"
-            ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
-          }
-        ],
-        # =====================================================================
-        # 🇬🇷 GREECE - CORE INFRASTRUCTURE (DR SITE)
-        # =====================================================================
-        [
-          {
-            name     = "Kubernetes API"
-            group    = "🇬🇷 Greece"
+            name     = "GR Kubernetes API"
+            group    = "🔧 Core Platform"
             url      = "https://gr-api-k8s.example.net:6443/healthz"
             client   = { insecure = true }
             interval = "30s"
@@ -304,213 +96,446 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[BODY] == ok"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           },
           {
-            name     = "ArgoCD"
-            group    = "🇬🇷 Greece"
-            url      = "https://gr-argocd.example.net"
+            name     = "Cilium CNI (NL)"
+            group    = "🔧 Core Platform"
+            url      = "https://nl-hubble.example.net/api/v1/flows"
             interval = "60s"
             conditions = [
               "[STATUS] < 500",
-              "[RESPONSE_TIME] < 3000"
+              "[RESPONSE_TIME] < 5000"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           },
           {
-            name     = "GitLab (Mirror)"
-            group    = "🇬🇷 Greece"
+            name     = "Cilium CNI (GR)"
+            group    = "🔧 Core Platform"
+            url      = "https://gr-hubble.example.net/api/v1/flows"
+            interval = "60s"
+            conditions = [
+              "[STATUS] < 500",
+              "[RESPONSE_TIME] < 5000"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          }
+        ],
+
+        # =====================================================================
+        # 🌐 NETWORK (AS214304) - BGP, IPsec, Edge Nodes
+        # =====================================================================
+        [
+          # --- Prometheus-based BGP & IPsec Checks ---
+          {
+            name     = "FRR BGP Sessions"
+            group    = "🌐 Network (AS214304)"
+            url      = "https://${var.prometheus_hostname}/api/v1/query?query=count(frr_bgp_peer_state==1)"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[BODY].status == success",
+              "[BODY].data.result[0].value[1] >= ${var.REDACTED_9246ffd6}"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "Cilium BGP Sessions"
+            group    = "🌐 Network (AS214304)"
+            url      = "https://${var.prometheus_hostname}/api/v1/query?query=count(cilium_bgp_control_plane_session_state==1)"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[BODY].status == success",
+              "[BODY].data.result[0].value[1] >= ${var.REDACTED_1c1562d0}"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "IPsec Tunnels"
+            group    = "🌐 Network (AS214304)"
+            url      = "https://${var.prometheus_hostname}/api/v1/query?query=count(ipsec_up==1)"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[BODY].status == success",
+              "[BODY].data.result[0].value[1] >= ${var.expected_ipsec_tunnels}"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          # --- Edge Node Health ---
+          {
+            name     = "Edge: Zürich (CH)"
+            group    = "🌐 Network (AS214304)"
+            url      = "http://chzrh01vps01-int.example.net:8404/stats;csv"
+            interval = "60s"
+            headers = {
+              Authorization = "Basic YWRtaW46SHhReGkwRVpTNlp4cmxSM0lHbE1uUT09"
+            }
+            conditions = [
+              "[STATUS] == 200",
+              "[BODY] == pat(*,UP,*)"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "Edge: Sandefjord (NO)"
+            group    = "🌐 Network (AS214304)"
+            url      = "http://notrf01vps01-int.example.net:8404/stats;csv"
+            interval = "60s"
+            headers = {
+              Authorization = "Basic YWRtaW46SHhReGkwRVpTNlp4cmxSM0lHbE1uUT09"
+            }
+            conditions = [
+              "[STATUS] == 200",
+              "[BODY] == pat(*,UP,*)"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          }
+        ],
+
+        # =====================================================================
+        # 🔄 GITOPS & AUTOMATION
+        # =====================================================================
+        [
+          {
+            name     = "GitLab"
+            group    = "🔄 GitOps & Automation"
+            url      = "https://gitlab.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "GitLab (GR Mirror)"
+            group    = "🔄 GitOps & Automation"
             url      = "https://gr-gitlab.example.net"
             interval = "60s"
             conditions = [
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           },
           {
-            name     = "Atlantis"
-            group    = "🇬🇷 Greece"
+            name     = "ArgoCD (NL)"
+            group    = "🔄 GitOps & Automation"
+            url      = "https://argocd.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] < 500",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "ArgoCD (GR)"
+            group    = "🔄 GitOps & Automation"
+            url      = "https://gr-argocd.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] < 500",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "Atlantis (NL)"
+            group    = "🔄 GitOps & Automation"
+            url      = "https://atlantis.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "Atlantis (GR)"
+            group    = "🔄 GitOps & Automation"
             url      = "https://gr-atlantis.example.net"
             interval = "60s"
             conditions = [
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "AWX"
+            group    = "🔄 GitOps & Automation"
+            url      = "https://awx.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 5000"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           }
         ],
+
         # =====================================================================
-        # 🇬🇷 GREECE - OBSERVABILITY
+        # 🔒 SECURITY & SECRETS
+        # =====================================================================
+        [
+          # cert-manager health via Prometheus
+          {
+            name     = "cert-manager"
+            group    = "🔒 Security & Secrets"
+            url      = "https://${var.prometheus_hostname}/api/v1/query?query=sum(certmanager_certificate_ready_status)"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[BODY].status == success",
+              "[BODY].data.result[0].value[1] >= 1"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          }
+          # NOTE: OpenBao is internal-only, add when ingress/metrics are available
+        ],
+
+        # =====================================================================
+        # 📊 OBSERVABILITY
         # =====================================================================
         [
           {
             name     = "Grafana"
-            group    = "🇬🇷 GR Observability"
-            url      = "https://gr-grafana.example.net"
+            group    = "📊 Observability"
+            url      = "https://grafana.example.net"
             interval = "60s"
             conditions = [
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           },
           {
-            name     = "Prometheus"
-            group    = "🇬🇷 GR Observability"
+            name     = "Prometheus (NL)"
+            group    = "📊 Observability"
+            url      = "https://nl-prometheus.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "Prometheus (GR)"
+            group    = "📊 Observability"
             url      = "https://gr-prometheus.example.net"
             interval = "60s"
             conditions = [
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           },
           {
-            name     = "Thanos"
-            group    = "🇬🇷 GR Observability"
+            name     = "Thanos (NL)"
+            group    = "📊 Observability"
+            url      = "https://nl-thanos.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "Thanos (GR)"
+            group    = "📊 Observability"
             url      = "https://gr-thanos.example.net"
             interval = "60s"
             conditions = [
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          # Loki health via Prometheus metric existence
+          {
+            name     = "Loki"
+            group    = "📊 Observability"
+            url      = "https://${var.prometheus_hostname}/api/v1/query?query=loki_internal_log_messages_total"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[BODY].status == success"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           },
           {
-            name     = "Hubble UI"
-            group    = "🇬🇷 GR Observability"
+            name     = "Hubble UI (NL)"
+            group    = "📊 Observability"
+            url      = "https://nl-hubble.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "Hubble UI (GR)"
+            group    = "📊 Observability"
             url      = "https://gr-hubble.example.net"
             interval = "60s"
             conditions = [
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           },
           {
-            name     = "K8s Dashboard"
-            group    = "🇬🇷 GR Observability"
+            name     = "K8s Dashboard (NL)"
+            group    = "📊 Observability"
+            url      = "https://nl-k8s.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] < 500",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "K8s Dashboard (GR)"
+            group    = "📊 Observability"
             url      = "https://gr-k8s.example.net"
             interval = "60s"
             conditions = [
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           },
           {
-            name     = "Goldpinger"
-            group    = "🇬🇷 GR Observability"
+            name     = "Goldpinger (NL)"
+            group    = "📊 Observability"
+            url      = "https://goldpinger.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "Goldpinger (GR)"
+            group    = "📊 Observability"
             url      = "https://gr-goldpinger.example.net"
             interval = "60s"
             conditions = [
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           }
         ],
+
         # =====================================================================
-        # 🇬🇷 GREECE - STORAGE
+        # 💾 STORAGE & BACKUP
         # =====================================================================
         [
           {
-            name     = "SeaweedFS Master"
-            group    = "🇬🇷 GR Storage"
+            name     = "SeaweedFS Master (NL)"
+            group    = "💾 Storage & Backup"
+            url      = "https://nl-seaweedfs.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "SeaweedFS Master (GR)"
+            group    = "💾 Storage & Backup"
             url      = "https://gr-seaweedfs.example.net"
             interval = "60s"
             conditions = [
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           },
           {
-            name     = "SeaweedFS S3"
-            group    = "🇬🇷 GR Storage"
+            name     = "SeaweedFS S3 (NL)"
+            group    = "💾 Storage & Backup"
+            url      = "https://nl-s3.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] < 500",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "SeaweedFS S3 (GR)"
+            group    = "💾 Storage & Backup"
             url      = "https://gr-s3.example.net"
             interval = "60s"
             conditions = [
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "Velero UI"
+            group    = "💾 Storage & Backup"
+            url      = "https://velero.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           }
         ],
+
         # =====================================================================
-        # 🏠 SHARED SERVICES
+        # 📱 APPLICATIONS
         # =====================================================================
         [
           {
+            name     = "Portfolio"
+            group    = "📱 Applications"
+            url      = "https://kyriakos.papadopoulos.tech"
+            interval = "30s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 2000"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          {
             name     = "Nextcloud"
-            group    = "🏠 Home Services"
+            group    = "📱 Applications"
             url      = "https://nextcloud.example.net"
             interval = "60s"
             conditions = [
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 5000"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           },
           {
             name     = "Home Assistant"
-            group    = "🏠 Home Services"
+            group    = "📱 Applications"
             url      = "https://homeassistant.example.net"
             interval = "60s"
             conditions = [
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           }
         ],
-        # =====================================================================
-        # 🔗 EXTERNAL CONNECTIVITY
-        # =====================================================================
-        [
-          {
-            name     = "Internet (Cloudflare)"
-            group    = "🔗 Connectivity"
-            url      = "https://1.1.1.1"
-            interval = "60s"
-            conditions = [
-              "[STATUS] < 500",
-              "[RESPONSE_TIME] < 500"
-            ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [
-              { type = "custom" }
-            ] : []
-          }
-        ],
+
         # Additional custom endpoints from tfvars
         var.additional_endpoints
       )
@@ -892,7 +917,8 @@ resource "kubernetes_manifest" "REDACTED_74a3ea37" {
             ports = [
               { port = "443", protocol = "TCP" },
               { port = "80", protocol = "TCP" },
-              { port = "6443", protocol = "TCP" }
+              { port = "6443", protocol = "TCP" },
+              { port = "8404", protocol = "TCP" } # HAProxy stats
             ]
           }]
         },
