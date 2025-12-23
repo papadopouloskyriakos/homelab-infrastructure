@@ -174,12 +174,12 @@ resource "REDACTED_9343442e" "gatus_config" {
             }
             conditions = [
               "[STATUS] == 200",
-              "[BODY] == pat(*,UP,*)"
+              "[BODY] == pat(*UP*)"
             ]
             alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           },
           {
-            name     = "Edge: Oslo (NO)"
+            name     = "Edge: Sandefjord (NO)"
             group    = "🌐 Network (AS214304)"
             url      = "http://notrf01vps01-int.example.net:8404/stats;csv"
             interval = "60s"
@@ -188,7 +188,7 @@ resource "REDACTED_9343442e" "gatus_config" {
             }
             conditions = [
               "[STATUS] == 200",
-              "[BODY] == pat(*,UP,*)"
+              "[BODY] == pat(*UP*)"
             ]
             alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           }
