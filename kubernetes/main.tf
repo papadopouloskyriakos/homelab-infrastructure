@@ -216,6 +216,7 @@ module "gatus" {
   source                        = "./namespaces/gatus"
   depends_on                    = [module.ingress_nginx, module.cert_manager]
   gitlab_pipeline_trigger_token = var.gatus_gitlab_pipeline_trigger_token
+  haproxy_stats_auth            = var.haproxy_stats_auth
 }
 # =============================================================================
 # Well-Known Endpoints (security.txt, etc.)
