@@ -216,6 +216,7 @@ module "gatus" {
   source                        = "./namespaces/gatus"
   depends_on                    = [module.ingress_nginx, module.cert_manager]
   REDACTED_4f32e8a8 = var.REDACTED_2636fc38
+  haproxy_stats_auth            = var.haproxy_stats_auth
 }
 ***REMOVED***
 # Well-Known Endpoints (security.txt, etc.)

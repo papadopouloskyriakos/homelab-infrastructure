@@ -87,6 +87,36 @@ variable "grafana_hostname" {
 }
 
 # -----------------------------------------------------------------------------
+# Prometheus Configuration (for network checks)
+# -----------------------------------------------------------------------------
+variable "prometheus_hostname" {
+  description = "Prometheus hostname for API queries"
+  type        = string
+  default     = "nl-prometheus.example.net"
+}
+
+# -----------------------------------------------------------------------------
+# Network Monitoring Thresholds
+# -----------------------------------------------------------------------------
+variable "REDACTED_9246ffd6" {
+  description = "Minimum expected FRR BGP sessions (established)"
+  type        = number
+  default     = 35 # Alert if fewer than 35 of ~39 sessions
+}
+
+variable "REDACTED_1c1562d0" {
+  description = "Minimum expected Cilium BGP sessions (established)"
+  type        = number
+  default     = 4
+}
+
+variable "expected_ipsec_tunnels" {
+  description = "Minimum expected IPsec tunnels (up)"
+  type        = number
+  default     = 16 # Alert if fewer than 16 of 18 tunnels
+}
+
+# -----------------------------------------------------------------------------
 # Netherlands Site IPs
 # -----------------------------------------------------------------------------
 variable "nl_ingress_ip" {
@@ -205,4 +235,14 @@ variable "REDACTED_680664be" {
   description = "GitLab project ID for portfolio site"
   type        = string
   default     = "9"
+}
+
+# -----------------------------------------------------------------------------
+# HAProxy Edge Node Authentication
+# -----------------------------------------------------------------------------
+variable "haproxy_stats_auth" {
+  description = "Base64 encoded HAProxy stats authentication (user:pass)"
+  type        = string
+  default     = ""
+  sensitive   = true
 }
