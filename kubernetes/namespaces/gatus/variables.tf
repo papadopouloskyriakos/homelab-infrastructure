@@ -59,7 +59,7 @@ variable "gatus_ui_link" {
 variable "gatus_hostname" {
   description = "Hostname for Gatus ingress (BGP anycast)"
   type        = string
-  default     = "status.example.net"
+  default     = "nl-gatus.example.net"
 }
 
 variable "portfolio_hostname" {
