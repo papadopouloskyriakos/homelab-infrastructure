@@ -214,8 +214,8 @@ module "REDACTED_ac4dcdf5" {
 # =============================================================================
 module "gatus" {
   source = "./namespaces/gatus"
-
   depends_on = [module.ingress_nginx, module.cert_manager]
+  REDACTED_4f32e8a8 = var.REDACTED_2636fc38
 }
 # =============================================================================
 # Well-Known Endpoints (security.txt, etc.)
