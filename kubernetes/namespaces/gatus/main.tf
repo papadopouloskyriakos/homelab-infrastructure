@@ -174,7 +174,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             }
             conditions = [
               "[STATUS] == 200",
-              "[BODY] == pat(*BACKEND*UP*)"
+              "[BODY] == pat(*,UP,*)"
             ]
             alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
           },
@@ -188,7 +188,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             }
             conditions = [
               "[STATUS] == 200",
-              "[BODY] == pat(*BACKEND*UP*)"
+              "[BODY] == pat(*,UP,*)"
             ]
             alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
           }
