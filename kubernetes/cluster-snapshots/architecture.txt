@@ -1,4 +1,4 @@
-# Nuclear Lighters K8s Cluster - 2025-12-23 03:00:01 UTC
+# Nuclear Lighters K8s Cluster - 2025-12-24 03:00:01 UTC
 ***REMOVED***
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -11,7 +11,7 @@
 │  → argocd.example.net
 │  → awx.example.net
 │  → bentopdf.example.net
-│  → status.example.net
+│  → nl-gatus.example.net
 │  → nl-hubble.example.net
 │  → nl-k8s.example.net
 │  → goldpinger.example.net
