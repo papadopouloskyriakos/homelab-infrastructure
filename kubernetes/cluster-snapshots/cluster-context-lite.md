@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2025-12-23 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2025-12-24 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 364 |
+| Total Restarts | 370 |
 
 ## Topology
 
@@ -34,11 +34,11 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 _None_
 
 ### High Restart Pods (>3)
-kube-system/cilium-operator-6b94496fcd-l6cjl: 59 restarts
-kube-system/etcd-nlk8s-ctrl01: 7 restarts
+kube-system/cilium-operator-6b94496fcd-l6cjl: 61 restarts
+kube-system/etcd-nlk8s-ctrl01: 8 restarts
 kube-system/etcd-nlk8s-ctrl02: 5 restarts
 kube-system/etcd-nlk8s-ctrl03: 4 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 30 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 33 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 5 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 5 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 80 restarts
@@ -48,17 +48,14 @@ kube-system/kube-scheduler-nlk8s-ctrl01: 17 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 12 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 13 restarts
 monitoring/goldpinger-qs5xt: 4 restarts
-monitoring/monitoring-grafana-9ccf6f977-w47db: 4 restarts
+monitoring/monitoring-grafana-9ccf6f977-w47db: 5 restarts
 nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956swwjx: 5 restarts
 seaweedfs/seaweedfs-filer-1: 4 restarts
 
 ### Recent Warnings (5)
 ```
 NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   58m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   53m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system   27m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   25m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   4m45s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
@@ -77,7 +74,7 @@ pihole/pihole-dns-tcp-lb: 10.0.X.X -> 53:30438/TCP
 - argocd.example.net → argocd/argocd-server
 - awx.example.net → awx/awx
 - bentopdf.example.net → bentopdf/bentopdf
-- status.example.net → gatus/gatus
+- nl-gatus.example.net → gatus/gatus
 - nl-hubble.example.net → kube-system/hubble-ui
 - nl-k8s.example.net → REDACTED_d97cef76/REDACTED_d97cef76
 - goldpinger.example.net → monitoring/goldpinger
