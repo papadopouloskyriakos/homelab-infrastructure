@@ -43,6 +43,12 @@ sync_to_github:
       git clone "${CI_REPOSITORY_URL}" repo
       cd repo
       
+      # Fetching ansible from common repo
+      echo "[1.5/6] Fetching ansible from common repo..."
+      git clone "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.example.net/infrastructure/common.git" /tmp/common
+      cp -r /tmp/common/ansible/playbooks/* ansible/playbooks/ 2>/dev/null || mkdir -p ansible/playbooks && cp -r /tmp/common/ansible/playbooks/* ansible/playbooks/
+      rm -rf /tmp/common
+
       echo "[2/6] Filtering to public paths..."
       git filter-repo --force \
         --path README.md \
