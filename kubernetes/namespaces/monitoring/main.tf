@@ -266,6 +266,33 @@ resource "helm_release" "monitoring" {
                 { target_label = "__address__", replacement = "snmp-exporter.monitoring.svc:9116" },
               ]
             },
+            # Node Exporter - Edge/DMZ Hosts
+            {
+              job_name = "node-exporter-edge"
+              static_configs = [{
+                targets = [
+                  "10.0.X.X:9100", # nldmz01 - NL DMZ Docker host
+                  "10.0.X.X:9100",  # grdmz01 - GR DMZ Docker host
+                  "10.255.2.11:9100",    # chzrh01vps01 - CH VPS edge proxy
+                  "10.255.3.11:9100",    # notrf01vps01 - NO VPS edge proxy
+                ]
+                labels = {
+                  role = "edge-host"
+                }
+              }]
+              relabel_configs = [
+                # Instance names
+                { source_labels = ["__address__"], regex = "192\\.168\\.192\\.10:.*", target_label = "instance", replacement = "nldmz01" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.15\\.10:.*", target_label = "instance", replacement = "grdmz01" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.2\\.11:.*", target_label = "instance", replacement = "chzrh01vps01" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.3\\.11:.*", target_label = "instance", replacement = "notrf01vps01" },
+                # Site labels
+                { source_labels = ["__address__"], regex = "192\\.168\\.192\\..*", target_label = "site", replacement = "nl" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.15\\..*", target_label = "site", replacement = "gr" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.2\\..*", target_label = "site", replacement = "ch" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.3\\..*", target_label = "site", replacement = "no" },
+              ]
+            },
           ]
         }
 
