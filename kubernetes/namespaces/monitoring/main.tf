@@ -293,6 +293,31 @@ resource "helm_release" "monitoring" {
                 { source_labels = ["__address__"], regex = "10\\.255\\.3\\..*", target_label = "site", replacement = "no" },
               ]
             },
+            # CrowdSec Security Metrics
+            {
+              job_name = "crowdsec"
+              static_configs = [{
+                targets = [
+                  "10.0.X.X:6060", # nldmz01
+                  "10.0.X.X:6060",  # grdmz01
+                  "10.255.2.11:6060",    # chzrh01vps01
+                  "10.255.3.11:6060",    # notrf01vps01
+                ]
+                labels = {
+                  role = "security"
+                }
+              }]
+              relabel_configs = [
+                { source_labels = ["__address__"], regex = "192\\.168\\.192\\.10:.*", target_label = "instance", replacement = "nldmz01" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.15\\.10:.*", target_label = "instance", replacement = "grdmz01" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.2\\.11:.*", target_label = "instance", replacement = "chzrh01vps01" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.3\\.11:.*", target_label = "instance", replacement = "notrf01vps01" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.192\\..*", target_label = "site", replacement = "nl" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.15\\..*", target_label = "site", replacement = "gr" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.2\\..*", target_label = "site", replacement = "ch" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.3\\..*", target_label = "site", replacement = "no" },
+              ]
+            },
           ]
         }
 
