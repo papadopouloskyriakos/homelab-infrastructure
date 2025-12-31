@@ -1,9 +1,9 @@
 Building configuration...
 
-Current configuration : 24648 bytes
+Current configuration : 24938 bytes
 !
-! Last configuration change at 13:10:44 CET Sat Nov 29 2025 by kyriakosp
-! NVRAM config last updated at 13:10:45 CET Sat Nov 29 2025 by kyriakosp
+! Last configuration change at 13:57:36 CET Fri Dec 26 2025 by kyriakosp
+! NVRAM config last updated at 13:58:11 CET Fri Dec 26 2025 by kyriakosp
 !
 version 16.12
 no service pad
@@ -119,8 +119,12 @@ crypto pki certificate chain SLA-TrustPoint
   D697DF7F 28
   	quit
 !
+crypto pki certificate pool
+ cabundle nvram:ios_core.p7b
+!
 !
 port-channel load-balance src-dst-ip
+system mtu 9000
 license boot level ipbasek9
 !
 !
@@ -284,7 +288,7 @@ interface GigabitEthernet1/0/2
  spanning-tree portfast
 !
 interface GigabitEthernet1/0/3
- description *** Connection to room-a, desk #1, current 10m extension | On-Board | Patch. 3 ***
+ description *** Connection to room-a | 10m extension | desk #1 | KYRIAKOS | On-Board | Patch. 3 ***
  switchport access vlan 10
  switchport mode access
  switchport nonegotiate
@@ -294,7 +298,7 @@ interface GigabitEthernet1/0/3
  spanning-tree portfast
 !
 interface GigabitEthernet1/0/4
- description *** Connection to room-a, desk #2 | On-Board | Patch. 4 ***
+ description *** Connection to room-a | 10m extension | desk #2 | ELLI | On-Board | Patch. 4 ***
  switchport access vlan 10
  switchport mode access
  switchport nonegotiate
@@ -451,8 +455,10 @@ interface GigabitEthernet1/0/22
  description Administratively_Down
  switchport access vlan 99
  switchport trunk native vlan 99
+ switchport mode access
  shutdown
  power inline never
+ no cdp enable
 !
 interface GigabitEthernet1/0/23
  description *** Connection to nlfw01 | 1 Gbps | Port 5 ***
@@ -670,15 +676,19 @@ interface TenGigabitEthernet1/0/43
  description Administratively_Down
  switchport access vlan 99
  switchport trunk native vlan 99
+ switchport mode access
  shutdown
  power inline never
+ no cdp enable
 !
 interface TenGigabitEthernet1/0/44
  description Administratively_Down
  switchport access vlan 99
  switchport trunk native vlan 99
+ switchport mode access
  shutdown
  power inline never
+ no cdp enable
 !
 interface TenGigabitEthernet1/0/45
  description *** Connection to Synology DS1513+ | 1 Gbps | Port LAN 3 ***
@@ -873,6 +883,10 @@ interface Vlan14
 !
 interface Vlan20
  description *** dmz_servers01 ***
+ no ip address
+!
+interface Vlan21
+ description *** dmz_servers02 ***
  no ip address
 !
 interface Vlan85

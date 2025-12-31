@@ -595,6 +595,29 @@ object network nlhpb01-3478-udp
  host 10.0.X.X
 object network nlsynapse01
  host 10.0.X.X
+object network UNKNOWN_DEVICE_01
+ host 10.0.X.X
+object network notrf01k8s-node01_PUBLIC
+ host 185.125.171.172
+ description Gigahost Norway VPS
+object network nlstrongswan01
+ host 10.0.X.X
+ description StrongSwan IKEv2 VPN Server
+object network nl_strongswan_vpn_pool_01
+ subnet 10.0.X.X 255.255.255.240
+ description StrongSwan VPN Client Pool
+object network PUBLIC_dmz_vpn01_strongswan
+ host 45.138.55.154
+ description Public IP for StrongSwan
+object network nlstrongswan01-ike
+ host 10.0.X.X
+object network nlstrongswan01-natt
+ host 10.0.X.X
+object network chzrh01k8s-node01_PUBLIC
+ host 185.44.82.32
+ description iFog Zurich VPS
+object network NL_OUTSIDE_FREEDOM
+ host 45.138.52.48
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -653,6 +676,10 @@ object-group network nl_oas_vpn_pool_XX
  network-object object nl_oas_vpn_pool_01
  network-object object nl_oas_vpn_pool_02
  network-object object nl_oas_vpn_pool_03
+object-group network nl_strongswan_vpn_pool_XX
+ network-object object nl_strongswan_vpn_pool_01
+object-group network S2S_SKG_GRP_dmz_servers02
+ network-object 10.0.X.X 255.255.255.224
 object-group network nl_all_subnets
  group-object S2S_LEI_GRP_inside_cctv
  group-object S2S_LEI_GRP_inside_mgmt
@@ -662,6 +689,8 @@ object-group network nl_all_subnets
  group-object nl_oas_vpn_pool_XX
  network-object 10.0.X.X 255.255.255.248
  network-object 10.0.X.X 255.255.255.0
+ group-object nl_strongswan_vpn_pool_XX
+ group-object S2S_SKG_GRP_dmz_servers02
 object-group protocol TCPUDP
  protocol-object udp
  protocol-object tcp
@@ -751,6 +780,69 @@ object-group network BLACKLIST_FAIL2BAN
  network-object host 185.156.46.108
 object-group network S2S_LEI_GRP_inside_k8s
  network-object 10.0.X.X 255.255.255.0
+object-group network S2S_NO_TUNNEL
+ network-object 10.255.3.0 255.255.255.0
+object-group network STRONGSWAN_SPLIT_TUNNEL_NETWORKS
+ network-object 10.0.X.X 255.255.255.0
+ network-object 10.0.X.X 255.255.255.0
+ network-object 10.0.X.X 255.255.255.224
+ network-object 10.0.X.X 255.255.255.224
+ network-object 10.0.X.X 255.255.255.0
+ network-object 10.0.X.X 255.255.255.224
+object-group network S2S_CH_TUNNEL
+ network-object 10.255.2.0 255.255.255.0
+object-group network S2S_SKG_GRP_inside_iot
+ network-object 10.0.X.X 255.255.255.224
+object-group network S2S_SKG_GRP_dmz_servers03
+ network-object 10.0.X.X 255.255.255.248
+object-group network S2S_LEI_GRP_inside_iot
+ network-object 10.0.X.X 255.255.255.192
+object-group network S2S_LEI_GRP_inside_servers01
+ network-object 10.0.X.X 255.255.255.224
+object-group network S2S_LEI_GRP_inside_servers02
+ network-object 10.0.X.X 255.255.255.224
+object-group network S2S_LEI_GRP_dmz_servers01
+ network-object 10.0.X.X 255.255.255.224
+object-group network S2S_LEI_GRP_dmz_servers02
+ network-object 10.0.X.X 255.255.255.224
+object-group network S2S_LEI_GRP_dmz_servers03
+ network-object 10.0.X.X 255.255.255.224
+object-group network S2S_LEI_GRP_dmz_vpn01
+ network-object 10.0.X.X 255.255.255.248
+object-group network nl_all_vpn_pools
+ group-object nl_oas_vpn_pool_XX
+ group-object nl_strongswan_vpn_pool_XX
+object-group network S2S_SKG_VPN_DESTINATIONS
+ group-object S2S_SKG_GRP_inside_mgmt
+ group-object S2S_SKG_GRP_inside_neapoli
+ group-object S2S_SKG_GRP_inside_cctv
+ group-object S2S_SKG_GRP_inside_iot
+ group-object S2S_SKG_GRP_inside_servers01
+ group-object S2S_SKG_GRP_dmz_servers01
+ group-object S2S_SKG_GRP_dmz_servers02
+ group-object S2S_SKG_GRP_dmz_servers03
+ group-object S2S_SKG_GRP_dmz_vpn01
+ group-object gr_oas_vpn_pool_XX
+ network-object 10.0.X.X 255.255.255.0
+object-group network S2S_LEI_VPN_DESTINATIONS
+ group-object S2S_LEI_GRP_inside_mgmt
+ group-object S2S_LEI_GRP_inside_room_a
+ group-object S2S_LEI_GRP_inside_cctv
+ group-object S2S_LEI_GRP_inside_iot
+ group-object S2S_LEI_GRP_inside_servers01
+ group-object S2S_LEI_GRP_inside_servers02
+ group-object S2S_LEI_GRP_dmz_servers01
+ group-object S2S_LEI_GRP_dmz_servers02
+ group-object S2S_LEI_GRP_dmz_servers03
+ group-object S2S_LEI_GRP_dmz_vpn01
+ group-object S2S_LEI_GRP_inside_k8s
+ group-object nl_oas_vpn_pool_XX
+ group-object nl_strongswan_vpn_pool_XX
+object-group network S2S_SKG_GRP_inside_k8s
+ network-object 10.0.X.X 255.255.255.0
+object-group network ALL_VPS_OVERLAY
+ network-object 10.255.2.0 255.255.255.0
+ network-object 10.255.3.0 255.255.255.0
 access-list inside_cctv_access_in extended permit tcp object nlunify01 object nln8n01 eq 5678 
 access-list inside_cctv_access_in extended permit tcp object nlunify01 object nlsmtp-gpg01 eq smtp 
 access-list inside_cctv_access_in extended permit object-group TCPUDP object nlunify01 object-group eu-nlgr-freeipa01 eq domain 
@@ -799,6 +891,26 @@ access-list outside_freedom_tv_access_in extended deny ip object-group BLACKLIST
 access-list outside_freedom_tv_access_in extended deny icmp object-group BLACKLIST_FAIL2BAN any 
 access-list outside_freedom_tv_access_in extended deny ip any any 
 access-list outside_freedom_tv_access_in extended deny icmp any any 
+access-list dmz_vpn01_access_in extended permit icmp object nlstrongswan01 object nlfreeipa01 
+access-list dmz_vpn01_access_in extended permit tcp object nlstrongswan01 object nlfreeipa01 eq https 
+access-list dmz_vpn01_access_in extended permit tcp object nlstrongswan01 object nlfreeipa01 eq www 
+access-list dmz_vpn01_access_in extended permit tcp object nlstrongswan01 object nlfreeipa01 eq 88 
+access-list dmz_vpn01_access_in extended permit udp object nlstrongswan01 object nlfreeipa01 eq 88 
+access-list dmz_vpn01_access_in extended permit tcp object nlstrongswan01 object nlfreeipa01 eq 464 
+access-list dmz_vpn01_access_in extended permit udp object nlstrongswan01 object nlfreeipa01 eq 464 
+access-list dmz_vpn01_access_in extended permit tcp object nlstrongswan01 object nlfreeipa01 eq ldap 
+access-list dmz_vpn01_access_in extended permit tcp object nlstrongswan01 object nlfreeipa01 eq ldaps 
+access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_LEI_GRP_inside_mgmt 
+access-list dmz_vpn01_access_in extended permit tcp object nlstrongswan01 object nlfreeipa01 eq domain 
+access-list dmz_vpn01_access_in extended permit tcp object nlstrongswan01 object grfreeipa01 eq ldaps 
+access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_LEI_GRP_inside_k8s 
+access-list dmz_vpn01_access_in extended permit udp object nlstrongswan01 object nlsyslogng01 eq syslog 
+access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_SKG_GRP_inside_mgmt 
+access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_SKG_GRP_inside_servers01 
+access-list dmz_vpn01_access_in extended permit udp object nl_strongswan_vpn_pool_01 object nlpihole02 eq domain 
+access-list dmz_vpn01_access_in extended permit udp object nl_strongswan_vpn_pool_01 object grpihole01 eq domain 
+access-list dmz_vpn01_access_in extended permit tcp object nl_strongswan_vpn_pool_01 object-group eu-nlgr-freeipa01 eq https 
+access-list dmz_vpn01_access_in extended permit tcp object nl_strongswan_vpn_pool_01 object-group eu-nlgr-freeipa01 eq ldaps 
 access-list dmz_vpn01_access_in extended permit tcp any object gropenobserve01 object-group otlp 
 access-list dmz_vpn01_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
 access-list dmz_vpn01_access_in extended deny tcp any any eq smtp 
@@ -815,6 +927,8 @@ access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX]
 access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX] object-group S2S_SKG_GRP_inside_servers01 
 access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX] object-group S2S_SKG_GRP_dmz_vpn01 
 access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX] 10.0.X.X 255.255.255.0 
+access-list dmz_vpn01_access_in extended permit udp object nlstrongswan01 object nlfreeipa01 eq domain 
+access-list dmz_vpn01_access_in extended permit udp object nlstrongswan01 object grfreeipa01 eq domain 
 access-list dmz_vpn01_access_in extended permit udp object-group nloasXX object nlpihole02 eq domain 
 access-list dmz_vpn01_access_in extended permit udp object-group nloasXX object grpihole01 eq domain 
 access-list dmz_vpn01_access_in extended deny ip any object-group nl_all_subnets 
@@ -825,6 +939,14 @@ access-list dmz_vpn01_access_in extended permit ip any any
 access-list dmz_vpn01_access_in extended permit icmp any any 
 access-list dmz_vpn01_access_in extended deny ip any any 
 access-list dmz_vpn01_access_in extended deny icmp any any 
+access-list dmz_vpn01_access_in extended permit ip object-group gr_oas_vpn_pool_XX object-group S2S_LEI_GRP_inside_iot 
+access-list dmz_vpn01_access_in extended permit ip object-group gr_oas_vpn_pool_XX object-group S2S_LEI_GRP_inside_servers01 
+access-list dmz_vpn01_access_in extended permit ip object-group gr_oas_vpn_pool_XX object-group S2S_LEI_GRP_inside_servers02 
+access-list dmz_vpn01_access_in extended permit ip object-group gr_oas_vpn_pool_XX object-group S2S_LEI_GRP_dmz_servers01 
+access-list dmz_vpn01_access_in extended permit ip object-group gr_oas_vpn_pool_XX object-group S2S_LEI_GRP_dmz_servers02 
+access-list dmz_vpn01_access_in extended permit ip object-group gr_oas_vpn_pool_XX object-group S2S_LEI_GRP_dmz_servers03 
+access-list dmz_vpn01_access_in extended permit ip object-group gr_oas_vpn_pool_XX object-group S2S_LEI_GRP_dmz_vpn01 
+access-list dmz_vpn01_access_in extended permit ip object-group gr_oas_vpn_pool_XX object-group S2S_LEI_GRP_inside_k8s 
 access-list inside_iot_access_in extended deny ip object nlsonosplayfive01 any 
 access-list inside_iot_access_in extended permit tcp object-group nlfcksns object-group nlcl01iotXX eq 8123 inactive 
 access-list inside_iot_access_in extended permit object-group TCPUDP object-group nlfcksns object nlpihole02 eq domain inactive 
@@ -887,8 +1009,10 @@ access-list outside_freedom_cryptomap_24 extended permit ip object-group S2S_LEI
 access-list outside_freedom_cryptomap_25 extended permit ip object-group S2S_LEI_GRP_inside_cctv object-group S2S_SKG_GRP_oas_vpn01 
 access-list outside_freedom_cryptomap_26 extended permit ip object-group S2S_LEI_GRP_inside_cctv object-group S2S_SKG_GRP_oas_vpn02 
 access-list outside_freedom_cryptomap_27 extended permit ip object-group S2S_LEI_GRP_inside_cctv object-group S2S_SKG_GRP_oas_vpn03 
-access-list dmz_servers02_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
-access-list dmz_servers02_access_in extended deny tcp any any eq smtp 
+access-list dmz_servers02_access_in extended permit object-group TCPUDP any object nlpihole02 eq domain inactive 
+access-list dmz_servers02_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp inactive 
+access-list dmz_servers02_access_in extended permit ip object-group S2S_LEI_GRP_dmz_servers02 object-group S2S_SKG_GRP_dmz_servers02 
+access-list dmz_servers02_access_in extended permit icmp object-group S2S_LEI_GRP_dmz_servers02 object-group S2S_SKG_GRP_dmz_servers02 
 access-list dmz_servers02_access_in extended deny ip any object-group nl_all_subnets 
 access-list dmz_servers02_access_in extended deny icmp any object-group nl_all_subnets 
 access-list dmz_servers02_access_in extended deny ip any object-group gr_all_subnets 
@@ -918,6 +1042,8 @@ access-list SPOCK[wireless]-THROTTLE-DOWN-ACL extended permit ip any object GR-S
 access-list dmz_servers02-srv01-THROTTLE-DOWN-ACL extended permit ip any object dmz_servers02-srv01 inactive 
 access-list GUEST-THROTTLE-DOWN-ACL extended permit ip any any inactive 
 access-list global_mpc extended permit ip any any 
+access-list inside_mgmt_access_in extended deny ip object UNKNOWN_DEVICE_01 any 
+access-list inside_mgmt_access_in extended deny icmp object UNKNOWN_DEVICE_01 any 
 access-list inside_mgmt_access_in extended permit tcp object nlsmtp-dkim01 any eq smtp 
 access-list inside_mgmt_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
 access-list inside_mgmt_access_in extended deny tcp any any eq smtp 
@@ -934,11 +1060,15 @@ access-list outside_freedom_access_in remark [Nginx Proxy Manager]
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlnpm01-80-tcp eq www 
 access-list outside_freedom_access_in remark [Nginx Proxy Manager]
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlnpm01-443-tcp eq https 
+access-list outside_freedom_access_in extended permit udp object-group WHITELIST_OAS object nlstrongswan01 eq 4500 
+access-list outside_freedom_access_in extended permit udp object-group WHITELIST_OAS object nlstrongswan01 eq isakmp 
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_OAS object nloas01-443-tcp eq https 
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_OAS object nloas02-888-tcp eq 888 
 access-list outside_freedom_access_in extended permit udp object-group WHITELIST_OAS object nloas03-999-udp eq 999 
 access-list outside_freedom_access_in extended deny ip object-group BLACKLIST_FAIL2BAN any 
 access-list outside_freedom_access_in extended deny icmp object-group BLACKLIST_FAIL2BAN any 
+access-list outside_freedom_access_in extended permit tcp host 91.211.213.72 host 45.138.52.48 eq bgp 
+access-list outside_freedom_access_in extended permit tcp host 91.211.213.72 eq bgp host 45.138.52.48 
 access-list outside_freedom_access_in extended deny ip any any 
 access-list outside_freedom_access_in extended deny icmp any any 
 access-list pbr_acl extended permit ip host 10.0.X.X any 
@@ -988,11 +1118,33 @@ access-list inside_nfs_access_in extended permit ip any any
 access-list inside_nfs_access_in extended permit icmp any any 
 access-list inside_nfs_access_in extended deny ip any any 
 access-list inside_nfs_access_in extended deny icmp any any 
+access-list inside_k8s_access_in extended permit tcp 10.0.X.X 255.255.255.0 host 10.0.X.X eq bgp 
 access-list inside_k8s_access_in extended permit ip any any 
 access-list inside_k8s_access_in extended permit icmp any any 
 access-list inside_k8s_access_in extended deny ip any any 
 access-list inside_k8s_access_in extended deny icmp any any 
 access-list outside_freedom_cryptomap_34 extended permit ip object-group S2S_LEI_GRP_inside_k8s object-group S2S_SKG_GRP_inside_mgmt 
+access-list vti-norway_access_in extended permit ip any any 
+access-list vpn-no-to-nl-dmz extended permit ip 10.0.X.X 255.255.255.224 10.255.3.0 255.255.255.0 
+access-list vpn-ch-to-nl-dmz extended permit ip 10.0.X.X 255.255.255.224 10.255.2.0 255.255.255.0 
+access-list vpn-nl-to-gr-vpn extended permit ip object-group nl_all_vpn_pools object-group S2S_SKG_VPN_DESTINATIONS 
+access-list vpn-gr-to-nl-vpn extended permit ip object-group gr_oas_vpn_pool_XX object-group S2S_LEI_VPN_DESTINATIONS 
+access-list outside_freedom_cryptomap_35 extended permit ip object-group S2S_LEI_GRP_inside_mgmt object-group S2S_SKG_GRP_inside_k8s 
+access-list outside_freedom_cryptomap_36 extended permit ip object-group S2S_LEI_GRP_inside_k8s object-group S2S_SKG_GRP_inside_k8s 
+access-list outside_freedom_cryptomap_bgp extended permit ip host 45.138.52.48 host 91.211.213.72 
+access-list outside_freedom_cryptomap_37 extended permit ip object-group S2S_LEI_GRP_inside_mgmt object-group S2S_SKG_GRP_dmz_servers02 
+access-list outside_freedom_cryptomap_38 extended permit ip object-group S2S_LEI_GRP_inside_k8s object-group S2S_SKG_GRP_dmz_servers02 
+access-list vpn-no-to-gr-dmz-via-nl extended permit ip 10.0.X.X 255.255.255.224 10.255.3.0 255.255.255.0 
+access-list vpn-ch-to-gr-dmz-via-nl extended permit ip 10.0.X.X 255.255.255.224 10.255.2.0 255.255.255.0 
+access-list outside_freedom_cryptomap_vps_gr_dmz extended permit ip 10.255.3.0 255.255.255.0 10.0.X.X 255.255.255.224 
+access-list outside_freedom_cryptomap_vps_gr_dmz extended permit ip 10.255.2.0 255.255.255.0 10.0.X.X 255.255.255.224 
+access-list outside_freedom_cryptomap_71 extended permit ip object-group S2S_LEI_GRP_dmz_servers02 object-group S2S_SKG_GRP_dmz_servers02 
+access-list outside_freedom_cryptomap_72 extended permit ip object-group S2S_LEI_GRP_inside_mgmt object-group S2S_SKG_GRP_dmz_servers02 
+access-list outside_freedom_cryptomap_73 extended permit ip object-group S2S_LEI_GRP_inside_k8s object-group S2S_SKG_GRP_dmz_servers02 
+access-list vpn-no-to-nl-mgmt extended permit ip 10.0.X.X 255.255.255.0 10.255.3.0 255.255.255.0 
+access-list vpn-no-to-nl-k8s extended permit ip 10.0.X.X 255.255.255.0 10.255.3.0 255.255.255.0 
+access-list vpn-ch-to-nl-mgmt extended permit ip 10.0.X.X 255.255.255.0 10.255.2.0 255.255.255.0 
+access-list vpn-ch-to-nl-k8s extended permit ip 10.0.X.X 255.255.255.0 10.255.2.0 255.255.255.0 
 !
 tcp-map mptcp-tm
   tcp-options range 30 30 allow
@@ -1087,6 +1239,7 @@ no monitor-interface inside_nfs
 no monitor-interface inside_k8s
 no monitor-interface service-module 
 icmp unreachable rate-limit 1 burst-size 1
+icmp permit 10.0.X.X 255.255.255.0 inside_k8s
 asdm image disk0:/asdm-7201.bin
 asdm history enable
 arp timeout 14400
@@ -1138,6 +1291,35 @@ nat (inside_nfs,outside_freedom) source static S2S_LEI_GRP_inside_nfs S2S_LEI_GR
 nat (inside_corosync,outside_freedom) source static S2S_LEI_GRP_inside_corosync S2S_LEI_GRP_inside_corosync destination static S2S_SKG_GRP_inside_mgmt S2S_SKG_GRP_inside_mgmt no-proxy-arp route-lookup
 nat (inside_k8s,outside_freedom) source static S2S_LEI_GRP_inside_k8s S2S_LEI_GRP_inside_k8s destination static S2S_SKG_GRP_inside_mgmt S2S_SKG_GRP_inside_mgmt no-proxy-arp route-lookup
 nat (inside_k8s,outside_xs4all) source static S2S_LEI_GRP_inside_k8s S2S_LEI_GRP_inside_k8s destination static S2S_SKG_GRP_inside_mgmt S2S_SKG_GRP_inside_mgmt no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_NO_TUNNEL S2S_NO_TUNNEL no-proxy-arp route-lookup
+nat (inside_k8s,outside_freedom) source static S2S_LEI_GRP_inside_k8s S2S_LEI_GRP_inside_k8s destination static S2S_NO_TUNNEL S2S_NO_TUNNEL no-proxy-arp route-lookup
+nat (inside_mgmt,dmz_vpn01) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static nl_strongswan_vpn_pool_XX nl_strongswan_vpn_pool_XX no-proxy-arp route-lookup
+nat (inside_k8s,dmz_vpn01) source static S2S_LEI_GRP_inside_k8s S2S_LEI_GRP_inside_k8s destination static nl_strongswan_vpn_pool_XX nl_strongswan_vpn_pool_XX no-proxy-arp route-lookup
+nat (dmz_vpn01,outside_freedom) source static nl_strongswan_vpn_pool_XX nl_strongswan_vpn_pool_XX destination static S2S_SKG_GRP_inside_mgmt S2S_SKG_GRP_inside_mgmt no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_CH_TUNNEL S2S_CH_TUNNEL no-proxy-arp route-lookup
+nat (inside_k8s,outside_freedom) source static S2S_LEI_GRP_inside_k8s S2S_LEI_GRP_inside_k8s destination static S2S_CH_TUNNEL S2S_CH_TUNNEL no-proxy-arp route-lookup
+nat (dmz_vpn01,outside_freedom) source static nl_oas_vpn_pool_XX nl_oas_vpn_pool_XX destination static S2S_SKG_VPN_DESTINATIONS S2S_SKG_VPN_DESTINATIONS no-proxy-arp route-lookup
+nat (dmz_vpn01,outside_freedom) source static nl_strongswan_vpn_pool_XX nl_strongswan_vpn_pool_XX destination static S2S_SKG_VPN_DESTINATIONS S2S_SKG_VPN_DESTINATIONS no-proxy-arp route-lookup
+nat (inside_iot,outside_freedom) source static S2S_LEI_GRP_inside_iot S2S_LEI_GRP_inside_iot destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (inside_servers01,outside_freedom) source static S2S_LEI_GRP_inside_servers01 S2S_LEI_GRP_inside_servers01 destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (inside_servers02,outside_freedom) source static S2S_LEI_GRP_inside_servers02 S2S_LEI_GRP_inside_servers02 destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (dmz_servers01,outside_freedom) source static S2S_LEI_GRP_dmz_servers01 S2S_LEI_GRP_dmz_servers01 destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (dmz_servers02,outside_freedom) source static S2S_LEI_GRP_dmz_servers02 S2S_LEI_GRP_dmz_servers02 destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (dmz_servers03,outside_freedom) source static S2S_LEI_GRP_dmz_servers03 S2S_LEI_GRP_dmz_servers03 destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (dmz_vpn01,outside_freedom) source static S2S_LEI_GRP_dmz_vpn01 S2S_LEI_GRP_dmz_vpn01 destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (dmz_vpn01,outside_freedom) source static nl_oas_vpn_pool_XX nl_oas_vpn_pool_XX destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (dmz_vpn01,outside_freedom) source static nl_strongswan_vpn_pool_XX nl_strongswan_vpn_pool_XX destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_inside_k8s S2S_SKG_GRP_inside_k8s no-proxy-arp route-lookup
+nat (inside_k8s,outside_freedom) source static S2S_LEI_GRP_inside_k8s S2S_LEI_GRP_inside_k8s destination static S2S_SKG_GRP_inside_k8s S2S_SKG_GRP_inside_k8s no-proxy-arp route-lookup
+nat (inside_mgmt,outside_xs4all) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_inside_k8s S2S_SKG_GRP_inside_k8s no-proxy-arp route-lookup
+nat (inside_k8s,outside_xs4all) source static S2S_LEI_GRP_inside_k8s S2S_LEI_GRP_inside_k8s destination static S2S_SKG_GRP_inside_k8s S2S_SKG_GRP_inside_k8s no-proxy-arp route-lookup
+nat (dmz_servers02,outside_freedom) source static S2S_LEI_GRP_dmz_servers02 S2S_LEI_GRP_dmz_servers02 destination static S2S_NO_TUNNEL S2S_NO_TUNNEL no-proxy-arp route-lookup
+nat (dmz_servers02,outside_freedom) source static S2S_LEI_GRP_dmz_servers02 S2S_LEI_GRP_dmz_servers02 destination static S2S_CH_TUNNEL S2S_CH_TUNNEL no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_dmz_servers02 S2S_SKG_GRP_dmz_servers02 no-proxy-arp route-lookup
+nat (inside_k8s,outside_freedom) source static S2S_LEI_GRP_inside_k8s S2S_LEI_GRP_inside_k8s destination static S2S_SKG_GRP_dmz_servers02 S2S_SKG_GRP_dmz_servers02 no-proxy-arp route-lookup
+nat (dmz_servers02,outside_freedom) source static S2S_SKG_GRP_dmz_servers02 S2S_SKG_GRP_dmz_servers02 destination static ALL_VPS_OVERLAY ALL_VPS_OVERLAY no-proxy-arp route-lookup
+nat (outside_freedom,outside_freedom) source static ALL_VPS_OVERLAY ALL_VPS_OVERLAY destination static S2S_SKG_GRP_dmz_servers02 S2S_SKG_GRP_dmz_servers02 no-proxy-arp route-lookup
+nat (dmz_servers02,outside_freedom) source static S2S_LEI_GRP_dmz_servers02 S2S_LEI_GRP_dmz_servers02 destination static S2S_SKG_GRP_dmz_servers02 S2S_SKG_GRP_dmz_servers02 no-proxy-arp route-lookup
 !
 object network NAT_dmz_servers01
  nat (dmz_servers01,outside_freedom) dynamic PUBLIC_dmz_servers01
@@ -1177,8 +1359,13 @@ object network nlhpb01-3478-tcp
  nat (inside_mgmt,outside_freedom) static interface service tcp 3478 3478 
 object network nlhpb01-3478-udp
  nat (inside_mgmt,outside_freedom) static interface service udp 3478 3478 
+object network nlstrongswan01-ike
+ nat (dmz_vpn01,outside_freedom) static 45.138.55.154 service udp isakmp isakmp 
+object network nlstrongswan01-natt
+ nat (dmz_vpn01,outside_freedom) static 45.138.55.154 service udp 4500 4500 
 !
 nat (dmz_servers01,outside_xs4all) after-auto source dynamic any interface
+nat (dmz_servers02,outside_freedom) after-auto source dynamic any interface
 nat (inside_mgmt,outside_xs4all) after-auto source dynamic any interface
 nat (inside_mgmt,outside_freedom) after-auto source dynamic any interface
 nat (inside_k8s,outside_xs4all) after-auto source dynamic any interface
@@ -1226,6 +1413,12 @@ router bgp 65000
  bgp router-id 10.0.X.X
  timers bgp 30 90 0
  address-family ipv4 unicast
+  neighbor 10.0.X.X remote-as 65000
+  neighbor 10.0.X.X description nlk8s-frr01-DMZ
+  neighbor 10.0.X.X activate
+  neighbor 10.0.X.X remote-as 65000
+  neighbor 10.0.X.X description nlk8s-frr02-DMZ
+  neighbor 10.0.X.X activate
   neighbor 10.0.X.X remote-as 65001
   neighbor 10.0.X.X activate
   neighbor 10.0.X.X remote-as 65001
@@ -1239,6 +1432,7 @@ router bgp 65000
  exit-address-family
 !
 route outside_lte 0.0.0.0 0.0.0.0 10.0.X.X 20
+route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
@@ -1263,6 +1457,10 @@ http server idle-timeout 60
 http 10.0.X.X 255.255.255.0 inside_mgmt
 snmp-server host inside_mgmt 10.0.X.X community ***** version 2c
 snmp-server host inside_mgmt 10.0.X.X community ***** version 2c
+snmp-server host inside_k8s 10.0.X.X community ***** version 2c
+snmp-server host inside_k8s 10.0.X.X community ***** version 2c
+snmp-server host inside_k8s 10.0.X.X community ***** version 2c
+snmp-server host inside_k8s 10.0.X.X community ***** version 2c
 no snmp-server location
 no snmp-server contact
 sysopt connection tcpmss 1452
@@ -1289,6 +1487,12 @@ crypto ipsec ikev2 ipsec-proposal 3DES
 crypto ipsec ikev2 ipsec-proposal DES
  protocol esp encryption aes
  protocol esp integrity sha-1
+crypto ipsec ikev2 ipsec-proposal VTI-PROPOSAL
+ protocol esp encryption aes-256
+ protocol esp integrity sha-256
+crypto ipsec profile VTI-PROFILE
+ set ikev2 ipsec-proposal VTI-PROPOSAL
+ set security-association lifetime seconds 28800
 crypto ipsec profile IPSEC_PROFILE
  set ikev2 ipsec-proposal TSET
 crypto ipsec security-association pmtu-aging 10
@@ -1352,8 +1556,8 @@ crypto map outside_freedom_map 19 match address outside_freedom_cryptomap_19
 crypto map outside_freedom_map 19 set peer 91.211.213.72 
 crypto map outside_freedom_map 19 set ikev2 ipsec-proposal TSET
 crypto map outside_freedom_map 20 match address outside_freedom_cryptomap_20
-crypto map outside_freedom_map 20 set peer 91.211.213.72 
-crypto map outside_freedom_map 20 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 20 set peer 91.211.213.72 185.125.171.172 
+crypto map outside_freedom_map 20 set ikev2 ipsec-proposal TSET VTI-PROPOSAL
 crypto map outside_freedom_map 21 match address outside_freedom_cryptomap_21
 crypto map outside_freedom_map 21 set peer 91.211.213.72 
 crypto map outside_freedom_map 21 set ikev2 ipsec-proposal TSET
@@ -1396,6 +1600,64 @@ crypto map outside_freedom_map 33 set ikev2 ipsec-proposal TSET
 crypto map outside_freedom_map 34 match address outside_freedom_cryptomap_34
 crypto map outside_freedom_map 34 set peer 91.211.213.72 
 crypto map outside_freedom_map 34 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 35 match address outside_freedom_cryptomap_35
+crypto map outside_freedom_map 35 set peer 91.211.213.72 
+crypto map outside_freedom_map 35 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 36 match address outside_freedom_cryptomap_36
+crypto map outside_freedom_map 36 set peer 91.211.213.72 
+crypto map outside_freedom_map 36 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 37 match address outside_freedom_cryptomap_37
+crypto map outside_freedom_map 37 set peer 91.211.213.72 
+crypto map outside_freedom_map 37 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 38 match address outside_freedom_cryptomap_38
+crypto map outside_freedom_map 38 set peer 91.211.213.72 
+crypto map outside_freedom_map 38 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 39 set peer 91.211.213.72 
+crypto map outside_freedom_map 39 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 40 match address vpn-no-to-nl-dmz
+crypto map outside_freedom_map 40 set peer 185.125.171.172 
+crypto map outside_freedom_map 40 set ikev2 ipsec-proposal VTI-PROPOSAL
+crypto map outside_freedom_map 41 match address vpn-no-to-gr-dmz-via-nl
+crypto map outside_freedom_map 41 set peer 185.125.171.172 
+crypto map outside_freedom_map 41 set ikev2 ipsec-proposal VTI-PROPOSAL
+crypto map outside_freedom_map 42 match address outside_freedom_cryptomap_vps_gr_dmz
+crypto map outside_freedom_map 42 set peer 91.211.213.72 
+crypto map outside_freedom_map 42 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 43 match address vpn-no-to-nl-mgmt
+crypto map outside_freedom_map 43 set peer 185.125.171.172 
+crypto map outside_freedom_map 43 set ikev2 ipsec-proposal VTI-PROPOSAL
+crypto map outside_freedom_map 44 match address vpn-no-to-nl-k8s
+crypto map outside_freedom_map 44 set peer 185.125.171.172 
+crypto map outside_freedom_map 44 set ikev2 ipsec-proposal VTI-PROPOSAL
+crypto map outside_freedom_map 50 match address vpn-ch-to-nl-dmz
+crypto map outside_freedom_map 50 set peer 185.44.82.32 
+crypto map outside_freedom_map 50 set ikev2 ipsec-proposal VTI-PROPOSAL
+crypto map outside_freedom_map 51 match address vpn-ch-to-gr-dmz-via-nl
+crypto map outside_freedom_map 51 set peer 185.44.82.32 
+crypto map outside_freedom_map 51 set ikev2 ipsec-proposal VTI-PROPOSAL
+crypto map outside_freedom_map 52 match address vpn-ch-to-nl-mgmt
+crypto map outside_freedom_map 52 set peer 185.44.82.32 
+crypto map outside_freedom_map 52 set ikev2 ipsec-proposal VTI-PROPOSAL
+crypto map outside_freedom_map 53 match address vpn-ch-to-nl-k8s
+crypto map outside_freedom_map 53 set peer 185.44.82.32 
+crypto map outside_freedom_map 53 set ikev2 ipsec-proposal VTI-PROPOSAL
+crypto map outside_freedom_map 60 match address vpn-nl-to-gr-vpn
+crypto map outside_freedom_map 60 set peer 91.211.213.72 
+crypto map outside_freedom_map 60 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 61 match address vpn-gr-to-nl-vpn
+crypto map outside_freedom_map 61 set peer 91.211.213.72 
+crypto map outside_freedom_map 61 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 70 set peer 91.211.213.72 
+crypto map outside_freedom_map 70 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 71 match address outside_freedom_cryptomap_71
+crypto map outside_freedom_map 71 set peer 91.211.213.72 
+crypto map outside_freedom_map 71 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 72 match address outside_freedom_cryptomap_72
+crypto map outside_freedom_map 72 set peer 91.211.213.72 
+crypto map outside_freedom_map 72 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 73 match address outside_freedom_cryptomap_73
+crypto map outside_freedom_map 73 set peer 91.211.213.72 
+crypto map outside_freedom_map 73 set ikev2 ipsec-proposal TSET
 crypto map outside_freedom_map interface outside_freedom
 crypto map outside_xs4all_map 1 match address outside_freedom_cryptomap_01
 crypto map outside_xs4all_map 1 set peer 91.211.213.72 
@@ -1499,6 +1761,12 @@ crypto map outside_xs4all_map 33 set ikev2 ipsec-proposal TSET
 crypto map outside_xs4all_map 34 match address outside_freedom_cryptomap_34
 crypto map outside_xs4all_map 34 set peer 91.211.213.72 
 crypto map outside_xs4all_map 34 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 35 match address outside_freedom_cryptomap_35
+crypto map outside_xs4all_map 35 set peer 91.211.213.72 
+crypto map outside_xs4all_map 35 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 36 match address outside_freedom_cryptomap_36
+crypto map outside_xs4all_map 36 set peer 91.211.213.72 
+crypto map outside_xs4all_map 36 set ikev2 ipsec-proposal TSET
 crypto map outside_xs4all_map interface outside_xs4all
 crypto ca trustpool policy
 crypto isakmp nat-traversal 10
@@ -1507,6 +1775,12 @@ crypto ikev2 policy 1
  integrity sha512
  group 14
  prf sha512
+ lifetime seconds 86400
+crypto ikev2 policy 5
+ encryption aes-256
+ integrity sha256
+ group 14
+ prf sha256
  lifetime seconds 86400
 crypto ikev2 enable outside_xs4all
 crypto ikev2 enable outside_freedom
@@ -1521,6 +1795,7 @@ ssh cipher encryption high
 ssh key-exchange group ecdh-sha2-nistp256
 ssh 10.0.X.X 255.255.255.0 inside_mgmt
 console timeout 0
+management-access inside_mgmt
 vpdn group Freedom request dialout pppoe
 vpdn group Freedom localname fake@freedom.nl
 vpdn group Freedom ppp authentication pap
@@ -1583,6 +1858,8 @@ dhcpd reserve-address 10.0.X.X 2ccf.6792.f4d3 inside_mgmt
 dhcpd reserve-address 10.0.X.X 2ccf.6792.dfc5 inside_mgmt
 dhcpd reserve-address 10.0.X.X 2ccf.6792.f4b9 inside_mgmt
 dhcpd reserve-address 10.0.X.X 2ccf.6793.a93b inside_mgmt
+dhcpd reserve-address 10.0.X.X b48c.9d7d.9211 inside_mgmt
+dhcpd reserve-address 10.0.X.X 00e0.4c00.0436 inside_mgmt
 dhcpd reserve-address 10.0.X.X 3c91.80bd.ba67 inside_mgmt
 dhcpd reserve-address 10.0.X.X e8d5.2b4e.a838 inside_mgmt
 dhcpd reserve-address 10.0.X.X 08f9.e06d.b457 inside_mgmt
@@ -1653,6 +1930,16 @@ tunnel-group 91.211.213.72 type ipsec-l2l
 tunnel-group 91.211.213.72 general-attributes
  default-group-policy GroupPolicy_91.211.213.72
 tunnel-group 91.211.213.72 ipsec-attributes
+ isakmp keepalive threshold 10 retry 5
+ ikev2 remote-authentication pre-shared-key *****
+ ikev2 local-authentication pre-shared-key *****
+tunnel-group 185.125.171.172 type ipsec-l2l
+tunnel-group 185.125.171.172 ipsec-attributes
+ isakmp keepalive threshold 10 retry 5
+ ikev2 remote-authentication pre-shared-key *****
+ ikev2 local-authentication pre-shared-key *****
+tunnel-group 185.44.82.32 type ipsec-l2l
+tunnel-group 185.44.82.32 ipsec-attributes
  isakmp keepalive threshold 10 retry 5
  ikev2 remote-authentication pre-shared-key *****
  ikev2 local-authentication pre-shared-key *****
@@ -1730,5 +2017,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:d3e05554f01c85b6cced26e79497a833
+Cryptochecksum:3dc62c26f14028cda5e40b8ed3e37443
 : end
