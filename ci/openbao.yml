@@ -172,7 +172,7 @@ variables:
     - git config --global pull.rebase true
     - git remote set-url origin https://root:${GITLAB_PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
     - git checkout main || git checkout -b main
-    - git pull origin main || echo "No remote main yet"
+    - git reset --hard origin/main  # Replace the git pull with this
 
 # =============================================================================
 # Test Job - Run manually to verify OpenBao integration
