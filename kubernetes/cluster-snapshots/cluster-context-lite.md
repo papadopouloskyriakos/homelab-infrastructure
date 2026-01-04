@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-01-03 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-01-04 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 672 |
+| Total Restarts | 673 |
 
 ## Topology
 
@@ -44,7 +44,7 @@ kube-system/cilium-operator-6b94496fcd-l6cjl: 72 restarts
 kube-system/etcd-nlk8s-ctrl01: 9 restarts
 kube-system/etcd-nlk8s-ctrl02: 38 restarts
 kube-system/etcd-nlk8s-ctrl03: 4 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 55 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 56 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 55 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 12 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 83 restarts
@@ -70,11 +70,8 @@ synology-csi/synology-csi-node-zch7n: 16 restarts
 
 ### Recent Warnings (5)
 ```
-kube-system   56m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Liveness probe failed: Get "http://127.0.0.1:2381/livez": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-logging       56m         Warning   Unhealthy   pod/loki-0                              Readiness probe failed: Get "http://10.0.6.51:3100/ready": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   56m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-logging       55m         Warning   Unhealthy   pod/promtail-whm9j                      Readiness probe failed: Get "http://10.0.6.112:3101/ready": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   11m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+NAMESPACE    LAST SEEN   TYPE      REASON      OBJECT                            MESSAGE
+monitoring   13s         Warning   Unhealthy   pod/bgpalerter-596d7b756b-pxcb5   Readiness probe failed: Get "http://10.0.0.65:8011/status": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
 ```
 
 ## Key Resources
