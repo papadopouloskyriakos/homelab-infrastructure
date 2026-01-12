@@ -1,0 +1,266 @@
+- name: Collect and Push Docker Projects
+  hosts: all
+  serial: 10
+  gather_facts: true
+  vars:
+    git_remote: "https://{{ git_username }}:{{ git_token }}@gitlab.example.net/infrastructure/nl/production.git"
+    target_base: "docker"
+
+  pre_tasks:
+    - name: Set consistent temp repo path
+      set_fact:
+        temp_repo_path: "/tmp/gitlab_repo_{{ ansible_date_time.epoch }}"
+      run_once: true
+      delegate_to: localhost
+
+    - name: Create temp repo dir on controller
+      file:
+        path: "{{ temp_repo_path }}"
+        state: directory
+      delegate_to: localhost
+      run_once: true
+
+    - name: Clone GitLab repo on controller
+      git:
+        repo: "{{ git_remote }}"
+        dest: "{{ temp_repo_path }}"
+        version: main
+      delegate_to: localhost
+      run_once: true
+      register: git_clone_result
+
+    - name: Configure git user name on controller
+      command: git -C "{{ temp_repo_path }}" config user.name "awx-bot"
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+      when: git_clone_result is defined and git_clone_result is succeeded
+
+    - name: Configure git user email on controller
+      command: git -C "{{ temp_repo_path }}" config user.email "awx.bot@mxmx.email"
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+      when: git_clone_result is defined and git_clone_result is succeeded
+
+    - name: Git pull latest changes before processing
+      command: git -C "{{ temp_repo_path }}" pull origin main
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+      when: git_clone_result is defined and git_clone_result is succeeded
+      register: git_prepull_result
+
+  tasks:
+    - name: Check docker socket
+      stat:
+        path: /var/run/docker.sock
+      register: docker_sock
+      changed_when: false
+
+    - name: Check common docker binary locations
+      stat:
+        path: "{{ item }}"
+      loop:
+        - /usr/bin/docker
+        - /usr/local/bin/docker
+        - /bin/docker
+      register: docker_bins
+      changed_when: false
+
+    - name: Set docker_present fact (socket or binary)
+      set_fact:
+        docker_present: "{{ (docker_sock.stat.exists | default(false)) or ((docker_bins.results | default([])) | selectattr('stat.exists') | list | length > 0) }}"
+      changed_when: false
+
+    - name: Find docker-compose files under /srv (only on docker_present hosts)
+      find:
+        paths: /srv
+        patterns: "docker-compose.y*ml"
+        recurse: yes
+        depth: 3
+        file_type: file
+      register: compose_find
+      when: docker_present | default(false)
+
+    - name: Ensure compose_find is defined (safe default)
+      set_fact:
+        compose_find: "{{ compose_find | default({'files': []}) }}"
+      changed_when: false
+
+    - name: Set compose_files list (safe)
+      set_fact:
+        compose_files: "{{ (compose_find.files | default([])) | map(attribute='path') | list | default([]) }}"
+      changed_when: false
+
+    - name: Debug found compose files per host
+      debug:
+        msg: "Host {{ inventory_hostname }} → {{ compose_files | length }} compose file(s): {{ compose_files }}"
+      when: compose_files | length > 0
+
+    - name: Fetch docker-compose files to controller (project name only)
+      fetch:
+        src: "{{ item }}"
+        dest: "{{ temp_repo_path }}/{{ target_base }}/{{ inventory_hostname }}/{{ item | dirname | basename }}/"
+        flat: true
+      loop: "{{ compose_files | default([]) }}"
+      when: compose_files | length > 0
+
+    - name: Build unique compose directories
+      set_fact:
+        compose_dirs: "{{ (compose_files | default([])) | map('dirname') | unique | list | default([]) }}"
+      when: compose_files | length > 0
+      changed_when: false
+
+    - name: Stat Dockerfile in each compose dir
+      stat:
+        path: "{{ item }}/Dockerfile"
+      loop: "{{ compose_dirs | default([]) }}"
+      register: dockerfile_stat
+      when: compose_dirs is defined and compose_dirs | length > 0
+
+    - name: Fetch Dockerfile if exists (project name only)
+      fetch:
+        src: "{{ item.item }}/Dockerfile"
+        dest: "{{ temp_repo_path }}/{{ target_base }}/{{ inventory_hostname }}/{{ item.item | basename }}/"
+        flat: true
+      loop: "{{ dockerfile_stat.results | default([]) }}"
+      when: item.stat is defined and item.stat.exists
+
+    - name: Stat .env in each compose dir
+      stat:
+        path: "{{ item }}/.env"
+      loop: "{{ compose_dirs | default([]) }}"
+      register: env_stat
+      when: compose_dirs is defined and compose_dirs | length > 0
+
+    - name: Fetch .env if exists (project name only)
+      fetch:
+        src: "{{ item.item }}/.env"
+        dest: "{{ temp_repo_path }}/{{ target_base }}/{{ inventory_hostname }}/{{ item.item | basename }}/"
+        flat: true
+      loop: "{{ env_stat.results | default([]) }}"
+      when: item.stat is defined and item.stat.exists
+
+  post_tasks:
+    - name: Ensure temp repo dir exists on controller
+      file:
+        path: "{{ temp_repo_path }}"
+        state: directory
+      delegate_to: localhost
+      run_once: true
+
+    - name: Check if docker directory exists
+      stat:
+        path: "{{ temp_repo_path }}/{{ target_base }}"
+      delegate_to: localhost
+      run_once: true
+      register: docker_dir_check
+
+    - name: Debug docker directory status
+      debug:
+        msg: "Docker directory exists: {{ docker_dir_check.stat.exists | default(false) }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: List contents of temp repo
+      command: ls -la "{{ temp_repo_path }}"
+      delegate_to: localhost
+      run_once: true
+      register: temp_contents
+      changed_when: false
+
+    - name: Display temp repo contents
+      debug:
+        var: temp_contents.stdout_lines
+      delegate_to: localhost
+      run_once: true
+
+    - name: Debug fetched files on controller (optional validation)
+      command: find "{{ temp_repo_path }}/{{ target_base }}" -type f
+      delegate_to: localhost
+      run_once: true
+      register: fetched_files
+      changed_when: false
+      failed_when: false
+      when: docker_dir_check.stat.exists | default(false)
+
+    - name: Display fetched files count and paths
+      debug:
+        msg: 
+          - "Total files collected: {{ fetched_files.stdout_lines | default([]) | length }}"
+          - "Files: {{ fetched_files.stdout_lines | default([]) }}"
+      delegate_to: localhost
+      run_once: true
+      when: fetched_files is defined
+
+    - name: Git add fetched files on controller
+      command: git -C "{{ temp_repo_path }}" add "{{ target_base }}"
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+      when: 
+        - git_clone_result is defined 
+        - git_clone_result is succeeded
+        - docker_dir_check.stat.exists | default(false)
+      register: git_add_result
+
+    - name: Debug git add result
+      debug:
+        var: git_add_result
+      delegate_to: localhost
+      run_once: true
+      when: git_add_result is defined
+
+    - name: Check for staged changes on controller
+      command: git -C "{{ temp_repo_path }}" status --porcelain
+      delegate_to: localhost
+      run_once: true
+      register: git_status
+      changed_when: false
+      when: git_clone_result is defined and git_clone_result is succeeded
+
+    - name: Display git status
+      debug:
+        msg: "Git status output: {{ git_status.stdout_lines | default(['No changes']) }}"
+      delegate_to: localhost
+      run_once: true
+      when: git_status is defined
+
+    - name: Git commit staged changes on controller (only if there are changes)
+      command: git -C "{{ temp_repo_path }}" commit -m "Automated Docker config backup - {{ ansible_date_time.date }} {{ ansible_date_time.time }}"
+      delegate_to: localhost
+      run_once: true
+      when: git_status is defined and git_status.stdout != ""
+      register: commit_result
+      failed_when: commit_result.rc not in [0, 1]
+
+    - name: Debug commit result
+      debug:
+        var: commit_result
+      delegate_to: localhost
+      run_once: true
+      when: commit_result is defined
+
+    - name: Push to GitLab from controller (only if commit succeeded)
+      command: git -C "{{ temp_repo_path }}" push origin main
+      delegate_to: localhost
+      run_once: true
+      when: commit_result is defined and commit_result.rc == 0
+      register: push_result
+      failed_when: push_result.rc != 0
+
+    - name: Display push result
+      debug:
+        var: push_result
+      delegate_to: localhost
+      run_once: true
+      when: push_result is defined
+
+    - name: Clean up temp repo on controller (always run)
+      file:
+        path: "{{ temp_repo_path }}"
+        state: absent
+      delegate_to: localhost
+      run_once: true
+      when: push_result is defined or commit_result is defined or git_add_result is failed

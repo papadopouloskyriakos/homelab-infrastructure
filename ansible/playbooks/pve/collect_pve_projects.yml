@@ -1,0 +1,129 @@
+- name: Collect and Push Proxmox VM/LXC Configs
+  hosts: all
+  serial: 10
+  gather_facts: true
+  vars:
+    git_remote: "https://{{ git_username }}:{{ git_token }}@gitlab.example.net/infrastructure/nl/production.git"
+    target_base: "pve"
+  pre_tasks:
+    - name: Set consistent temp repo path
+      set_fact:
+        temp_repo_path: "/tmp/gitlab_repo_{{ ansible_date_time.epoch }}"
+      run_once: true
+      delegate_to: localhost
+    - name: Create temp repo dir on controller
+      file:
+        path: "{{ temp_repo_path }}"
+        state: directory
+      delegate_to: localhost
+      run_once: true
+    - name: Clone GitLab repo on controller
+      git:
+        repo: "{{ git_remote }}"
+        dest: "{{ temp_repo_path }}"
+        version: main
+      delegate_to: localhost
+      run_once: true
+      register: git_clone_result
+    - name: Configure git user name on controller
+      command: git -C "{{ temp_repo_path }}" config user.name "awx-bot"
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+      when: git_clone_result is succeeded
+    - name: Configure git user email on controller
+      command: git -C "{{ temp_repo_path }}" config user.email "awx.bot@mxmx.email"
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+      when: git_clone_result is succeeded
+    - name: Git pull latest changes before processing
+      command: git -C "{{ temp_repo_path }}" pull origin main
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+      when: git_clone_result is succeeded
+  tasks:
+    - name: Set config paths per host
+      set_fact:
+        qemu_path: "/etc/pve/nodes/{{ inventory_hostname }}/qemu-server"
+        lxc_path: "/etc/pve/nodes/{{ inventory_hostname }}/lxc"
+        target_qemu: "{{ target_base }}/{{ inventory_hostname }}/qemu"
+        target_lxc: "{{ target_base }}/{{ inventory_hostname }}/lxc"
+    - name: Find qemu-server config files
+      find:
+        paths: "{{ qemu_path }}"
+        patterns: "*.conf"
+        file_type: file
+      register: qemu_find
+      when: inventory_hostname is match('nlpve0[1-3]')
+    - name: Find lxc config files
+      find:
+        paths: "{{ lxc_path }}"
+        patterns: "*.conf"
+        file_type: file
+      register: lxc_find
+      when: inventory_hostname is match('nlpve0[1-3]')
+    - name: Set qemu_files list
+      set_fact:
+        qemu_files: "{{ (qemu_find.files | default([])) | map(attribute='path') | list }}"
+      when: qemu_find is defined
+    - name: Set lxc_files list
+      set_fact:
+        lxc_files: "{{ (lxc_find.files | default([])) | map(attribute='path') | list }}"
+      when: lxc_find is defined
+    - name: Fetch qemu configs to controller
+      fetch:
+        src: "{{ item }}"
+        dest: "{{ temp_repo_path }}/{{ target_qemu }}/{{ item | basename }}"
+        flat: true
+      loop: "{{ qemu_files | default([]) }}"
+      when: qemu_files | length > 0
+    - name: Fetch lxc configs to controller
+      fetch:
+        src: "{{ item }}"
+        dest: "{{ temp_repo_path }}/{{ target_lxc }}/{{ item | basename }}"
+        flat: true
+      loop: "{{ lxc_files | default([]) }}"
+      when: lxc_files | length > 0
+  post_tasks:
+    - name: Check if pve directory exists
+      stat:
+        path: "{{ temp_repo_path }}/{{ target_base }}"
+      delegate_to: localhost
+      run_once: true
+      register: pve_dir_check
+    - name: Git add fetched files on controller
+      command: git -C "{{ temp_repo_path }}" add "{{ target_base }}"
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+      when: git_clone_result is succeeded and pve_dir_check.stat.exists | default(false)
+      register: git_add_result
+    - name: Check for staged changes on controller
+      command: git -C "{{ temp_repo_path }}" status --porcelain
+      delegate_to: localhost
+      run_once: true
+      register: git_status
+      changed_when: false
+      when: git_clone_result is succeeded
+    - name: Git commit staged changes on controller
+      command: git -C "{{ temp_repo_path }}" commit -m "Automated Proxmox config backup - {{ ansible_date_time.date }} {{ ansible_date_time.time }}"
+      delegate_to: localhost
+      run_once: true
+      when: git_status.stdout != ""
+      register: commit_result
+      failed_when: commit_result.rc not in [0, 1]
+    - name: Push to GitLab from controller
+      command: git -C "{{ temp_repo_path }}" push origin main
+      delegate_to: localhost
+      run_once: true
+      when: commit_result is defined and commit_result.rc == 0
+      register: push_result
+      failed_when: push_result.rc != 0
+    - name: Clean up temp repo on controller
+      file:
+        path: "{{ temp_repo_path }}"
+        state: absent
+      delegate_to: localhost
+      run_once: true
