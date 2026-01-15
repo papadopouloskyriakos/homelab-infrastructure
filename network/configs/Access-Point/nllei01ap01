@@ -2,9 +2,9 @@ Building configuration...
 
 Current configuration : 11348 bytes
 !
-! Last configuration change at 12:46:32 CET Sun Nov 23 2025 by kyriakosp
-! NVRAM config last updated at 12:49:21 CET Sun Nov 23 2025 by kyriakosp
-! NVRAM config last updated at 12:49:21 CET Sun Nov 23 2025 by kyriakosp
+! Last configuration change at 14:19:55 CET Thu Jan 15 2026 by kyriakosp
+! NVRAM config last updated at 14:19:55 CET Thu Jan 15 2026 by kyriakosp
+! NVRAM config last updated at 14:19:55 CET Thu Jan 15 2026 by kyriakosp
 version 15.3
 no service pad
 service tcp-keepalives-in
@@ -87,7 +87,7 @@ dot11 ssid Ziggo7UR94EZ
    authentication open 
    authentication key-management wpa
    mbssid guest-mode
-   wpa-psk ascii 7 07376219660F2C1D43165E5914142D341C643F02301F38234B
+   wpa-psk ascii 7 1063010C4F061C394F1C3D3F701C2A6729092C501B264F0F1C
 !
 dot11 ssid Ziggo9WQ75HD
    vlan 9
