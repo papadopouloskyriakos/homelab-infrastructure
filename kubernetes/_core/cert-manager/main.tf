@@ -160,6 +160,32 @@ resource "kubernetes_manifest" "REDACTED_501d268e" {
 }
 
 ***REMOVED***
+# Wildcard Certificate - mulecube.com
+***REMOVED***
+resource "kubernetes_manifest" "REDACTED_c7e1769b" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_e8f1187c"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_e8f1187c-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.mulecube.com",
+        "mulecube.com"
+      ]
+    }
+  }
+}
+
+***REMOVED***
 # RBAC for AWX to read TLS secrets
 ***REMOVED***
 resource "kubernetes_role" "awx_cert_reader" {
