@@ -1,0 +1,225 @@
+---
+# Sync cert-manager wildcard certificate to Nginx Proxy Manager
+# Flow: K8s cert-manager secret → NPM master API → Syncthing → NPM slave
+#
+# Idempotent: Skips sync if NPM cert expiry matches K8s cert expiry
+#
+# All credentials sourced from OpenBao via AWX custom credentials:
+#   - K8s API: host, token, CA cert
+#   - NPM API: email, password
+- name: Sync cert-manager certificate to NPM
+  hosts: localhost
+  gather_facts: false
+  vars:
+    k8s_secret_name: REDACTED_0d82b4df-tls
+    k8s_secret_namespace: cert-manager
+    npm_host: nlnpm01.example.net
+    npm_port: 81
+    cert_nice_name: "REDACTED_bebd934b"
+    temp_dir: "REDACTED_88f47687"
+
+  tasks:
+    - name: Create temp directory
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: directory
+        mode: '0700'
+
+    - name: Set credentials from environment
+      ansible.builtin.set_fact:
+        k8s_host: "{{ lookup('env', 'K8S_HOST') }}"
+        k8s_token: "{{ lookup('env', 'K8S_TOKEN') }}"
+        k8s_ca_cert: "{{ lookup('env', 'K8S_CA_CERT') }}"
+        npm_email: "{{ lookup('env', 'NPM_EMAIL') }}"
+        npm_password: "{{ lookup('env', 'NPM_PASSWORD') }}"
+      no_log: true
+
+    - name: Write CA cert to temp file
+      ansible.builtin.copy:
+        content: "{{ k8s_ca_cert }}"
+        dest: "{{ temp_dir }}/ca.crt"
+        mode: '0600'
+
+    - name: Get TLS secret from K8s API
+      ansible.builtin.uri:
+        url: "{{ k8s_host }}/api/v1/namespaces/{{ k8s_secret_namespace }}/secrets/{{ k8s_secret_name }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ k8s_token }}"
+        ca_path: "{{ temp_dir }}/ca.crt"
+        validate_certs: true
+        return_content: true
+      register: k8s_secret
+      no_log: true
+
+    - name: Decode and save certificate
+      ansible.builtin.copy:
+        content: "{{ k8s_secret.json.data['tls.crt'] | b64decode }}"
+        dest: "{{ temp_dir }}/tls.crt"
+        mode: '0600'
+      no_log: true
+
+    - name: Decode and save private key
+      ansible.builtin.copy:
+        content: "{{ k8s_secret.json.data['tls.key'] | b64decode }}"
+        dest: "{{ temp_dir }}/tls.key"
+        mode: '0600'
+      no_log: true
+
+    - name: Get K8s certificate expiry date
+      ansible.builtin.command:
+        cmd: openssl x509 -enddate -noout -in "{{ temp_dir }}/tls.crt"
+      register: k8s_cert_expiry_raw
+      changed_when: false
+
+    - name: Parse K8s certificate expiry to ISO format
+      ansible.builtin.command:
+        cmd: date -d "{{ k8s_cert_expiry_raw.stdout | regex_replace('notAfter=', '') }}" -u +%Y-%m-%dT%H:%M:%S
+      register: k8s_cert_expiry
+      changed_when: false
+
+    - name: Display K8s certificate expiry
+      ansible.builtin.debug:
+        msg: "K8s certificate expires: {{ k8s_cert_expiry.stdout }}"
+
+    - name: Get NPM API token
+      ansible.builtin.uri:
+        url: "http://{{ npm_host }}:{{ npm_port }}/api/tokens"
+        method: POST
+        body_format: json
+        body:
+          identity: "{{ npm_email }}"
+          secret: "{{ npm_password }}"
+        return_content: true
+      register: npm_auth
+      no_log: true
+
+    - name: Set NPM token fact
+      ansible.builtin.set_fact:
+        npm_token: "{{ npm_auth.json.token }}"
+      no_log: true
+
+    - name: Get existing NPM certificates
+      ansible.builtin.uri:
+        url: "http://{{ npm_host }}:{{ npm_port }}/api/nginx/certificates"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ npm_token }}"
+        return_content: true
+      register: npm_certs
+
+    - name: Find existing cert-manager certificate in NPM
+      ansible.builtin.set_fact:
+        existing_cert: "{{ npm_certs.json | selectattr('nice_name', 'search', 'REDACTED_bebd934b') | list | first | default(None) }}"
+
+    - name: Parse NPM certificate expiry
+      ansible.builtin.set_fact:
+        npm_cert_expiry: "{{ existing_cert.expires_on[:19] if existing_cert is not none else '' }}"
+
+    - name: Display existing certificate info
+      ansible.builtin.debug:
+        msg: "Existing NPM cert ID: {{ existing_cert.id }}, expires: {{ npm_cert_expiry }}"
+      when: existing_cert is not none
+
+    - name: Check if sync is needed
+      ansible.builtin.set_fact:
+        sync_needed: "{{ existing_cert is none or k8s_cert_expiry.stdout != npm_cert_expiry }}"
+
+    - name: Display sync decision
+      ansible.builtin.debug:
+        msg: "{{ 'Sync needed: K8s cert is newer or NPM cert missing' if sync_needed else 'Sync NOT needed: Certificates match (K8s: ' + k8s_cert_expiry.stdout + ', NPM: ' + npm_cert_expiry + ')' }}"
+
+    # --- Skip remaining tasks if sync not needed ---
+    - name: Create new certificate entry in NPM
+      ansible.builtin.uri:
+        url: "http://{{ npm_host }}:{{ npm_port }}/api/nginx/certificates"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ npm_token }}"
+        body_format: json
+        body:
+          nice_name: "{{ cert_nice_name }}"
+          provider: "other"
+        status_code: [200, 201]
+        return_content: true
+      register: new_cert
+      when: sync_needed
+
+    - name: Display new certificate ID
+      ansible.builtin.debug:
+        msg: "Created new NPM certificate with ID: {{ new_cert.json.id }}"
+      when: sync_needed
+
+    - name: Upload certificate files to NPM
+      ansible.builtin.command:
+        cmd: >
+          curl -s -X POST
+          "http://{{ npm_host }}:{{ npm_port }}/api/nginx/certificates/{{ new_cert.json.id }}/upload"
+          -H "Authorization: Bearer {{ npm_token }}"
+          -F "certificate=@{{ temp_dir }}/tls.crt"
+          -F "certificate_key=@{{ temp_dir }}/tls.key"
+      register: upload_result
+      changed_when: true
+      no_log: true
+      when: sync_needed
+
+    - name: Display upload result
+      ansible.builtin.debug:
+        msg: "Certificate uploaded successfully, ID: {{ new_cert.json.id }}"
+      when: sync_needed
+
+    - name: Get all proxy hosts
+      ansible.builtin.uri:
+        url: "http://{{ npm_host }}:{{ npm_port }}/api/nginx/proxy-hosts"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ npm_token }}"
+        return_content: true
+      register: proxy_hosts
+      when: sync_needed and existing_cert is not none
+
+    - name: Filter hosts using old certificate
+      ansible.builtin.set_fact:
+        hosts_to_update: "{{ proxy_hosts.json | selectattr('certificate_id', 'equalto', existing_cert.id) | list }}"
+      when: sync_needed and existing_cert is not none
+
+    - name: Display hosts to update count
+      ansible.builtin.debug:
+        msg: "Updating {{ hosts_to_update | length }} proxy hosts to new certificate"
+      when: sync_needed and existing_cert is not none and hosts_to_update | length > 0
+
+    - name: Update proxy hosts to use new certificate
+      ansible.builtin.uri:
+        url: "http://{{ npm_host }}:{{ npm_port }}/api/nginx/proxy-hosts/{{ item.id }}"
+        method: PUT
+        headers:
+          Authorization: "Bearer {{ npm_token }}"
+        body_format: json
+        body:
+          certificate_id: "{{ new_cert.json.id }}"
+        return_content: true
+      loop: "{{ hosts_to_update }}"
+      loop_control:
+        label: "{{ item.domain_names[0] }}"
+      when: sync_needed and existing_cert is not none and hosts_to_update | length > 0
+
+    - name: Delete old certificate from NPM
+      ansible.builtin.uri:
+        url: "http://{{ npm_host }}:{{ npm_port }}/api/nginx/certificates/{{ existing_cert.id }}"
+        method: DELETE
+        headers:
+          Authorization: "Bearer {{ npm_token }}"
+        status_code: [200, 204]
+      when: sync_needed and existing_cert is not none
+
+    - name: Cleanup temp directory
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: absent
+
+    - name: Final status
+      ansible.builtin.debug:
+        msg: >-
+          {{ 'Certificate sync complete. New cert ID: ' + (new_cert.json.id | string) + ', ' + 
+             ((hosts_to_update | default([])) | length | string) + ' hosts updated.'
+             if sync_needed else 'No sync needed - certificates already match.' }}
