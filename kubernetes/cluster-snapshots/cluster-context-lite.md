@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-02-03 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-02-04 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 806 |
+| Total Restarts | 815 |
 
 ## Topology
 
@@ -40,11 +40,11 @@ cert-manager/cert-manager-cainjector-56b4cf957-s7xd9: 7 restarts
 cilium-spire/spire-agent-xwbn2: 8 restarts
 kube-system/cilium-22zgh: 8 restarts
 kube-system/cilium-envoy-mmfnj: 8 restarts
-kube-system/cilium-operator-6b94496fcd-l6cjl: 77 restarts
-kube-system/etcd-nlk8s-ctrl01: 18 restarts
+kube-system/cilium-operator-6b94496fcd-l6cjl: 82 restarts
+kube-system/etcd-nlk8s-ctrl01: 19 restarts
 kube-system/etcd-nlk8s-ctrl02: 38 restarts
 kube-system/etcd-nlk8s-ctrl03: 4 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 133 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 136 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 55 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 12 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 83 restarts
@@ -54,7 +54,7 @@ kube-system/kube-scheduler-nlk8s-ctrl01: 21 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 22 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 18 restarts
 kube-system/tetragon-mdsn9: 16 restarts
-logging/loki-0: 22 restarts
+logging/loki-0: 23 restarts
 logging/promtail-rxt6j: 8 restarts
 monitoring/bgpalerter-596d7b756b-pxcb5: 8 restarts
 monitoring/goldpinger-4fvxd: 9 restarts
@@ -72,9 +72,10 @@ synology-csi/synology-csi-node-zch7n: 16 restarts
 ### Recent Warnings (5)
 ```
 NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-monitoring    60m         Warning   Unhealthy   pod/goldpinger-4fvxd                    Readiness probe failed: Get "http://10.0.5.148:8080/healthz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   59m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system   59m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   56m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system   54m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system   50s         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   46s         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
