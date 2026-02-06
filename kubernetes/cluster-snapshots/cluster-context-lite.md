@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-02-05 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-02-06 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 823 |
+| Total Restarts | 832 |
 
 ## Topology
 
@@ -34,17 +34,17 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 _None_
 
 ### High Restart Pods (>3)
-awx/awx-operator-controller-manager-846b99bbd-t9589: 8 restarts
+awx/awx-operator-controller-manager-846b99bbd-t9589: 9 restarts
 cert-manager/cert-manager-75944f484-4v6qh: 9 restarts
 cert-manager/cert-manager-cainjector-56b4cf957-s7xd9: 7 restarts
 cilium-spire/spire-agent-xwbn2: 8 restarts
 kube-system/cilium-22zgh: 8 restarts
 kube-system/cilium-envoy-mmfnj: 8 restarts
 kube-system/cilium-operator-6b94496fcd-l6cjl: 82 restarts
-kube-system/etcd-nlk8s-ctrl01: 19 restarts
+kube-system/etcd-nlk8s-ctrl01: 20 restarts
 kube-system/etcd-nlk8s-ctrl02: 38 restarts
 kube-system/etcd-nlk8s-ctrl03: 4 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 142 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 147 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 55 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 12 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 83 restarts
@@ -63,7 +63,7 @@ monitoring/monitoring-grafana-9ccf6f977-mhjwg: 45 restarts
 monitoring/monitoring-grafana-9ccf6f977-w47db: 41 restarts
 monitoring/monitoring-kube-state-metrics-74d579585b-6cprn: 10 restarts
 monitoring/monitoring-prometheus-node-exporter-d5wkz: 8 restarts
-monitoring/thanos-compactor-0: 4 restarts
+monitoring/thanos-compactor-0: 5 restarts
 nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956swwjx: 13 restarts
 seaweedfs/seaweedfs-filer-0: 38 restarts
 seaweedfs/seaweedfs-filer-1: 34 restarts
@@ -72,7 +72,7 @@ synology-csi/synology-csi-node-zch7n: 16 restarts
 ### Recent Warnings (5)
 ```
 NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   8m8s        Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   38m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
