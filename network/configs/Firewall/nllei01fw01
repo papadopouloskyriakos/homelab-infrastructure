@@ -1234,9 +1234,9 @@ no monitor-interface inside_servers02
 no monitor-interface dmz_servers01
 no monitor-interface dmz_servers02
 no monitor-interface dmz_servers03
+no monitor-interface inside_k8s
 no monitor-interface inside_corosync
 no monitor-interface inside_nfs
-no monitor-interface inside_k8s
 no monitor-interface service-module 
 icmp unreachable rate-limit 1 burst-size 1
 icmp permit 10.0.X.X 255.255.255.0 inside_k8s
@@ -1394,9 +1394,9 @@ access-group inside_servers02_access_in in interface inside_servers02
 access-group dmz_servers01_access_in in interface dmz_servers01
 access-group dmz_servers02_access_in in interface dmz_servers02
 access-group dmz_servers03_access_in in interface dmz_servers03
+access-group inside_k8s_access_in in interface inside_k8s
 access-group inside_corosync_access_in in interface inside_corosync
 access-group inside_nfs_access_in in interface inside_nfs
-access-group inside_k8s_access_in in interface inside_k8s
 access-group global_access global
 !
 prefix-list METALLB-VIPS seq 10 permit 10.0.X.X/26 le 32
@@ -1490,11 +1490,11 @@ crypto ipsec ikev2 ipsec-proposal DES
 crypto ipsec ikev2 ipsec-proposal VTI-PROPOSAL
  protocol esp encryption aes-256
  protocol esp integrity sha-256
+crypto ipsec profile IPSEC_PROFILE
+ set ikev2 ipsec-proposal TSET
 crypto ipsec profile VTI-PROFILE
  set ikev2 ipsec-proposal VTI-PROPOSAL
  set security-association lifetime seconds 28800
-crypto ipsec profile IPSEC_PROFILE
- set ikev2 ipsec-proposal TSET
 crypto ipsec security-association pmtu-aging 10
 crypto ipsec df-bit clear-df outside_xs4all
 crypto ipsec df-bit clear-df outside_freedom
@@ -2021,5 +2021,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:3bc0466b54ee50789995c61a0e8ed591
+Cryptochecksum:78186e89ff72f57aa58d137d803187f0
 : end
