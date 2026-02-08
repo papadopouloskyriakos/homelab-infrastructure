@@ -1,0 +1,11 @@
+com2sec readonly default {{ snmp_community }}
+group MyROGroup v1 readonly
+group MyROGroup v2c readonly
+view all included .1 80
+access MyROGroup "" any noauth exact all none none
+sysName {{ ansible_hostname }}  # Dynamically uses the host's name
+trapcommunity {{ snmp_community }}
+{% for trap_host in snmp_trap_hosts %}
+trap2sink {{ trap_host }} {{ snmp_community }}
+{% endfor %}
+authtrapenable 1
