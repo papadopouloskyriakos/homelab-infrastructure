@@ -618,6 +618,8 @@ object network chzrh01k8s-node01_PUBLIC
  description iFog Zurich VPS
 object network NL_OUTSIDE_FREEDOM
  host 45.138.52.48
+object network nl-matrix01
+ host 10.0.X.X
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -1011,6 +1013,7 @@ access-list outside_freedom_cryptomap_26 extended permit ip object-group S2S_LEI
 access-list outside_freedom_cryptomap_27 extended permit ip object-group S2S_LEI_GRP_inside_cctv object-group S2S_SKG_GRP_oas_vpn03 
 access-list dmz_servers02_access_in extended permit object-group TCPUDP any object nlpihole02 eq domain inactive 
 access-list dmz_servers02_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp inactive 
+access-list dmz_servers02_access_in extended permit tcp object nl-matrix01 object nlsmtp-gpg01 eq smtp 
 access-list dmz_servers02_access_in extended permit ip object-group S2S_LEI_GRP_dmz_servers02 object-group S2S_SKG_GRP_dmz_servers02 
 access-list dmz_servers02_access_in extended permit icmp object-group S2S_LEI_GRP_dmz_servers02 object-group S2S_SKG_GRP_dmz_servers02 
 access-list dmz_servers02_access_in extended deny ip any object-group nl_all_subnets 
@@ -2021,5 +2024,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:78186e89ff72f57aa58d137d803187f0
+Cryptochecksum:ee05915faf82e76be421443f3929229e
 : end
