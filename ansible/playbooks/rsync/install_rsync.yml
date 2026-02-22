@@ -1,0 +1,14 @@
+---
+- name: Install RSYNC on Debian/Ubuntu
+  hosts: all
+  become: yes
+  tasks:
+    - name: Gather package facts to check if rsync is installed
+      package_facts:
+        manager: apt
+    - name: Install rsync package only if not already installed
+      apt:
+        name: rsync
+        state: present
+        update_cache: yes
+      when: "'rsync' not in ansible_facts.packages"

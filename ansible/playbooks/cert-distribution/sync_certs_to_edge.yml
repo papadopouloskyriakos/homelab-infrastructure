@@ -1,0 +1,229 @@
+---
+***REMOVED***
+# Sync cert-manager certificates to VPS (HAProxy) and DMZ (Docker/nginx)
+***REMOVED***
+# Flow: K8s cert-manager secrets → VPS /etc/haproxy/certs/*.pem
+#                                → DMZ /srv/certs/*.crt + *.key
+#
+# Idempotent: Skips sync if checksums match
+#
+# Credentials sourced from AWX:
+#   - K8s API: host, token, CA cert (custom credential)
+#   - SSH: Machine credential for VPS/DMZ hosts
+***REMOVED***
+
+- name: Fetch certificates from cert-manager
+  hosts: localhost
+  gather_facts: false
+  vars:
+    cert_manager_namespace: cert-manager
+    temp_dir: "/tmp/cert-distribution-{{ ansible_date_time.epoch }}"
+    
+  tasks:
+    - name: Get current timestamp
+      ansible.builtin.setup:
+        filter: ansible_date_time
+
+    - name: Create temp directory
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: directory
+        mode: '0700'
+
+    - name: Set K8s credentials from environment
+      ansible.builtin.set_fact:
+        k8s_host: "{{ lookup('env', 'K8S_HOST') }}"
+        k8s_token: "{{ lookup('env', 'K8S_TOKEN') }}"
+        k8s_ca_cert: "{{ lookup('env', 'K8S_CA_CERT') }}"
+      no_log: true
+
+    - name: Write K8s CA cert to temp file
+      ansible.builtin.copy:
+        content: "{{ k8s_ca_cert }}"
+        dest: "{{ temp_dir }}/k8s-ca.crt"
+        mode: '0600'
+      no_log: true
+
+    - name: Get all TLS secrets in cert-manager namespace
+      ansible.builtin.uri:
+        url: "{{ k8s_host }}/api/v1/namespaces/{{ cert_manager_namespace }}/secrets"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ k8s_token }}"
+        ca_path: "{{ temp_dir }}/k8s-ca.crt"
+        validate_certs: true
+        return_content: true
+      register: all_secrets
+      no_log: true
+
+    - name: Filter TLS secrets only
+      ansible.builtin.set_fact:
+        tls_secrets: "{{ all_secrets.json['items'] | selectattr('type', 'equalto', 'kubernetes.io/tls') | list }}"
+
+    - name: Display discovered certificates
+      ansible.builtin.debug:
+        msg: "Found {{ tls_secrets | length }} TLS certificates: {{ tls_secrets | map(attribute='metadata.name') | list }}"
+
+    - name: Process each certificate
+      ansible.builtin.include_tasks: process_cert.yml
+      loop: "{{ tls_secrets }}"
+      loop_control:
+        loop_var: cert_secret
+        label: "{{ cert_secret.metadata.name }}"
+
+    - name: Set certificates fact for other plays
+      ansible.builtin.set_fact:
+        processed_certs: "{{ tls_secrets | map(attribute='metadata.name') | map('regex_replace', '-tls$', '') | map('regex_replace', '^wildcard-', '') | map('regex_replace', '-', '.') | list }}"
+        temp_dir_fact: "{{ temp_dir }}"
+
+***REMOVED***
+# VPS (HAProxy) Distribution
+***REMOVED***
+# become: true - Required to write to /etc/haproxy/certs/ (mode 0700, owned by root)
+# delegate_to tasks use become: false - AWX container has no sudo
+***REMOVED***
+- name: Distribute certificates to VPS (HAProxy)
+  hosts: vps_haproxy
+  gather_facts: false
+  become: true
+  vars:
+    haproxy_cert_dir: /etc/haproxy/certs
+    
+  tasks:
+    - name: Ensure HAProxy cert directory exists
+      ansible.builtin.file:
+        path: "{{ haproxy_cert_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0700'
+
+    - name: Get list of certificate files
+      ansible.builtin.find:
+        paths: "{{ hostvars['localhost']['temp_dir_fact'] }}"
+        patterns: "*.pem"
+      delegate_to: localhost
+      become: false
+      register: pem_files
+
+    - name: Copy PEM certificates to HAProxy
+      ansible.builtin.copy:
+        content: "{{ lookup('file', item.path) }}"
+        dest: "{{ haproxy_cert_dir }}/{{ item.path | basename }}"
+        owner: root
+        group: root
+        mode: '0600'
+      loop: "{{ pem_files.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      register: haproxy_certs_changed
+      notify: Reload HAProxy
+
+    - name: Validate HAProxy configuration
+      ansible.builtin.command:
+        cmd: haproxy -c -f /etc/haproxy/haproxy.cfg
+      changed_when: false
+      when: haproxy_certs_changed.changed | default(false)
+
+  handlers:
+    - name: Reload HAProxy
+      ansible.builtin.systemd:
+        name: haproxy
+        state: reloaded
+
+***REMOVED***
+# DMZ (Docker/nginx) Distribution
+***REMOVED***
+# become: true - Required to write to /srv/certs/ as root
+# delegate_to tasks use become: false - AWX container has no sudo
+# Excludes k8s-ca.crt from distribution
+***REMOVED***
+- name: Distribute certificates to DMZ (Docker/nginx)
+  hosts: dmz_docker
+  gather_facts: false
+  become: true
+  vars:
+    dmz_cert_dir: /srv/certs
+    
+  tasks:
+    - name: Ensure DMZ cert directory exists
+      ansible.builtin.file:
+        path: "{{ dmz_cert_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Get list of certificate files
+      ansible.builtin.find:
+        paths: "{{ hostvars['localhost']['temp_dir_fact'] }}"
+        patterns: "*.crt"
+        excludes: "k8s-ca.crt"
+      delegate_to: localhost
+      become: false
+      register: crt_files
+
+    - name: Get list of key files
+      ansible.builtin.find:
+        paths: "{{ hostvars['localhost']['temp_dir_fact'] }}"
+        patterns: "*.key"
+      delegate_to: localhost
+      become: false
+      register: key_files
+
+    - name: Copy certificates to DMZ
+      ansible.builtin.copy:
+        content: "{{ lookup('file', item.path) }}"
+        dest: "{{ dmz_cert_dir }}/{{ item.path | basename }}"
+        owner: root
+        group: root
+        mode: '0644'
+      loop: "{{ crt_files.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      register: dmz_certs_changed
+
+    - name: Copy keys to DMZ
+      ansible.builtin.copy:
+        content: "{{ lookup('file', item.path) }}"
+        dest: "{{ dmz_cert_dir }}/{{ item.path | basename }}"
+        owner: root
+        group: root
+        mode: '0644'
+      loop: "{{ key_files.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      register: dmz_keys_changed
+
+    - name: Find running Docker containers using certs
+      ansible.builtin.shell: |
+        docker ps --format '{{ '{{' }}.Names{{ '}}' }}' | while read container; do
+          if docker inspect "$container" --format '{{ '{{' }}json .Mounts{{ '}}' }}' | grep -q '/srv/certs'; then
+            echo "$container"
+          fi
+        done
+      register: containers_using_certs
+      changed_when: false
+
+    - name: Restart containers using certificates
+      ansible.builtin.command:
+        cmd: "docker restart {{ item }}"
+      loop: "{{ containers_using_certs.stdout_lines }}"
+      when: 
+        - containers_using_certs.stdout_lines | length > 0
+        - dmz_certs_changed.changed or dmz_keys_changed.changed
+
+- name: Cleanup and report
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Cleanup temp directory
+      ansible.builtin.file:
+        path: "{{ temp_dir_fact }}"
+        state: absent
+
+    - name: Final status
+      ansible.builtin.debug:
+        msg: >-
+          Certificate distribution complete.
+          Processed {{ processed_certs | length }} certificates: {{ processed_certs | join(', ') }}

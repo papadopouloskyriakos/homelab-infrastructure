@@ -1,0 +1,47 @@
+---
+# deploy_dmz_service.yml
+# AWX Playbook for deploying docker-compose services to DMZ hosts
+- name: Deploy Docker Compose Service to DMZ
+  hosts: "{{ target_hosts | default('dmz_docker') }}"
+  become: true
+  gather_facts: false
+  pre_tasks:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - service_name is defined
+          - compose_dir is defined
+        fail_msg: "service_name and compose_dir must be provided"
+  tasks:
+    - name: Stop existing containers
+      ansible.builtin.command:
+        cmd: docker compose down --remove-orphans
+        chdir: "{{ compose_dir }}"
+      register: down_result
+      changed_when: "'Removed' in down_result.stderr"
+      failed_when: false
+
+    - name: Pull latest images
+      ansible.builtin.command:
+        cmd: docker compose pull --quiet
+        chdir: "{{ compose_dir }}"
+      register: pull_result
+      changed_when: "'Pull complete' in pull_result.stderr or 'Downloaded' in pull_result.stderr"
+
+    - name: Start containers
+      ansible.builtin.command:
+        cmd: docker compose up -d --remove-orphans
+        chdir: "{{ compose_dir }}"
+
+    - name: Wait for container to be running
+      ansible.builtin.command:
+        cmd: "docker inspect --format '{{ '{{' }}.State.Running{{ '}}' }}' {{ service_name }}"
+      register: container_state
+      until: container_state.stdout == 'true'
+      retries: 6
+      delay: 5
+      changed_when: false
+
+    - name: Done
+      ansible.builtin.debug:
+        msg: "✅ {{ service_name }} deployed on {{ inventory_hostname }}"
