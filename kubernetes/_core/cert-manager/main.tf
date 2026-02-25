@@ -186,6 +186,32 @@ resource "kubernetes_manifest" "REDACTED_c7e1769b" {
 }
 
 # =============================================================================
+# Wildcard Certificate - cubeos.app
+# =============================================================================
+resource "kubernetes_manifest" "REDACTED_52b9873f" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "wildcard-cubeos-app"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_e905fc27"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.cubeos.app",
+        "cubeos.app"
+      ]
+    }
+  }
+}
+
+# =============================================================================
 # RBAC for AWX to read TLS secrets
 # =============================================================================
 resource "kubernetes_role" "awx_cert_reader" {
