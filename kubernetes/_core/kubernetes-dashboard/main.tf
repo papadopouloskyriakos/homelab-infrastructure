@@ -6,12 +6,12 @@ resource "REDACTED_46569c16" "REDACTED_ac4dcdf5" {
 }
 
 # Helm release for Kubernetes Dashboard
+# NOTE: Upstream chart repo (https://kubernetes.github.io/dashboard/) was archived
+# on 2026-01-21 and index.yaml returns 404. Chart vendored locally.
 resource "helm_release" "REDACTED_ac4dcdf5" {
-  name       = "REDACTED_d97cef76"
-  repository = "https://kubernetes.github.io/dashboard/"
-  chart      = "REDACTED_d97cef76"
-  version    = var.dashboard_version
-  namespace  = REDACTED_46569c16.REDACTED_ac4dcdf5.metadata[0].name
+  name      = "REDACTED_d97cef76"
+  chart     = "${path.module}/charts/REDACTED_d97cef76-7.14.0.tgz"
+  namespace = REDACTED_46569c16.REDACTED_ac4dcdf5.metadata[0].name
 
   values = [
     yamlencode({
