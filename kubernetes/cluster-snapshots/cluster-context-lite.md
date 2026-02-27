@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-02-26 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-02-27 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,13 +11,13 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 1170 |
+| Total Restarts | 1197 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.18.4
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 143
+- **Pods:** 144
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:3795Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -35,19 +35,19 @@ _None_
 
 ### High Restart Pods (>3)
 awx/awx-operator-controller-manager-846b99bbd-t9589: 12 restarts
-cert-manager/cert-manager-75944f484-4v6qh: 9 restarts
-cert-manager/cert-manager-cainjector-56b4cf957-s7xd9: 7 restarts
+cert-manager/cert-manager-75944f484-4v6qh: 10 restarts
+cert-manager/cert-manager-cainjector-56b4cf957-s7xd9: 8 restarts
 cilium-spire/spire-agent-xwbn2: 8 restarts
 kube-system/cilium-22zgh: 8 restarts
 kube-system/cilium-envoy-mmfnj: 8 restarts
 kube-system/cilium-operator-6b94496fcd-l6cjl: 85 restarts
-kube-system/etcd-nlk8s-ctrl01: 50 restarts
+kube-system/etcd-nlk8s-ctrl01: 53 restarts
 kube-system/etcd-nlk8s-ctrl02: 38 restarts
 kube-system/etcd-nlk8s-ctrl03: 4 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 318 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 325 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 55 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 12 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 84 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl01: 85 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl02: 22 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl03: 75 restarts
 kube-system/kube-scheduler-nlk8s-ctrl01: 22 restarts
@@ -59,23 +59,20 @@ logging/promtail-rxt6j: 8 restarts
 monitoring/bgpalerter-596d7b756b-pxcb5: 12 restarts
 monitoring/goldpinger-4fvxd: 9 restarts
 monitoring/goldpinger-qs5xt: 4 restarts
-monitoring/monitoring-grafana-9ccf6f977-mhjwg: 92 restarts
-monitoring/monitoring-grafana-9ccf6f977-w47db: 87 restarts
+monitoring/monitoring-grafana-9ccf6f977-mhjwg: 97 restarts
+monitoring/monitoring-grafana-9ccf6f977-w47db: 90 restarts
 monitoring/monitoring-kube-state-metrics-74d579585b-6cprn: 11 restarts
 monitoring/monitoring-prometheus-node-exporter-d5wkz: 8 restarts
 monitoring/thanos-compactor-0: 6 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956swwjx: 18 restarts
-seaweedfs/seaweedfs-filer-0: 93 restarts
-seaweedfs/seaweedfs-filer-1: 86 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956swwjx: 19 restarts
+seaweedfs/seaweedfs-filer-0: 98 restarts
+seaweedfs/seaweedfs-filer-1: 93 restarts
 synology-csi/synology-csi-node-zch7n: 16 restarts
 
 ### Recent Warnings (5)
 ```
-kube-system   14m         Warning   Unhealthy               pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
-kube-system   4m11s       Warning   Unhealthy               pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system   81s         Warning   Unhealthy               pod/etcd-nlk8s-ctrl01             Liveness probe failed: Get "http://127.0.0.1:2381/livez": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   67s         Warning   Unhealthy               pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   60s         Warning   Unhealthy               pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": dial tcp 127.0.0.1:2381: connect: connection refused
+NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
+kube-system   60s         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
