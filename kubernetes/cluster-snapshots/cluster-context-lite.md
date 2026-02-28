@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-02-27 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-02-28 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,13 +11,13 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 1197 |
+| Total Restarts | 1224 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.18.4
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 144
+- **Pods:** 143
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:3795Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -41,10 +41,10 @@ cilium-spire/spire-agent-xwbn2: 8 restarts
 kube-system/cilium-22zgh: 8 restarts
 kube-system/cilium-envoy-mmfnj: 8 restarts
 kube-system/cilium-operator-6b94496fcd-l6cjl: 85 restarts
-kube-system/etcd-nlk8s-ctrl01: 53 restarts
+kube-system/etcd-nlk8s-ctrl01: 57 restarts
 kube-system/etcd-nlk8s-ctrl02: 38 restarts
 kube-system/etcd-nlk8s-ctrl03: 4 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 325 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 348 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 55 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 12 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 85 restarts
@@ -54,13 +54,13 @@ kube-system/kube-scheduler-nlk8s-ctrl01: 22 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 23 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 20 restarts
 kube-system/tetragon-mdsn9: 16 restarts
-logging/loki-0: 39 restarts
+logging/loki-0: 40 restarts
 logging/promtail-rxt6j: 8 restarts
 monitoring/bgpalerter-596d7b756b-pxcb5: 12 restarts
 monitoring/goldpinger-4fvxd: 9 restarts
 monitoring/goldpinger-qs5xt: 4 restarts
-monitoring/monitoring-grafana-9ccf6f977-mhjwg: 97 restarts
-monitoring/monitoring-grafana-9ccf6f977-w47db: 90 restarts
+monitoring/monitoring-grafana-9ccf6f977-mhjwg: 103 restarts
+monitoring/monitoring-grafana-9ccf6f977-w47db: 99 restarts
 monitoring/monitoring-kube-state-metrics-74d579585b-6cprn: 11 restarts
 monitoring/monitoring-prometheus-node-exporter-d5wkz: 8 restarts
 monitoring/thanos-compactor-0: 6 restarts
@@ -72,7 +72,8 @@ synology-csi/synology-csi-node-zch7n: 16 restarts
 ### Recent Warnings (5)
 ```
 NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   60s         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   36m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   4m33s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
