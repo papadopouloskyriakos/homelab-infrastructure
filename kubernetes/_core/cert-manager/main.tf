@@ -245,3 +245,69 @@ resource "REDACTED_80c0cfc6" "awx_cert_reader" {
     namespace = "awx"
   }
 }
+
+***REMOVED***
+# PushSecret - Sync wildcard certs to OpenBao for cross-cluster consumption
+***REMOVED***
+# NL cert-manager renews wildcard certs. These PushSecrets automatically push
+# the renewed cert+key to OpenBao so the GR cluster can pull them via
+# ExternalSecret. This closes the automation gap that previously required
+# manual cert uploads to OpenBao after each renewal.
+#
+# OpenBao path: secret/REDACTED_b018f6b2 -> *.example.net
+#
+# Prerequisites:
+#   - OpenBao policy "external-secrets" must have create/update on
+#     secret/data/k8s/shared/*
+***REMOVED***
+
+resource "kubernetes_manifest" "REDACTED_13c92cba" {
+  depends_on = [kubernetes_manifest.wildcard_cert]
+
+  manifest = {
+    apiVersion = "external-secrets.io/v1alpha1"
+    kind       = "PushSecret"
+    metadata = {
+      name      = "REDACTED_d5bc0c60"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+      labels = {
+        "app.kubernetes.io/component"  = "cert-sync"
+        "app.kubernetes.io/managed-by" = "opentofu"
+      }
+    }
+    spec = {
+      refreshInterval = "1h"
+      secretStoreRefs = [
+        {
+          name = "openbao"
+          kind = "ClusterSecretStore"
+        }
+      ]
+      selector = {
+        secret = {
+          name = "REDACTED_0d82b4df-tls"
+        }
+      }
+      data = [
+        {
+          match = {
+            secretKey = "tls.crt"
+            remoteRef = {
+              remoteKey = "REDACTED_b018f6b2"
+              property  = "tls.crt"
+            }
+          }
+        },
+        {
+          match = {
+            secretKey = "tls.key"
+            remoteRef = {
+              remoteKey = "REDACTED_b018f6b2"
+              property  = "tls.key"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
