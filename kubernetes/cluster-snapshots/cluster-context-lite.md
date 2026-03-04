@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-03-03 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-03-04 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 1236 |
+| Total Restarts | 1238 |
 
 ## Topology
 
@@ -64,7 +64,7 @@ monitoring/monitoring-grafana-9ccf6f977-w47db: 102 restarts
 monitoring/monitoring-kube-state-metrics-74d579585b-6cprn: 11 restarts
 monitoring/monitoring-prometheus-node-exporter-d5wkz: 8 restarts
 monitoring/thanos-compactor-0: 6 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956swwjx: 19 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956swwjx: 21 restarts
 seaweedfs/seaweedfs-filer-0: 99 restarts
 seaweedfs/seaweedfs-filer-1: 94 restarts
 synology-csi/synology-csi-node-zch7n: 16 restarts
@@ -72,7 +72,9 @@ synology-csi/synology-csi-node-zch7n: 16 restarts
 ### Recent Warnings (5)
 ```
 NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   55m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   54m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system   44s         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   39s         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
