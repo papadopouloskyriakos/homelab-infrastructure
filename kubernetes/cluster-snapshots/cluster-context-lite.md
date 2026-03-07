@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-03-06 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-03-07 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 1248 |
+| Total Restarts | 1250 |
 
 ## Topology
 
@@ -41,10 +41,10 @@ cilium-spire/spire-agent-xwbn2: 8 restarts
 kube-system/cilium-22zgh: 8 restarts
 kube-system/cilium-envoy-mmfnj: 8 restarts
 kube-system/cilium-operator-6b94496fcd-l6cjl: 87 restarts
-kube-system/etcd-nlk8s-ctrl01: 61 restarts
+kube-system/etcd-nlk8s-ctrl01: 62 restarts
 kube-system/etcd-nlk8s-ctrl02: 38 restarts
 kube-system/etcd-nlk8s-ctrl03: 4 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 358 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 359 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 55 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 12 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 85 restarts
@@ -54,7 +54,7 @@ kube-system/kube-scheduler-nlk8s-ctrl01: 23 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 23 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 20 restarts
 kube-system/tetragon-mdsn9: 16 restarts
-logging/loki-0: 42 restarts
+logging/loki-0: 43 restarts
 logging/promtail-rxt6j: 8 restarts
 monitoring/bgpalerter-596d7b756b-pxcb5: 12 restarts
 monitoring/goldpinger-4fvxd: 9 restarts
@@ -72,7 +72,7 @@ synology-csi/synology-csi-node-zch7n: 16 restarts
 ### Recent Warnings (5)
 ```
 NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   8m57s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   2m45s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
