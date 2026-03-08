@@ -1,0 +1,532 @@
+---
+# Nextcloud Nodes - Weekly Update
+#
+# Performs rolling apt updates with mandatory reboot on independent Nextcloud
+# nodes, one at a time (nc01 first, nc02 second).
+#
+# NOT a cluster - no Corosync, no Pacemaker, no fencing.
+# Each node is updated independently and sequentially.
+#
+# Nodes: nlnc01, nlnc02
+#
+# Critical: PHP package upgrades overwrite php.ini files, breaking symlinks.
+# The symlink structure is:
+#   /etc/php/<ver>/apache2/php.ini  -> /etc/php/<ver>/cli/php.ini
+#   /etc/php/<ver>/fpm/php.ini      -> /etc/php/<ver>/cli/php.ini
+#   /etc/php/<ver>/phpdbg/php.ini   -> /etc/php/<ver>/cli/php.ini
+#
+# cli/php.ini is the source of truth (real file). The other three are symlinks.
+# Before apt upgrade: remove symlinks. After: recreate them.
+# PHP version is detected dynamically (not hardcoded).
+
+###############################################################################
+# Play 1: Pre-flight checks on both nodes
+###############################################################################
+- name: Pre-flight checks on all Nextcloud nodes
+  hosts: nextcloud_nodes
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Record update start time
+      set_fact:
+        nc_update_start: "{{ now(utc=true) }}"
+      delegate_to: localhost
+      delegate_facts: true
+      run_once: true
+
+    - name: Verify PHP is installed
+      command: which php
+      changed_when: false
+      check_mode: false
+
+    - name: Detect PHP version
+      command: php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;"
+      register: php_version_result
+      changed_when: false
+      check_mode: false
+
+    - name: Store PHP version
+      set_fact:
+        php_version: "{{ php_version_result.stdout }}"
+        php_version_before: "{{ php_version_result.stdout }}"
+
+    - name: Verify cli/php.ini exists and is a regular file
+      stat:
+        path: "/etc/php/{{ php_version }}/cli/php.ini"
+      register: cli_php_ini
+
+    - name: Fail if cli/php.ini is missing or is itself a symlink
+      fail:
+        msg: >-
+          cli/php.ini is missing or is itself a symlink - unsafe to proceed.
+          Path: /etc/php/{{ php_version }}/cli/php.ini
+          exists={{ cli_php_ini.stat.exists | default(false) }},
+          islnk={{ cli_php_ini.stat.islnk | default('N/A') }}
+      when: not cli_php_ini.stat.exists or cli_php_ini.stat.islnk
+
+    - name: Check current state of PHP symlinks
+      stat:
+        path: "/etc/php/{{ php_version }}/{{ item }}/php.ini"
+      loop:
+        - apache2
+        - fpm
+        - phpdbg
+      register: symlink_check
+
+    - name: Log current symlink state
+      debug:
+        msg: >-
+          /etc/php/{{ php_version }}/{{ item.item }}/php.ini:
+          exists={{ item.stat.exists | default(false) }},
+          islnk={{ item.stat.islnk | default(false) }},
+          lnk_source={{ item.stat.lnk_source | default('N/A') }}
+      loop: "{{ symlink_check.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Verify apache2 is running
+      command: systemctl is-active apache2
+      changed_when: false
+      check_mode: false
+
+    - name: Verify php-fpm is running
+      command: "systemctl is-active php{{ php_version }}-fpm"
+      changed_when: false
+      check_mode: false
+
+    - name: Pre-flight passed
+      debug:
+        msg: "Pre-flight passed for {{ inventory_hostname }} - PHP {{ php_version }}"
+
+###############################################################################
+# Play 2: Update nlnc01
+###############################################################################
+- name: Update nlnc01
+  hosts: nextcloud_nodes
+  become: yes
+  gather_facts: no
+  any_errors_fatal: true
+
+  tasks:
+    - name: Skip if not nc01
+      meta: end_host
+      when: inventory_hostname != 'nlnc01'
+
+    # --- Step 1: LibreNMS maintenance ---
+
+    - name: Put nc01 into LibreNMS maintenance
+      include_tasks: ../common/tasks/librenms_maintenance.yaml
+      vars:
+        maintenance_node: "{{ inventory_hostname }}"
+
+    # --- Step 2: Remove PHP symlinks ---
+
+    - name: Remove PHP symlinks before upgrade
+      file:
+        path: "/etc/php/{{ php_version }}/{{ item }}/php.ini"
+        state: absent
+      loop:
+        - apache2
+        - fpm
+        - phpdbg
+
+    - name: Log symlink removal
+      debug:
+        msg: "Removed PHP symlinks before upgrade on {{ inventory_hostname }}"
+
+    # --- Step 3: apt upgrade ---
+
+    - name: Update apt cache and upgrade all packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      register: apt_result_nc01
+
+    - name: Clean up unnecessary packages
+      apt:
+        autoremove: yes
+        autoclean: yes
+
+    # --- Step 4: Detect PHP version again (may have changed) ---
+
+    - name: Detect PHP version after upgrade
+      command: php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;"
+      register: php_version_post
+      changed_when: false
+      check_mode: false
+
+    - name: Update php_version fact
+      set_fact:
+        php_version: "{{ php_version_post.stdout }}"
+
+    - name: Log PHP version change
+      debug:
+        msg: "PHP upgraded from {{ php_version_before }} to {{ php_version }}"
+      when: php_version != php_version_before
+
+    # --- Step 5: Recreate PHP symlinks ---
+
+    - name: Recreate PHP symlinks
+      file:
+        src: "/etc/php/{{ php_version }}/cli/php.ini"
+        dest: "/etc/php/{{ php_version }}/{{ item }}/php.ini"
+        state: link
+        force: yes
+      loop:
+        - apache2
+        - fpm
+        - phpdbg
+
+    - name: Log symlink recreation
+      debug:
+        msg: "PHP symlinks recreated on {{ inventory_hostname }}"
+
+    # --- Step 6: Verify symlinks are correct ---
+
+    - name: Verify PHP symlinks point to cli/php.ini
+      stat:
+        path: "/etc/php/{{ php_version }}/{{ item }}/php.ini"
+      loop:
+        - apache2
+        - fpm
+        - phpdbg
+      register: symlink_verify
+
+    - name: Assert all symlinks are correct
+      assert:
+        that:
+          - item.stat.islnk
+          - item.stat.lnk_source == "/etc/php/" ~ php_version ~ "/cli/php.ini"
+        fail_msg: >-
+          Symlink verification failed for /etc/php/{{ php_version }}/{{ item.item }}/php.ini.
+          islnk={{ item.stat.islnk | default(false) }},
+          lnk_source={{ item.stat.lnk_source | default('N/A') }}.
+          Do NOT reboot - manual investigation required.
+      loop: "{{ symlink_verify.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    # --- Step 7: Restart services ---
+
+    - name: Restart php-fpm
+      systemd:
+        name: "php{{ php_version }}-fpm"
+        state: restarted
+
+    - name: Restart apache2
+      systemd:
+        name: apache2
+        state: restarted
+
+    - name: Wait for services to stabilize
+      pause:
+        seconds: 10
+
+    - name: Verify php-fpm is active
+      command: "systemctl is-active php{{ php_version }}-fpm"
+      changed_when: false
+      check_mode: false
+
+    - name: Verify apache2 is active
+      command: systemctl is-active apache2
+      changed_when: false
+      check_mode: false
+
+    # --- Step 8: Reboot ---
+
+    - name: Reboot nc01
+      reboot:
+        reboot_timeout: 300
+        msg: "Nextcloud weekly update - rebooting nc01"
+
+    # --- Step 9: Post-reboot verification ---
+
+    - name: Detect PHP version after reboot
+      command: php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;"
+      register: php_version_reboot
+      changed_when: false
+      check_mode: false
+
+    - name: Verify PHP version unchanged after reboot
+      assert:
+        that:
+          - php_version_reboot.stdout == php_version
+        fail_msg: >-
+          PHP version changed after reboot: was {{ php_version }}, now {{ php_version_reboot.stdout }}.
+          Manual investigation required.
+
+    - name: Verify PHP symlinks after reboot
+      stat:
+        path: "/etc/php/{{ php_version }}/{{ item }}/php.ini"
+      loop:
+        - apache2
+        - fpm
+        - phpdbg
+      register: post_reboot_symlinks
+
+    - name: Assert symlinks intact after reboot
+      assert:
+        that:
+          - item.stat.islnk
+          - item.stat.lnk_source == "/etc/php/" ~ php_version ~ "/cli/php.ini"
+        fail_msg: >-
+          Post-reboot symlink broken: /etc/php/{{ php_version }}/{{ item.item }}/php.ini.
+          islnk={{ item.stat.islnk | default(false) }},
+          lnk_source={{ item.stat.lnk_source | default('N/A') }}.
+      loop: "{{ post_reboot_symlinks.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Verify apache2 is active after reboot
+      command: systemctl is-active apache2
+      changed_when: false
+      check_mode: false
+
+    - name: Verify php-fpm is active after reboot
+      command: "systemctl is-active php{{ php_version }}-fpm"
+      changed_when: false
+      check_mode: false
+
+    - name: nc01 update complete
+      debug:
+        msg: "nc01 update complete and verified - PHP {{ php_version }}"
+
+    - name: Store nc01 results
+      set_fact:
+        nc01_php_before: "{{ php_version_before }}"
+        nc01_php_after: "{{ php_version }}"
+        nc01_apt_changed: "{{ apt_result_nc01.changed | default(false) }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+###############################################################################
+# Play 3: Update nlnc02
+###############################################################################
+- name: Update nlnc02
+  hosts: nextcloud_nodes
+  become: yes
+  gather_facts: no
+  any_errors_fatal: true
+
+  tasks:
+    - name: Skip if not nc02
+      meta: end_host
+      when: inventory_hostname != 'nlnc02'
+
+    # --- Step 1: LibreNMS maintenance ---
+
+    - name: Put nc02 into LibreNMS maintenance
+      include_tasks: ../common/tasks/librenms_maintenance.yaml
+      vars:
+        maintenance_node: "{{ inventory_hostname }}"
+
+    # --- Step 2: Remove PHP symlinks ---
+
+    - name: Remove PHP symlinks before upgrade
+      file:
+        path: "/etc/php/{{ php_version }}/{{ item }}/php.ini"
+        state: absent
+      loop:
+        - apache2
+        - fpm
+        - phpdbg
+
+    - name: Log symlink removal
+      debug:
+        msg: "Removed PHP symlinks before upgrade on {{ inventory_hostname }}"
+
+    # --- Step 3: apt upgrade ---
+
+    - name: Update apt cache and upgrade all packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      register: apt_result_nc02
+
+    - name: Clean up unnecessary packages
+      apt:
+        autoremove: yes
+        autoclean: yes
+
+    # --- Step 4: Detect PHP version again (may have changed) ---
+
+    - name: Detect PHP version after upgrade
+      command: php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;"
+      register: php_version_post
+      changed_when: false
+      check_mode: false
+
+    - name: Update php_version fact
+      set_fact:
+        php_version: "{{ php_version_post.stdout }}"
+
+    - name: Log PHP version change
+      debug:
+        msg: "PHP upgraded from {{ php_version_before }} to {{ php_version }}"
+      when: php_version != php_version_before
+
+    # --- Step 5: Recreate PHP symlinks ---
+
+    - name: Recreate PHP symlinks
+      file:
+        src: "/etc/php/{{ php_version }}/cli/php.ini"
+        dest: "/etc/php/{{ php_version }}/{{ item }}/php.ini"
+        state: link
+        force: yes
+      loop:
+        - apache2
+        - fpm
+        - phpdbg
+
+    - name: Log symlink recreation
+      debug:
+        msg: "PHP symlinks recreated on {{ inventory_hostname }}"
+
+    # --- Step 6: Verify symlinks are correct ---
+
+    - name: Verify PHP symlinks point to cli/php.ini
+      stat:
+        path: "/etc/php/{{ php_version }}/{{ item }}/php.ini"
+      loop:
+        - apache2
+        - fpm
+        - phpdbg
+      register: symlink_verify
+
+    - name: Assert all symlinks are correct
+      assert:
+        that:
+          - item.stat.islnk
+          - item.stat.lnk_source == "/etc/php/" ~ php_version ~ "/cli/php.ini"
+        fail_msg: >-
+          Symlink verification failed for /etc/php/{{ php_version }}/{{ item.item }}/php.ini.
+          islnk={{ item.stat.islnk | default(false) }},
+          lnk_source={{ item.stat.lnk_source | default('N/A') }}.
+          Do NOT reboot - manual investigation required.
+      loop: "{{ symlink_verify.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    # --- Step 7: Restart services ---
+
+    - name: Restart php-fpm
+      systemd:
+        name: "php{{ php_version }}-fpm"
+        state: restarted
+
+    - name: Restart apache2
+      systemd:
+        name: apache2
+        state: restarted
+
+    - name: Wait for services to stabilize
+      pause:
+        seconds: 10
+
+    - name: Verify php-fpm is active
+      command: "systemctl is-active php{{ php_version }}-fpm"
+      changed_when: false
+      check_mode: false
+
+    - name: Verify apache2 is active
+      command: systemctl is-active apache2
+      changed_when: false
+      check_mode: false
+
+    # --- Step 8: Reboot ---
+
+    - name: Reboot nc02
+      reboot:
+        reboot_timeout: 300
+        msg: "Nextcloud weekly update - rebooting nc02"
+
+    # --- Step 9: Post-reboot verification ---
+
+    - name: Detect PHP version after reboot
+      command: php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;"
+      register: php_version_reboot
+      changed_when: false
+      check_mode: false
+
+    - name: Verify PHP version unchanged after reboot
+      assert:
+        that:
+          - php_version_reboot.stdout == php_version
+        fail_msg: >-
+          PHP version changed after reboot: was {{ php_version }}, now {{ php_version_reboot.stdout }}.
+          Manual investigation required.
+
+    - name: Verify PHP symlinks after reboot
+      stat:
+        path: "/etc/php/{{ php_version }}/{{ item }}/php.ini"
+      loop:
+        - apache2
+        - fpm
+        - phpdbg
+      register: post_reboot_symlinks
+
+    - name: Assert symlinks intact after reboot
+      assert:
+        that:
+          - item.stat.islnk
+          - item.stat.lnk_source == "/etc/php/" ~ php_version ~ "/cli/php.ini"
+        fail_msg: >-
+          Post-reboot symlink broken: /etc/php/{{ php_version }}/{{ item.item }}/php.ini.
+          islnk={{ item.stat.islnk | default(false) }},
+          lnk_source={{ item.stat.lnk_source | default('N/A') }}.
+      loop: "{{ post_reboot_symlinks.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Verify apache2 is active after reboot
+      command: systemctl is-active apache2
+      changed_when: false
+      check_mode: false
+
+    - name: Verify php-fpm is active after reboot
+      command: "systemctl is-active php{{ php_version }}-fpm"
+      changed_when: false
+      check_mode: false
+
+    - name: nc02 update complete
+      debug:
+        msg: "nc02 update complete and verified - PHP {{ php_version }}"
+
+    - name: Store nc02 results
+      set_fact:
+        nc02_php_before: "{{ php_version_before }}"
+        nc02_php_after: "{{ php_version }}"
+        nc02_apt_changed: "{{ apt_result_nc02.changed | default(false) }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+###############################################################################
+# Play 4: Summary
+###############################################################################
+- name: Nextcloud weekly update summary
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Display completion summary
+      debug:
+        msg: |
+          Nextcloud weekly update completed successfully.
+
+          Update start: {{ nc_update_start }}
+          Update end:   {{ now(utc=true) }}
+
+          nlnc01:
+            PHP version: {{ nc01_php_before | default('unknown') }} -> {{ nc01_php_after | default('unknown') }}
+            Packages upgraded: {{ nc01_apt_changed | default('unknown') }}
+            Symlinks verified: yes
+            Services healthy: yes
+
+          nlnc02:
+            PHP version: {{ nc02_php_before | default('unknown') }} -> {{ nc02_php_after | default('unknown') }}
+            Packages upgraded: {{ nc02_apt_changed | default('unknown') }}
+            Symlinks verified: yes
+            Services healthy: yes
+
+          Both nodes updated, rebooted, and verified.

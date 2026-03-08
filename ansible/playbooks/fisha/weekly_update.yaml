@@ -1,0 +1,435 @@
+---
+# FISHA HA NFS Cluster - Weekly Update
+#
+# Performs rolling apt updates with mandatory reboot on a 3-node HA NFS cluster,
+# one node at a time, ensuring cluster health throughout.
+#
+# Cluster stack: Corosync + Pacemaker (crm) + DRBD (dual-primary) + OCFS2 + NFS
+# Nodes: nlcl01file01, nlcl01file02 (primaries), nlcl01filearb01 (arbiter)
+#
+# Update order (determined dynamically at runtime):
+#   1. Arbiter (nlcl01filearb01) - no resources, safe to update first
+#   2. Passive primary - not currently running nfs-group
+#   3. Active primary - currently running nfs-group (NFS migrated away first)
+#
+# Health validation runs after each node update. On persistent failure,
+# the playbook stops and does not proceed to the next node.
+
+###############################################################################
+# Play 1: Discover cluster state and determine update order
+###############################################################################
+- name: Discover cluster state and determine update order
+  hosts: primaries[0]
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Get current cluster status
+      command: crm status
+      register: crm_status_raw
+      changed_when: false
+      check_mode: false
+
+    - name: Verify cluster is healthy enough to begin updates
+      assert:
+        that:
+          - "'Online' in crm_status_raw.stdout"
+          - "'nfs-ip' in crm_status_raw.stdout"
+          - "'Started' in crm_status_raw.stdout"
+        fail_msg: >-
+          Cluster does not appear healthy enough to begin rolling updates.
+          Manual investigation required before proceeding.
+
+    - name: Identify which primary currently runs nfs-group
+      set_fact:
+        active_nfs_node: >-
+          {{ crm_status_raw.stdout
+             | regex_search('nfs-ip\s+\(ocf[^)]*\):\s+Started\s+(\S+)', '\1')
+             | first }}
+
+    - name: Verify active NFS node was identified
+      assert:
+        that:
+          - active_nfs_node is defined
+          - active_nfs_node in groups['primaries']
+        fail_msg: >-
+          Could not determine which primary runs nfs-group.
+          Cluster may be unhealthy. Manual investigation required.
+
+    - name: Determine passive primary (not running nfs-group)
+      set_fact:
+        passive_nfs_node: >-
+          {{ groups['primaries'] | difference([active_nfs_node]) | first }}
+
+    - name: Display update order
+      debug:
+        msg: |
+          Update order determined:
+            1. nlcl01filearb01 (arbiter - no resources)
+            2. {{ passive_nfs_node }} (passive primary - not running nfs-group)
+            3. {{ active_nfs_node }} (active primary - currently running nfs-group)
+
+    - name: Store cluster state for subsequent plays
+      set_fact:
+        active_nfs_node: "{{ active_nfs_node }}"
+        passive_nfs_node: "{{ passive_nfs_node }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+###############################################################################
+# Play 2: Update arbiter node
+###############################################################################
+- name: Update arbiter node (nlcl01filearb01)
+  hosts: arbiter
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Put arbiter in standby
+      command: crm node standby {{ inventory_hostname }}
+
+    - name: Wait for cluster to stabilize (DC may relocate)
+      pause:
+        seconds: 30
+
+    - name: Update apt cache and upgrade all packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      register: apt_result
+
+    - name: Clean up unnecessary packages
+      apt:
+        autoremove: yes
+        autoclean: yes
+
+    - name: Put arbiter into LibreNMS maintenance
+      include_tasks: ../common/tasks/librenms_maintenance.yaml
+      vars:
+        maintenance_node: "{{ inventory_hostname }}"
+
+    - name: Reboot arbiter
+      reboot:
+        reboot_timeout: 600
+        msg: "FISHA weekly update - rebooting arbiter"
+
+    - name: Wait for Pacemaker to start after reboot
+      command: systemctl is-active pacemaker
+      register: pacemaker_status
+      until: pacemaker_status.rc == 0
+      retries: 60
+      delay: 10
+      changed_when: false
+      check_mode: false
+
+    - name: Bring arbiter back online
+      command: crm node online {{ inventory_hostname }}
+
+    - name: Wait for quorum to restore (3 votes)
+      shell: |
+        quorum=$(corosync-quorumtool -s 2>&1)
+        echo "$quorum"
+        echo "$quorum" | grep -q "Quorate:.*Yes" && \
+        echo "$quorum" | grep -q "Total votes:.*3"
+      register: quorum_result
+      until: quorum_result.rc == 0
+      retries: 30
+      delay: 10
+      changed_when: false
+      check_mode: false
+
+    - name: Display arbiter update result
+      debug:
+        msg: |
+          Arbiter updated and rejoined cluster.
+          Packages upgraded: {{ apt_result.changed | default(false) }}
+          Quorum restored with 3 votes.
+
+###############################################################################
+# Play 3: Validate cluster after arbiter update
+###############################################################################
+- name: Validate cluster health after arbiter update
+  hosts: primaries[0]
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Run cluster health validation
+      include_tasks: tasks/validate_cluster_health.yaml
+
+###############################################################################
+# Play 4: Update passive primary (not running nfs-group)
+###############################################################################
+- name: Update passive primary (not running nfs-group)
+  hosts: primaries
+  become: yes
+  gather_facts: no
+  any_errors_fatal: true
+
+  tasks:
+    - name: Skip if not the passive primary
+      meta: end_host
+      when: inventory_hostname != hostvars['localhost']['passive_nfs_node']
+
+    - name: Display node being updated
+      debug:
+        msg: "Updating passive primary {{ inventory_hostname }} (not running nfs-group)"
+
+    - name: Put node in standby
+      command: crm node standby {{ inventory_hostname }}
+
+    - name: Wait for DRBD to demote on this node
+      shell: |
+        role=$(drbdadm status r0 2>/dev/null | head -1 || echo "Unknown")
+        echo "DRBD status: $role"
+        echo "$role" | grep -qiv 'Primary'
+      register: drbd_demote
+      until: drbd_demote.rc == 0
+      retries: 30
+      delay: 10
+      changed_when: false
+
+    - name: Wait for OCFS2 to unmount on this node
+      shell: |
+        if mountpoint -q /mnt/ocfs2 2>/dev/null; then
+          echo "/mnt/ocfs2 still mounted"
+          exit 1
+        fi
+        echo "/mnt/ocfs2 unmounted"
+      register: ocfs2_unmount
+      until: ocfs2_unmount.rc == 0
+      retries: 30
+      delay: 10
+      changed_when: false
+
+    - name: Update apt cache and upgrade all packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      register: apt_result
+
+    - name: Clean up unnecessary packages
+      apt:
+        autoremove: yes
+        autoclean: yes
+
+    - name: Put passive primary into LibreNMS maintenance
+      include_tasks: ../common/tasks/librenms_maintenance.yaml
+      vars:
+        maintenance_node: "{{ inventory_hostname }}"
+
+    - name: Reboot node
+      reboot:
+        reboot_timeout: 600
+        msg: "FISHA weekly update - rebooting passive primary"
+
+    - name: Wait for Pacemaker to start after reboot
+      command: systemctl is-active pacemaker
+      register: pacemaker_status
+      until: pacemaker_status.rc == 0
+      retries: 60
+      delay: 10
+      changed_when: false
+      check_mode: false
+
+    - name: Bring node back online
+      command: crm node online {{ inventory_hostname }}
+
+    - name: Run DRBD and OCFS2 recovery
+      include_tasks: tasks/recover_drbd.yaml
+      vars:
+        recover_node: "{{ inventory_hostname }}"
+
+    - name: Display passive primary update result
+      debug:
+        msg: |
+          Passive primary {{ inventory_hostname }} updated.
+          DRBD re-promoted to Primary, OCFS2 remounted.
+          Packages upgraded: {{ apt_result.changed | default(false) }}
+
+###############################################################################
+# Play 5: Validate cluster after passive primary update
+###############################################################################
+- name: Validate cluster health after passive primary update
+  hosts: primaries
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Skip if not the passive primary
+      meta: end_host
+      when: inventory_hostname != hostvars['localhost']['passive_nfs_node']
+
+    - name: Run cluster health validation
+      include_tasks: tasks/validate_cluster_health.yaml
+
+###############################################################################
+# Play 6: Update active primary (currently running nfs-group)
+###############################################################################
+- name: Update active primary (currently running nfs-group)
+  hosts: primaries
+  become: yes
+  gather_facts: no
+  any_errors_fatal: true
+
+  tasks:
+    - name: Skip if not the active primary
+      meta: end_host
+      when: inventory_hostname != hostvars['localhost']['active_nfs_node']
+
+    - name: Display node being updated
+      debug:
+        msg: >-
+          Updating active primary {{ inventory_hostname }} (running nfs-group).
+          Will migrate NFS to {{ hostvars['localhost']['passive_nfs_node'] }} first.
+
+    - name: Migrate nfs-group to the other primary
+      command: crm resource move nfs-group {{ hostvars['localhost']['passive_nfs_node'] }}
+
+    - name: Wait for nfs-group to start on other primary
+      shell: |
+        crm_out=$(crm status)
+        echo "$crm_out" | grep -E 'nfs-ip.*Started.*{{ hostvars["localhost"]["passive_nfs_node"] }}'
+      register: nfs_migrated
+      until: nfs_migrated.rc == 0
+      retries: 30
+      delay: 10
+      changed_when: false
+
+    - name: Verify VIP is active after migration (NFS port 2049)
+      ansible.builtin.wait_for:
+        host: 10.0.X.X
+        port: 2049
+        timeout: 60
+        state: started
+      delegate_to: localhost
+      become: no
+      check_mode: false
+
+    - name: Put node in standby
+      command: crm node standby {{ inventory_hostname }}
+
+    - name: Wait for DRBD to demote on this node
+      shell: |
+        role=$(drbdadm status r0 2>/dev/null | head -1 || echo "Unknown")
+        echo "DRBD status: $role"
+        echo "$role" | grep -qiv 'Primary'
+      register: drbd_demote
+      until: drbd_demote.rc == 0
+      retries: 30
+      delay: 10
+      changed_when: false
+
+    - name: Wait for OCFS2 to unmount on this node
+      shell: |
+        if mountpoint -q /mnt/ocfs2 2>/dev/null; then
+          echo "/mnt/ocfs2 still mounted"
+          exit 1
+        fi
+        echo "/mnt/ocfs2 unmounted"
+      register: ocfs2_unmount
+      until: ocfs2_unmount.rc == 0
+      retries: 30
+      delay: 10
+      changed_when: false
+
+    - name: Update apt cache and upgrade all packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      register: apt_result
+
+    - name: Clean up unnecessary packages
+      apt:
+        autoremove: yes
+        autoclean: yes
+
+    - name: Put active primary into LibreNMS maintenance
+      include_tasks: ../common/tasks/librenms_maintenance.yaml
+      vars:
+        maintenance_node: "{{ inventory_hostname }}"
+
+    - name: Reboot node
+      reboot:
+        reboot_timeout: 600
+        msg: "FISHA weekly update - rebooting active primary"
+
+    - name: Wait for Pacemaker to start after reboot
+      command: systemctl is-active pacemaker
+      register: pacemaker_status
+      until: pacemaker_status.rc == 0
+      retries: 60
+      delay: 10
+      changed_when: false
+      check_mode: false
+
+    - name: Bring node back online
+      command: crm node online {{ inventory_hostname }}
+
+    - name: Clear forced location constraint from nfs-group migration
+      command: crm resource clear nfs-group
+
+    - name: Run DRBD and OCFS2 recovery
+      include_tasks: tasks/recover_drbd.yaml
+      vars:
+        recover_node: "{{ inventory_hostname }}"
+
+    - name: Wait for cluster to settle (nfs-group may relocate due to preference)
+      pause:
+        seconds: 30
+
+    - name: Display active primary update result
+      debug:
+        msg: |
+          Active primary {{ inventory_hostname }} updated.
+          DRBD re-promoted to Primary, OCFS2 remounted, location constraint cleared.
+          Packages upgraded: {{ apt_result.changed | default(false) }}
+
+###############################################################################
+# Play 7: Final cluster validation after active primary update
+###############################################################################
+- name: Final cluster validation after active primary update
+  hosts: primaries
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Skip if not the active primary
+      meta: end_host
+      when: inventory_hostname != hostvars['localhost']['active_nfs_node']
+
+    - name: Run cluster health validation
+      include_tasks: tasks/validate_cluster_health.yaml
+
+    - name: Mark all updates completed
+      set_fact:
+        node_update_completed: true
+      delegate_to: localhost
+      delegate_facts: true
+
+###############################################################################
+# Play 8: Summary
+###############################################################################
+- name: FISHA weekly update complete
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Display completion summary
+      debug:
+        msg: |
+          FISHA weekly update completed successfully.
+          All 3 nodes updated, rebooted, and validated:
+            - nlcl01filearb01 (arbiter)
+            - {{ passive_nfs_node }} (was passive primary)
+            - {{ active_nfs_node }} (was active primary)
+          Cluster is healthy. All health validations passed.
+      when: node_update_completed | default(false)
+
+    - name: Display failure summary
+      debug:
+        msg: |
+          FISHA weekly update did NOT complete successfully.
+          One or more plays failed before all nodes were updated.
+          Review the job output above for details and investigate manually.
+      when: not (node_update_completed | default(false))

@@ -1,0 +1,84 @@
+- name: Run updates on all servers
+  hosts: all
+  become: yes
+  tasks:
+    - name: Gather pre-update package facts
+      package_facts:
+      register: before_facts
+    - name: Perform all pending updates
+      dnf:
+        name: '*'
+        state: latest
+        update_cache: yes
+      register: upgrade_result
+      ignore_errors: yes
+    - name: Run dnf clean all
+      dnf:
+        name: '*'
+        state: absent
+        clean: all
+      ignore_errors: yes
+    - name: Run dnf autoremove
+      dnf:
+        autoremove: yes
+      ignore_errors: yes
+    - name: Gather post-update package facts
+      package_facts:
+      register: after_facts
+    - name: Compute list of updated packages per host
+      set_fact:
+        updated_pkgs: >-
+          {{ (updated_pkgs | default([])) +
+             [{
+               'name': item.key,
+               'old': before_facts.ansible_facts.packages[item.key][0].version,
+               'new': item.value[0].version
+             }] }}
+      loop: "{{ after_facts.ansible_facts.packages | dict2items }}"
+      when:
+        - item.key in before_facts.ansible_facts.packages
+        - item.value[0].version != before_facts.ansible_facts.packages[item.key][0].version
+
+- name: Consolidate and email results
+  hosts: all  # Changed from localhost to all
+  gather_facts: no
+  vars:
+    all_hosts: "{{ ansible_play_hosts }}"  # Gets all remote hosts
+  tasks:
+    - name: Build email body
+      set_fact:
+        email_body: |
+          System Update Report
+          ====================
+          {% for host in all_hosts %}
+          Host: {{ host }}
+          ------------------
+          {% set result = hostvars[host]['upgrade_result'] | default({}) %}
+          {% if result.failed | default(false) %}
+          - Status: Failed
+          {% else %}
+          - Status: Success
+            {% set pkgs = hostvars[host]['updated_pkgs'] | default([]) %}
+            {% if pkgs | length > 0 %}
+            - Updated packages:
+              {% for pkg in pkgs %}
+              • {{ pkg.name }}: {{ pkg.old }} → {{ pkg.new }}
+              {% endfor %}
+            {% else %}
+            - No packages changed
+            {% endif %}
+          {% endif %}
+          {% endfor %}
+      delegate_to: localhost  # New: Run locally in the pod
+      run_once: true  # New: Run only once
+
+    - name: Send email
+      mail:
+        host: 10.0.X.X
+        port: 25
+        to: "awmfkgts@mxmx.email"
+        from: "awmfkgts@mxmx.email"
+        subject: "System Update Report"
+        body: "{{ email_body }}"
+      delegate_to: localhost  # New: Run locally in the pod
+      run_once: true  # New: Run only once
