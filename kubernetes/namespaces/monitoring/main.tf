@@ -293,6 +293,69 @@ resource "helm_release" "monitoring" {
                 { source_labels = ["__address__"], regex = "10\\.255\\.3\\..*", target_label = "site", replacement = "no" },
               ]
             },
+              # =============================================================
+              # ChatOps Infrastructure - LXC Hosts (node_exporter)
+              # =============================================================
+              {
+                job_name = "chatops-node"
+                static_configs = [{
+                  targets = [
+                    "10.0.X.X:9100", # nlclaude01 - Claude Code + n8n
+                    "10.0.X.X:9100", # nlopenclaw01 - OpenClaw gateway
+                    "10.0.X.X:9100", # nlgpu01 - Ollama + RTX 3090 Ti
+                  ]
+                  labels = {
+                    role = "chatops"
+                  }
+                }]
+                relabel_configs = [
+                  { source_labels = ["__address__"], regex = "192\\.168\\.181\\.111:.*", target_label = "instance", replacement = "nlclaude01" },
+                  { source_labels = ["__address__"], regex = "192\\.168\\.181\\.112:.*", target_label = "instance", replacement = "nlopenclaw01" },
+                  { source_labels = ["__address__"], regex = "192\\.168\\.181\\.181:.*", target_label = "instance", replacement = "nlgpu01" },
+                  { source_labels = ["__address__"], regex = "192\\.168\\.181\\..*", target_label = "site", replacement = "nl" },
+                ]
+              },
+              # ChatOps Infrastructure - GPU Metrics (nvidia_gpu_exporter)
+              {
+                job_name = "chatops-nvidia"
+                static_configs = [{
+                  targets = ["10.0.X.X:9835"]
+                  labels = {
+                    role = "gpu"
+                  }
+                }]
+                relabel_configs = [
+                  { target_label = "instance", replacement = "nlgpu01" },
+                  { target_label = "site", replacement = "nl" },
+                ]
+              },
+              # ChatOps Infrastructure - HTTP Service Probes (blackbox_exporter)
+              {
+                job_name        = "chatops-blackbox"
+                scrape_interval = "60s"
+                scrape_timeout  = "30s"
+                metrics_path    = "/probe"
+                params = {
+                  module = ["http_2xx"]
+                }
+                static_configs = [{
+                  targets = [
+                    "https://matrix.example.net/_matrix/client/versions",
+                    "https://gitlab.example.net/api/v4/version",
+                    "https://youtrack.example.net/api/config",
+                    "https://n8n.example.net/healthz",
+                    "https://ollama.example.net/api/tags",
+                    "https://grafana.example.net/api/health",
+                    "https://nl-prometheus.example.net/-/healthy",
+                  ]
+                }]
+                relabel_configs = [
+                  { source_labels = ["__address__"], target_label = "__param_target" },
+                  { source_labels = ["__param_target"], target_label = "instance" },
+                  { target_label = "__address__", replacement = "10.0.X.X:9115" },
+                ]
+              },
+
             # CrowdSec Security Metrics
             {
               job_name = "crowdsec"
@@ -436,6 +499,17 @@ resource "helm_release" "monitoring" {
           type     = "NodePort"
           nodePort = 30000
         }
+      
+        "grafana.ini" = {
+          security = {                                                                                                                                                                      
+            allow_embedding = true
+          }                                                                                                                                                                                 
+          "auth.anonymous" = {                                                                                                                                                            
+            enabled  = true                                                                                                                                                                 
+            org_name = "Main Org."                                                                                                                                                          
+            org_role = "Viewer"                                                                                                                                                             
+          }                                                                                                                                                                                 
+        }   
 
         affinity = {
           nodeAffinity = {
