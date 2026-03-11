@@ -132,7 +132,8 @@ resource "helm_release" "ingress_nginx" {
           X-Content-Type-Options = "nosniff"
 
           # HIGH: Content Security Policy - Prevents XSS and data injection
-          Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss:; frame-ancestors 'self'; base-uri 'self'; form-action 'self';"
+          # frame-ancestors includes matrix.example.net to allow Grafana embedding
+          Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss:; frame-ancestors 'self' https://matrix.example.net; base-uri 'self'; form-action 'self';"
 
           # MEDIUM: Controls referrer information sent with requests
           Referrer-Policy = "strict-origin-when-cross-origin"
