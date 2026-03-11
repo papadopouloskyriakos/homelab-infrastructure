@@ -9,7 +9,7 @@ LLM INSTRUCTIONS:
 - Network Policies: Zero-trust security posture
 -->
 
-**Generated:** 2026-03-10 03:00:01 UTC  
+**Generated:** 2026-03-11 03:00:02 UTC  
 **Host:** nlk8s-ctrl01  
 **Script Version:** 3.1.0
 
@@ -22,7 +22,7 @@ LLM INSTRUCTIONS:
 | Cluster State | HEALTHY | ✅ |
 | Unhealthy Pods | 0 | ✅ |
 | Pending PVCs | 0 | ✅ |
-| Total Restarts | 1255 | ⚠️ |
+| Total Restarts | 1260 | ⚠️ |
 
 ---
 
@@ -108,11 +108,11 @@ _None - all pods are Running or Completed_
 - cilium-spire/spire-agent-xwbn2: 8 restarts
 - kube-system/cilium-22zgh: 8 restarts
 - kube-system/cilium-envoy-mmfnj: 8 restarts
-- kube-system/cilium-operator-6b94496fcd-l6cjl: 90 restarts
+- kube-system/cilium-operator-6b94496fcd-l6cjl: 91 restarts
 - kube-system/etcd-nlk8s-ctrl01: 62 restarts
 - kube-system/etcd-nlk8s-ctrl02: 38 restarts
 - kube-system/etcd-nlk8s-ctrl03: 4 restarts
-- kube-system/kube-apiserver-nlk8s-ctrl01: 360 restarts
+- kube-system/kube-apiserver-nlk8s-ctrl01: 364 restarts
 - kube-system/kube-apiserver-nlk8s-ctrl02: 55 restarts
 - kube-system/kube-apiserver-nlk8s-ctrl03: 12 restarts
 - kube-system/kube-controller-manager-nlk8s-ctrl01: 85 restarts
@@ -127,10 +127,9 @@ _None - all pods are Running or Completed_
 - monitoring/bgpalerter-596d7b756b-pxcb5: 12 restarts
 - monitoring/goldpinger-4fvxd: 9 restarts
 - monitoring/goldpinger-qs5xt: 4 restarts
-- monitoring/monitoring-grafana-9ccf6f977-mhjwg: 104 restarts
-- monitoring/monitoring-grafana-9ccf6f977-w47db: 103 restarts
 - monitoring/monitoring-kube-state-metrics-74d579585b-6cprn: 11 restarts
 - monitoring/monitoring-prometheus-node-exporter-d5wkz: 8 restarts
+- monitoring/prometheus-REDACTED_6dfbe9fc-1: 9 restarts
 - monitoring/thanos-compactor-0: 6 restarts
 - nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956swwjx: 21 restarts
 - seaweedfs/seaweedfs-filer-0: 101 restarts
@@ -146,10 +145,10 @@ _None - all certificates valid for 14+ days_
 ### Recent Warning Events
 ```
 NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   29m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   22m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
-kube-system   16m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   39s         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   60m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   52m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system   50m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system   22m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ---
@@ -328,44 +327,44 @@ kube-system   39s         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01 
 ### Node Utilization
 ```
 NAME                 CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)   
-nlk8s-ctrl01   1345m        33%      2155Mi          56%         
-nlk8s-ctrl02   2077m        51%      2566Mi          64%         
-nlk8s-ctrl03   308m         7%       2242Mi          59%         
-nlk8s-node01    560m         7%       3721Mi          47%         
-nlk8s-node02    598m         7%       4720Mi          60%         
-nlk8s-node03    339m         4%       4231Mi          54%         
-nlk8s-node04    487m         6%       6121Mi          78%         
+nlk8s-ctrl01   1433m        35%      1629Mi          42%         
+nlk8s-ctrl02   1378m        34%      2591Mi          64%         
+nlk8s-ctrl03   275m         6%       2296Mi          60%         
+nlk8s-node01    1633m        20%      4728Mi          60%         
+nlk8s-node02    395m         4%       5445Mi          69%         
+nlk8s-node03    346m         4%       3852Mi          49%         
+nlk8s-node04    500m         6%       5267Mi          67%         
 ```
 
 ### Top 10 Pods by CPU
 ```
 NAMESPACE                NAME                                                              CPU(cores)   MEMORY(bytes)   
-logging                  loki-0                                                            348m         2063Mi          
-kube-system              kube-apiserver-nlk8s-ctrl02                                 342m         1220Mi          
-kube-system              cilium-22zgh                                                      329m         272Mi           
-kube-system              tetragon-mdsn9                                                    303m         174Mi           
-kube-system              etcd-nlk8s-ctrl02                                           261m         115Mi           
-kube-system              hubble-ui-576dcd986f-wthq8                                        181m         708Mi           
-monitoring               prometheus-REDACTED_6dfbe9fc-1                173m         1503Mi          
-logging                  promtail-rxt6j                                                    171m         83Mi            
-kube-system              kube-apiserver-nlk8s-ctrl03                                 139m         1290Mi          
-kube-system              kube-apiserver-nlk8s-ctrl01                                 137m         1003Mi          
+kube-system              kube-apiserver-nlk8s-ctrl02                                 285m         1180Mi          
+kube-system              etcd-nlk8s-ctrl02                                           249m         125Mi           
+kube-system              tetragon-mdsn9                                                    204m         173Mi           
+kube-system              cilium-mvsq5                                                      178m         184Mi           
+kube-system              hubble-ui-576dcd986f-wthq8                                        165m         708Mi           
+kube-system              cilium-22zgh                                                      159m         272Mi           
+kube-system              tetragon-vbs6v                                                    130m         164Mi           
+monitoring               prometheus-REDACTED_6dfbe9fc-0                128m         1326Mi          
+monitoring               prometheus-REDACTED_6dfbe9fc-1                125m         1332Mi          
+kube-system              cilium-kghrg                                                      121m         177Mi           
 Metrics server not available
 ```
 
 ### Top 10 Pods by Memory
 ```
 NAMESPACE                NAME                                                              CPU(cores)   MEMORY(bytes)   
-logging                  loki-0                                                            348m         2063Mi          
-awx                      my-awx-task-6f8f46478-wkz6j                                       25m          1611Mi          
-monitoring               prometheus-REDACTED_6dfbe9fc-1                173m         1503Mi          
-monitoring               prometheus-REDACTED_6dfbe9fc-0                78m          1325Mi          
-kube-system              kube-apiserver-nlk8s-ctrl03                                 139m         1290Mi          
-awx                      my-awx-web-7bc5ccfbf4-bkrlp                                       7m           1250Mi          
-kube-system              kube-apiserver-nlk8s-ctrl02                                 342m         1220Mi          
-kube-system              kube-apiserver-nlk8s-ctrl01                                 137m         1003Mi          
-monitoring               bgpalerter-596d7b756b-pxcb5                                       3m           942Mi           
-monitoring               monitoring-grafana-9ccf6f977-mhjwg                                14m          713Mi           
+logging                  loki-0                                                            57m          2059Mi          
+awx                      my-awx-task-6f8f46478-wkz6j                                       27m          1610Mi          
+kube-system              kube-apiserver-nlk8s-ctrl03                                 101m         1379Mi          
+monitoring               prometheus-REDACTED_6dfbe9fc-1                125m         1332Mi          
+monitoring               prometheus-REDACTED_6dfbe9fc-0                128m         1326Mi          
+awx                      my-awx-web-7bc5ccfbf4-bkrlp                                       12m          1223Mi          
+kube-system              kube-apiserver-nlk8s-ctrl02                                 285m         1180Mi          
+monitoring               bgpalerter-596d7b756b-pxcb5                                       2m           940Mi           
+monitoring               monitoring-grafana-68dbd786f9-zs6md                               18m          913Mi           
+monitoring               monitoring-grafana-68dbd786f9-9m48b                               17m          813Mi           
 Metrics server not available
 ```
 
@@ -390,21 +389,21 @@ pihole: CPU=100m Mem=256Mi
 ### PodDisruptionBudgets
 ```
 NAMESPACE         NAME                                              MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
-argocd            argocd-application-controller                     1               N/A               0                     102d
-argocd            argocd-applicationset-controller                  1               N/A               0                     102d
-argocd            argocd-redis                                      1               N/A               0                     102d
-argocd            argocd-repo-server                                1               N/A               1                     102d
-argocd            argocd-server                                     1               N/A               1                     102d
-awx               awx-postgres-pdb                                  1               N/A               0                     102d
-awx               awx-task-pdb                                      1               N/A               0                     102d
-awx               awx-web-pdb                                       1               N/A               0                     102d
-ingress-nginx     ingress-nginx-controller                          1               N/A               1                     102d
-kube-system       coredns-pdb                                       1               N/A               1                     102d
-kube-system       metrics-server-pdb                                1               N/A               0                     102d
-monitoring        monitoring-grafana                                1               N/A               1                     102d
-monitoring        monitoring-kube-prometheus-operator               1               N/A               0                     102d
-monitoring        monitoring-kube-state-metrics                     1               N/A               0                     102d
-nfs-provisioner   nfs-provisioner-REDACTED_5fef70be   N/A             1                 1                     102d
+argocd            argocd-application-controller                     1               N/A               0                     103d
+argocd            argocd-applicationset-controller                  1               N/A               0                     103d
+argocd            argocd-redis                                      1               N/A               0                     103d
+argocd            argocd-repo-server                                1               N/A               1                     103d
+argocd            argocd-server                                     1               N/A               1                     103d
+awx               awx-postgres-pdb                                  1               N/A               0                     103d
+awx               awx-task-pdb                                      1               N/A               0                     103d
+awx               awx-web-pdb                                       1               N/A               0                     103d
+ingress-nginx     ingress-nginx-controller                          1               N/A               1                     103d
+kube-system       coredns-pdb                                       1               N/A               1                     103d
+kube-system       metrics-server-pdb                                1               N/A               0                     103d
+monitoring        monitoring-grafana                                1               N/A               1                     103d
+monitoring        monitoring-kube-prometheus-operator               1               N/A               0                     103d
+monitoring        monitoring-kube-state-metrics                     1               N/A               0                     103d
+nfs-provisioner   nfs-provisioner-REDACTED_5fef70be   N/A             1                 1                     103d
 ```
 
 ### CiliumNetworkPolicies
@@ -427,32 +426,32 @@ nfs-provisioner   nfs-provisioner-REDACTED_5fef70be   N/A             1         
 ### LoadBalancer Services
 ```
 NAMESPACE       NAME                       TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)                      AGE
-ingress-nginx   ingress-nginx-controller   LoadBalancer   10.103.32.106    10.0.X.X   80:31689/TCP,443:30327/TCP   124d
-kube-system     clustermesh-apiserver      LoadBalancer   10.102.123.248   10.0.X.X   2379:30462/TCP               93d
-kube-system     hubble-relay-lb            LoadBalancer   10.110.32.130    10.0.X.X   80:30629/TCP                 101d
-logging         promtail-syslog            LoadBalancer   10.105.64.19     10.0.X.X   514:30623/TCP                99d
-pihole          pihole-dns-lb              LoadBalancer   10.99.196.72     10.0.X.X   53:31803/UDP                 101d
-pihole          pihole-dns-tcp-lb          LoadBalancer   10.106.199.199   10.0.X.X   53:30438/TCP                 101d
+ingress-nginx   ingress-nginx-controller   LoadBalancer   10.103.32.106    10.0.X.X   80:31689/TCP,443:30327/TCP   125d
+kube-system     clustermesh-apiserver      LoadBalancer   10.102.123.248   10.0.X.X   2379:30462/TCP               94d
+kube-system     hubble-relay-lb            LoadBalancer   10.110.32.130    10.0.X.X   80:30629/TCP                 102d
+logging         promtail-syslog            LoadBalancer   10.105.64.19     10.0.X.X   514:30623/TCP                100d
+pihole          pihole-dns-lb              LoadBalancer   10.99.196.72     10.0.X.X   53:31803/UDP                 102d
+pihole          pihole-dns-tcp-lb          LoadBalancer   10.106.199.199   10.0.X.X   53:30438/TCP                 102d
 ```
 
 ### Ingresses
 ```
 NAMESPACE              NAME                   CLASS    HOSTS                                                   ADDRESS         PORTS     AGE
-argocd                 argocd-server          nginx    argocd.example.net                              10.0.X.X   80, 443   104d
-awx                    awx                    nginx    awx.example.net                                 10.0.X.X   80        103d
-bentopdf               bentopdf               nginx    bentopdf.example.net                            10.0.X.X   80        100d
-gatus                  gatus                  nginx    nl-gatus.example.net                            10.0.X.X   80, 443   83d
-kube-system            hubble-ui              nginx    nl-hubble.example.net                           10.0.X.X   80        88d
-REDACTED_d97cef76   REDACTED_d97cef76   nginx    nl-k8s.example.net                              10.0.X.X   80        87d
-monitoring             goldpinger             nginx    goldpinger.example.net                          10.0.X.X   80        92d
-monitoring             grafana                nginx    grafana.example.net                             10.0.X.X   80        103d
-monitoring             prometheus             nginx    nl-prometheus.example.net                       10.0.X.X   80        87d
-monitoring             thanos-query           nginx    nl-thanos.example.net                           10.0.X.X   80        88d
-pihole                 pihole-ingress         nginx    pihole.example.net                              10.0.X.X   80        105d
-seaweedfs              seaweedfs-master       <none>   nl-seaweedfs.example.net                        10.0.X.X   80        89d
-seaweedfs              seaweedfs-s3           <none>   nl-s3.example.net                               10.0.X.X   80        89d
-velero                 velero-ui              nginx    velero.example.net                              10.0.X.X   80        104d
-well-known             well-known             nginx    status.example.net,kyriakos.papadopoulos.tech   10.0.X.X   80, 443   82d
+argocd                 argocd-server          nginx    argocd.example.net                              10.0.X.X   80, 443   105d
+awx                    awx                    nginx    awx.example.net                                 10.0.X.X   80        104d
+bentopdf               bentopdf               nginx    bentopdf.example.net                            10.0.X.X   80        101d
+gatus                  gatus                  nginx    nl-gatus.example.net                            10.0.X.X   80, 443   84d
+kube-system            hubble-ui              nginx    nl-hubble.example.net                           10.0.X.X   80        89d
+REDACTED_d97cef76   REDACTED_d97cef76   nginx    nl-k8s.example.net                              10.0.X.X   80        88d
+monitoring             goldpinger             nginx    goldpinger.example.net                          10.0.X.X   80        93d
+monitoring             grafana                nginx    grafana.example.net                             10.0.X.X   80        104d
+monitoring             prometheus             nginx    nl-prometheus.example.net                       10.0.X.X   80        88d
+monitoring             thanos-query           nginx    nl-thanos.example.net                           10.0.X.X   80        89d
+pihole                 pihole-ingress         nginx    pihole.example.net                              10.0.X.X   80        106d
+seaweedfs              seaweedfs-master       <none>   nl-seaweedfs.example.net                        10.0.X.X   80        90d
+seaweedfs              seaweedfs-s3           <none>   nl-s3.example.net                               10.0.X.X   80        90d
+velero                 velero-ui              nginx    velero.example.net                              10.0.X.X   80        105d
+well-known             well-known             nginx    status.example.net,kyriakos.papadopoulos.tech   10.0.X.X   80, 443   83d
 ```
 
 ---
@@ -468,16 +467,16 @@ well-known             well-known             nginx    status.example.net,kyriak
 ### StorageClasses
 ```
 NAME                                      PROVISIONER                                                     RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
-nfs-client                                cluster.local/nfs-provisioner-REDACTED_5fef70be   Delete          Immediate           true                   105d
-nfs-sc                                    kubernetes.io/no-provisioner                                    Retain          Immediate           true                   125d
-synology-csi-iscsi-delete                 csi.san.synology.com                                            Delete          Immediate           true                   102d
-synology-csi-iscsi-retain                 csi.san.synology.com                                            Retain          Immediate           true                   102d
-synology-csi-nfs-delete                   csi.san.synology.com                                            Delete          Immediate           true                   102d
-synology-csi-nfs-retain                   csi.san.synology.com                                            Retain          Immediate           true                   102d
-REDACTED_4f3da73d   csi.san.synology.com                                            Delete          Immediate           true                   102d
-REDACTED_b280aec5   csi.san.synology.com                                            Retain          Immediate           true                   102d
-synology-csi-smb-delete                   csi.san.synology.com                                            Delete          Immediate           true                   102d
-synology-csi-smb-retain                   csi.san.synology.com                                            Retain          Immediate           true                   102d
+nfs-client                                cluster.local/nfs-provisioner-REDACTED_5fef70be   Delete          Immediate           true                   106d
+nfs-sc                                    kubernetes.io/no-provisioner                                    Retain          Immediate           true                   126d
+synology-csi-iscsi-delete                 csi.san.synology.com                                            Delete          Immediate           true                   103d
+synology-csi-iscsi-retain                 csi.san.synology.com                                            Retain          Immediate           true                   103d
+synology-csi-nfs-delete                   csi.san.synology.com                                            Delete          Immediate           true                   103d
+synology-csi-nfs-retain                   csi.san.synology.com                                            Retain          Immediate           true                   103d
+REDACTED_4f3da73d   csi.san.synology.com                                            Delete          Immediate           true                   103d
+REDACTED_b280aec5   csi.san.synology.com                                            Retain          Immediate           true                   103d
+synology-csi-smb-delete                   csi.san.synology.com                                            Delete          Immediate           true                   103d
+synology-csi-smb-retain                   csi.san.synology.com                                            Retain          Immediate           true                   103d
 ```
 
 ---
@@ -501,17 +500,17 @@ synology-csi-smb-retain                   csi.san.synology.com                  
 ### Schedules
 ```
 NAME            STATUS    SCHEDULE    LASTBACKUP   AGE    PAUSED
-daily-backup    Enabled   0 2 * * *   61m          104d   
-weekly-backup   Enabled   0 3 * * 0   2d           104d   
+daily-backup    Enabled   0 2 * * *   62m          105d   
+weekly-backup   Enabled   0 3 * * 0   3d           105d   
 ```
 
 ### Recent Backups (last 5)
 ```
-daily-backup-20260306020009    4d1h
-daily-backup-20260307020010    3d1h
-daily-backup-20260308020011    2d1h
-weekly-backup-20260308030011   2d
-daily-backup-20260309020012    25h
+daily-backup-20260307020010    4d1h
+daily-backup-20260308020011    3d1h
+weekly-backup-20260308030011   3d
+daily-backup-20260309020012    2d1h
+daily-backup-20260310020014    25h
 ```
 
 ---
@@ -523,11 +522,11 @@ argocd              	argocd                	3       	2025-11-29 02:18:52.9854737
 cert-manager        	cert-manager          	3       	2025-11-30 21:22:09.520251302 +0000 UTC	deployed	cert-manager-v1.17.1                  	v1.17.1    
 cilium              	kube-system           	20      	2025-12-12 16:06:57.516153767 +0000 UTC	deployed	cilium-1.18.4                         	1.18.4     
 external-secrets    	external-secrets      	2       	2025-12-16 13:20:23.175188029 +0000 UTC	deployed	external-secrets-1.1.1                	v1.1.1     
-ingress-nginx       	ingress-nginx         	8       	2025-12-17 17:38:33.246089847 +0000 UTC	deployed	ingress-nginx-4.14.0                  	1.14.0     
+ingress-nginx       	ingress-nginx         	9       	2026-03-11 00:24:34.420335322 +0000 UTC	deployed	ingress-nginx-4.14.0                  	1.14.0     
 k8s-agent           	REDACTED_01b50c5d	6       	2025-11-29 02:18:29.271243252 +0000 UTC	deployed	gitlab-agent-2.21.1                   	v18.6.1    
 REDACTED_d97cef76	REDACTED_d97cef76  	2       	2026-02-25 19:02:27.096604857 +0000 UTC	deployed	REDACTED_d97cef76-7.14.0           	           
 loki                	logging               	10      	2025-12-20 00:53:40.31805239 +0000 UTC 	deployed	loki-6.46.0                           	3.5.7      
-monitoring          	monitoring            	25      	2025-12-26 23:00:11.225695324 +0000 UTC	deployed	REDACTED_d8074874-79.10.0         	v0.86.2    
+monitoring          	monitoring            	27      	2026-03-11 02:01:04.93846803 +0000 UTC 	deployed	REDACTED_d8074874-79.10.0         	v0.86.2    
 nfs-provisioner     	nfs-provisioner       	8       	2025-11-29 02:18:25.900770326 +0000 UTC	deployed	REDACTED_5fef70be-4.0.18	4.0.2      
 promtail            	logging               	7       	2025-12-20 00:06:56.11230417 +0000 UTC 	deployed	promtail-6.17.1                       	3.5.1      
 seaweedfs           	seaweedfs             	1       	2025-12-11 00:12:58.814719121 +0000 UTC	deployed	seaweedfs-4.0.401                     	4.01       
@@ -542,109 +541,109 @@ tetragon            	kube-system           	7       	2025-12-20 22:35:40.0302825
 ### All Namespaces
 ```
 NAME                     STATUS   AGE
-argocd                   Active   104d
-awx                      Active   125d
-bentopdf                 Active   100d
-cert-manager             Active   99d
-cilium-secrets           Active   101d
-cilium-spire             Active   101d
-default                  Active   126d
-external-secrets         Active   100d
-gatus                    Active   83d
-REDACTED_01b50c5d   Active   105d
-ingress-nginx            Active   124d
-kube-node-lease          Active   126d
-kube-public              Active   126d
-kube-system              Active   126d
-REDACTED_d97cef76     Active   87d
-logging                  Active   99d
-monitoring               Active   125d
-nfs-provisioner          Active   124d
-opentofu-ns              Active   124d
-pihole                   Active   105d
-production               Active   105d
-seaweedfs                Active   89d
-synology-csi             Active   102d
-velero                   Active   104d
-well-known               Active   82d
+argocd                   Active   105d
+awx                      Active   126d
+bentopdf                 Active   101d
+cert-manager             Active   100d
+cilium-secrets           Active   102d
+cilium-spire             Active   102d
+default                  Active   127d
+external-secrets         Active   101d
+gatus                    Active   84d
+REDACTED_01b50c5d   Active   106d
+ingress-nginx            Active   125d
+kube-node-lease          Active   127d
+kube-public              Active   127d
+kube-system              Active   127d
+REDACTED_d97cef76     Active   88d
+logging                  Active   100d
+monitoring               Active   126d
+nfs-provisioner          Active   125d
+opentofu-ns              Active   125d
+pihole                   Active   106d
+production               Active   106d
+seaweedfs                Active   90d
+synology-csi             Active   103d
+velero                   Active   105d
+well-known               Active   83d
 ```
 
 ### All Deployments
 ```
 NAMESPACE                NAME                                              READY   UP-TO-DATE   AVAILABLE   AGE
-argocd                   argocd-applicationset-controller                  1/1     1            1           104d
-argocd                   argocd-redis                                      1/1     1            1           104d
-argocd                   argocd-repo-server                                2/2     2            2           104d
-argocd                   argocd-server                                     2/2     2            2           104d
-awx                      awx-operator-controller-manager                   1/1     1            1           125d
-awx                      my-awx-task                                       1/1     1            1           125d
-awx                      my-awx-web                                        1/1     1            1           125d
-bentopdf                 bentopdf                                          1/1     1            1           100d
-cert-manager             cert-manager                                      1/1     1            1           99d
-cert-manager             cert-manager-cainjector                           1/1     1            1           99d
-cert-manager             cert-manager-webhook                              1/1     1            1           99d
-external-secrets         external-secrets                                  1/1     1            1           100d
-external-secrets         external-secrets-cert-controller                  1/1     1            1           100d
-external-secrets         external-secrets-webhook                          1/1     1            1           100d
-gatus                    gatus                                             1/1     1            1           83d
-REDACTED_01b50c5d   REDACTED_ab04b573-v2                         2/2     2            2           105d
-ingress-nginx            ingress-nginx-controller                          2/2     2            2           124d
-kube-system              cilium-operator                                   1/1     1            1           101d
-kube-system              clustermesh-apiserver                             1/1     1            1           93d
-kube-system              coredns                                           2/2     2            2           126d
-kube-system              hubble-relay                                      1/1     1            1           101d
-kube-system              hubble-ui                                         1/1     1            1           101d
-kube-system              metrics-server                                    1/1     1            1           125d
-kube-system              tetragon-operator                                 1/1     1            1           80d
-REDACTED_d97cef76     REDACTED_d97cef76-api                          1/1     1            1           87d
-REDACTED_d97cef76     REDACTED_d97cef76-auth                         1/1     1            1           87d
-REDACTED_d97cef76     REDACTED_d97cef76-kong                         1/1     1            1           87d
-REDACTED_d97cef76     REDACTED_d97cef76-metrics-scraper              1/1     1            1           87d
-REDACTED_d97cef76     REDACTED_d97cef76-web                          1/1     1            1           87d
-monitoring               bgpalerter                                        1/1     1            1           85d
-monitoring               monitoring-grafana                                2/2     2            2           102d
-monitoring               monitoring-kube-prometheus-operator               1/1     1            1           124d
-monitoring               monitoring-kube-state-metrics                     1/1     1            1           124d
-monitoring               snmp-exporter                                     1/1     1            1           87d
-monitoring               thanos-query                                      2/2     2            2           88d
-nfs-provisioner          nfs-provisioner-REDACTED_5fef70be   1/1     1            1           124d
-pihole                   pihole                                            1/1     1            1           100d
-seaweedfs                seaweedfs-filer-sync                              1/1     1            1           88d
-velero                   velero                                            1/1     1            1           104d
-velero                   velero-ui                                         1/1     1            1           104d
-well-known               well-known                                        1/1     1            1           82d
+argocd                   argocd-applicationset-controller                  1/1     1            1           105d
+argocd                   argocd-redis                                      1/1     1            1           105d
+argocd                   argocd-repo-server                                2/2     2            2           105d
+argocd                   argocd-server                                     2/2     2            2           105d
+awx                      awx-operator-controller-manager                   1/1     1            1           126d
+awx                      my-awx-task                                       1/1     1            1           126d
+awx                      my-awx-web                                        1/1     1            1           126d
+bentopdf                 bentopdf                                          1/1     1            1           101d
+cert-manager             cert-manager                                      1/1     1            1           100d
+cert-manager             cert-manager-cainjector                           1/1     1            1           100d
+cert-manager             cert-manager-webhook                              1/1     1            1           100d
+external-secrets         external-secrets                                  1/1     1            1           101d
+external-secrets         external-secrets-cert-controller                  1/1     1            1           101d
+external-secrets         external-secrets-webhook                          1/1     1            1           101d
+gatus                    gatus                                             1/1     1            1           84d
+REDACTED_01b50c5d   REDACTED_ab04b573-v2                         2/2     2            2           106d
+ingress-nginx            ingress-nginx-controller                          2/2     2            2           125d
+kube-system              cilium-operator                                   1/1     1            1           102d
+kube-system              clustermesh-apiserver                             1/1     1            1           94d
+kube-system              coredns                                           2/2     2            2           127d
+kube-system              hubble-relay                                      1/1     1            1           102d
+kube-system              hubble-ui                                         1/1     1            1           102d
+kube-system              metrics-server                                    1/1     1            1           126d
+kube-system              tetragon-operator                                 1/1     1            1           81d
+REDACTED_d97cef76     REDACTED_d97cef76-api                          1/1     1            1           88d
+REDACTED_d97cef76     REDACTED_d97cef76-auth                         1/1     1            1           88d
+REDACTED_d97cef76     REDACTED_d97cef76-kong                         1/1     1            1           88d
+REDACTED_d97cef76     REDACTED_d97cef76-metrics-scraper              1/1     1            1           88d
+REDACTED_d97cef76     REDACTED_d97cef76-web                          1/1     1            1           88d
+monitoring               bgpalerter                                        1/1     1            1           86d
+monitoring               monitoring-grafana                                2/2     2            2           103d
+monitoring               monitoring-kube-prometheus-operator               1/1     1            1           125d
+monitoring               monitoring-kube-state-metrics                     1/1     1            1           125d
+monitoring               snmp-exporter                                     1/1     1            1           88d
+monitoring               thanos-query                                      2/2     2            2           89d
+nfs-provisioner          nfs-provisioner-REDACTED_5fef70be   1/1     1            1           125d
+pihole                   pihole                                            1/1     1            1           101d
+seaweedfs                seaweedfs-filer-sync                              1/1     1            1           89d
+velero                   velero                                            1/1     1            1           105d
+velero                   velero-ui                                         1/1     1            1           105d
+well-known               well-known                                        1/1     1            1           83d
 ```
 
 ### All StatefulSets
 ```
 NAMESPACE      NAME                                                   READY   AGE
-argocd         argocd-application-controller                          1/1     104d
-awx            my-awx-postgres-15                                     1/1     125d
-cilium-spire   spire-server                                           1/1     101d
-logging        loki                                                   1/1     80d
-monitoring     alertmanager-monitoring-kube-prometheus-alertmanager   2/2     102d
-monitoring     prometheus-REDACTED_6dfbe9fc       2/2     102d
-monitoring     thanos-compactor                                       1/1     88d
-monitoring     thanos-store                                           2/2     88d
-seaweedfs      seaweedfs-filer                                        2/2     89d
-seaweedfs      seaweedfs-master                                       3/3     89d
-seaweedfs      seaweedfs-volume                                       2/2     89d
-synology-csi   synology-csi-controller                                1/1     102d
+argocd         argocd-application-controller                          1/1     105d
+awx            my-awx-postgres-15                                     1/1     126d
+cilium-spire   spire-server                                           1/1     102d
+logging        loki                                                   1/1     81d
+monitoring     alertmanager-monitoring-kube-prometheus-alertmanager   2/2     103d
+monitoring     prometheus-REDACTED_6dfbe9fc       2/2     103d
+monitoring     thanos-compactor                                       1/1     89d
+monitoring     thanos-store                                           2/2     89d
+seaweedfs      seaweedfs-filer                                        2/2     90d
+seaweedfs      seaweedfs-master                                       3/3     90d
+seaweedfs      seaweedfs-volume                                       2/2     90d
+synology-csi   synology-csi-controller                                1/1     103d
 ```
 
 ### All DaemonSets
 ```
 NAMESPACE      NAME                                  DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
-cilium-spire   spire-agent                           7         7         7       7            7           <none>                   101d
-kube-system    cilium                                7         7         7       7            7           kubernetes.io/os=linux   101d
-kube-system    cilium-envoy                          7         7         7       7            7           kubernetes.io/os=linux   101d
-kube-system    tetragon                              7         7         7       7            7           <none>                   80d
-logging        loki-canary                           4         4         4       4            4           <none>                   88d
-logging        promtail                              7         7         7       7            7           <none>                   99d
-monitoring     goldpinger                            7         7         7       7            7           <none>                   92d
-monitoring     monitoring-prometheus-node-exporter   7         7         7       7            7           kubernetes.io/os=linux   124d
-synology-csi   synology-csi-node                     7         7         7       7            7           <none>                   102d
-velero         velero-node-agent                     4         4         4       4            4           <none>                   104d
+cilium-spire   spire-agent                           7         7         7       7            7           <none>                   102d
+kube-system    cilium                                7         7         7       7            7           kubernetes.io/os=linux   102d
+kube-system    cilium-envoy                          7         7         7       7            7           kubernetes.io/os=linux   102d
+kube-system    tetragon                              7         7         7       7            7           <none>                   81d
+logging        loki-canary                           4         4         4       4            4           <none>                   89d
+logging        promtail                              7         7         7       7            7           <none>                   100d
+monitoring     goldpinger                            7         7         7       7            7           <none>                   93d
+monitoring     monitoring-prometheus-node-exporter   7         7         7       7            7           kubernetes.io/os=linux   125d
+synology-csi   synology-csi-node                     7         7         7       7            7           <none>                   103d
+velero         velero-node-agent                     4         4         4       4            4           <none>                   105d
 ```
 
 ---
