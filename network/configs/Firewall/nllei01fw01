@@ -620,6 +620,8 @@ object network NL_OUTSIDE_FREEDOM
  host 203.0.113.X
 object network nl-matrix01
  host 10.0.X.X
+object network grafana.example.net
+ host 10.0.X.X
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -1014,6 +1016,7 @@ access-list outside_freedom_cryptomap_27 extended permit ip object-group S2S_LEI
 access-list dmz_servers02_access_in extended permit object-group TCPUDP any object nlpihole02 eq domain inactive 
 access-list dmz_servers02_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp inactive 
 access-list dmz_servers02_access_in extended permit tcp object nl-matrix01 object nlsmtp-gpg01 eq smtp 
+access-list dmz_servers02_access_in extended permit tcp object nl-matrix01 object grafana.example.net eq https 
 access-list dmz_servers02_access_in extended permit ip object-group S2S_LEI_GRP_dmz_servers02 object-group S2S_SKG_GRP_dmz_servers02 
 access-list dmz_servers02_access_in extended permit icmp object-group S2S_LEI_GRP_dmz_servers02 object-group S2S_SKG_GRP_dmz_servers02 
 access-list dmz_servers02_access_in extended deny ip any object-group nl_all_subnets 
@@ -2025,5 +2028,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:f3d9fb9b2511b57f9729e2ead8a5d1b4
+Cryptochecksum:30d842a91ac01af4580c7f42fe1da51b
 : end
