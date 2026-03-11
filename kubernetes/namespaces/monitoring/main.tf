@@ -341,7 +341,7 @@ resource "helm_release" "monitoring" {
               static_configs = [{
                 targets = [
                   "https://matrix.example.net/_matrix/client/versions",
-                  "https://gitlab.example.net/api/v4/version",
+                  "https://gitlab.example.net/explore",
                   "https://youtrack.example.net/api/config",
                   "https://n8n.example.net/healthz",
                   "https://ollama.example.net/api/tags",
