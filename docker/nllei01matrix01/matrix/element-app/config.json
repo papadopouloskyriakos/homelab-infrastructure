@@ -15,7 +15,7 @@
   "integrations_rest_url": null,
   "REDACTED_d56a1f03": [],
   "REDACTED_5cac297b": "NL",
-  "show_labs_settings": true,
+  "show_labs_settings": false,
   "features": {},
   "default_theme": "dark",
   "room_directory": {
@@ -23,5 +23,6 @@
       "matrix.example.net"
     ]
   },
+  "logout_redirect_url": "https://mas.example.net/account/sessions/end",
   "embedded_pages": {}
 }

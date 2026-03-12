@@ -80,7 +80,7 @@ database:
 
 # Presence settings
 presence:
-  enabled: true
+  enabled: false
 
 caches:
   global_factor: 0.5
