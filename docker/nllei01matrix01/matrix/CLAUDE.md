@@ -90,7 +90,7 @@ Both bridges use the **megabridge v0.26+ config format** and require:
 - **Memory limits** via `deploy.resources.limits.memory` (not `mem_limit`)
 - **Element Web rebranded** via nginx `sub_filter` (title, OG tags for link previews)
 - **VoIP**: Jitsi public STUN/TURN for 1:1 calls, meet.jit.si for conferences
-- **Element X calling**: MatrixRTC via lk.element.dev (Element's hosted LiveKit SFU)
+- **Element X calling**: MatrixRTC via lk.element.dev (Element's hosted LiveKit SFU). Requires `msc3401_enabled: true` in Synapse and both `m.rtc_foci` (stable) + `org.matrix.msc4143.rtc_foci` (unstable) in well-known. Element X caches well-known aggressively — users must clear app cache after changes.
 - **Sliding sync**: enabled natively in Synapse (v1.114+) + Element Web feature flag
 - **Bot accounts** have `user_type: bot`, hidden from user directory
 - **Authenticated media** intentionally disabled (`enable_authenticated_media: false`)
