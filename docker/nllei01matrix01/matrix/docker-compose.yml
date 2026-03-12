@@ -4,7 +4,10 @@ services:
     container_name: nginx
     network_mode: "host"
     security_opt: [no-new-privileges:true]
-    mem_limit: 256m
+    deploy:
+      resources:
+        limits:
+          memory: 256m
 #    ports:
 #      - "6666:6666"
     volumes:
@@ -51,7 +54,10 @@ services:
     restart: unless-stopped
     network_mode: host
     security_opt: [no-new-privileges:true]
-    mem_limit: 512m
+    deploy:
+      resources:
+        limits:
+          memory: 512m
     depends_on:
       - postgres
     volumes:
@@ -77,7 +83,10 @@ services:
     container_name: synapse
     restart: unless-stopped
     security_opt: [no-new-privileges:true]
-    mem_limit: 1536m
+    deploy:
+      resources:
+        limits:
+          memory: 1536m
     environment:
       SYNAPSE_SERVER_NAME: matrix.example.net
       SYNAPSE_REPORT_STATS: "no"
@@ -143,7 +152,10 @@ services:
     image: awesometechnologies/synapse-admin:${SYNAPSE_ADMIN_VERSION}
     network_mode: "host"
     security_opt: [no-new-privileges:true]
-    mem_limit: 128m
+    deploy:
+      resources:
+        limits:
+          memory: 128m
 #    ports:
 #      - "8080:80"
     restart: unless-stopped
@@ -166,7 +178,10 @@ services:
     container_name: element-web
     network_mode: "host"
     security_opt: [no-new-privileges:true]
-    mem_limit: 128m
+    deploy:
+      resources:
+        limits:
+          memory: 128m
 #    ports:
 #      - "8080:80"
     volumes:
@@ -197,7 +212,10 @@ services:
     image: binwiederhier/ntfy:${NTFY_VERSION}
     container_name: ntfy
     security_opt: [no-new-privileges:true]
-    mem_limit: 256m
+    deploy:
+      resources:
+        limits:
+          memory: 256m
     command:
       - serve
       - --config=/etc/ntfy/server.yml
@@ -239,7 +257,10 @@ services:
     restart: unless-stopped
     network_mode: "host"
     security_opt: [no-new-privileges:true]
-    mem_limit: 256m
+    deploy:
+      resources:
+        limits:
+          memory: 256m
 ###    ports:
 ###      - "9993:9993"    # Homeserver port
 ###      - "9000:9000"    # Webhook port
@@ -270,7 +291,10 @@ services:
     restart: unless-stopped
     network_mode: "host"
     security_opt: [no-new-privileges:true]
-    mem_limit: 128m
+    deploy:
+      resources:
+        limits:
+          memory: 128m
 #    ports:
 #      - "6379:6379"
     command: ["redis-server", "--appendonly", "yes", "--bind", "127.0.0.1", "--protected-mode", "yes"]
@@ -288,7 +312,10 @@ services:
     restart: unless-stopped
     network_mode: "host"
     security_opt: [no-new-privileges:true]
-    mem_limit: 512m
+    deploy:
+      resources:
+        limits:
+          memory: 512m
     environment:
       POSTGRES_DB: synapse
       POSTGRES_USER: synapse
