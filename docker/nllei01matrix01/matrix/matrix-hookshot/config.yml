@@ -33,7 +33,7 @@ encryption:
   storagePath: /data/cryptostore
 
 permissions:
-  - actor: "*"
+  - actor: "matrix.example.net"
     services:
       - service: "*"
         level: admin
