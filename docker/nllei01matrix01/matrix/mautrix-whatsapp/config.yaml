@@ -1,0 +1,58 @@
+# mautrix-whatsapp config (v0.26+ megabridge format)
+
+homeserver:
+  address: http://localhost:8008
+  domain: matrix.example.net
+  software: standard
+  async_media: false
+
+appservice:
+  address: http://localhost:29329
+  hostname: 127.0.0.1
+  port: 29329
+  id: whatsapp
+  as_token: REDACTED_fafb9925
+  hs_token: REDACTED_6536404d
+  bot:
+    username: whatsappbot
+    displayname: WhatsApp Bridge Bot
+    avatar: mxc://maunium.net/NeXNQarUbrlYBiPCpprYsRqr
+
+database:
+  type: postgres
+  uri: postgres://mautrix_whatsapp:mautrix_whatsapp_pass@localhost:5432/mautrix_whatsapp?sslmode=disable
+  max_open_conns: 5
+
+bridge:
+  command_prefix: "!wa"
+  personal_filtering_spaces: true
+  private_chat_portal_meta: true
+  bridge_matrix_leave: false
+  bridge_notices: false
+  permissions:
+    "*": relay
+    "matrix.example.net": user
+    "@dominicus:matrix.example.net": admin
+
+network:
+  displayname_template: '{{or .PushName .BusinessName .JID "Unknown user"}}'
+  call_start_notices: true
+  identity_change_notices: false
+  history_sync:
+    backfill: true
+    max_initial_conversations: 25
+    message_count: 50
+    request_full_sync: false
+
+encryption:
+  allow: true
+  default: true
+  require: false
+  appservice: true
+  msc4190: true
+
+logging:
+  min_level: info
+  writers:
+    - type: stdout
+      format: pretty-colored

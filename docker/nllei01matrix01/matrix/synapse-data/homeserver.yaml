@@ -56,6 +56,8 @@ matrix_REDACTED_6fa691d2_service:
 app_service_config_files:
   - /data/matrix-hookshot/registration.yml
 #  - /data/matrix-as-mm/registration.yml
+  - /data/mautrix-signal/registration.yaml
+  - /data/mautrix-whatsapp/registration.yaml
 
 auto_accept_invites:
   enabled: true
