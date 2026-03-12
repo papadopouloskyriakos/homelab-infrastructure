@@ -1,0 +1,170 @@
+http:
+  public_base: https://mas.example.net
+  listeners:
+    # Public listener — user-facing only (exposed via nginx)
+    - name: web
+      resources:
+        - name: discovery
+        - name: human
+        - name: oauth
+        - name: compat
+        - name: assets
+      binds:
+        - address: "0.0.0.0:9090"
+    # Internal listener — admin only (localhost, never exposed to internet)
+    - name: internal
+      resources:
+        - name: graphql
+          playground: false
+        - name: adminapi
+        - name: health
+      binds:
+        - address: "127.0.0.1:9091"
+
+#captcha:
+#  service: hcaptcha
+#  site_key: "REDACTED_9452851c"
+#  secret_key: "REDACTED_e5425ade"
+
+captcha:
+  service: cloudflare_turnstile
+  site_key: "REDACTED_5914b0d0"
+  secret_key: "REDACTED_fbd1d3dc"
+
+email:
+  from: "Matrix Server <noreply_matrix@example.net>"
+  reply_to: "Matrix Support <support_matrix@example.net>"
+  transport: smtp
+  hostname: "10.0.X.X"
+  port: 25
+  mode: plain
+
+database:
+  kind: postgres
+  uri: postgres://mas:REDACTED_ffef1e87@localhost:5432/mas
+
+matrix:
+  kind: synapse
+  homeserver: matrix.example.net
+  endpoint: http://localhost:8008
+  secret: "REDACTED_419eedce"
+
+clients:
+  - client_id: "0000000000000000000SYNAPSE"
+    client_auth_method: client_secret_basic
+    client_secret: "REDACTED_419eedce"
+
+# Password REDACTED_6fa691d2 settings
+passwords:
+  enabled: true
+  minimum_complexity: 2  # 0-4 scale, 2 is moderate
+  schemes:
+    - version: 1
+      algorithm: bcrypt      # For existing migrated users
+    - version: 2
+      algorithm: argon2id    # For new users
+
+# Account management settings - THIS IS THE KEY SECTION FOR REGISTRATION
+account:
+  password_registration_enabled: true    # ENABLE WEB REGISTRATION
+  password_registration_email_required: true
+  password_change_allowed: true
+  password_recovery_enabled: true        # Enable password reset via email
+  email_change_allowed: true
+  displayname_change_allowed: true
+
+# Policy configuration - CORRECTED STRUCTURE
+policy:
+  # Use the default WASM module path for Docker
+  wasm_module: /usr/local/share/mas-cli/policy.wasm
+
+  # Policy entrypoints
+  client_registration_entrypoint: client_registration/violation
+  register_entrypoint: register/violation
+  authorization_grant_entrypoint: authorization_grant/violation
+  password_entrypoint: password/violation
+  email_entrypoint: email/violation
+
+  # Policy data - PROPER STRUCTURE
+  data:
+    # Optional: Restrict registration to specific email domains
+    # Comment out or modify as needed
+    # allowed_domains:
+    #   - "*.example.net"
+    #   - "gmail.com"
+
+    # Optional: Ban specific domains
+    # banned_domains:
+    #   - "*.tempmail.com"
+
+    # Rate limiting for registrations (prevent abuse)
+    rate_limiting:
+      registration:
+        burst: 5              # Allow 5 registrations in burst
+        per_second: 0.001     # ~1 registration per 15 minutes from same IP
+      login:
+        per_ip:
+          burst: 10
+          per_second: 0.1
+        per_account:
+          burst: 1800
+          per_second: 0.5
+      account_recovery:
+        per_ip:
+          burst: 3
+          per_second: 0.0008
+        per_address:
+          burst: 3
+          per_second: 0.0002
+
+# Secrets configuration
+secrets:
+  encryption: ada5aac0bef3fb6391a6c9fa7407f53d2cf0d6458877523ed40781aca55dd1e1
+  keys:
+  - key: |
+      REDACTED_b97c5d06
+      REDACTED_9b0aa243
+      REDACTED_c0dda2df
+      REDACTED_aee07c69
+      REDACTED_a22e3d8f
+      REDACTED_5f9a4708
+      REDACTED_eefac63c
+      REDACTED_84f8c0d2
+      REDACTED_f8b25c6c
+      REDACTED_2fe98c7b
+      REDACTED_911d91cc
+      REDACTED_b7c1b47c
+      REDACTED_2416d418
+      REDACTED_9bf5822f
+      REDACTED_145f6e6f
+      REDACTED_f69d2313
+      REDACTED_95541069
+      REDACTED_9f6605c0
+      REDACTED_2480932f
+      REDACTED_4c4f93c9
+      REDACTED_7482e595
+      REDACTED_911e3f50
+      REDACTED_da2f4ac8
+      REDACTED_24d88b95
+      REDACTED_23806aa7
+      REDACTED_ef9e18df
+      REDACTED_c726e582
+  - key: |
+      REDACTED_5df0e308
+      REDACTED_bad6239a
+      REDACTED_18fb5eb9
+      REDACTED_d0e52ecf
+      REDACTED_b95adea5
+  - key: |
+      REDACTED_5df0e308
+      REDACTED_2ac6d997
+      REDACTED_cd521908
+      REDACTED_763b5957
+      REDACTED_9d003151
+      REDACTED_b95adea5
+  - key: |
+      REDACTED_5df0e308
+      REDACTED_a564b845
+      REDACTED_b52351ce
+      REDACTED_d4074a63
+      REDACTED_b95adea5
