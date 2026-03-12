@@ -24,5 +24,11 @@
     ]
   },
   "logout_redirect_url": "https://mas.example.net/account/sessions/end",
-  "embedded_pages": {}
+  "embedded_pages": {},
+  "jitsi": {
+    "preferred_domain": "meet.jit.si"
+  },
+  "jitsi_widget": {
+    "REDACTED_eadca1df": true
+  }
 }
