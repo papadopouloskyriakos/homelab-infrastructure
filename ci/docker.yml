@@ -45,6 +45,7 @@
 validate_docker_compose:
   extends: .docker_base
   stage: validate
+  before_script: []  # No SSH needed for validation
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
