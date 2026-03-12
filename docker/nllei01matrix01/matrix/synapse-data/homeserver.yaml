@@ -36,16 +36,15 @@ experimental_features:
   msc3202_device_masquerading: true
   msc3202_transaction_extensions: true
   msc2409_to_device_messages_enabled: true
-  msc3861:
-    enabled: true
-    issuer: https://mas.example.net/
-    client_id: 0000000000000000000SYNAPSE
-    client_auth_method: client_secret_basic
-    client_secret: "REDACTED_419eedce"
-    admin_token: "ae0d933d41889e2e84aa172448b11ba28b125f7ad635d67fd8e48ca6196b60ab"
-    account_management_url: https://mas.example.net/account/
   msc4222_enabled: true
   msc4108_enabled: true
+
+# Matrix Authentication Service (replaces deprecated experimental_features.msc3861)
+matrix_REDACTED_6fa691d2_service:
+  enabled: true
+  endpoint: "http://localhost:9090/"
+  secret: "REDACTED_419eedce"
+  account_management_url: "https://mas.example.net/account/"
 
 app_service_config_files:
   - /data/matrix-hookshot/registration.yml
@@ -91,8 +90,26 @@ filter_timeline_limit: 100
 block_non_admin_invites: false
 enable_search: true
 
-# IP filtering
-ip_range_blacklist: []
+# IP filtering — block outbound requests to private/internal ranges (SSRF protection)
+ip_range_blacklist:
+  - '127.0.0.0/8'
+  - '10.0.0.0/8'
+  - '10.1.X.X/12'
+  - '10.0.X.X/16'
+  - '100.64.0.0/10'
+  - '192.0.0.0/24'
+  - '169.254.0.0/16'
+  - '198.18.0.0/15'
+  - '192.0.2.0/24'
+  - '198.51.100.0/24'
+  - '203.0.113.0/24'
+  - '224.0.0.0/4'
+  - '::1/128'
+  - 'fe80::/10'
+  - 'fc00::/7'
+  - '2001:db8::/32'
+  - 'ff00::/8'
+  - 'fec0::/10'
 ip_range_whitelist: []
 
 # Listeners
