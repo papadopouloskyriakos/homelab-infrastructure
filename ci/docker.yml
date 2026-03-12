@@ -120,7 +120,10 @@ deploy_docker:
           local icon="✅"
           [ "$status" = "failure" ] && icon="❌"
           [ "$status" = "warning" ] && icon="⚠️"
-          local payload="{\"text\":\"${icon} **Docker Deploy** | ${message} | [Pipeline](${CI_PIPELINE_URL})\"}"
+          [ "$status" = "info" ] && icon="🚀"
+          local commit_short=$(echo "$CI_COMMIT_SHA" | cut -c1-8)
+          local commit_msg=$(echo "$CI_COMMIT_TITLE" | head -c 80)
+          local payload="{\"text\":\"${icon} **Docker Deploy — ${status^^}**\n\n${message}\n\n📌 \`${commit_short}\` ${commit_msg}\n👤 ${GITLAB_USER_NAME:-CI}\n🔗 [Pipeline #${CI_PIPELINE_IID}](${CI_PIPELINE_URL})\"}"
           for i in 1 2 3; do
             if curl -sfS -X POST "$MATRIX_WEBHOOK_URL" \
               -H "Content-Type: application/json" \
@@ -186,7 +189,8 @@ deploy_docker:
       echo ""
 
       PROJECT_LIST=$(echo "$PROJECTS" | tr '\n' ', ' | sed 's/,$//')
-      notify_matrix "info" "Deploying: ${PROJECT_LIST}"
+      FILE_COUNT=$(echo "$CHANGED" | wc -l)
+      notify_matrix "info" "Starting deploy of **${PROJECT_LIST}** (${FILE_COUNT} files changed)"
 
       DEPLOYMENT_FAILED=0
       DEPLOYED_PROJECTS=""
@@ -287,14 +291,14 @@ deploy_docker:
         echo "================================================"
         echo "ERROR: One or more deployments failed"
         echo "================================================"
-        notify_matrix "failure" "Failed:${FAILED_PROJECTS} | Succeeded:${DEPLOYED_PROJECTS:-none}"
+        notify_matrix "failure" "❌ Failed: ${FAILED_PROJECTS}\n✅ Succeeded: ${DEPLOYED_PROJECTS:-none}"
         exit 1
       fi
 
       echo "================================================"
       echo "SUCCESS: Docker deployment completed"
       echo "================================================"
-      notify_matrix "success" "Deployed:${DEPLOYED_PROJECTS}"
+      notify_matrix "success" "All services deployed successfully: ${DEPLOYED_PROJECTS}"
   environment: production
 
 # ===========================================================================
@@ -322,7 +326,10 @@ verify_docker_deployments:
           local icon="✅"
           [ "$status" = "failure" ] && icon="❌"
           [ "$status" = "warning" ] && icon="⚠️"
-          local payload="{\"text\":\"${icon} **Docker Deploy** | ${message} | [Pipeline](${CI_PIPELINE_URL})\"}"
+          [ "$status" = "info" ] && icon="🚀"
+          local commit_short=$(echo "$CI_COMMIT_SHA" | cut -c1-8)
+          local commit_msg=$(echo "$CI_COMMIT_TITLE" | head -c 80)
+          local payload="{\"text\":\"${icon} **Docker Verify — ${status^^}**\n\n${message}\n\n📌 \`${commit_short}\` ${commit_msg}\n👤 ${GITLAB_USER_NAME:-CI}\n🔗 [Pipeline #${CI_PIPELINE_IID}](${CI_PIPELINE_URL})\"}"
           for i in 1 2 3; do
             if curl -sfS -X POST "$MATRIX_WEBHOOK_URL" \
               -H "Content-Type: application/json" \
@@ -418,10 +425,11 @@ verify_docker_deployments:
         echo ""
         echo "WARNING: Some verifications failed"
         echo "Check container logs for details"
-        notify_matrix "warning" "Verification issues on some containers — check pipeline logs"
+        notify_matrix "warning" "Some containers unhealthy or not running — check pipeline logs"
       else
         echo ""
         echo "SUCCESS: All deployments verified"
+        notify_matrix "success" "All containers healthy and running"
       fi
   artifacts:
     when: always
