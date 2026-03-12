@@ -11,6 +11,12 @@ services:
       - /srv/matrix/synapse-data/tls/fullchain6.pem:/etc/letsencrypt/live/matrix.example.net/fullchain6.pem:ro
       - /srv/matrix/synapse-data/tls/privkey6.pem:/etc/letsencrypt/live/matrix.example.net/privkey6.pem:ro
       - /srv/matrix/nginx-logs:/var/log/nginx
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fSs -H 'Host: matrix.example.net' http://localhost:6666/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     logging:
       driver: "syslog"
       options:
@@ -135,6 +141,12 @@ services:
     restart: unless-stopped
     depends_on:
       - synapse
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fSs http://localhost:80/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     logging:
       driver: "syslog"
       options:
@@ -159,6 +171,12 @@ services:
     restart: unless-stopped
     depends_on:
       - synapse
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8088/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     logging:
       driver: "syslog"
       options:
