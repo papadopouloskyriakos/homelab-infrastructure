@@ -1,0 +1,25 @@
+server {
+    listen 8088;
+    server_name matrix.example.net;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Set no-cache for the version, config and index.html
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+    location = /version {
+        add_header Cache-Control "no-cache";
+    }
+    # Covers config.json and config.hostname.json requests
+    location /config {
+        root /tmp/element-web-config;
+        add_header Cache-Control "no-cache";
+    }
+    location /modules {
+        alias /modules;
+    }
+
+    error_page 500 502 503 504 /50x.html;
+}
