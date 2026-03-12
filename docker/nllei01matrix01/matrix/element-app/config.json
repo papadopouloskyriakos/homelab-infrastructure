@@ -1,0 +1,31 @@
+{
+  "REDACTED_82a05ad5": {
+    "m.homeserver": {
+      "base_url": "https://matrix.example.net",
+      "server_name": "matrix.example.net"
+    }
+  },
+  "disable_custom_urls": true,
+  "disable_guests": true,
+  "REDACTED_8def7f75": null,
+  "REDACTED_1adf3997": false,
+  "disable_3pid_login": true,
+  "brand": "Element @ Nuclear Lighters Inc.",
+  "integrations_ui_url": null,
+  "integrations_rest_url": null,
+  "REDACTED_d56a1f03": [
+    "https://grafana.example.net"
+  ],
+  "REDACTED_5cac297b": "NL",
+  "show_labs_settings": true,
+  "features": {},
+  "default_theme": "dark",
+  "room_directory": {
+    "servers": [
+      "matrix.example.net"
+    ]
+  },
+  "embedded_pages": {
+    "home_url": "https://matrix.example.net"
+  }
+}
