@@ -1,0 +1,101 @@
+http:
+  listeners:
+  - name: web
+    resources:
+    - name: discovery
+    - name: human
+    - name: oauth
+    - name: compat
+    - name: graphql
+    - name: assets
+    binds:
+    - address: '[::]:8080'
+    proxy_protocol: false
+  - name: internal
+    resources:
+    - name: health
+    binds:
+    - host: localhost
+      port: 8081
+    proxy_protocol: false
+  trusted_proxies:
+  - 10.0.X.X/16
+  - 10.1.X.X/12
+  - 10.0.0.0/10
+  - 127.0.0.1/8
+  - fd00::/8
+  - ::1/128
+  public_base: http://[::]:8080/
+  issuer: http://[::]:8080/
+database:
+  uri: postgresql://
+  max_connections: 10
+  min_connections: 0
+  connect_timeout: 30
+  idle_timeout: 600
+  max_lifetime: 1800
+email:
+  from: '"Authentication Service" <root@localhost>'
+  reply_to: '"Authentication Service" <root@localhost>'
+  transport: blackhole
+secrets:
+  encryption: 7ff249be9368c319eb47ed62328fb8dcec4bf953582dd4062585cac7bcb00251
+  keys:
+  - key: |
+      REDACTED_b97c5d06
+      REDACTED_9dbaeed0
+      REDACTED_6080b0a1
+      REDACTED_3e067417
+      REDACTED_8c746db6
+      REDACTED_96831b75
+      REDACTED_582b271b
+      REDACTED_36eafe2a
+      REDACTED_55420bf6
+      REDACTED_f7490183
+      REDACTED_31c5a582
+      REDACTED_81813871
+      REDACTED_92bbaf58
+      REDACTED_5685e860
+      REDACTED_18182adf
+      REDACTED_6693c6e6
+      REDACTED_96130174
+      REDACTED_88f776fd
+      REDACTED_5f9dbc58
+      REDACTED_301f836e
+      REDACTED_d97b7c37
+      REDACTED_88924076
+      REDACTED_30aeac38
+      REDACTED_b1d6c834
+      REDACTED_d85881fe
+      REDACTED_6fe14b4a
+      REDACTED_c726e582
+  - key: |
+      REDACTED_5df0e308
+      REDACTED_564f6362
+      REDACTED_2c3e6c4e
+      REDACTED_bd2416d2
+      REDACTED_b95adea5
+  - key: |
+      REDACTED_5df0e308
+      REDACTED_e7328c63
+      REDACTED_e432788d
+      REDACTED_f7c09cca
+      REDACTED_95126b39
+      REDACTED_b95adea5
+  - key: |
+      REDACTED_5df0e308
+      REDACTED_b6677a37
+      REDACTED_dfc9e1e3
+      REDACTED_e1142dc5
+      REDACTED_b95adea5
+passwords:
+  enabled: true
+  schemes:
+  - version: 1
+    algorithm: argon2id
+  minimum_complexity: 3
+matrix:
+  kind: synapse
+  homeserver: localhost:8008
+  secret: REDACTED_54b22ee6
+  endpoint: http://localhost:8008/

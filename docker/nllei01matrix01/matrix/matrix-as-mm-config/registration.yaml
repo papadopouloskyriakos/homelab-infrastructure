@@ -1,0 +1,14 @@
+id: LwEaHQPuZrCGyYc9RdMIiYZ2N6KK7I-qju1kVk_kX0OrSlmPopRF3KXuALeCoYrk
+hs_token: REDACTED_7edf8687
+as_token: REDACTED_b068250d
+namespaces:
+  users:
+    - exclusive: true
+      regex: '@mm_[a-zA-Z0-9._=-]+:matrix\.nuclearlighters\.net'
+  rooms: []
+  aliases: []
+url: http://localhost:9995
+sender_localpart: matterbot
+rate_limited: true
+protocols:
+  - mattermost

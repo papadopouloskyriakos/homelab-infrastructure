@@ -1,0 +1,23 @@
+{
+  "REDACTED_82a05ad5": {
+    "m.homeserver": {
+      "base_url": "https://matrix.example.net",
+      "server_name": "matrix.example.net"
+    },
+    "m.identity_server": {
+      "base_url": "https://matrix.org"
+    }
+  },
+  "room_directory": {
+    "servers": ["matrix.example.net"]
+  },
+  "enable_presence_by_hs_url": {
+    "https://matrix.example.net": true
+  },
+    "default_federate": true,
+    "default_theme": "dark",
+    "disable_custom_urls": true,
+    "REDACTED_1adf3997": false,
+    "disable_3pid_login": false,
+    "brand": "Matrix @ Nuclear Lighters Inc."
+}

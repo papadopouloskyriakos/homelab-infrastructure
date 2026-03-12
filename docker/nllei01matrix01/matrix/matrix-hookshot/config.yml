@@ -1,0 +1,60 @@
+bridge:
+  domain: matrix.example.net
+  url: http://localhost:8008
+  mediaUrl: https://matrix.example.net
+  port: 9993
+  bindAddress: 127.0.0.1
+
+logging:
+  level: info
+  json: false
+  colorize: true
+  timestampFormat: HH:mm:ss:SSS
+
+passFile:
+  /data/passkey.pem
+
+listeners:
+  - port: 9000
+    bindAddress: 0.0.0.0
+    resources:
+      - webhooks
+  - port: 9001
+    bindAddress: 127.0.0.1
+    resources:
+      - metrics
+      - provisioning
+
+cache:
+  redisUri: redis://localhost:6379
+
+encryption:
+  enabled: true
+  storagePath: /data/cryptostore
+
+permissions:
+  - actor: "*"
+    services:
+      - service: "*"
+        level: admin
+
+generic:
+  enabled: true
+  outbound: true
+  urlPrefix: "https://matrix.example.net/webhook/"
+  allowJsTransformationFunctions: false
+  waitForComplete: false
+  enableHttpGet: false
+#  userIdPrefix: webhooks_
+
+#rooms:
+#  - roomId: "!sIPwBEdTpLRBDezLtM:matrix.example.net"
+#    webhookSecret: "REDACTED_cc42664d"
+#  - roomId: "!pEpPbGUghYGPwBdwyS:matrix.example.net"
+#    webhookSecret: "REDACTED_cc42664d"
+
+feeds:
+  enabled: true
+  pollIntervalSeconds: 60
+  pollTimeoutSeconds: 30
+  pollConcurrency: 4
