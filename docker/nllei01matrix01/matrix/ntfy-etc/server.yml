@@ -1,0 +1,20 @@
+# MUST have this to return {"unifiedpush":{"gateway":"matrix"}}
+up-push-server: true
+
+# Remove auth-file completely – it breaks Synapse push (401)
+# auth-file: /var/lib/ntfy/user.db   ← DELETE THIS LINE
+
+# Deny everything by default
+auth-default-access: deny-all
+
+# Allow only UnifiedPush topics, write-only, no auth needed
+access:
+  - user: "*"
+    topic-pattern: "up*"
+    allow: read-write     # Synapse POSTs, ntfy app on phone subscribes (reads)
+
+# Optional but recommended
+visitor-request-limit-burst: 60
+visitor-request-limit-replenish: "5s"
+visitor-message-daily-limit: 100
+log-level: info
