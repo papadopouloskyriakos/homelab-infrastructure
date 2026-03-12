@@ -1,3 +1,6 @@
+branding:
+  service_name: "Matrix @ Nuclear Lighters Inc."
+
 http:
   public_base: https://mas.example.net
   listeners:
