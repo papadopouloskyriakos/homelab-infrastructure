@@ -57,7 +57,7 @@ clients:
 # Password REDACTED_6fa691d2 settings
 passwords:
   enabled: true
-  minimum_complexity: 2  # 0-4 scale, 2 is moderate
+  minimum_complexity: 3  # 0-4 scale, 3 is recommended default
   schemes:
     - version: 1
       algorithm: bcrypt      # For existing migrated users

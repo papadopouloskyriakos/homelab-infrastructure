@@ -3,6 +3,7 @@ services:
     image: nginx:${NGINX_VERSION}
     container_name: nginx
     network_mode: "host"
+    security_opt: [no-new-privileges:true]
 #    ports:
 #      - "6666:6666"
     volumes:
@@ -48,6 +49,7 @@ services:
     container_name: mas
     restart: unless-stopped
     network_mode: host
+    security_opt: [no-new-privileges:true]
     depends_on:
       - postgres
     volumes:
@@ -72,6 +74,7 @@ services:
     image: ghcr.io/element-hq/synapse:${SYNAPSE_VERSION}
     container_name: synapse
     restart: unless-stopped
+    security_opt: [no-new-privileges:true]
     environment:
       SYNAPSE_SERVER_NAME: matrix.example.net
       SYNAPSE_REPORT_STATS: "no"
@@ -136,6 +139,7 @@ services:
     hostname: synapse-admin
     image: awesometechnologies/synapse-admin:${SYNAPSE_ADMIN_VERSION}
     network_mode: "host"
+    security_opt: [no-new-privileges:true]
 #    ports:
 #      - "8080:80"
     restart: unless-stopped
@@ -157,6 +161,7 @@ services:
     image: vectorim/element-web:${ELEMENT_WEB_VERSION}
     container_name: element-web
     network_mode: "host"
+    security_opt: [no-new-privileges:true]
 #    ports:
 #      - "8080:80"
     volumes:
@@ -186,6 +191,7 @@ services:
   ntfy:
     image: binwiederhier/ntfy:${NTFY_VERSION}
     container_name: ntfy
+    security_opt: [no-new-privileges:true]
     command:
       - serve
       - --config=/etc/ntfy/server.yml
@@ -226,14 +232,15 @@ services:
     container_name: matrix-hookshot
     restart: unless-stopped
     network_mode: "host"
+    security_opt: [no-new-privileges:true]
 ###    ports:
 ###      - "9993:9993"    # Homeserver port
 ###      - "9000:9000"    # Webhook port
 ###      - "9002:9002"    # Metrics port
     volumes:
-      - /srv/matrix/matrix-hookshot/config.yml:/data/config.yml
-      - /srv/matrix/matrix-hookshot/registration.yml:/data/registration.yml
-      - /srv/matrix/matrix-hookshot/passkey.pem:/data/passkey.pem
+      - /srv/matrix/matrix-hookshot/config.yml:/data/config.yml:ro
+      - /srv/matrix/matrix-hookshot/registration.yml:/data/registration.yml:ro
+      - /srv/matrix/matrix-hookshot/passkey.pem:/data/passkey.pem:ro
       - /srv/matrix/hookshot-cryptostore:/data/cryptostore
     depends_on:
       - hookshot-redis
@@ -255,6 +262,7 @@ services:
     container_name: hookshot-redis
     restart: unless-stopped
     network_mode: "host"
+    security_opt: [no-new-privileges:true]
 #    ports:
 #      - "6379:6379"
     command: ["redis-server", "--appendonly", "yes", "--bind", "127.0.0.1", "--protected-mode", "yes"]
@@ -271,6 +279,7 @@ services:
     container_name: postgres
     restart: unless-stopped
     network_mode: "host"
+    security_opt: [no-new-privileges:true]
     environment:
       POSTGRES_DB: synapse
       POSTGRES_USER: synapse
