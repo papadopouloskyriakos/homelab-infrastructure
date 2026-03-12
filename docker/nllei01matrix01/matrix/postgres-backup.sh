@@ -15,7 +15,7 @@ mkdir -p "$BACKUP_DIR"
 echo "[$(date)] Starting Postgres backup..."
 
 # Dump all databases
-for DB in synapse mas mm-matrix-bridge; do
+for DB in synapse mas mm-matrix-bridge mautrix_signal mautrix_whatsapp; do
     OUTFILE="${BACKUP_DIR}/${DB}_${TIMESTAMP}.sql.gz"
     docker exec "$CONTAINER" pg_dump -U synapse -d "$DB" 2>/dev/null | gzip > "$OUTFILE"
     if [ -s "$OUTFILE" ]; then

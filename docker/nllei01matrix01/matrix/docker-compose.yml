@@ -108,6 +108,8 @@ services:
       - /srv/matrix/synapse-media_store:/media_store
       - /srv/matrix/matrix-hookshot/registration.yml:/data/matrix-hookshot/registration.yml:ro
       - /srv/matrix/matrix-as-mm-config/registration.yaml:/data/matrix-as-mm/registration.yml:ro
+      - /srv/matrix/mautrix-signal/registration.yaml:/data/mautrix-signal/registration.yaml:ro
+      - /srv/matrix/mautrix-whatsapp/registration.yaml:/data/mautrix-whatsapp/registration.yaml:ro
     healthcheck:
       test: ["CMD", "curl", "-fSs", "http://localhost:8008/health"]
       interval: 15s
@@ -300,6 +302,60 @@ services:
     command: ["redis-server", "--appendonly", "yes", "--bind", "127.0.0.1", "--protected-mode", "yes"]
     volumes:
       - /srv/matrix/hookshot-redis:/data
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "{{.Name}}"
+
+  mautrix-signal:
+    image: dock.mau.dev/mautrix/signal:${MAUTRIX_SIGNAL_VERSION}
+    container_name: mautrix-signal
+    restart: unless-stopped
+    network_mode: "host"
+    security_opt: [no-new-privileges:true]
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+    volumes:
+      - /srv/matrix/mautrix-signal:/data
+    depends_on:
+      - synapse
+      - postgres
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fSs http://localhost:29328/_matrix/mau/live || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://127.0.0.1:514"
+        tag: "{{.Name}}"
+
+  mautrix-whatsapp:
+    image: dock.mau.dev/mautrix/whatsapp:${MAUTRIX_WHATSAPP_VERSION}
+    container_name: mautrix-whatsapp
+    restart: unless-stopped
+    network_mode: "host"
+    security_opt: [no-new-privileges:true]
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+    volumes:
+      - /srv/matrix/mautrix-whatsapp:/data
+    depends_on:
+      - synapse
+      - postgres
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fSs http://localhost:29329/_matrix/mau/live || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     logging:
       driver: "syslog"
       options:
