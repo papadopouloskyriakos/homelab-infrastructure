@@ -1,0 +1,137 @@
+# ===========================================================================
+# CI RUNNER IMAGE BUILD PIPELINE
+# Builds and pushes runner images to the private registry
+# ===========================================================================
+# Triggers: Manual, on changes to images/**/* on main
+# Registry: registry.example.net/infrastructure/nl/production/
+# ===========================================================================
+
+variables:
+  IMAGE_REGISTRY: "registry.example.net/infrastructure/nl/production"
+
+.image_build_base:
+  stage: .pre
+  image: docker:24
+  services:
+    - docker:24-dind
+  tags:
+    - docker
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  environment:
+    name: docker-registry
+  allow_failure: true
+
+# ===========================================================================
+# CISCO EXECUTION ENVIRONMENT
+# ===========================================================================
+
+build_cisco_ee:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/cisco-ee/**/*
+      when: manual
+  script:
+    - |
+      cd images/cisco-ee
+      docker build -t $IMAGE_REGISTRY/cisco-ee:latest .
+      docker push $IMAGE_REGISTRY/cisco-ee:latest
+
+# ===========================================================================
+# DOCKER RUNNER
+# ===========================================================================
+
+build_docker_runner:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/docker-runner/**/*
+      when: manual
+  script:
+    - |
+      cd images/docker-runner
+      docker build -t $IMAGE_REGISTRY/docker-runner:latest .
+      docker push $IMAGE_REGISTRY/docker-runner:latest
+
+# ===========================================================================
+# PVE RUNNER
+# ===========================================================================
+
+build_pve_runner:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/pve-runner/**/*
+      when: manual
+  script:
+    - |
+      cd images/pve-runner
+      docker build -t $IMAGE_REGISTRY/pve-runner:latest .
+      docker push $IMAGE_REGISTRY/pve-runner:latest
+
+# ===========================================================================
+# K8S RUNNER
+# ===========================================================================
+
+build_k8s_runner:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/k8s-runner/**/*
+      when: manual
+  script:
+    - |
+      cd images/k8s-runner
+      docker build -t $IMAGE_REGISTRY/k8s-runner:latest .
+      docker push $IMAGE_REGISTRY/k8s-runner:latest
+
+# ===========================================================================
+# HUGO RUNNER
+# ===========================================================================
+
+build_hugo_runner:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/hugo-runner/**/*
+      when: manual
+  script:
+    - |
+      cd images/hugo-runner
+      docker build -t $IMAGE_REGISTRY/hugo-runner:1.5 .
+      docker push $IMAGE_REGISTRY/hugo-runner:1.5
+
+# ===========================================================================
+# GITHUB SYNC RUNNER
+# ===========================================================================
+
+build_github_sync_runner:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/github-sync-runner/**/*
+      when: manual
+  script:
+    - |
+      cd images/github-sync-runner
+      docker build -t $IMAGE_REGISTRY/github-sync-runner:latest .
+      docker push $IMAGE_REGISTRY/github-sync-runner:latest
