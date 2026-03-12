@@ -35,8 +35,9 @@ bridge:
     "@dominicus:matrix.example.net": admin
 
 network:
-  displayname_template: '{{or .ProfileName .PhoneNumber "Unknown user"}}'
-  use_contact_avatars: false
+  displayname_template: '{{or .ContactName .ProfileName .PhoneNumber "Unknown user"}}'
+  use_contact_avatars: true
+  use_outdated_profiles: true
   sync_contacts_on_startup: true
   number_in_topic: true
   device_name: mautrix-signal
