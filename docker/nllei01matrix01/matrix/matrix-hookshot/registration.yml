@@ -1,0 +1,19 @@
+id: hookshot
+url: http://127.0.0.1:9993
+as_token: "REDACTED_04a7a5d3"
+hs_token: "REDACTED_03539428"
+sender_localpart: hookbot
+de.sorunome.msc2409.push_ephemeral: true
+push_ephemeral: true
+org.matrix.msc3202: true
+rate_limited: false
+namespaces:
+  users:
+    - exclusive: true
+      regex: "@hookbot:matrix.example.net"
+    - exclusive: true
+      regex: "@webhooks_.*:matrix.example.net"
+  aliases: []
+  rooms:
+    - regex: ".*"
+      exclusive: false
