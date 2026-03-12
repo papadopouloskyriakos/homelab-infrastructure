@@ -1,0 +1,234 @@
+# Homeserver basic info
+server_name: "matrix.example.net"
+report_stats: false
+pid_file: "/var/lib/matrix-synapse/homeserver.pid"
+web_client_location: "https://matrix.example.net/"
+public_baseurl: "https://matrix.example.net/"
+serve_server_wellknown: true
+extra_well_known_client_content:
+  "im.vector.riot.jitsi":
+    preferredDomain: jitsi.example.net
+soft_file_limit: 65536
+
+url_preview_enabled: true
+
+url_preview_ip_range_blacklist:
+  - '127.0.0.0/8'
+  - '10.0.0.0/8'
+  - '10.1.X.X/12'
+  - '10.0.X.X/16'
+  - '100.64.0.0/10'
+  - '192.0.0.0/24'
+  - '169.254.0.0/16'
+  - '198.18.0.0/15'
+  - '192.0.2.0/24'
+  - '198.51.100.0/24'
+  - '203.0.113.0/24'
+  - '224.0.0.0/4'
+  - '::1/128'
+  - 'fe80::/10'
+  - 'fc00::/7'
+  - '2001:db8::/32'
+  - 'ff00::/8'
+  - 'fec0::/10'
+
+experimental_features:
+  msc3202_device_masquerading: true
+  msc3202_transaction_extensions: true
+  msc2409_to_device_messages_enabled: true
+  msc3861:
+    enabled: true
+    issuer: https://mas.example.net/
+    client_id: 0000000000000000000SYNAPSE
+    client_auth_method: client_secret_basic
+    client_secret: "REDACTED_419eedce"
+    admin_token: "ae0d933d41889e2e84aa172448b11ba28b125f7ad635d67fd8e48ca6196b60ab"
+    account_management_url: https://mas.example.net/account/
+  msc4222_enabled: true
+  msc4108_enabled: true
+
+app_service_config_files:
+  - /data/matrix-hookshot/registration.yml
+#  - /data/matrix-as-mm/registration.yml
+
+auto_accept_invites:
+  enabled: true
+  only_for_direct_messages: true
+  only_from_local_users: true
+  worker_to_run_on: null
+
+push:
+  enabled: true
+  include_content: true
+  group_unread_count_by_room: true
+
+database:
+  name: psycopg2
+  txn_limit: 10000
+  allow_unsafe_locale: true
+  args:
+    user: synapse
+    password: REDACTED_ffef1e87
+    dbname: synapse
+    host: localhost
+    port: 5432
+    cp_min: 5
+    cp_max: 10
+
+# Presence settings
+presence:
+  enabled: true
+
+require_auth_for_profile_requests: true
+limit_profile_requests_to_users_who_share_rooms: false
+include_profile_data_on_invite: true
+allow_public_rooms_without_auth: false
+allow_public_rooms_over_federation: false
+default_room_version: "10"
+gc_thresholds: [700, 10, 10]
+gc_min_interval: [1s, 10s, 30s]
+filter_timeline_limit: 100
+block_non_admin_invites: false
+enable_search: true
+
+# IP filtering
+ip_range_blacklist: []
+ip_range_whitelist: []
+
+# Listeners
+listeners:
+  - port: 8008
+    type: http
+    tls: false
+    x_forwarded: true
+    bind_addresses: ['0.0.0.0']
+    resources:
+      - names: [client, federation, media, keys, openid, metrics]
+        compress: false
+
+dummy_events_threshold: 10
+delete_stale_devices_after: 1y
+
+# Email settings
+email:
+  smtp_host: "10.0.X.X"
+  smtp_port: 25
+  smtp_user: null
+  smtp_pass: null
+  force_tls: false
+  require_transport_security: false
+  enable_tls: false
+  notif_from: "Matrix Server <noreply_matrix@example.net>"
+  app_name: "Matrix @ Nuclear Lighters Inc."
+  enable_notifs: true
+  notif_for_new_users: false
+  client_base_url: "https://matrix.example.net"
+  validation_token_lifetime: 15m
+  invite_client_location: "https://matrix.example.net"
+  subjects:
+    message_from_person_in_room: "[%(app)s] You have a message on %(app)s from %(person)s in the %(room)s room..."
+    message_from_person: "[%(app)s] You have a message on %(app)s from %(person)s..."
+    messages_from_person: "[%(app)s] You have messages on %(app)s from %(person)s..."
+    messages_in_room: "[%(app)s] You have messages on %(app)s in the %(room)s room..."
+    messages_in_room_and_others: "[%(app)s] You have messages on %(app)s in the %(room)s room and others..."
+    messages_from_person_and_others: "[%(app)s] You have messages on %(app)s from %(person)s and others..."
+    invite_from_person_to_room: "[%(app)s] %(person)s has invited you to join the %(room)s room on %(app)s..."
+    invite_from_person: "[%(app)s] %(person)s has invited you to chat on %(app)s..."
+    password_reset: "[%(server_name)s] Password reset"
+    email_validation: "[%(server_name)s] Validate your email"
+
+# Homeserver blocking
+admin_contact: 'mailto:support_matrix@example.net'
+hs_disabled: false
+hs_disabled_message: ""
+limit_usage_by_mau: false
+max_mau_value: 0
+mau_trial_days: 0
+mau_appservice_trial_days: {}
+mau_limit_alerting: true
+mau_stats_only: false
+mau_limit_reserved_threepids: []
+
+server_context: "context"
+
+limit_remote_rooms:
+  enabled: false
+  complexity: 1.0
+  complexity_error: "Room too complex"
+  admins_can_join: false
+
+require_membership_for_aliases: true
+allow_per_room_profiles: true
+max_avatar_size: 10M
+allowed_avatar_mimetypes: ["image/png", "image/jpeg", "image/gif"]
+
+redaction_retention_period: 7d
+forgotten_room_retention_period: null
+user_ips_max_age: 28d
+request_token_inhibit_3pid_errors: false
+next_link_domain_whitelist: []
+
+templates:
+  custom_template_directory: "REDACTED_9ea3ec58"
+
+retention:
+  enabled: false
+  default_policy:
+    min_lifetime: 1d
+    max_lifetime: 1y
+  allowed_lifetime_min: 1d
+  allowed_lifetime_max: 1y
+  purge_jobs:
+    - longest_max_lifetime: 3d
+      interval: 12h
+    - shortest_max_lifetime: 3d
+      interval: 1d
+
+# TLS
+# TLS is terminated by nginx; these paths are container-relative for reference only
+tls_certificate_path: /data/tls/fullchain6.pem
+tls_private_key_path: /data/tls/privkey6.pem
+federation_client_minimum_tls_version: '1.2'
+federation_verify_certificates: true
+
+trusted_key_servers:
+  - server_name: matrix.org
+
+macaroon_secret_key: REDACTED_33d3cd9d
+
+# Federation
+federation_domain_whitelist:
+  - matrix.org
+  - integrations.ems.host
+
+allow_profile_lookup_over_federation: true
+allow_device_name_lookup_over_federation: false
+federation:
+  client_timeout: 180s
+  max_short_retry_delay: 7s
+  max_long_retry_delay: 100s
+  max_short_retries: 5
+  max_long_retries: 20
+  destination_min_retry_interval: 30s
+  destination_retry_multiplier: 5
+  destination_max_retry_interval: 12h
+
+# Modules
+modules: []
+
+logging:
+  version: 1
+  formatters:
+    precise:
+      format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    console:
+      class: logging.StreamHandler
+      formatter: precise
+      level: INFO
+  root:
+    level: INFO
+    handlers: [console]
+media_store_path: "/media_store"
+max_upload_size: 200M
+enable_authenticated_media: false

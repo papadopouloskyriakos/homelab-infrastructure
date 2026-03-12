@@ -18,24 +18,24 @@ services:
         tag: "{{.Name}}"
     restart: unless-stopped
 
-  matrix-bridge:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: matrix-bridge
-    restart: unless-stopped
-    network_mode: host
-    volumes:
-      - /srv/matrix/matrix-as-mm-config:/config:ro
-      - /srv/matrix/matrix-as-mm-logs:/app/logs
-    depends_on:
-      - postgres
-      - synapse
-    logging:
-      driver: "syslog"
-      options:
-        syslog-address: "udp://127.0.0.1:514"
-        tag: "matrix-bridge"
+#  matrix-bridge:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    container_name: matrix-bridge
+#    restart: unless-stopped
+#    network_mode: host
+#    volumes:
+#      - /srv/matrix/matrix-as-mm-config:/config:ro
+#      - /srv/matrix/matrix-as-mm-logs:/app/logs
+#    depends_on:
+#      - postgres
+#      - synapse
+#    logging:
+#      driver: "syslog"
+#      options:
+#        syslog-address: "udp://127.0.0.1:514"
+#        tag: "matrix-bridge"
 
   mas:
     image: ghcr.io/element-hq/matrix-REDACTED_6fa691d2-service:${MAS_VERSION}
@@ -50,6 +50,12 @@ services:
       - /srv/matrix/mas-data:/data
     environment:
       MAS_CONFIG: /config/config.yaml
+    healthcheck:
+      test: ["CMD", "mas-cli", "doctor"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     logging:
       driver: "syslog"
       options:
@@ -94,7 +100,7 @@ services:
         tag: "{{.Name}}"
 
   matrix-commander:
-    image: matrixcommander/matrix-commander:latest
+    image: matrixcommander/matrix-commander:${MATRIX_COMMANDER_VERSION}
     container_name: matrix-commander
     network_mode: "host"
     volumes:
@@ -214,6 +220,12 @@ services:
     depends_on:
       - hookshot-redis
       - synapse
+    healthcheck:
+      test: ["CMD", "node", "-e", "const n=require('net');const s=n.connect(9993,'127.0.0.1',()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),3000)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     logging:
       driver: "syslog"
       options:
@@ -227,7 +239,7 @@ services:
     network_mode: "host"
 #    ports:
 #      - "6379:6379"
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ["redis-server", "--appendonly", "yes", "--bind", "127.0.0.1", "--protected-mode", "yes"]
     volumes:
       - /srv/matrix/hookshot-redis:/data
     logging:
@@ -247,74 +259,80 @@ services:
       POSTGRES_PASSWORD: REDACTED_ffef1e87
     volumes:
       - /srv/matrix/postgres-data:/var/lib/postgresql/data
-    logging:
-      driver: "syslog"
-      options:
-        syslog-address: "udp://127.0.0.1:514"
-        tag: "{{.Name}}"
-
-  cloudflared:
-    image: cloudflare/cloudflared:${CLOUDFLARED_VERSION}
-    container_name: cloudflare-tunnel
-    network_mode: "host"
-    restart: unless-stopped
-    command: tunnel run
-    environment:
-      - TUNNEL_TOKEN=REDACTED
-    logging:
-      driver: "syslog"
-      options:
-        syslog-address: "udp://127.0.0.1:514"
-        tag: "{{.Name}}"
-
-  crowdsec:
-    image: crowdsecurity/crowdsec:${CROWDSEC_VERSION}
-    container_name: crowdsec
-    restart: unless-stopped
-    network_mode: "host"
-#  ports:
-#    - 127.0.0.1:8080:8080
-    environment:
-      COLLECTIONS: "crowdsecurity/nginx"
-      GID: "${GID-1000}"
-#  depends_on:
-#    - "reverse-proxy"
-    volumes:
-      - /srv/matrix/crowdsec-acquis/acquis.yaml:/etc/crowdsec/acquis.yaml
-      - /srv/matrix/crowdsec-logs:/var/log/nginx
-      - /srv/matrix/crowdsec-db:/var/lib/crowdsec/data/
-      - /srv/matrix/crowdsec-config:/etc/crowdsec/
-      - /var/log/docker/containers.log:/var/log/containers.log:ro
-      - /srv/matrix/nginx-logs/access.log:/var/log/access.log:ro
-      - /srv/matrix/nginx-logs/error.log:/var/log/error.log:ro
     healthcheck:
-      test: ["CMD", "cscli", "config", "show"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U synapse"]
+      interval: 15s
       timeout: 5s
-      retries: 5
+      retries: 3
+      start_period: 10s
     logging:
       driver: "syslog"
       options:
         syslog-address: "udp://127.0.0.1:514"
         tag: "{{.Name}}"
 
-  custom-bouncer:
-    image: crowdsecurity/custom-bouncer:${CUSTOM_BOUNCER_VERSION}
-    container_name: custom-bouncer
-    restart: unless-stopped
-    network_mode: "host"
-    entrypoint: ["/bin/sh", "-c", "apk add --no-cache docker-cli jq && /crowdsec-custom-bouncer -c /crowdsec-custom-bouncer.yaml"]
-    volumes:
-      - /srv/matrix/crowdsec-config/bouncers/crowdsec-custom-bouncer.yaml:/crowdsec-custom-bouncer.yaml:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /srv/matrix/crowdsec-scripts/custom-script:/custom-script:ro
-      - /srv/matrix/custom-bouncer-log:/var/log/:rw
-      - /srv/matrix/custom-bouncer-flag/flag:/flag:rw
-    depends_on:
-      crowdsec:
-        condition: service_healthy
-    logging:
-      driver: "syslog"
-      options:
-        syslog-address: "udp://127.0.0.1:514"
-        tag: "{{.Name}}"
+#  cloudflared:
+#    image: cloudflare/cloudflared:${CLOUDFLARED_VERSION}
+#    container_name: cloudflare-tunnel
+#    network_mode: "host"
+#    restart: unless-stopped
+#    command: tunnel run
+#    environment:
+#      - TUNNEL_TOKEN=REDACTED
+#    logging:
+#      driver: "syslog"
+#      options:
+#        syslog-address: "udp://127.0.0.1:514"
+#        tag: "{{.Name}}"
+
+#  crowdsec:
+#    image: crowdsecurity/crowdsec:${CROWDSEC_VERSION}
+#    container_name: crowdsec
+#    restart: unless-stopped
+#    network_mode: "host"
+##  ports:
+##    - 127.0.0.1:8080:8080
+#    environment:
+#      COLLECTIONS: "crowdsecurity/nginx"
+#      GID: "${GID-1000}"
+##  depends_on:
+##    - "reverse-proxy"
+#    volumes:
+#      - /srv/matrix/crowdsec-acquis/acquis.yaml:/etc/crowdsec/acquis.yaml
+#      - /srv/matrix/crowdsec-logs:/var/log/nginx
+#      - /srv/matrix/crowdsec-db:/var/lib/crowdsec/data/
+#      - /srv/matrix/crowdsec-config:/etc/crowdsec/
+#      - /var/log/docker/containers.log:/var/log/containers.log:ro
+#      - /srv/matrix/nginx-logs/access.log:/var/log/access.log:ro
+#      - /srv/matrix/nginx-logs/error.log:/var/log/error.log:ro
+#    healthcheck:
+#      test: ["CMD", "cscli", "config", "show"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+#    logging:
+#      driver: "syslog"
+#      options:
+#        syslog-address: "udp://127.0.0.1:514"
+#        tag: "{{.Name}}"
+
+#  custom-bouncer:
+#    image: crowdsecurity/custom-bouncer:${CUSTOM_BOUNCER_VERSION}
+#    container_name: custom-bouncer
+#    restart: unless-stopped
+#    network_mode: "host"
+#    entrypoint: ["/bin/sh", "-c", "apk add --no-cache docker-cli jq && /crowdsec-custom-bouncer -c /crowdsec-custom-bouncer.yaml"]
+#    volumes:
+#      - /srv/matrix/crowdsec-config/bouncers/crowdsec-custom-bouncer.yaml:/crowdsec-custom-bouncer.yaml:ro
+#      - /var/run/docker.sock:/var/run/docker.sock
+#      - /srv/matrix/crowdsec-scripts/custom-script:/custom-script:ro
+#      - /srv/matrix/custom-bouncer-log:/var/log/:rw
+#      - /srv/matrix/custom-bouncer-flag/flag:/flag:rw
+#    depends_on:
+#      crowdsec:
+#        condition: service_healthy
+#    logging:
+#      driver: "syslog"
+#      options:
+#        syslog-address: "udp://127.0.0.1:514"
+#        tag: "{{.Name}}"
