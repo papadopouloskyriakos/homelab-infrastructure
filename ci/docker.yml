@@ -23,20 +23,19 @@
         echo "ERROR: Invalid or corrupted SSH key"
         exit 1
       fi
-
-.notify_matrix: &notify_matrix |
-  notify_matrix() {
-    local status="$1" message="$2"
-    if [ -n "${MATRIX_WEBHOOK_URL:-}" ]; then
-      local icon="✅"
-      [ "$status" = "failure" ] && icon="❌"
-      [ "$status" = "warning" ] && icon="⚠️"
-      curl -s -X POST "$MATRIX_WEBHOOK_URL" \
-        -H "Content-Type: application/json" \
-        -d "{\"text\":\"${icon} **Docker Deploy** | ${message} | [Pipeline](${CI_PIPELINE_URL})\"}" \
-        >/dev/null 2>&1 || true
-    fi
-  }
+    - |
+      notify_matrix() {
+        local status="$1" message="$2"
+        if [ -n "${MATRIX_WEBHOOK_URL:-}" ]; then
+          local icon="✅"
+          [ "$status" = "failure" ] && icon="❌"
+          [ "$status" = "warning" ] && icon="⚠️"
+          curl -s -X POST "$MATRIX_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\":\"${icon} **Docker Deploy** | ${message} | [Pipeline](${CI_PIPELINE_URL})\"}" \
+            >/dev/null 2>&1 || true
+        fi
+      }
 
 # ===========================================================================
 # VALIDATION
@@ -125,7 +124,6 @@ deploy_docker:
     - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
       when: never
   script:
-    - *notify_matrix
     - |
       set -eu
 
@@ -308,7 +306,6 @@ verify_docker_deployments:
   needs:
     - deploy_docker
   script:
-    - *notify_matrix
     - |
       set -eu
 
