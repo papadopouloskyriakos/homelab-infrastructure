@@ -9,6 +9,14 @@ server {
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
     gzip_min_length 1000;
 
+    # Rewrite branding in index.html (title, OG tags, app name)
+    sub_filter '<title>Element</title>' '<title>Matrix @ Nuclear Lighters</title>';
+    sub_filter 'content="Element"' 'content="Matrix @ Nuclear Lighters"';
+    sub_filter 'content="https://app.element.io/themes/element/img/logos/opengraph.png"' 'content="https://matrix.example.net/themes/element/img/backgrounds/lake.jpg"';
+    sub_filter '</head>' '<meta property="og:title" content="Matrix @ Nuclear Lighters" /><meta property="og:description" content="Secure messaging powered by Matrix" /><meta property="og:url" content="https://matrix.example.net/" /></head>';
+    sub_filter_once off;
+    sub_filter_types text/html;
+
     # Set no-cache for the version, config and index.html
     location = /index.html {
         add_header Cache-Control "no-cache";
