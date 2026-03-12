@@ -16,7 +16,9 @@
   "REDACTED_d56a1f03": [],
   "REDACTED_5cac297b": "NL",
   "show_labs_settings": false,
-  "features": {},
+  "features": {
+    "REDACTED_a51c81ef": true
+  },
   "default_theme": "dark",
   "room_directory": {
     "servers": [
