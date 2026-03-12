@@ -8,6 +8,9 @@ serve_server_wellknown: true
 extra_well_known_client_content:
   "im.vector.riot.jitsi":
     preferredDomain: meet.jit.si
+  "org.matrix.msc4143.rtc_foci":
+    - type: "livekit"
+      livekit_service_url: "https://lk.element.dev"
 soft_file_limit: 65536
 
 # STUN/TURN for 1:1 VoIP call NAT traversal (Jitsi public servers)
