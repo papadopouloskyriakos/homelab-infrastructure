@@ -13,9 +13,7 @@
   "brand": "Element @ Nuclear Lighters Inc.",
   "integrations_ui_url": null,
   "integrations_rest_url": null,
-  "REDACTED_d56a1f03": [
-    "https://grafana.example.net"
-  ],
+  "REDACTED_d56a1f03": [],
   "REDACTED_5cac297b": "NL",
   "show_labs_settings": true,
   "features": {},
@@ -25,7 +23,5 @@
       "matrix.example.net"
     ]
   },
-  "embedded_pages": {
-    "home_url": "https://matrix.example.net"
-  }
+  "embedded_pages": {}
 }

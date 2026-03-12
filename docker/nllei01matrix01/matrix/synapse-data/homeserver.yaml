@@ -73,10 +73,19 @@ database:
     port: 5432
     cp_min: 5
     cp_max: 10
+    keepalives: 1
+    keepalives_idle: 10
+    keepalives_interval: 10
+    keepalives_count: 3
 
 # Presence settings
 presence:
   enabled: true
+
+caches:
+  global_factor: 0.5
+  expire_caches: true
+  cache_entry_ttl: 30m
 
 require_auth_for_profile_requests: true
 limit_profile_requests_to_users_who_share_rooms: false
