@@ -366,6 +366,9 @@ verify_lxc_deployments:
 detect_pve_lxc_drift:
   extends: .lxc_base
   stage: drift-detection
+  allow_failure:
+    exit_codes:
+      - 1
   rules:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
       when: always
@@ -374,7 +377,7 @@ detect_pve_lxc_drift:
   script:
     - |
       cd $CI_PROJECT_DIR
-      bash pve/scripts/pve_detect_drift.sh | tee drift_report.txt
+      bash pve/scripts/pve_detect_drift.sh
   artifacts:
     when: always
     paths:
