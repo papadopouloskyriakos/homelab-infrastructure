@@ -55,7 +55,8 @@ Internet → HAProxy (2 VPSes, BGP anycast) → nginx:443/6666 (TLS re-encryptio
 | @admin | Server admin | Yes | regular |
 | @openclaw | Bot | No | bot |
 | @claude | Bot | No | bot |
-| @hookbot | Webhook bot | No | regular |
+| @hookbot | Webhook bot | No | bot |
+| @arcturus | Arcturus Bot | No | bot |
 | @signalbot | Signal bridge bot | No | appservice |
 | @whatsappbot | WhatsApp bridge bot | No | appservice |
 
@@ -82,7 +83,7 @@ Both bridges use the **megabridge v0.26+ config format** and require:
 
 - **MAS** handles all auth via `matrix_REDACTED_6fa691d2_service` (not deprecated `msc3861`)
 - **Cloudflare Turnstile** captcha on registration
-- **Open registration** with mandatory email verification
+- **Open registration** with mandatory email verification and 45 banned disposable email domains
 - **Federation whitelisted** to `matrix.org` and `integrations.ems.host` only
 - **Security headers** set at HAProxy edge (not nginx) to avoid duplicates
 - **CSP frame-ancestors** allows Grafana embedding in Element
@@ -90,7 +91,7 @@ Both bridges use the **megabridge v0.26+ config format** and require:
 - **Memory limits** via `deploy.resources.limits.memory` (not `mem_limit`)
 - **Element Web rebranded** via nginx `sub_filter` (title, OG tags for link previews)
 - **VoIP**: Jitsi public STUN/TURN for 1:1 calls, meet.jit.si for conferences
-- **Element X calling**: MatrixRTC via lk.element.dev (Element's hosted LiveKit SFU). Requires `msc3401_enabled: true` in Synapse and both `m.rtc_foci` (stable) + `org.matrix.msc4143.rtc_foci` (unstable) in well-known. Element X caches well-known aggressively — users must clear app cache after changes.
+- **Element X calling**: MatrixRTC via livekit-jwt.call.matrix.org (Element's hosted LiveKit SFU). Requires `msc3401_enabled: true` in Synapse and both `m.rtc_foci` (stable) + `org.matrix.msc4143.rtc_foci` (unstable) in well-known. Element X caches well-known aggressively — users must clear app cache after changes.
 - **Sliding sync**: enabled natively in Synapse (v1.114+) + Element Web feature flag
 - **Bot accounts** have `user_type: bot`, hidden from user directory
 - **Authenticated media** intentionally disabled (`enable_authenticated_media: false`)
