@@ -25,11 +25,11 @@ validate_lxc_configs:
   extends: .lxc_base
   stage: validate
   rules:
+    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+      when: never
     - changes:
         - pve/**/lxc/*.conf
       when: on_success
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
-      when: never
   script:
     - |
       set -eu
@@ -126,11 +126,11 @@ deploy_lxc_configs:
   extends: .lxc_base
   stage: deploy
   rules:
+    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+      when: never
     - changes:
         - pve/**/lxc/*.conf
       when: on_success
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
-      when: never
   needs:
     - validate_lxc_configs
   script:
@@ -296,11 +296,11 @@ verify_lxc_deployments:
   extends: .lxc_base
   stage: verify
   rules:
+    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+      when: never
     - changes:
         - pve/**/lxc/*.conf
       when: on_success
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
-      when: never
   needs:
     - deploy_lxc_configs
   script:
