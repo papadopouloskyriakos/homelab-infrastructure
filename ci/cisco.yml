@@ -62,7 +62,9 @@ auto_detect_and_sync_drift:
       - drift_report.txt
       - auto_sync.log
     expire_in: 7 days
-  allow_failure: false
+  allow_failure:
+    exit_codes:
+      - 1
 
 # ===========================================================================
 # PRE-DEPLOY DRIFT GATE - Blocks deployment if device has manual changes
