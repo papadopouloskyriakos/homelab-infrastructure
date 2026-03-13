@@ -174,6 +174,74 @@ variables:
     - git checkout main || git checkout -b main
     - git reset --hard origin/main  # Replace the git pull with this
 
+# -----------------------------------------------------------------------------
+# PVE pipelines with GitLab push token (for drift sync jobs)
+# -----------------------------------------------------------------------------
+.openbao-pve-with-git:
+  image: $PVE_IMAGE
+  tags:
+    - lxc
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://gitlab.example.net
+  before_script:
+    - mkdir -p ~/.ssh
+    - base64 -d $CI_PROJECT_DIR/.ssh/one_key.b64 > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    - |
+      if ! ssh-keygen -y -P "" -f ~/.ssh/id_ed25519 > /dev/null 2>&1; then
+        echo "ERROR: Invalid or corrupted SSH key"
+        exit 1
+      fi
+    - |
+      cat > /tmp/openbao-ca.crt << 'CACERT'
+      -----BEGIN CERTIFICATE-----
+      MIIEYjCCAsqgAwIBAgIBATANBgkqhkiG9w0BAQsFADBCMSAwHgYDVQQKDBdTRUMu
+      TlVDTEVBUkxJR0hURVJTLk5FVDEeMBwGA1UEAwwVQ2VydGlmaWNhdGUgQXV0aG9y
+      aXR5MB4XDTI0MTEyMTA3NDYzM1oXDTQ0MTEyMTA3NDYzM1owQjEgMB4GA1UECgwX
+      U0VDLk5VQ0xFQVJMSUdIVEVSUy5ORVQxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1
+      dGhvcml0eTCCAaIwDQYJKoZIhvcNAQEBBQADggGPADCCAYoCggGBAMHTWN5dwU3p
+      A2GaFyi+pUiU5/+QFjZuB0DSvXFBcr5oe4AOHfH/wLOIIUHyTixKb2kjyIKfEGsy
+      FwkP/eagHWcy2s1eRH1LzFMXtk8zKEmMOKhUqSrwYaOeTsrWdeKpWlQNMOXsKgQu
+      vBjn6/Cll8+tHkJ3XCyLrGArxposgJPby54nAMizA53DH5LcgrV1xlqYU7B7G1/i
+      fRuAgXMoAnKcrGX6WGGSeKdwICYbLXOTwNHr9Hr8+fsRH9CVmHGDmF71W+5T+TGN
+      1OxtGQ2X6+wFtELz0Yy3FEGZ5raAYt4V+rbC2iq6MZruTN6272Lgl0bGvYL4K+BK
+      98x4T4ZZprOjKI4Za81TsaKazoO92sso4UC7CHD61L71b0wQPEoPHN3J/igZBzb+
+      mBErX5Bwqm/JYjirHQDSa7ygriQ0DWtqYfmTTrYRtEBM12y73FmwD+DMVK23ay8R
+      OzNgL5FgboC4XZSRBmbK9ZA6yJi/aL801jyVRlM0mu32r6Ke7MqwrQIDAQABo2Mw
+      YTAdBgNVHQ4EFgQU5as/yzZUY2tXkfa1OHCq2XXDWwAwHwYDVR0jBBgwFoAU5as/
+      yzZUY2tXkfa1OHCq2XXDWwAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC
+      AcYwDQYJKoZIhvcNAQELBQADggGBAJnIPtmWvVsuzDP7Yc2rhl0BLXT0ZmHYQtDT
+      CvWVCj/ThUi4lKeWMuq/FEgRHbhhGBBByDvcuEpDBvO7HvlGHbWY0tBvmDTn8csV
+      iLTr1lNYD9DIic0zBVToJ5R2Gtv4gUpdm0/qeeipgRZ+bgXzIAVobp+ccsie68PK
+      bBbgHQVtw/AlGklFyQ24L+vYvHtD8pWZP5H1He+6kCkC0AZpt08+27UeoX1Norx2
+      S5+V3zS2zPnnbJbWUIE6gFgSkIc7h4aFoWm9Kq05/X8Fw3SWWJB8xtlSwDQN9mBJ
+      FrAf6jc5H11kzke4akp/Zo/7HtO6fxREUlkAkbd8eQPByvCp3odDZ4U/K/UE5GGb
+      2uLGboJQa5bkjuiQWYkuIYhd4oUB7PUiohjafDheWPVdhg5oJEbqHk7AZrdt0R+b
+      lDnPyCrI2wmFZ1/208GEsLtLNpbg10zZciTngZYE03aWS8+6h1HFIIeD9oBSNiim
+      iYanODdc8yU1yNhOmUEIKP/1Eu3bVQ==
+      -----END CERTIFICATE-----
+      CACERT
+      export BAO_CACERT="/tmp/openbao-ca.crt"
+    - echo "[OpenBao] Authenticating with role ${BAO_ROLE}..."
+    - if [ -z "${VAULT_ID_TOKEN}" ]; then echo "[OpenBao] ERROR - VAULT_ID_TOKEN not set"; exit 1; fi
+    - AUTH_RESPONSE=$(curl -sf --cacert ${BAO_CACERT} --max-time 30 --request POST --header "Content-Type:application/json" --data "{\"jwt\":\"${VAULT_ID_TOKEN}\",\"role\":\"${BAO_ROLE}\"}" "${BAO_ADDR}/v1/auth/jwt/login")
+    - export BAO_TOKEN=$(echo "${AUTH_RESPONSE}" | jq -r '.auth.client_token // empty')
+    - if [ -z "${BAO_TOKEN}" ]; then echo "[OpenBao] ERROR - Authentication failed"; echo "${AUTH_RESPONSE}"; exit 1; fi
+    - echo "[OpenBao] Authentication successful"
+    - echo "[OpenBao] Fetching GitLab token..."
+    - GITLAB_SECRET=$(curl -sf --cacert ${BAO_CACERT} --header "X-Vault-Token:${BAO_TOKEN}" "${BAO_ADDR}/v1/secret/data/ci/gitlab")
+    - export GITLAB_PUSH_TOKEN=$(echo "${GITLAB_SECRET}" | jq -r '.data.data.push_token')
+    - if [ -z "${GITLAB_PUSH_TOKEN}" ]; then echo "[OpenBao] ERROR - Failed to fetch GitLab push token"; exit 1; fi
+    - echo "[OpenBao] All credentials loaded"
+    - git config --global user.email "gitlab-ci@example.net"
+    - git config --global user.name "GitLab CI Auto-Sync"
+    - git config --global --add safe.directory $CI_PROJECT_DIR
+    - git config --global pull.rebase true
+    - git remote set-url origin https://root:${GITLAB_PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
+    - git checkout main || git checkout -b main
+    - git reset --hard origin/main
+
 # =============================================================================
 # Test Job - Run manually to verify OpenBao integration
 # =============================================================================

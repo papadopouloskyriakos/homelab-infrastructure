@@ -383,3 +383,26 @@ detect_pve_lxc_drift:
     paths:
       - drift_report.txt
     expire_in: 7 days
+
+# ===========================================================================
+# PVE DRIFT AUTO-SYNC (Phase 2)
+# Syncs drifted/new/removed PVE configs from live hosts to Git.
+# Uses "GitLab CI Auto-Sync" author — deploy jobs skip this author.
+# Handles both LXC and QEMU configs in a single job.
+# ===========================================================================
+
+sync_pve_drift:
+  extends: .openbao-pve-with-git
+  stage: drift-detection
+  allow_failure:
+    exit_codes:
+      - 1
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: always
+    - when: manual
+      allow_failure: true
+  script:
+    - |
+      cd $CI_PROJECT_DIR
+      bash pve/scripts/pve_sync_drift.sh
