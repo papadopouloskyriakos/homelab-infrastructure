@@ -25,11 +25,11 @@ validate_qemu_configs:
   extends: .qemu_base
   stage: validate
   rules:
+    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+      when: never
     - changes:
         - pve/**/qemu/*.conf
       when: on_success
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
-      when: never
   script:
     - |
       set -eu
@@ -126,11 +126,11 @@ deploy_qemu_configs:
   extends: .qemu_base
   stage: deploy
   rules:
+    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+      when: never
     - changes:
         - pve/**/qemu/*.conf
       when: on_success
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
-      when: never
   needs:
     - validate_qemu_configs
   script:
@@ -296,11 +296,11 @@ verify_qemu_deployments:
   extends: .qemu_base
   stage: verify
   rules:
+    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+      when: never
     - changes:
         - pve/**/qemu/*.conf
       when: on_success
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
-      when: never
   needs:
     - deploy_qemu_configs
   script:
