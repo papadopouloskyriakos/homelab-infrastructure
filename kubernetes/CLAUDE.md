@@ -8,6 +8,18 @@
 - **Pod CIDR**: 10.0.0.0/16 (NL), 10.1.0.0/16 (GR) — must not overlap for ClusterMesh
 - **ClusterMesh**: Connected to GR cluster `grcl01k8s` at 10.0.X.X:2379, mTLS via ExternalSecret from OpenBao
 
+## MCP Tools for K8s Work
+
+| MCP | Use for |
+|-----|---------|
+| `opentofu` | Registry lookups — get correct resource args, provider docs, module schemas |
+| `tfmcp` | Local analysis — module dependency graph, resource dependencies, health scoring |
+
+**Before editing any `.tf` file**, use `opentofu` MCP to look up the resource schema.
+**Before refactoring modules**, use `tfmcp` to analyze module dependencies and coupling.
+
+Quick dependency check via CLI: `tofu graph | grep 'module\.'`
+
 ## Deployment Model
 
 - **OpenTofu** manages all K8s resources. Never use `kubectl apply` directly for Atlantis-managed resources.
