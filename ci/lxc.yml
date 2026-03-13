@@ -119,6 +119,72 @@ validate_lxc_configs:
   allow_failure: false
 
 # ===========================================================================
+# PRE-DEPLOY DRIFT GATE (Phase 3)
+# Blocks deployment if PVE has manual changes not in Git history.
+# 3-way compare: live PVE vs HEAD vs HEAD^ per VMID.
+# ===========================================================================
+
+pre_deploy_lxc_drift_gate:
+  extends: .lxc_base
+  stage: validate
+  rules:
+    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+      when: never
+    - changes:
+        - pve/**/lxc/*.conf
+      when: on_success
+  script:
+    - |
+      set -eu
+
+      echo "================================================"
+      echo "Pre-Deploy Drift Gate — LXC Configs"
+      echo "================================================"
+
+      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep 'pve/.*/lxc/.*\.conf' || true)
+
+      if [ -z "$CHANGED" ]; then
+        echo "No LXC configuration changes detected"
+        exit 0
+      fi
+
+      echo "Checking drift for:"
+      echo "$CHANGED" | sed 's/^/  /'
+      echo ""
+
+      GATE_FAILED=0
+
+      for file in $CHANGED; do
+        PVE_HOST=$(echo "$file" | cut -d'/' -f2)
+        VMID=$(basename "$file" .conf)
+
+        bash pve/scripts/pve_drift_gate.sh lxc "$PVE_HOST" "$VMID"
+        RC=$?
+
+        if [ $RC -eq 2 ]; then
+          echo ""
+          echo "DRIFT DETECTED — DEPLOYMENT BLOCKED for ${VMID}"
+          GATE_FAILED=1
+        elif [ $RC -ne 0 ]; then
+          echo "ERROR checking drift for ${VMID} (exit $RC)"
+          GATE_FAILED=1
+        fi
+      done
+
+      if [ $GATE_FAILED -eq 1 ]; then
+        echo ""
+        echo "================================================"
+        echo "DEPLOYMENT BLOCKED — resolve drift before deploying"
+        echo "Run sync_pve_drift to sync PVE state, then rebase."
+        echo "================================================"
+        exit 1
+      fi
+
+      echo ""
+      echo "SUCCESS: No drift detected — safe to deploy"
+  allow_failure: false
+
+# ===========================================================================
 # DEPLOYMENT
 # ===========================================================================
 
@@ -133,6 +199,7 @@ deploy_lxc_configs:
       when: on_success
   needs:
     - validate_lxc_configs
+    - pre_deploy_lxc_drift_gate
   script:
     - |
       set -eu
