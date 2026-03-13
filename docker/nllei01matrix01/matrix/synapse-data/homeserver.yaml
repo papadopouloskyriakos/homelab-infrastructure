@@ -51,6 +51,7 @@ experimental_features:
   msc2409_to_device_messages_enabled: true
   msc4222_enabled: true
   msc4108_enabled: true
+  msc4143_enabled: true
   msc3401_enabled: true
 
 # Matrix Authentication Service (replaces deprecated experimental_features.msc3861)
