@@ -10,17 +10,17 @@ extra_well_known_client_content:
     preferredDomain: meet.jit.si
   "org.matrix.msc4143.rtc_foci":
     - type: "livekit"
-      livekit_service_url: "https://lk.element.dev"
+      livekit_service_url: "https://livekit-jwt.call.matrix.org"
   "m.rtc_foci":
     - type: "livekit"
-      livekit_service_url: "https://lk.element.dev"
+      livekit_service_url: "https://livekit-jwt.call.matrix.org"
 soft_file_limit: 65536
 
 # MatrixRTC transport config (MSC4143) — Element X calling
 matrix_rtc:
   transports:
     - type: "livekit"
-      livekit_service_url: "https://lk.element.dev"
+      livekit_service_url: "https://livekit-jwt.call.matrix.org"
 
 # STUN/TURN for 1:1 VoIP call NAT traversal (Jitsi public servers)
 turn_uris:
