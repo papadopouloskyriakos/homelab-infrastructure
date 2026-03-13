@@ -358,3 +358,25 @@ verify_qemu_deployments:
     when: always
     expire_in: 7 days
   allow_failure: true
+
+# ===========================================================================
+# DRIFT DETECTION - PVE as Source of Truth
+# ===========================================================================
+
+detect_pve_qemu_drift:
+  extends: .qemu_base
+  stage: drift-detection
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: always
+    - when: manual
+      allow_failure: true
+  script:
+    - |
+      cd $CI_PROJECT_DIR
+      bash pve/scripts/pve_detect_drift.sh | tee drift_report.txt
+  artifacts:
+    when: always
+    paths:
+      - drift_report.txt
+    expire_in: 7 days
