@@ -394,6 +394,55 @@ resource "helm_release" "monitoring" {
       # ALERTMANAGER CONFIGURATION
       # =========================================================================
       alertmanager = {
+        config = {
+          global = {
+            resolve_timeout = "5m"
+          }
+          inhibit_rules = [
+            {
+              source_matchers = ["severity = critical"]
+              target_matchers = ["severity =~ warning|info"]
+              equal           = ["namespace", "alertname"]
+            },
+            {
+              source_matchers = ["severity = warning"]
+              target_matchers = ["severity = info"]
+              equal           = ["namespace", "alertname"]
+            },
+            {
+              source_matchers = ["alertname = InfoInhibitor"]
+              target_matchers = ["severity = info"]
+            }
+          ]
+          receivers = [
+            { name = "null" },
+            {
+              name = "webhook-n8n"
+              webhook_configs = [{
+                url           = "https://n8n.example.net/webhook/prometheus-alert"
+                send_resolved = true
+                max_alerts    = 10
+              }]
+            }
+          ]
+          route = {
+            receiver        = "webhook-n8n"
+            group_by        = ["namespace", "alertname"]
+            group_wait      = "30s"
+            group_interval  = "5m"
+            repeat_interval = "4h"
+            routes = [
+              {
+                matchers = ["alertname = Watchdog"]
+                receiver = "null"
+              },
+              {
+                matchers = ["alertname = InfoInhibitor"]
+                receiver = "null"
+              }
+            ]
+          }
+        }
         alertmanagerSpec = {
           replicas = 2
 
