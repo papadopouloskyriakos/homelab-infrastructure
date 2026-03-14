@@ -232,3 +232,73 @@ verify_k8s_infrastructure:
     kubernetes:
       agent: k8s-agent
   allow_failure: true
+
+# -----------------------------------------------------------------------------
+# Drift Detection - Periodic tofu plan on main to detect out-of-band changes
+# Alerts if live K8s state differs from OpenTofu code.
+# Same pattern as PVE drift detection (ci/lxc.yml detect_pve_lxc_drift).
+# -----------------------------------------------------------------------------
+detect_k8s_drift:
+  stage: drift-detection
+  image: $K8S_IMAGE
+  tags:
+    - k8s
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: always
+    - when: manual
+      allow_failure: true
+  before_script:
+    - git config --global --add safe.directory $CI_PROJECT_DIR
+  script:
+    - |
+      set -eu
+
+      echo "================================================"
+      echo "K8s Drift Detection — OpenTofu Plan on main"
+      echo "================================================"
+      echo ""
+
+      cd "$K8S_DIR"
+
+      # Initialize with real backend (not local override)
+      echo "=== Initializing ==="
+      tofu init -input=false
+
+      echo ""
+      echo "=== Running plan (detect drift) ==="
+
+      # Plan and capture output
+      PLAN_EXIT=0
+      tofu plan -detailed-exitcode -input=false -out=/tmp/k8s-drift.plan 2>&1 | tee /tmp/k8s-drift.txt || PLAN_EXIT=$?
+
+      echo ""
+      echo "================================================"
+
+      # Exit codes: 0=no changes, 1=error, 2=changes detected
+      if [ "$PLAN_EXIT" -eq 0 ]; then
+        echo "OK — No drift detected. K8s state matches OpenTofu code."
+        exit 0
+      elif [ "$PLAN_EXIT" -eq 2 ]; then
+        echo "DRIFT DETECTED — K8s live state differs from OpenTofu code."
+        echo ""
+        echo "This means someone or something modified K8s resources outside of OpenTofu."
+        echo "Review the plan output above and either:"
+        echo "  1. Update the .tf code to match the desired state, OR"
+        echo "  2. Run 'atlantis apply' to overwrite the drift with the OpenTofu state"
+        echo ""
+        echo "Drift report saved to artifact."
+        cp /tmp/k8s-drift.txt "$CI_PROJECT_DIR/k8s_drift_report.txt"
+        exit 1
+      else
+        echo "ERROR — Plan failed. Check OpenTofu configuration."
+        exit 1
+      fi
+  artifacts:
+    when: on_failure
+    paths:
+      - k8s_drift_report.txt
+    expire_in: 7 days
+  allow_failure:
+    exit_codes:
+      - 1
