@@ -192,6 +192,8 @@ deploy_qemu_configs:
   extends: .qemu_base
   stage: deploy
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
     - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
       when: never
     - changes:
