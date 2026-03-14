@@ -61,3 +61,10 @@ variable "argocd_ssh_known_hosts" {
   type        = string
   default     = ""
 }
+
+variable "argocd_matrix_token" {
+  description = "Matrix bot access token for Argo CD notifications webhook"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
