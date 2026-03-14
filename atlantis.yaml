@@ -33,7 +33,6 @@ workflows:
     plan:
       steps:
         - init
-        - run: tofu validate
         - plan
     apply:
       steps:
@@ -42,7 +41,6 @@ workflows:
     plan:
       steps:
         - init
-        - run: tofu validate
         - plan
     apply:
       steps:
