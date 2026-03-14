@@ -104,7 +104,7 @@ filer:
       memory: 512Mi
     limits:
       cpu: "1"
-      memory: 1Gi
+      memory: 2Gi
   # Affinity as STRING
   affinity: |
     nodeAffinity:
