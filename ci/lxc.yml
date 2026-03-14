@@ -388,7 +388,8 @@ verify_lxc_deployments:
         - pve/**/lxc/*.conf
       when: on_success
   needs:
-    - deploy_lxc_configs
+    - job: deploy_lxc_configs
+      optional: true
   script:
     - |
       set -eu
