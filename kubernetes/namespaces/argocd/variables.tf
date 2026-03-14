@@ -17,7 +17,7 @@ variable "domain" {
 variable "REDACTED_be8b31fd" {
   description = "Argo CD Helm chart version"
   type        = string
-  default     = "7.7.10"
+  default     = "7.8.28"
 }
 
 variable "argocd_nodeport" {
