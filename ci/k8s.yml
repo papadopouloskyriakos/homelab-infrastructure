@@ -239,6 +239,7 @@ verify_k8s_infrastructure:
 # Same pattern as PVE drift detection (ci/lxc.yml detect_pve_lxc_drift).
 # -----------------------------------------------------------------------------
 detect_k8s_drift:
+  extends: .openbao-auth
   stage: drift-detection
   image: $K8S_IMAGE
   tags:
@@ -248,46 +249,63 @@ detect_k8s_drift:
       when: always
     - when: manual
       allow_failure: true
-  before_script:
-    - git config --global --add safe.directory $CI_PROJECT_DIR
   script:
+    - git config --global --add safe.directory $CI_PROJECT_DIR
     - |
       set -eu
 
       echo "================================================"
       echo "K8s Drift Detection — OpenTofu Plan on main"
       echo "================================================"
+
+      # Load secrets from OpenBao (same vars as Atlantis)
+      echo "[Drift] Loading secrets from OpenBao..."
+      export TF_VAR_k8s_host=$(fetch_secret "ci/kubernetes" "host")
+      export TF_VAR_k8s_ca_cert=$(fetch_secret "ci/kubernetes" "ca_cert")
+      export TF_VAR_k8s_token=$(fetch_secret "ci/kubernetes" "token")
+      export TF_VAR_grafana_admin_password=$(fetch_secret "ci/apps" "grafana_admin_password")
+      export TF_VAR_pihole_password=$(fetch_secret "ci/apps" "pihole_password")
+      export TF_VAR_REDACTED_6177f7df=$(fetch_secret "ci/terraform" "REDACTED_6177f7df")
+      export TF_VAR_REDACTED_29445e2e=$(fetch_secret "ci/terraform" "REDACTED_29445e2e")
+      export TF_VAR_pve_api_url=$(fetch_secret "ci/proxmox" "api_url")
+      export TF_VAR_pve_user=$(fetch_secret "ci/proxmox" "user")
+      export TF_VAR_pve_password=$(fetch_secret "ci/proxmox" "password")
+      export TF_VAR_REDACTED_b6136a28=$(fetch_secret "ci/gitlab" "agent_k8s_token")
+      export TF_VAR_argocd_matrix_token=$(fetch_secret "ci/argocd" "matrix_token")
+
+      # Backend credentials
+      export TF_HTTP_PASSWORD=$(fetch_secret "atlantis/config" "tf_http_password")
+      export TF_HTTP_ADDRESS="https://gitlab.example.net/api/v4/projects/7/terraform/state/k8s-production-state"
+      export TF_HTTP_LOCK_ADDRESS="${TF_HTTP_ADDRESS}/lock"
+      export TF_HTTP_UNLOCK_ADDRESS="${TF_HTTP_ADDRESS}/lock"
+      export TF_HTTP_USERNAME="atlantis-bot"
+      export TF_HTTP_LOCK_METHOD="POST"
+      export TF_HTTP_UNLOCK_METHOD="DELETE"
+
+      echo "[Drift] Secrets loaded"
       echo ""
 
       cd "$K8S_DIR"
 
-      # Initialize with real backend (not local override)
       echo "=== Initializing ==="
       tofu init -input=false
 
       echo ""
       echo "=== Running plan (detect drift) ==="
 
-      # Plan and capture output
       PLAN_EXIT=0
-      tofu plan -detailed-exitcode -input=false -out=/tmp/k8s-drift.plan 2>&1 | tee /tmp/k8s-drift.txt || PLAN_EXIT=$?
+      tofu plan -detailed-exitcode -input=false -lock=false 2>&1 | tee /tmp/k8s-drift.txt || PLAN_EXIT=$?
 
       echo ""
       echo "================================================"
 
-      # Exit codes: 0=no changes, 1=error, 2=changes detected
       if [ "$PLAN_EXIT" -eq 0 ]; then
         echo "OK — No drift detected. K8s state matches OpenTofu code."
         exit 0
       elif [ "$PLAN_EXIT" -eq 2 ]; then
         echo "DRIFT DETECTED — K8s live state differs from OpenTofu code."
         echo ""
-        echo "This means someone or something modified K8s resources outside of OpenTofu."
-        echo "Review the plan output above and either:"
-        echo "  1. Update the .tf code to match the desired state, OR"
-        echo "  2. Run 'atlantis apply' to overwrite the drift with the OpenTofu state"
-        echo ""
-        echo "Drift report saved to artifact."
+        echo "Review the plan output above."
         cp /tmp/k8s-drift.txt "$CI_PROJECT_DIR/k8s_drift_report.txt"
         exit 1
       else
