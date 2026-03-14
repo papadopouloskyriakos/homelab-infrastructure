@@ -235,6 +235,83 @@ resource "helm_release" "argocd" {
 
       notifications = {
         enabled = var.REDACTED_035cbec1
+
+        notifiers = {
+          "service.webhook.matrix-alerts" = <<-EOT
+            url: https://matrix.example.net/_matrix/client/v3/rooms/!xeNxtpScJWCmaFjeCL:matrix.example.net/send/m.room.message/argocd-$${time.Now.Unix}
+            headers:
+            - name: Authorization
+              value: Bearer ${var.argocd_matrix_token}
+            - name: Content-Type
+              value: application/json
+          EOT
+        }
+
+        subscriptions = [
+          {
+            recipients = ["webhook:matrix-alerts"]
+            triggers   = ["on-health-degraded", "on-sync-failed", "on-sync-status-unknown"]
+          }
+        ]
+
+        templates = {
+          "template.app-health-degraded"     = <<-EOT
+            webhook:
+              matrix-alerts:
+                method: PUT
+                body: |
+                  {"msgtype":"m.text","body":"[ArgoCD] {{.app.metadata.name}} health DEGRADED\nStatus: {{.app.status.health.status}}\nSync: {{.app.status.sync.status}}\nURL: https://argocd.example.net/applications/{{.app.metadata.name}}"}
+          EOT
+          "template.app-sync-failed"         = <<-EOT
+            webhook:
+              matrix-alerts:
+                method: PUT
+                body: |
+                  {"msgtype":"m.text","body":"[ArgoCD] {{.app.metadata.name}} sync FAILED\nError: {{.app.status.operationState.message}}\nURL: https://argocd.example.net/applications/{{.app.metadata.name}}"}
+          EOT
+          "template.app-sync-status-unknown" = <<-EOT
+            webhook:
+              matrix-alerts:
+                method: PUT
+                body: |
+                  {"msgtype":"m.text","body":"[ArgoCD] {{.app.metadata.name}} sync status UNKNOWN\nURL: https://argocd.example.net/applications/{{.app.metadata.name}}"}
+          EOT
+          "template.app-sync-succeeded"      = <<-EOT
+            webhook:
+              matrix-alerts:
+                method: PUT
+                body: |
+                  {"msgtype":"m.text","body":"[ArgoCD] {{.app.metadata.name}} synced successfully\nRevision: {{.app.status.sync.revision}}\nURL: https://argocd.example.net/applications/{{.app.metadata.name}}"}
+          EOT
+        }
+
+        triggers = {
+          "trigger.on-health-degraded"     = <<-EOT
+            - description: Application health degraded
+              send:
+              - app-health-degraded
+              when: app.status.health.status == 'Degraded'
+          EOT
+          "trigger.on-sync-failed"         = <<-EOT
+            - description: Application sync failed
+              send:
+              - app-sync-failed
+              when: app.status.operationState != nil and app.status.operationState.phase in ['Error', 'Failed']
+          EOT
+          "trigger.on-sync-status-unknown" = <<-EOT
+            - description: Application sync status unknown
+              send:
+              - app-sync-status-unknown
+              when: app.status.sync.status == 'Unknown'
+          EOT
+          "trigger.on-sync-succeeded"      = <<-EOT
+            - description: Application synced successfully
+              oncePer: app.status.sync.revision
+              send:
+              - app-sync-succeeded
+              when: app.status.operationState != nil and app.status.operationState.phase in ['Succeeded'] and app.status.health.status == 'Healthy'
+          EOT
+        }
       }
 
       dex = {
