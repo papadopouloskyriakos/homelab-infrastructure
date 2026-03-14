@@ -669,20 +669,26 @@ resource "helm_release" "monitoring" {
       # =========================================================================
       # ADDITIONAL SETTINGS
       # =========================================================================
+      # Disable monitoring for components that can't be scraped:
+      # - kubeProxy: Cilium replaces kube-proxy (no pods exist)
+      # - kubeEtcd: metrics endpoint binds to 127.0.0.1:2379 with mTLS, not scrapable from Prometheus pods
+      # - kubeControllerManager: binds to 127.0.0.1:10257, not reachable from Prometheus
+      # - kubeScheduler: binds to 127.0.0.1:10259, not reachable from Prometheus
+      # These components are healthy but their metrics are not exposed to the pod network.
       kubeEtcd = {
-        enabled = true
+        enabled = false
       }
 
       kubeControllerManager = {
-        enabled = true
+        enabled = false
       }
 
       kubeScheduler = {
-        enabled = true
+        enabled = false
       }
 
       kubeProxy = {
-        enabled = true
+        enabled = false
       }
     })
   ]
