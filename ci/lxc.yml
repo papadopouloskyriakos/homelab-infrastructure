@@ -241,19 +241,36 @@ deploy_lxc_configs:
           continue
         fi
         
+        # Compare live config against desired config — skip if identical
+        echo "Comparing live config against desired..."
+        LIVE_CONFIG=$(ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+          root@"$HOSTNAME" "cat /etc/pve/lxc/${VMID}.conf 2>/dev/null" || echo "")
+        DESIRED_CONFIG=$(cat "$CI_PROJECT_DIR/$file")
+
+        # Normalize both configs for comparison (strip comments, blank lines, sort)
+        LIVE_NORM=$(echo "$LIVE_CONFIG" | grep -v '^#' | grep -v '^$' | grep -v '^\[' | sort)
+        DESIRED_NORM=$(echo "$DESIRED_CONFIG" | grep -v '^#' | grep -v '^$' | grep -v '^\[' | sort)
+
+        if [ "$LIVE_NORM" = "$DESIRED_NORM" ]; then
+          echo "  SKIP: Live config already matches desired config — no restart needed"
+          echo ""
+          continue
+        fi
+
+        echo "  Config differs — deploying changes"
+
         # Create backup directory on host
         echo "Creating backup directory..."
         ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
           root@"$HOSTNAME" \
           "mkdir -p $PVE_BACKUP_DIR"
-        
+
         # Backup current configuration
         TIMESTAMP=$(date +%Y%m%d_%H%M%S)
         BACKUP_FILE="$PVE_BACKUP_DIR/${VMID}_${TIMESTAMP}.conf"
-        
+
         echo "Backing up current config to $BACKUP_FILE..."
-        if ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
-             root@"$HOSTNAME" "test -f /etc/pve/lxc/${VMID}.conf"; then
+        if [ -n "$LIVE_CONFIG" ]; then
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
             root@"$HOSTNAME" \
             "cp /etc/pve/lxc/${VMID}.conf $BACKUP_FILE"
@@ -261,33 +278,33 @@ deploy_lxc_configs:
         else
           echo "  No existing config to backup (new container)"
         fi
-        
+
         # Stop container gracefully
         echo "Stopping container $VMID..."
         if ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
              root@"$HOSTNAME" "pct status $VMID" 2>/dev/null | grep -q "running"; then
-          
+
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
             root@"$HOSTNAME" \
             "pct shutdown $VMID --timeout 30 || pct stop $VMID"
-          
+
           echo "  Container stopped"
         else
           echo "  Container already stopped"
         fi
-        
+
         # Create temp staging directory
         ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
           root@"$HOSTNAME" \
           "mkdir -p $PVE_TEMP_CONFIG_DIR"
-        
+
         # Copy new config to staging
         TEMP_CONFIG="$PVE_TEMP_CONFIG_DIR/${VMID}.conf"
         echo "Uploading new configuration..."
         scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
           "$CI_PROJECT_DIR/$file" \
           "root@$HOSTNAME:$TEMP_CONFIG"
-        
+
         # Verify config was uploaded
         if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
              root@"$HOSTNAME" "test -f $TEMP_CONFIG"; then
@@ -295,13 +312,13 @@ deploy_lxc_configs:
           DEPLOYMENT_FAILED=1
           continue
         fi
-        
+
         # Replace production config
         echo "Deploying configuration..."
         ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
           root@"$HOSTNAME" \
           "cp $TEMP_CONFIG /etc/pve/lxc/${VMID}.conf"
-        
+
         # Verify deployment
         if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
              root@"$HOSTNAME" \
@@ -314,9 +331,9 @@ deploy_lxc_configs:
           DEPLOYMENT_FAILED=1
           continue
         fi
-        
+
         echo "  Configuration deployed successfully"
-        
+
         # Start container
         echo "Starting container $VMID..."
         if ! ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
@@ -330,14 +347,14 @@ deploy_lxc_configs:
           DEPLOYMENT_FAILED=1
           continue
         fi
-        
+
         echo "  Container started successfully"
-        
+
         # Cleanup staging
         ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
           root@"$HOSTNAME" \
           "rm -f $TEMP_CONFIG"
-        
+
         echo "SUCCESS: $VMID deployed on $HOSTNAME"
         echo ""
       done
