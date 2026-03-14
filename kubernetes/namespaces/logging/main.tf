@@ -348,11 +348,11 @@ resource "helm_release" "promtail" {
     resources = {
       requests = {
         cpu    = "50m"
-        memory = "64Mi"
+        memory = "128Mi"
       }
       limits = {
         cpu    = "200m"
-        memory = "128Mi"
+        memory = "256Mi"
       }
     }
 
