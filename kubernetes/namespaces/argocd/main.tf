@@ -96,15 +96,13 @@ resource "kubernetes_manifest" "gitlab_repo_creds" {
 # Argo CD Helm Release
 # -----------------------------------------------------------------------------
 resource "helm_release" "argocd" {
-  name          = "argocd"
-  repository    = "https://argoproj.github.io/argo-helm"
-  chart         = "argo-cd"
-  namespace     = kubernetes_namespace.argocd.metadata[0].name
-  version       = var.REDACTED_be8b31fd
-  timeout       = 600
-  wait          = true
-  force_update  = true
-  recreate_pods = false
+  name       = "argocd"
+  repository = "https://argoproj.github.io/argo-helm"
+  chart      = "argo-cd"
+  namespace  = kubernetes_namespace.argocd.metadata[0].name
+  version    = var.REDACTED_be8b31fd
+  timeout    = 600
+  wait       = true
 
   # Ensure ExternalSecret creates the repo credentials first
   depends_on = [
