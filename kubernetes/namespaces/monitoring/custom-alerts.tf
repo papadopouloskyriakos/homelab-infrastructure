@@ -25,7 +25,7 @@ resource "kubernetes_manifest" "custom_alert_rules" {
           rules = [
             {
               alert = "ContainerOOMKilled"
-              expr  = "increase(container_oom_kill_events_total[5m]) > 0"
+              expr  = "kube_pod_container_status_last_terminated_reason{reason=\"OOMKilled\"} == 1"
               for   = "0m"
               labels = {
                 severity = "critical"
