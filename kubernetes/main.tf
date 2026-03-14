@@ -141,6 +141,7 @@ module "argocd" {
   argocd_dex_enabled           = var.argocd_dex_enabled
   argocd_repositories          = var.argocd_repositories
   argocd_ssh_known_hosts       = var.argocd_ssh_known_hosts
+  argocd_matrix_token          = var.argocd_matrix_token
 
   depends_on = [module.ingress_nginx]
 }
