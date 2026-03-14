@@ -137,7 +137,7 @@ variable "REDACTED_649263f1" {
 variable "REDACTED_035cbec1" {
   description = "Enable Argo CD notifications controller"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "argocd_dex_enabled" {
