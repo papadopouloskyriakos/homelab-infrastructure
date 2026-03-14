@@ -310,16 +310,19 @@ detect_k8s_drift:
         echo ""
         echo "Review the plan output above."
         cp /tmp/k8s-drift.txt "$CI_PROJECT_DIR/k8s_drift_report.txt"
-        exit 1
+        # Exit 2 = drift detected (warning, not failure)
+        exit 2
       else
         echo "ERROR — Plan failed. Check OpenTofu configuration."
+        # Exit 1 = real error (hard failure)
         exit 1
       fi
   artifacts:
-    when: on_failure
+    when: always
     paths:
       - k8s_drift_report.txt
     expire_in: 7 days
   allow_failure:
     exit_codes:
-      - 1
+      # Exit 2 = drift detected — show as warning (orange), not red
+      - 2
