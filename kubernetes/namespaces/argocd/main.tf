@@ -96,13 +96,15 @@ resource "kubernetes_manifest" "gitlab_repo_creds" {
 # Argo CD Helm Release
 # -----------------------------------------------------------------------------
 resource "helm_release" "argocd" {
-  name       = "argocd"
-  repository = "https://argoproj.github.io/argo-helm"
-  chart      = "argo-cd"
-  namespace  = kubernetes_namespace.argocd.metadata[0].name
-  version    = var.REDACTED_be8b31fd
-  timeout    = 600
-  wait       = true
+  name          = "argocd"
+  repository    = "https://argoproj.github.io/argo-helm"
+  chart         = "argo-cd"
+  namespace     = kubernetes_namespace.argocd.metadata[0].name
+  version       = var.REDACTED_be8b31fd
+  timeout       = 600
+  wait          = true
+  force_update  = true
+  recreate_pods = false
 
   # Ensure ExternalSecret creates the repo credentials first
   depends_on = [
@@ -114,6 +116,8 @@ resource "helm_release" "argocd" {
     yamlencode({
       global = {
         domain = "argocd.${var.domain}"
+        # Force Helm upgrade to deploy notifications controller (2026-03-14)
+        revisionHistoryLimit = 3
       }
 
       server = {
