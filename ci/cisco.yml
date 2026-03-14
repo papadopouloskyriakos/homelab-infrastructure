@@ -421,13 +421,15 @@ deploy_cisco_configs:
   extends: .cisco_base
   stage: deploy
   rules:
-    - changes:
-        - network/configs/**/*
-      when: on_success
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
     - if: '$CI_COMMIT_AUTHOR_NAME == "NL Oxidized Bot" || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
       when: never
     - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
       when: never
+    - changes:
+        - network/configs/**/*
+      when: on_success
   needs:
     - validate_cisco_configs
     - pre_deploy_drift_gate
