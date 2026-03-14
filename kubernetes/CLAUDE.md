@@ -8,17 +8,36 @@
 - **Pod CIDR**: 10.0.0.0/16 (NL), 10.1.0.0/16 (GR) — must not overlap for ClusterMesh
 - **ClusterMesh**: Connected to GR cluster `grcl01k8s` at 10.0.X.X:2379, mTLS via ExternalSecret from OpenBao
 
-## MCP Tools for K8s Work
+## MCP Tools & Graph Database for K8s Work
 
-| MCP | Use for |
-|-----|---------|
-| `opentofu` | Registry lookups — get correct resource args, provider docs, module schemas |
-| `tfmcp` | Local analysis — module dependency graph, resource dependencies, health scoring |
+| Tool | Use for |
+|------|---------|
+| `opentofu` MCP | Registry lookups — get correct resource args, provider docs, module schemas |
+| `tfmcp` MCP | Local analysis — module dependency graph, resource dependencies, health scoring |
+| `codegraph` MCP | **Neo4j Cypher queries** on indexed TF modules, resources, helm releases |
+| `tofu graph` | CLI — DOT-format dependency graph (needs `tofu init` first) |
 
 **Before editing any `.tf` file**, use `opentofu` MCP to look up the resource schema.
-**Before refactoring modules**, use `tfmcp` to analyze module dependencies and coupling.
+**Before refactoring modules**, query the dependency graph via `codegraph` MCP's `execute_cypher_query`:
 
-Quick dependency check via CLI: `tofu graph | grep 'module\.'`
+```cypher
+-- What breaks if I change cert_manager?
+MATCH (m:TFModule)-[:DEPENDS_ON|REFERENCES*1..3]->(c:TFModule {name:"cert_manager"}) RETURN m.name
+
+-- What Helm charts are in monitoring?
+MATCH (h:HelmRelease {namespace:"monitoring"}) RETURN h.name, h.chart, h.version
+
+-- Full module dependency chain
+MATCH (a:TFModule)-[r:DEPENDS_ON|REFERENCES]->(b:TFModule) RETURN a.name, type(r), b.name
+```
+
+**Re-index after TF changes:**
+```bash
+source /home/claude-runner/.cgc-venv/bin/activate
+python3 /home/claude-runner/scripts/tf-graph-indexer.py /home/claude-runner/gitlab/infrastructure/nl/production/k8s --clean
+```
+
+**OpenTofu binary:** `/home/claude-runner/.local/bin/tofu` (v1.9.0). Needs `tofu init` before `tofu graph`.
 
 ## Deployment Model
 
