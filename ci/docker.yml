@@ -105,11 +105,13 @@ deploy_docker:
   extends: .docker_base
   stage: deploy
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+      when: never
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
         - docker/**/*
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
-      when: never
   script:
     - |
       set -eu
