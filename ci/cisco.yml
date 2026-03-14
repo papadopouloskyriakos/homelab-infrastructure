@@ -531,7 +531,8 @@ verify_cisco_deployments:
     - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
       when: never
   needs:
-    - deploy_cisco_configs
+    - job: deploy_cisco_configs
+      optional: true
   script:
     - mkdir -p artifacts
     - |
