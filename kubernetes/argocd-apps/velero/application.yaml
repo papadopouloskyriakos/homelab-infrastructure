@@ -9,13 +9,27 @@ spec:
     repoURL: https://gitlab.example.net/infrastructure/nl/production.git
     targetRevision: main
     path: k8s/argocd-apps/velero
+    directory:
+      exclude: '{}'
   destination:
     server: https://kubernetes.default.svc
     namespace: velero
   syncPolicy:
     automated:
-      prune: true
+      prune: false
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
       - ApplyOutOfSyncOnly=true
+      - RespectIgnoreDifferences=true
+  ignoreDifferences:
+    - group: velero.io
+      kind: Backup
+    - group: velero.io
+      kind: Restore
+    - group: velero.io
+      kind: DeleteBackupRequest
+    - group: velero.io
+      kind: PodVolumeBackup
+    - group: velero.io
+      kind: PodVolumeRestore

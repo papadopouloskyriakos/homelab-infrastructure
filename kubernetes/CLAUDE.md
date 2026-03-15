@@ -3,7 +3,7 @@
 ## Architecture
 
 - **Cluster**: `nlcl01k8s` (ID: 1), K8s v1.34.2, API at `api-k8s.example.net:6443`
-- **Nodes**: 3 control-plane (4 CPU, 4GB) + 4 workers (8 CPU, 8GB), all Ubuntu 24.04, IPs 10.0.X.X-12 (CP), .20-23 (workers)
+- **Nodes**: 3 control-plane (4 CPU, 8GB — ctrl02 still 4GB on pve02) + 4 workers (8 CPU, 8GB), all Ubuntu 24.04, IPs 10.0.X.X-12 (CP), .20-23 (workers)
 - **CNI**: Cilium v1.18.4, eBPF, REDACTED_fd61d0fe, VXLAN tunneling, MTU 1350
 - **Pod CIDR**: 10.0.0.0/16 (NL), 10.1.0.0/16 (GR) — must not overlap for ClusterMesh
 - **ClusterMesh**: Connected to GR cluster `grcl01k8s` at 10.0.X.X:2379, mTLS via ExternalSecret from OpenBao
