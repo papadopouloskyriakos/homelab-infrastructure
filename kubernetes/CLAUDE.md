@@ -3,7 +3,7 @@
 ## Architecture
 
 - **Cluster**: `nlcl01k8s` (ID: 1), K8s v1.34.2, API at `api-k8s.example.net:6443`
-- **Nodes**: 3 control-plane (4 CPU, 8GB — ctrl02 still 4GB on pve02) + 4 workers (8 CPU, 8GB), all Ubuntu 24.04, IPs 10.0.X.X-12 (CP), .20-23 (workers)
+- **Nodes**: 3 control-plane (4 CPU, 8GB — ctrl02 4GB on pve02, ctrl01+ctrl03 upgraded 4→8GB on 2026-03-15) + 4 workers (8 CPU, 8GB), all Ubuntu 24.04, IPs 10.0.X.X-12 (CP), .20-23 (workers)
 - **CNI**: Cilium v1.18.4, eBPF, REDACTED_fd61d0fe, VXLAN tunneling, MTU 1350
 - **Pod CIDR**: 10.0.0.0/16 (NL), 10.1.0.0/16 (GR) — must not overlap for ClusterMesh
 - **ClusterMesh**: Connected to GR cluster `grcl01k8s` at 10.0.X.X:2379, mTLS via ExternalSecret from OpenBao
@@ -43,7 +43,7 @@ python3 /home/claude-runner/scripts/tf-graph-indexer.py /home/claude-runner/gitl
 
 - **OpenTofu** manages all K8s resources. Never use `kubectl apply` directly for Atlantis-managed resources.
 - **Atlantis** handles plan/apply via MR comments. Always create MRs for `.tf` changes.
-- **Argo CD** manages 3 apps (bentopdf, pihole, velero) from `argocd-apps/`. These auto-sync — push YAML to main.
+- **Argo CD** manages 4 apps (bentopdf, pihole, velero, echo-server) from `argocd-apps/`. These auto-sync — push YAML to main.
 - **State**: GitLab Terraform HTTP backend. Never run `tofu apply` locally.
 - Run `tofu fmt -recursive` before committing — the pipeline enforces formatting.
 
@@ -77,6 +77,7 @@ k8s/
 │   └── well-known/      # RFC 8615 security.txt, multi-domain
 └── argocd-apps/         # Argo CD application manifests (YAML, not OpenTofu)
     ├── bentopdf/        # PDF converter
+    ├── echo-server/     # HTTP echo at echo.example.net
     ├── pihole/          # DNS ad-blocker with Cilium network policy
     └── velero/          # Backup (daily 2AM + weekly Sunday 3AM, SeaweedFS S3)
 ```
@@ -165,8 +166,9 @@ Claude Code L3 (reads YT comments, plans fix, waits for human approval)
 ## Known Issues
 
 - **kube-apiserver on ctrl01**: Intermittent HTTP 500 probe failures, 370+ restarts — present for entire cluster lifetime, does not impact stability
-- **SeaweedFS filer**: 100+ restarts accumulated — not a recent regression
+- **SeaweedFS filer**: Helm cleanup + filer memory re-applied at 2Gi (MR !229, 2026-03-15). Multipath/iSCSI conflict fixed via Synology multipath blacklist on all 7 K8s nodes.
 - **cilium-operator**: 90+ restarts accumulated — not a recent regression
+- **ArgoCD server.secretkey**: Runtime patch applied (2026-03-15). velero.io resource exclusions added via MR !230 to fix Velero OutOfSync.
 
 ## Things to Never Do
 
