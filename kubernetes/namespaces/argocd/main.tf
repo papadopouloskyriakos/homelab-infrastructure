@@ -341,6 +341,16 @@ resource "helm_release" "argocd" {
         params = {
           "server.insecure" = var.REDACTED_649263f1
         }
+
+        cm = {
+          "resource.exclusions" = yamlencode([
+            {
+              apiGroups = ["velero.io"]
+              kinds     = ["Backup", "Restore", "DeleteBackupRequest", "PodVolumeBackup", "PodVolumeRestore", "BackupRepository"]
+              clusters  = ["*"]
+            }
+          ])
+        }
       }
     })
   ]
