@@ -3,6 +3,7 @@
 # =============================================================================
 # Distributed storage for S3-compatible object storage
 # Replaces MinIO for HA cross-site replication
+# Filer memory limit: 2Gi (increased from 1Gi, failed Helm release cleaned up 2026-03-15)
 # =============================================================================
 
 terraform {
