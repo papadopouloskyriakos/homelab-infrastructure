@@ -140,11 +140,33 @@ k8s/
 - `cluster-snapshots/history/` — 130+ daily snapshots since 2025-11-27
 - Read `cluster-context-lite.md` first when debugging cluster issues
 
+## Alert Pipeline
+
+Prometheus alerts (163 rules: 150 REDACTED_d8074874 + 13 custom in `namespaces/monitoring/custom-alerts.tf`) are routed via:
+
+```
+Prometheus → Alertmanager → webhook POST to n8n
+    ↓
+n8n Prometheus Alert Receiver (24 nodes, ID: CqrN7hNiJsATcJGE)
+    ↓ (dedup by alertname:namespace, all non-info alerts triaged)
+Matrix #infra-nl-prod notification
+    ↓
+OpenClaw k8s-triage.sh (creates YT issue, kubectl investigation, posts findings)
+    ↓ (critical alerts auto-escalated)
+Claude Code L3 (reads YT comments, plans fix, waits for human approval)
+```
+
+**Custom alert rules** (`custom-alerts.tf`): ContainerOOMKilled, REDACTED_879bd353, REDACTED_02123891, REDACTED_a8a7eee8, REDACTED_67797f17, CiliumAgentNotReady, REDACTED_b94e0389, REDACTED_e52ce3d8, NFSMountStale, NFSMountHighLatency, ArgocdAppDegraded, ArgocdAppOutOfSync, HighPodRestartRate.
+
+**Triage policy:** All non-info alerts trigger triage (no whitelist). Dedup by `alertname:namespace` prevents duplicate YT issues. Noisy alerts should be silenced in Alertmanager, not filtered in the receiver.
+
+**YT custom fields set by k8s-triage.sh:** Hostname, Alert Rule, Severity, Namespace, Pod, Alert Source (`Prometheus`).
+
 ## Known Issues
 
-- **kube-apiserver on ctrl01**: Intermittent HTTP 500 probe failures, 368 restarts — present for entire cluster lifetime, does not impact stability
-- **SeaweedFS filer**: 94-101 restarts accumulated — not a recent regression
-- **cilium-operator**: 91 restarts accumulated — not a recent regression
+- **kube-apiserver on ctrl01**: Intermittent HTTP 500 probe failures, 370+ restarts — present for entire cluster lifetime, does not impact stability
+- **SeaweedFS filer**: 100+ restarts accumulated — not a recent regression
+- **cilium-operator**: 90+ restarts accumulated — not a recent regression
 
 ## Things to Never Do
 
