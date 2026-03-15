@@ -1,0 +1,27 @@
+# /etc/fstab: static file system information.
+#
+# Use 'blkid' to print the universally unique identifier for a
+# device; this may be used with UUID= as a more robust way to name devices
+# that works even if disks are added and removed. See fstab(5).
+#
+# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+# / was on /dev/ubuntu-vg/ubuntu-lv during curtin installation
+/dev/disk/by-id/dm-uuid-LVM-REDACTED/ ext4 defaults 0 1
+# /boot was on /dev/sda2 during curtin installation
+/dev/disk/by-uuid/REDACTED /boot ext4 defaults 0 1
+# /boot/efi was on /dev/sda1 during curtin installation
+/dev/disk/by-uuid/REDACTED /boot/efi vfat defaults 0 1
+/swap.img	none	swap	sw	0	0
+#
+#10.0.X.X:/volume2/nextcloud/nextcloud /var/www/nextcloud nfs vers=4.1,rw,proto=tcp,hard,intr,rsize=1048576,wsize=1048576,timeo=600,retrans=2 0 0
+#10.0.X.X:/volume2/nextcloud/nextcloud-data /mnt/nextcloud-data nfs vers=4.1,rw,proto=tcp,hard,intr,rsize=1048576,wsize=1048576,timeo=600,retrans=2 0 0
+#
+#10.0.X.X:/volume2/nextcloud/nextcloud   /var/www/nextcloud   nfs    vers=4.1,rw,proto=tcp,hard,noatime,rsize=131072,wsize=131072,timeo=600,retrans=2,acregmin=5,acregmax=60,acdirmin=2,acdirmax=30,actimeo=300   0   0
+#10.0.X.X:/volume2/nextcloud/nextcloud-data   /mnt/nextcloud-data   nfs    vers=4.1,rw,proto=tcp,hard,noatime,rsize=131072,wsize=131072,timeo=600,retrans=2,acregmin=5,acregmax=60,acdirmin=2,acdirmax=30,actimeo=300   0   0
+#
+#
+10.0.X.X:/volume1/homes /mnt/homes nfs vers=4.1,rw,proto=tcp,hard,noatime,nconnect=8,fsc,rsize=1048576,wsize=1048576,timeo=300,retrans=2,acregmin=5,acregmax=60,acdirmin=2,acdirmax=30,actimeo=60 0 0
+10.0.X.X:/volume1/Media /mnt/Media nfs vers=4.1,rw,proto=tcp,hard,noatime,nconnect=8,fsc,rsize=1048576,wsize=1048576,timeo=300,retrans=2,acregmin=5,acregmax=60,acdirmin=2,acdirmax=30,actimeo=60 0 0
+#
+10.0.X.X:/mnt/ocfs2/nextcloud/nextcloud-app /var/www/nextcloud nfs vers=4.2,rw,proto=tcp,hard,noatime,nconnect=8,fsc,rsize=1048576,wsize=1048576,timeo=300,retrans=2,acregmin=5,acregmax=60,acdirmin=2,acdirmax=30,actimeo=60   0   0
+10.0.X.X:/mnt/ocfs2/nextcloud/nextcloud-data /mnt/nextcloud-data nfs vers=4.2,rw,proto=tcp,hard,noatime,nconnect=8,fsc,rsize=1048576,wsize=1048576,timeo=300,retrans=2,acregmin=5,acregmax=60,acdirmin=2,acdirmax=30,actimeo=60   0   0
