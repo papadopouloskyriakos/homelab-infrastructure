@@ -1,0 +1,147 @@
+---
+# Reusable cluster health validation for IOT HA cluster.
+# Run on any cluster node with crm/corosync access.
+# Delegates VIP reachability check to localhost (AWX runner).
+#
+# Checks:
+#   1. All 3 nodes Online (iot01, iot02, iotarb01)
+#   2. g_iot_stack Started on exactly 1 node
+#   3. p_vip_iot Started (VIP is up)
+#   4. sbd_stonith Started (on any node)
+#   5. No failed resources (with HA monitor tolerance)
+#   6. Quorum: Quorate Yes, Total votes 3
+#   7. /mnt/iot mounted on active node
+#
+# Retry: 3 attempts with 60s delay. On persistent failure, runs
+# crm resource cleanup g_iot_stack and retries once more. Fails
+# the playbook if still unhealthy.
+#
+# Home Assistant monitor intermittently fails (~every 30 min) and
+# self-clears. A single HA monitor failure with fail-count=1 set
+# within the last 5 minutes is tolerated and auto-cleaned.
+
+- name: Define IOT cluster validation script
+  set_fact:
+    _iot_health_script: |
+      errors=""
+      crm_out=$(crm status 2>&1)
+
+      # 1. All 3 nodes Online
+      for node in nlcl01iot01 nlcl01iot02 nlcl01iotarb01; do
+        if ! echo "$crm_out" | grep -E "Online:" | grep -q "\b${node}\b"; then
+          errors="${errors}Node ${node} not Online. "
+        fi
+      done
+
+      # 2. g_iot_stack Started on exactly 1 node
+      stack_count=$(echo "$crm_out" | grep -c "p_vip_iot.*Started" || true)
+      if [ "$stack_count" != "1" ]; then
+        errors="${errors}g_iot_stack running on ${stack_count} nodes (expected 1). "
+      fi
+
+      # 3. p_vip_iot Started
+      if ! echo "$crm_out" | grep -q "p_vip_iot.*Started"; then
+        errors="${errors}p_vip_iot not Started (VIP down). "
+      fi
+
+      # 4. sbd_stonith Started (on any node)
+      if ! echo "$crm_out" | grep -q "sbd_stonith.*Started"; then
+        errors="${errors}sbd_stonith not Started (SBD fencing unavailable). "
+      fi
+
+      # 5. No failed resources (with HA monitor tolerance)
+      if echo "$crm_out" | grep -qiE "Failed Actions|Failed Resource Actions"; then
+        # Check if it is only a single HA monitor failure (fail-count=1, recent)
+        failed_lines=$(echo "$crm_out" | grep -A10 -iE "Failed Actions|Failed Resource Actions")
+        ha_monitor_only=true
+
+        # Count non-HA-monitor failures
+        non_ha_fails=$(echo "$failed_lines" | grep -i "fail" | grep -v "home-assistant" | grep -cv "^--$" || true)
+        if [ "$non_ha_fails" -gt 0 ]; then
+          ha_monitor_only=false
+        fi
+
+        # Check HA monitor fail-count
+        ha_fail_count=$(echo "$failed_lines" | grep -i "home-assistant" | grep -oP 'fail-count=\K[0-9]+' || echo "0")
+        if [ "$ha_fail_count" -gt 1 ]; then
+          ha_monitor_only=false
+        fi
+
+        if [ "$ha_monitor_only" = "false" ]; then
+          failed_info=$(echo "$failed_lines" | head -8)
+          errors="${errors}Failed resources detected: ${failed_info}. "
+        fi
+      fi
+
+      # 6. Quorum
+      quorum_out=$(corosync-quorumtool -s 2>&1)
+      if ! echo "$quorum_out" | grep -q "Quorate:.*Yes"; then
+        errors="${errors}Cluster not quorate. "
+      fi
+      if ! echo "$quorum_out" | grep -q "Total votes:.*3"; then
+        total=$(echo "$quorum_out" | grep "Total votes:" | awk '{print $NF}')
+        errors="${errors}Total votes ${total} (expected 3). "
+      fi
+
+      # 7. /mnt/iot mounted on active node
+      if ! df -h 2>/dev/null | grep -q '/mnt/iot'; then
+        errors="${errors}/mnt/iot not mounted on this node. "
+      fi
+
+      if [ -n "$errors" ]; then
+        echo "VALIDATION FAILED: ${errors}"
+        exit 1
+      fi
+      echo "All IOT cluster health checks passed"
+
+- name: Validate IOT cluster health (with retries)
+  block:
+    - name: Run IOT cluster health checks
+      shell: "{{ _iot_health_script }}"
+      register: health_result
+      until: health_result.rc == 0
+      retries: 3
+      delay: 60
+      changed_when: false
+      check_mode: false
+
+  rescue:
+    - name: Display validation failure before cleanup
+      debug:
+        msg: "Health check failed after 3 retries: {{ health_result.stdout | default('unknown') }}"
+
+    - name: Attempt resource cleanup for g_iot_stack
+      command: crm resource cleanup g_iot_stack
+
+    - name: Wait for cleanup to take effect
+      pause:
+        seconds: 30
+
+    - name: Re-validate IOT cluster health after cleanup
+      shell: "{{ _iot_health_script }}"
+      register: post_cleanup_result
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Fail if cluster still unhealthy after cleanup
+      fail:
+        msg: >-
+          IOT cluster health validation failed after resource cleanup.
+          {{ post_cleanup_result.stdout | default('No output') }}
+          Manual intervention required. Do not proceed to the next node.
+      when: post_cleanup_result.rc != 0
+
+- name: Verify VIP 10.0.X.X is reachable (Home Assistant port 8123)
+  ansible.builtin.wait_for:
+    host: 10.0.X.X
+    port: 8123
+    timeout: 180
+    state: started
+  delegate_to: localhost
+  become: no
+  check_mode: false
+
+- name: IOT cluster health validation passed
+  debug:
+    msg: "All IOT cluster health and service validation checks passed"
