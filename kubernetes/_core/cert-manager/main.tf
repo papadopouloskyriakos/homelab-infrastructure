@@ -212,6 +212,162 @@ resource "kubernetes_manifest" "REDACTED_52b9873f" {
 }
 
 # =============================================================================
+# Wildcard Certificate - meshsat.net
+# =============================================================================
+resource "kubernetes_manifest" "REDACTED_b497be54" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_6b2b1d03"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_6b2b1d03-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.meshsat.net",
+        "meshsat.net"
+      ]
+    }
+  }
+}
+
+# =============================================================================
+# Wildcard Certificate - meshsat.org
+# =============================================================================
+resource "kubernetes_manifest" "REDACTED_8e7851d8" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_f751a1db"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_f751a1db-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.meshsat.org",
+        "meshsat.org"
+      ]
+    }
+  }
+}
+
+# =============================================================================
+# Wildcard Certificate - mulecube.net
+# =============================================================================
+resource "kubernetes_manifest" "REDACTED_cbe107a9" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_b48b36cd"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_b48b36cd-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.mulecube.net",
+        "mulecube.net"
+      ]
+    }
+  }
+}
+
+# =============================================================================
+# Wildcard Certificate - mulecube.org
+# =============================================================================
+resource "kubernetes_manifest" "REDACTED_62f27f39" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_3afb42ed"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_3afb42ed-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.mulecube.org",
+        "mulecube.org"
+      ]
+    }
+  }
+}
+
+# =============================================================================
+# Wildcard Certificate - mail.example.net
+# =============================================================================
+resource "kubernetes_manifest" "REDACTED_a6df7556" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "wildcard-mxmx-email"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_7f4f46e4"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.mail.example.net",
+        "mail.example.net"
+      ]
+    }
+  }
+}
+
+# =============================================================================
+# Wildcard Certificate - withelli.com
+# =============================================================================
+resource "kubernetes_manifest" "REDACTED_56d1f068" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_b2fe5f0b"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_b2fe5f0b-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.withelli.com",
+        "withelli.com"
+      ]
+    }
+  }
+}
+
+# =============================================================================
 # RBAC for AWX to read TLS secrets
 # =============================================================================
 resource "kubernetes_role" "awx_cert_reader" {
