@@ -3,15 +3,15 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-03-15 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-03-16 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
-## Health: DEGRADED ⚠️
+## Health: HEALTHY ✅
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 1 |
+| Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 1200 |
+| Total Restarts | 1249 |
 
 ## Topology
 
@@ -20,9 +20,9 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 - **Pods:** 145
 
 ### Nodes
-- **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:3795Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
+- **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8006952Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-ctrl02** (control-plane) 10.0.X.X | CPU:4 Mem:3996Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
-- **nlk8s-ctrl03** (control-plane) 10.0.X.X | CPU:4 Mem:3884328Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
+- **nlk8s-ctrl03** (control-plane) 10.0.X.X | CPU:4 Mem:8006944Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-node01** (worker) 10.0.X.X | CPU:8 Mem:8006756Ki | Taints:none
 - **nlk8s-node02** (worker) 10.0.X.X | CPU:8 Mem:8006748Ki | Taints:none
 - **nlk8s-node03** (worker) 10.0.X.X | CPU:8 Mem:8006732Ki | Taints:none
@@ -31,51 +31,52 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 ## Anomalies
 
 ### Unhealthy Pods
-```
-seaweedfs                seaweedfs-filer-0                                                 0/1   ContainerCreating   0                 4h36m
-```
+_None_
 
 ### High Restart Pods (>3)
-awx/awx-operator-controller-manager-846b99bbd-t9589: 15 restarts
+awx/awx-operator-controller-manager-846b99bbd-t9589: 16 restarts
 awx/my-awx-web-7bc5ccfbf4-bkrlp: 92 restarts
-cert-manager/cert-manager-75944f484-4v6qh: 11 restarts
-cert-manager/cert-manager-cainjector-56b4cf957-s7xd9: 8 restarts
+cert-manager/cert-manager-75944f484-4v6qh: 12 restarts
+cert-manager/cert-manager-cainjector-56b4cf957-s7xd9: 11 restarts
 cilium-spire/spire-agent-xwbn2: 8 restarts
 kube-system/cilium-22zgh: 8 restarts
 kube-system/cilium-envoy-mmfnj: 8 restarts
-kube-system/cilium-operator-6b94496fcd-l6cjl: 93 restarts
-kube-system/etcd-nlk8s-ctrl01: 62 restarts
+kube-system/cilium-operator-6b94496fcd-l6cjl: 94 restarts
+kube-system/etcd-nlk8s-ctrl01: 65 restarts
 kube-system/etcd-nlk8s-ctrl02: 38 restarts
-kube-system/etcd-nlk8s-ctrl03: 5 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 378 restarts
-kube-system/kube-apiserver-nlk8s-ctrl02: 55 restarts
-kube-system/kube-apiserver-nlk8s-ctrl03: 13 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 85 restarts
+kube-system/etcd-nlk8s-ctrl03: 6 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 386 restarts
+kube-system/kube-apiserver-nlk8s-ctrl02: 56 restarts
+kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl01: 86 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl02: 24 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl03: 76 restarts
-kube-system/kube-scheduler-nlk8s-ctrl01: 23 restarts
-kube-system/kube-scheduler-nlk8s-ctrl02: 23 restarts
-kube-system/kube-scheduler-nlk8s-ctrl03: 21 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl03: 77 restarts
+kube-system/kube-scheduler-nlk8s-ctrl01: 24 restarts
+kube-system/kube-scheduler-nlk8s-ctrl02: 24 restarts
+kube-system/kube-scheduler-nlk8s-ctrl03: 22 restarts
+kube-system/tetragon-878gv: 4 restarts
 kube-system/tetragon-mdsn9: 16 restarts
-logging/loki-0: 44 restarts
+logging/loki-0: 46 restarts
 monitoring/goldpinger-4fvxd: 9 restarts
-monitoring/goldpinger-cjzc4: 4 restarts
+monitoring/goldpinger-cjzc4: 5 restarts
 monitoring/goldpinger-qs5xt: 5 restarts
-monitoring/monitoring-grafana-68dbd786f9-9m48b: 7 restarts
-monitoring/monitoring-grafana-68dbd786f9-zs6md: 4 restarts
-monitoring/monitoring-kube-state-metrics-74d579585b-6cprn: 12 restarts
+monitoring/monitoring-grafana-68dbd786f9-9m48b: 9 restarts
+monitoring/monitoring-grafana-68dbd786f9-zs6md: 7 restarts
+monitoring/monitoring-kube-state-metrics-74d579585b-6cprn: 16 restarts
 monitoring/monitoring-prometheus-node-exporter-d5wkz: 8 restarts
 monitoring/thanos-compactor-0: 6 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956swwjx: 23 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956swwjx: 24 restarts
 seaweedfs/seaweedfs-master-2: 111 restarts
+synology-csi/synology-csi-node-l72f8: 4 restarts
 synology-csi/synology-csi-node-zch7n: 16 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE     LAST SEEN   TYPE      REASON        OBJECT                                  MESSAGE
-kube-system   16m         Warning   Unhealthy     pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   2m50s       Warning   Unhealthy     pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
-seaweedfs     36s         Warning   FailedMount   pod/seaweedfs-filer-0                   MountVolume.MountDevice failed for volume "REDACTED_e7c2cc95" : rpc error: code = Internal desc = mount failed: exit status 32...
+NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
+kube-system   31m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   5m48s       Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Liveness probe failed: Get "http://127.0.0.1:2381/livez": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system   5m17s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   5m2s        Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
 ```
 
 ## Key Resources
@@ -94,6 +95,7 @@ pihole/pihole-dns-tcp-lb: 10.0.X.X -> 53:30438/TCP
 - argocd.example.net → argocd/argocd-server
 - awx.example.net → awx/awx
 - bentopdf.example.net → bentopdf/bentopdf
+- echo.example.net → echo-server/echo-server
 - nl-gatus.example.net → gatus/gatus
 - nl-hubble.example.net → kube-system/hubble-ui
 - nl-k8s.example.net → REDACTED_d97cef76/REDACTED_d97cef76
