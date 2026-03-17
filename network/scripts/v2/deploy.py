@@ -264,10 +264,12 @@ def deploy(device_type, device_name, diff_path):
     print("[2/6] Connecting...")
 
     try:
-        if profile.os == DeviceOS.ASA:
-            return deploy_asa(profile, diff_data, remediation)
-        else:
+        if profile.use_napalm:
             return deploy_napalm(profile, diff_data, remediation)
+        else:
+            # ASA (prompt incompatible with NAPALM) and Access-Points
+            # (no TCL for NAPALM inline transfer) use Netmiko direct.
+            return deploy_asa(profile, diff_data, remediation)
     except Exception as e:
         print()
         print("=" * 70)
