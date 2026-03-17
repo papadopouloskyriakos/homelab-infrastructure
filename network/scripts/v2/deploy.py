@@ -75,11 +75,113 @@ def build_remediation_text(diff_data):
     return "\n".join(lines)
 
 
-def deploy_asa(profile, diff_data, remediation):
-    """Deploy configuration to ASA device using Netmiko.
+ASA_ERROR_PATTERNS = [
+    "ERROR:",
+    "Invalid input detected",
+    "Incomplete command",
+    "% Ambiguous command",
+    "No matching command found",
+    "not valid",
+    "not allowed",
+    "ERROR: % Invalid",
+    "object not found",
+    "Unable to",
+    "access-list compiled error",
+]
 
-    NAPALM's IOS driver cannot handle ASA prompts, so we use Netmiko
-    directly for config push and 'write memory' to save.
+
+def _detect_asa_errors(output: str) -> list[str]:
+    """Check Netmiko output for ASA error indicators."""
+    errors = []
+    for line in output.splitlines():
+        stripped = line.strip()
+        if any(pattern.lower() in stripped.lower() for pattern in ASA_ERROR_PATTERNS):
+            errors.append(stripped)
+    return errors
+
+
+def _rollback_asa(conn, backup_config: str, profile_name: str):
+    """
+    Rollback ASA to the pre-deployment config.
+
+    Strategy: push the full pre-deploy config back via Netmiko.
+    This is a best-effort rollback — if the device is in a broken state,
+    manual intervention via console may be needed.
+    """
+    print()
+    print("=" * 70)
+    print("ROLLING BACK ASA CONFIG")
+    print("=" * 70)
+    print()
+
+    try:
+        # Clear the current candidate by exiting config mode
+        conn.exit_config_mode()
+
+        # Re-enter config mode and push the backup config line by line.
+        # Filter to only configuration commands (skip headers, prompts, etc.)
+        rollback_lines = []
+        in_config = False
+        for line in backup_config.splitlines():
+            stripped = line.rstrip()
+            # Skip ASA metadata headers
+            if stripped.startswith(":") or stripped.startswith("ASA Version"):
+                continue
+            if stripped.startswith("!"):
+                continue
+            if not stripped:
+                continue
+            # Skip dynamic content that shouldn't be pushed
+            if any(
+                skip in stripped.lower()
+                for skip in [
+                    "cryptochecksum",
+                    "last configuration",
+                    "building configuration",
+                    "current configuration",
+                ]
+            ):
+                continue
+            rollback_lines.append(stripped)
+
+        if not rollback_lines:
+            print("   WARNING: No rollback commands extracted from backup")
+            return False
+
+        print(f"   Pushing {len(rollback_lines)} rollback commands...")
+        output = conn.send_config_set(
+            rollback_lines, exit_config_mode=True, cmd_verify=False
+        )
+
+        errors = _detect_asa_errors(output)
+        if errors:
+            print(f"   WARNING: {len(errors)} errors during rollback:")
+            for err in errors[:5]:
+                print(f"     {err}")
+            print("   Rollback may be incomplete — check device manually")
+            return False
+
+        # Save the rolled-back config
+        save_out = conn.send_command("write memory", read_timeout=READ_TIMEOUT)
+        print(f"   Saved: {save_out.strip()}")
+        print("   Rollback complete")
+        return True
+
+    except Exception as e:
+        print(f"   ROLLBACK FAILED: {e}")
+        print("   Manual intervention required via console")
+        return False
+
+
+def deploy_asa(profile, diff_data, remediation):
+    """Deploy configuration to ASA/AP device using Netmiko.
+
+    NAPALM's IOS driver cannot handle ASA prompts (or AP TCL limitations),
+    so we use Netmiko directly with:
+      - Pre-deployment backup (for rollback)
+      - Per-command error detection
+      - Automatic rollback on error
+      - write memory to save
     """
     os.makedirs("backups", exist_ok=True)
     timestamp = int(time.time())
@@ -87,7 +189,7 @@ def deploy_asa(profile, diff_data, remediation):
     post_backup = f"backups/{profile.name}_post_deploy_{timestamp}.cfg"
 
     with netmiko_connection(profile) as conn:
-        print(f"   Connected to {profile.name} (Netmiko/ASA)")
+        print(f"   Connected to {profile.name} (Netmiko)")
         print()
 
         # [3/6] Pre-deployment backup
@@ -95,26 +197,53 @@ def deploy_asa(profile, diff_data, remediation):
         running = conn.send_command("show running-config", read_timeout=READ_TIMEOUT)
         with open(backup_file, "w") as f:
             f.write(f"! Backup: {profile.name}\n")
-            f.write(f"! Type: pre-deployment (Netmiko/ASA)\n")
+            f.write(f"! Type: pre-deployment (Netmiko)\n")
             f.write(f"! Timestamp: {datetime.now().isoformat()}\n")
             f.write(f"!\n")
             f.write(running)
         print(f"   Backup saved: {backup_file}")
         print()
 
-        # [4/6] Apply config
+        # [4/6] Apply config with error detection
         print("[4/6] Applying configuration via Netmiko...")
         commands = [line for line in remediation.splitlines() if line.strip()]
-        output = conn.send_config_set(commands)
-        print(f"   Applied {len(commands)} commands")
+        print(f"   Commands to apply: {len(commands)}")
+        for cmd in commands[:10]:
+            print(f"     {cmd}")
+        if len(commands) > 10:
+            print(f"     ... and {len(commands) - 10} more")
+        print()
+
+        output = conn.send_config_set(commands, cmd_verify=False)
+
+        # Check for errors in the output
+        errors = _detect_asa_errors(output)
+        if errors:
+            print(f"   ERROR: {len(errors)} command(s) failed:")
+            for err in errors:
+                print(f"     {err}")
+            print()
+            print("   Initiating rollback...")
+            rollback_ok = _rollback_asa(conn, running, profile.name)
+            if rollback_ok:
+                print("   Rolled back to pre-deploy state")
+            else:
+                print(f"   Manual recovery needed from: {backup_file}")
+            return 1
+
+        print(f"   Applied {len(commands)} commands — no errors detected")
         if output.strip():
-            for line in output.splitlines()[:20]:
+            # Show last few lines of output for visibility
+            out_lines = [l for l in output.splitlines() if l.strip()]
+            for line in out_lines[-5:]:
                 print(f"     {line}")
         print()
 
         # [5/6] Save config
         print("[5/6] Saving configuration (write memory)...")
-        save_output = conn.send_command("write memory", read_timeout=READ_TIMEOUT)
+        save_output = conn.send_command_timing(
+            "write memory", read_timeout=READ_TIMEOUT
+        )
         print(f"   {save_output.strip()}")
         print()
 
@@ -131,7 +260,7 @@ def deploy_asa(profile, diff_data, remediation):
 
     print()
     print("=" * 70)
-    print("SUCCESS: ASA deployment completed")
+    print("SUCCESS: Deployment completed (Netmiko)")
     print("=" * 70)
     print(f"Pre-backup:  {backup_file}")
     print(f"Post-backup: {post_backup}")
