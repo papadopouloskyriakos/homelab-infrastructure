@@ -42,6 +42,16 @@ class DeviceProfile:
     def config_path(self) -> str:
         return f"network/configs/{self.device_type}/{self.name}"
 
+    @property
+    def use_napalm(self) -> bool:
+        """Whether this device supports NAPALM deployment.
+
+        ASA: NAPALM IOS driver can't handle ASA prompt patterns.
+        Access-Points: Aironet IOS lacks TCL, so NAPALM inline transfer fails.
+        Both use Netmiko direct deployment instead.
+        """
+        return self.device_type not in ("Firewall", "Access-Point")
+
 
 # Device type → OS mapping (single source of truth)
 DEVICE_TYPE_OS = {
