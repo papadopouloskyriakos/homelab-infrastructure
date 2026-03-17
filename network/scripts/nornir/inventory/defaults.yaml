@@ -1,0 +1,10 @@
+---
+username: "kyriakosp"
+connection_options:
+  netmiko:
+    extras:
+      timeout: 120
+      fast_cli: false
+  napalm:
+    extras:
+      timeout: 120

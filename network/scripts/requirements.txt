@@ -1,0 +1,12 @@
+# V1 pipeline (all devices)
+netmiko>=4.0
+
+# V2 pipeline (nlrtr01 test scope)
+hier-config>=3.0
+napalm>=5.0
+nornir>=3.0
+nornir-napalm>=0.5
+nornir-utils>=0.2
+
+# Testing
+pytest>=7.0

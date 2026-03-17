@@ -1,0 +1,21 @@
+---
+ios_devices:
+  platform: ios
+  connection_options:
+    netmiko:
+      platform: cisco_ios
+    napalm:
+      platform: ios
+  data:
+    hierconfig_platform: CISCO_IOS
+
+asa_devices:
+  platform: asa
+  connection_options:
+    netmiko:
+      platform: cisco_asa
+    napalm:
+      platform: ios  # NAPALM uses ios driver for ASA (SSH-based)
+  data:
+    hierconfig_platform: GENERIC
+    save_command: "write memory"

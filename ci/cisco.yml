@@ -233,7 +233,15 @@ validate_cisco_configs:
           VALIDATION_FAILED=1
           continue
         fi
-        
+
+        if python3 network/scripts/v2/validate.py "$DEVICE_TYPE" "$DEVICE_NAME" "$CI_PROJECT_DIR/$file"; then
+          echo "  PASS: v2 validation passed"
+        else
+          echo "  ERROR: v2 validation failed"
+          VALIDATION_FAILED=1
+          continue
+        fi
+
         echo "  PASS: All validations passed"
       done
       
@@ -304,7 +312,7 @@ generate_deployment_diffs:
         
         echo "  Running generate_diff.py..."
         
-        if python3 network/scripts/generate_diff.py \
+        if python3 network/scripts/v2/generate_diff.py \
           "$DEVICE_TYPE" \
           "$DEVICE_NAME" \
           "$CI_PROJECT_DIR/$file" \
@@ -483,7 +491,7 @@ deploy_cisco_configs:
         echo "DEPLOYING: $DEVICE_NAME"
         echo "================================================"
         
-        if python3 network/scripts/direct_deploy.py \
+        if python3 network/scripts/v2/deploy.py \
           "$DEVICE_TYPE" \
           "$DEVICE_NAME" \
           "$DIFF_FILE" 2>&1 | tee "artifacts/deploy_${DEVICE_NAME}.log"; then

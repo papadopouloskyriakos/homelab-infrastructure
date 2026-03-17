@@ -1,0 +1,80 @@
+---
+nlrtr01:
+  hostname: nlrtr01.example.net
+  groups:
+    - ios_devices
+  data:
+    device_type: Router
+    model: ISR 4321
+    os_version: "17.9"
+    v2_pipeline: true
+
+nl-lte01:
+  hostname: nl-lte01.example.net
+  groups:
+    - ios_devices
+  data:
+    device_type: Router
+    model: C819G-LTE-MNA
+    os_version: "15.6"
+    v2_pipeline: true
+
+nlsw01:
+  hostname: nlsw01.example.net
+  groups:
+    - ios_devices
+  data:
+    device_type: Switch
+    model: Catalyst 3850-12X48U
+    os_version: "16.12"
+    v2_pipeline: true
+
+nlfw01:
+  hostname: nlfw01.example.net
+  groups:
+    - asa_devices
+  data:
+    device_type: Firewall
+    model: ASA 5508-X
+    os_version: "9.16(4)"
+    v2_pipeline: true
+
+nlap01:
+  hostname: nlap01.example.net
+  groups:
+    - ios_devices
+  data:
+    device_type: Access-Point
+    model: AIR-CAP3702I-E
+    os_version: "15.3"
+    v2_pipeline: true
+
+nlap02:
+  hostname: nlap02.example.net
+  groups:
+    - ios_devices
+  data:
+    device_type: Access-Point
+    model: AIR-CAP3702I-E
+    os_version: "15.3"
+    v2_pipeline: true
+
+nlap03:
+  hostname: nlap03.example.net
+  groups:
+    - ios_devices
+  data:
+    device_type: Access-Point
+    model: AIR-CAP3702I-E
+    os_version: "15.3"
+    v2_pipeline: true
+
+nlap04:
+  hostname: nlap04.example.net
+  groups:
+    - ios_devices
+  data:
+    device_type: Access-Point
+    model: AIR-CAP3702I-E
+    os_version: "15.3"
+    v2_pipeline: true
