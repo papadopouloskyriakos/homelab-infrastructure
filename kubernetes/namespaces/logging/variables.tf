@@ -17,7 +17,7 @@ variable "loki_storage_size" {
 variable "loki_retention_days" {
   description = "Log retention period in days"
   type        = number
-  default     = 30
+  default     = 14
 }
 
 variable "s3_endpoint" {
