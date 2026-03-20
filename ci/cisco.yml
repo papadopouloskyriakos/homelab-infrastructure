@@ -74,13 +74,13 @@ pre_deploy_drift_gate:
   extends: .cisco_base
   stage: validate
   rules:
-    - changes:
-        - network/configs/**/*
-      when: on_success
     - if: '$CI_COMMIT_AUTHOR_NAME == "NL Oxidized Bot" || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
       when: never
     - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
       when: never
+    - changes:
+        - network/configs/**/*
+      when: on_success
   script:
     - |
       set -eu
@@ -164,13 +164,13 @@ validate_cisco_configs:
   extends: .cisco_base
   stage: validate
   rules:
-    - changes:
-        - network/configs/**/*
-      when: on_success
     - if: '$CI_COMMIT_AUTHOR_NAME == "NL Oxidized Bot" || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
       when: never
     - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
       when: never
+    - changes:
+        - network/configs/**/*
+      when: on_success
   script:
     - |
       set -eu
@@ -265,13 +265,13 @@ generate_deployment_diffs:
   rules:
     - if: '$CI_MERGE_REQUEST_IID'
       when: never
-    - changes:
-        - network/configs/**/*
-      when: on_success
     - if: '$CI_COMMIT_AUTHOR_NAME == "NL Oxidized Bot" || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
       when: never
     - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
       when: never
+    - changes:
+        - network/configs/**/*
+      when: on_success
   needs:
     - validate_cisco_configs
     - pre_deploy_drift_gate
@@ -531,13 +531,13 @@ verify_cisco_deployments:
   extends: .cisco_base
   stage: verify
   rules:
-    - changes:
-        - network/configs/**/*
-      when: on_success
     - if: '$CI_COMMIT_AUTHOR_NAME == "NL Oxidized Bot" || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
       when: never
     - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
       when: never
+    - changes:
+        - network/configs/**/*
+      when: on_success
   needs:
     - job: deploy_cisco_configs
       optional: true
