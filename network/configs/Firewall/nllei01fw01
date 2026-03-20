@@ -1496,11 +1496,11 @@ crypto ipsec ikev2 ipsec-proposal DES
 crypto ipsec ikev2 ipsec-proposal VTI-PROPOSAL
  protocol esp encryption aes-256
  protocol esp integrity sha-256
+crypto ipsec profile IPSEC_PROFILE
+ set ikev2 ipsec-proposal TSET
 crypto ipsec profile VTI-PROFILE
  set ikev2 ipsec-proposal VTI-PROPOSAL
  set security-association lifetime seconds 28800
-crypto ipsec profile IPSEC_PROFILE
- set ikev2 ipsec-proposal TSET
 crypto ipsec security-association pmtu-aging 10
 crypto ipsec df-bit clear-df outside_xs4all
 crypto ipsec df-bit clear-df outside_freedom
@@ -2028,5 +2028,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:5fa50dd66325f93831c8909b8c141709
+Cryptochecksum:30d842a91ac01af4580c7f42fe1da51b
 : end
