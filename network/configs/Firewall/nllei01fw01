@@ -1864,6 +1864,7 @@ dhcpd reserve-address 10.0.X.X 2ccf.6792.f4d3 inside_mgmt
 dhcpd reserve-address 10.0.X.X 2ccf.6792.dfc5 inside_mgmt
 dhcpd reserve-address 10.0.X.X 2ccf.6792.f4b9 inside_mgmt
 dhcpd reserve-address 10.0.X.X 2ccf.6793.a93b inside_mgmt
+dhcpd reserve-address 10.0.X.X ac6a.a340.91e9 inside_mgmt
 dhcpd reserve-address 10.0.X.X d83a.dddf.d3e7 inside_mgmt
 dhcpd reserve-address 10.0.X.X d83a.dddf.d3e6 inside_mgmt
 dhcpd reserve-address 10.0.X.X dcb4.d923.6b88 inside_mgmt
@@ -2028,5 +2029,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:30d842a91ac01af4580c7f42fe1da51b
+Cryptochecksum:fdf26430326a7187e7711a9ed8232e0e
 : end
