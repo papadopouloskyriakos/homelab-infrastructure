@@ -141,6 +141,84 @@ resource "kubernetes_manifest" "REDACTED_f7ae41ec" {
 # =============================================================================
 # Ingress for Web UI access
 # =============================================================================
+# =============================================================================
+# PodDisruptionBudgets — protect availability during voluntary disruptions
+# =============================================================================
+resource "REDACTED_e0540b90" "seaweedfs_master" {
+  metadata {
+    name      = "seaweedfs-master"
+    namespace = REDACTED_46569c16.seaweedfs.metadata[0].name
+    labels = {
+      "app.kubernetes.io/name"       = "seaweedfs"
+      "app.kubernetes.io/component"  = "master"
+      "app.kubernetes.io/managed-by" = "opentofu"
+      "environment"                  = "production"
+    }
+  }
+  spec {
+    min_available = "2"
+    selector {
+      match_labels = {
+        "app.kubernetes.io/name"      = "seaweedfs"
+        "app.kubernetes.io/component" = "master"
+        "app.kubernetes.io/instance"  = "seaweedfs"
+      }
+    }
+  }
+  depends_on = [helm_release.seaweedfs]
+}
+
+resource "REDACTED_e0540b90" "seaweedfs_filer" {
+  metadata {
+    name      = "seaweedfs-filer"
+    namespace = REDACTED_46569c16.seaweedfs.metadata[0].name
+    labels = {
+      "app.kubernetes.io/name"       = "seaweedfs"
+      "app.kubernetes.io/component"  = "filer"
+      "app.kubernetes.io/managed-by" = "opentofu"
+      "environment"                  = "production"
+    }
+  }
+  spec {
+    min_available = "1"
+    selector {
+      match_labels = {
+        "app.kubernetes.io/name"      = "seaweedfs"
+        "app.kubernetes.io/component" = "filer"
+        "app.kubernetes.io/instance"  = "seaweedfs"
+      }
+    }
+  }
+  depends_on = [helm_release.seaweedfs]
+}
+
+resource "REDACTED_e0540b90" "seaweedfs_volume" {
+  metadata {
+    name      = "seaweedfs-volume"
+    namespace = REDACTED_46569c16.seaweedfs.metadata[0].name
+    labels = {
+      "app.kubernetes.io/name"       = "seaweedfs"
+      "app.kubernetes.io/component"  = "volume"
+      "app.kubernetes.io/managed-by" = "opentofu"
+      "environment"                  = "production"
+    }
+  }
+  spec {
+    min_available = "1"
+    selector {
+      match_labels = {
+        "app.kubernetes.io/name"      = "seaweedfs"
+        "app.kubernetes.io/component" = "volume"
+        "app.kubernetes.io/instance"  = "seaweedfs"
+      }
+    }
+  }
+  depends_on = [helm_release.seaweedfs]
+}
+
+# =============================================================================
+# Ingress for Web UI access
+# =============================================================================
 resource "kubernetes_ingress_v1" "seaweedfs_master" {
   metadata {
     name      = "seaweedfs-master"
