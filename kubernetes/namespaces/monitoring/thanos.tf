@@ -167,6 +167,8 @@ resource "REDACTED_08d34ae1" "thanos_query" {
             "--endpoint=dnssrv+_grpc._tcp.thanos-store.monitoring.svc.cluster.local",
             # Remote site Store Gateway (via Cluster Mesh)
             "--endpoint=${var.thanos_remote_store_endpoint}",
+            # Remote site Sidecar (via Cluster Mesh) - real-time metrics from remote Prometheus
+            "--endpoint=${var.REDACTED_d312035b}",
             "--query.auto-downsampling",
           ]
 
@@ -904,6 +906,85 @@ resource "kubernetes_service_v1" "thanos_store_remote" {
       "service.cilium.io/global" = "true"
       "service.cilium.io/shared" = "true"
       "description"              = "Stub service for ${var.remote_site_code} Thanos Store - endpoints via Cluster Mesh"
+    }
+  }
+
+  spec {
+    # NO selector - endpoints come from remote cluster via Cluster Mesh
+
+    port {
+      name        = "grpc"
+      port        = 10901
+      target_port = "10901"
+      protocol    = "TCP"
+    }
+
+    type = "ClusterIP"
+  }
+}
+
+# -----------------------------------------------------------------------------
+# Global Service for Cross-Site Sidecar Query (Cilium Cluster Mesh)
+# -----------------------------------------------------------------------------
+# Exposes local Thanos Sidecar as a global service so the remote site's
+# Thanos Query can discover and query real-time metrics from this site's Prometheus
+resource "kubernetes_service_v1" "REDACTED_c910f24e" {
+  metadata {
+    name      = "thanos-sidecar-${var.site_code}"
+    namespace = "monitoring"
+    labels = {
+      "app.kubernetes.io/name"      = "thanos"
+      "app.kubernetes.io/component" = "sidecar"
+      "app.kubernetes.io/instance"  = "thanos-${var.site_code}"
+      environment                   = "production"
+      "managed-by"                  = "opentofu"
+    }
+    annotations = {
+      "service.cilium.io/global" = "true"
+      "service.cilium.io/shared" = "true"
+    }
+  }
+
+  spec {
+    selector = {
+      "app.kubernetes.io/name"      = "prometheus"
+      "operator.prometheus.io/name" = "REDACTED_6dfbe9fc"
+    }
+
+    port {
+      name        = "grpc"
+      port        = 10901
+      target_port = 10901
+      protocol    = "TCP"
+    }
+
+    type = "ClusterIP"
+  }
+
+  depends_on = [helm_release.monitoring]
+}
+
+# -----------------------------------------------------------------------------
+# Stub Service for Remote Site's Sidecar (via Cluster Mesh)
+# -----------------------------------------------------------------------------
+# Allows Thanos Query to discover the remote site's Prometheus sidecar
+# for real-time cross-site queries (not just historical via Store Gateway)
+resource "kubernetes_service_v1" "REDACTED_f6984057" {
+  metadata {
+    name      = "thanos-sidecar-${var.remote_site_code}"
+    namespace = "monitoring"
+    labels = {
+      "app.kubernetes.io/name"      = "thanos"
+      "app.kubernetes.io/component" = "sidecar"
+      "app.kubernetes.io/instance"  = "thanos-${var.remote_site_code}"
+      "cilium.io/cluster-mesh"      = "remote-stub"
+      environment                   = "production"
+      "managed-by"                  = "opentofu"
+    }
+    annotations = {
+      "service.cilium.io/global" = "true"
+      "service.cilium.io/shared" = "true"
+      "description"              = "Stub service for ${var.remote_site_code} Thanos Sidecar - endpoints via Cluster Mesh"
     }
   }
 

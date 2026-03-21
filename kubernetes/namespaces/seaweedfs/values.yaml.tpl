@@ -12,6 +12,8 @@ master:
   replicas: 3
   port: 9333
   grpcPort: 19333
+  # Replication: 001 = 1 copy on another server in same rack
+  defaultReplication: "001"
   # Persistence uses data/logs structure, NOT persistence.enabled
   data:
     type: "REDACTED_33feff97"
@@ -90,6 +92,8 @@ filer:
   replicas: 2
   port: 8888
   grpcPort: 18888
+  # Match master replication setting
+  defaultReplicaPlacement: "001"
   # Filer uses data structure, NOT persistence.enabled
   data:
     type: "REDACTED_33feff97"
@@ -132,6 +136,7 @@ filer:
 # Global settings
 global:
   replicationPlacment: "001"
+  enableReplication: true
   enableSecurity: false
 
 # Disable unused components
