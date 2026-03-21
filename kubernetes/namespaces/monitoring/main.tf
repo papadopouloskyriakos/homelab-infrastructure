@@ -590,8 +590,6 @@ resource "helm_release" "monitoring" {
 
         tolerations = []
 
-        # Override default Prometheus datasource to use Thanos Query
-        # This gives Grafana access to deduplicated, long-term, cross-site metrics
         sidecar = {
           datasources = {
             defaultDatasourceEnabled = false
@@ -602,14 +600,15 @@ resource "helm_release" "monitoring" {
           {
             name      = "Prometheus"
             type      = "prometheus"
+            uid       = "prometheus"
             url       = "http://thanos-query.monitoring:9090"
             access    = "proxy"
             isDefault = true
             jsonData = {
+              httpMethod   = "POST"
               timeInterval = "30s"
             }
           },
-          # Loki datasource for centralized log aggregation
           {
             name      = "Loki"
             type      = "loki"
