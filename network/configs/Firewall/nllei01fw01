@@ -1503,6 +1503,7 @@ crypto ipsec profile VTI-PROFILE
 crypto ipsec security-association pmtu-aging 10
 crypto ipsec df-bit clear-df outside_xs4all
 crypto ipsec df-bit clear-df outside_freedom
+crypto dynamic-map LTE-OOB-DYN 10 set pfs 
 crypto map outside_freedom_map 1 match address outside_freedom_cryptomap_01
 crypto map outside_freedom_map 1 set peer 91.211.213.72 
 crypto map outside_freedom_map 1 set ikev2 ipsec-proposal TSET
@@ -1950,6 +1951,10 @@ tunnel-group 198.51.100.X ipsec-attributes
  isakmp keepalive threshold 10 retry 5
  ikev2 remote-REDACTED_6fa691d2 pre-shared-key *****
  ikev2 local-REDACTED_6fa691d2 pre-shared-key *****
+tunnel-group wan10.freeddns.org type ipsec-l2l
+tunnel-group wan10.freeddns.org ipsec-attributes
+ ikev2 remote-REDACTED_6fa691d2 pre-shared-key *****
+ ikev2 local-REDACTED_6fa691d2 pre-shared-key *****
 !
 class-map global-class
  match access-list global_mpc
@@ -2026,5 +2031,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:f2efd547ff116bd6fd4cda3da73dd00c
+Cryptochecksum:0ca513474f9082fb7af93cd582a10d08
 : end
