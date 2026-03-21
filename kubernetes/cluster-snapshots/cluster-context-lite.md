@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-03-20 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-03-21 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 1324 |
+| Total Restarts | 1334 |
 
 ## Topology
 
@@ -42,10 +42,10 @@ cilium-spire/spire-agent-xwbn2: 8 restarts
 kube-system/cilium-22zgh: 8 restarts
 kube-system/cilium-envoy-mmfnj: 8 restarts
 kube-system/cilium-operator-6b94496fcd-l6cjl: 97 restarts
-kube-system/etcd-nlk8s-ctrl01: 75 restarts
+kube-system/etcd-nlk8s-ctrl01: 76 restarts
 kube-system/etcd-nlk8s-ctrl02: 38 restarts
 kube-system/etcd-nlk8s-ctrl03: 6 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 431 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 440 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 56 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 87 restarts
@@ -60,8 +60,8 @@ kube-system/tetragon-vbs6v: 4 restarts
 monitoring/goldpinger-4fvxd: 9 restarts
 monitoring/goldpinger-cjzc4: 5 restarts
 monitoring/goldpinger-qs5xt: 5 restarts
-monitoring/monitoring-grafana-68dbd786f9-9m48b: 17 restarts
-monitoring/monitoring-grafana-68dbd786f9-zs6md: 17 restarts
+monitoring/monitoring-grafana-68dbd786f9-9m48b: 19 restarts
+monitoring/monitoring-grafana-68dbd786f9-zs6md: 20 restarts
 monitoring/monitoring-kube-state-metrics-74d579585b-6cprn: 16 restarts
 monitoring/monitoring-prometheus-node-exporter-d5wkz: 8 restarts
 monitoring/thanos-compactor-0: 6 restarts
@@ -73,11 +73,9 @@ synology-csi/synology-csi-node-zch7n: 16 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE     LAST SEEN   TYPE      REASON                  OBJECT                                  MESSAGE
-kube-system   59m         Warning   Unhealthy               pod/etcd-nlk8s-ctrl01             Liveness probe failed: Get "http://127.0.0.1:2381/livez": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   58m         Warning   Unhealthy               pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-default       57m         Warning   InvalidProviderConfig   clustersecretstore/openbao              unable to log in to auth method: unable to log in with Kubernetes auth: context deadline exceeded
-kube-system   5m18s       Warning   Unhealthy               pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
+kube-system   6m59s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   63s         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
