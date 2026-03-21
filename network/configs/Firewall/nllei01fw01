@@ -1469,7 +1469,6 @@ snmp-server host inside_k8s 10.0.X.X community ***** version 2c
 snmp-server host inside_k8s 10.0.X.X community ***** version 2c
 no snmp-server location
 no snmp-server contact
-sysopt connection tcpmss 1452
 sla monitor 1
  type echo protocol ipIcmpEcho 91.211.213.72 interface outside_freedom
  frequency 10
@@ -2000,8 +1999,6 @@ policy-map global_policy
  class global-class
  class class-default
   user-statistics accounting
-  set connection advanced-options mptcp-tm
-  flow-export event-type all destination 10.0.X.X 10.0.X.X 10.0.X.X 10.0.X.X
 policy-map SPOCK[wireless]-THROTTLE-DOWN-PM
  class SPOCK[wireless]-THROTTLE-DOWN-CM
   police input 33000000 16500
@@ -2029,5 +2026,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:fdf26430326a7187e7711a9ed8232e0e
+Cryptochecksum:f2efd547ff116bd6fd4cda3da73dd00c
 : end
