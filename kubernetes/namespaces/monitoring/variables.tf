@@ -223,6 +223,12 @@ variable "thanos_remote_store_endpoint" {
   default     = "dnssrv+_grpc._tcp.thanos-store-gr.monitoring.svc.cluster.local"
 }
 
+variable "REDACTED_d312035b" {
+  description = "Remote site's Thanos Sidecar endpoint (via Cluster Mesh)"
+  type        = string
+  default     = "dnssrv+_grpc._tcp.thanos-sidecar-gr.monitoring.svc.cluster.local"
+}
+
 # -----------------------------------------------------------------------------
 # Ingress Configuration
 # -----------------------------------------------------------------------------
