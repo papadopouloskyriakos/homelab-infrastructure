@@ -96,7 +96,7 @@ resource "kubernetes_manifest" "custom_alert_rules" {
             {
               alert = "CiliumAgentNotReady"
               expr  = "cilium_unreachable_nodes > 0"
-              for   = "5m"
+              for   = "15m"
               labels = {
                 severity = "warning"
               }
