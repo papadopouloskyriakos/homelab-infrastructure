@@ -3,21 +3,21 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-03-22 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-03-23 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
-## Health: DEGRADED ⚠️
+## Health: HEALTHY ✅
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 1 |
+| Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 1249 |
+| Total Restarts | 1263 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.18.4
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 146
+- **Pods:** 145
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:8 Mem:8005572Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -31,28 +31,26 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 ## Anomalies
 
 ### Unhealthy Pods
-```
-awx                      automation-job-7214-ktsnz                                         0/1   ContainerCreating   0                 70s
-```
+_None_
 
 ### High Restart Pods (>3)
 awx/awx-operator-controller-manager-846b99bbd-t9589: 18 restarts
 awx/my-awx-web-7bc5ccfbf4-bkrlp: 92 restarts
-cert-manager/cert-manager-75944f484-4v6qh: 13 restarts
-cert-manager/cert-manager-cainjector-56b4cf957-s7xd9: 12 restarts
+cert-manager/cert-manager-75944f484-4v6qh: 14 restarts
+cert-manager/cert-manager-cainjector-56b4cf957-s7xd9: 13 restarts
 cilium-spire/spire-agent-xwbn2: 9 restarts
 kube-system/cilium-22zgh: 9 restarts
 kube-system/cilium-envoy-mmfnj: 9 restarts
 kube-system/cilium-operator-6b94496fcd-l6cjl: 97 restarts
-kube-system/etcd-nlk8s-ctrl01: 77 restarts
+kube-system/etcd-nlk8s-ctrl01: 80 restarts
 kube-system/etcd-nlk8s-ctrl02: 39 restarts
 kube-system/etcd-nlk8s-ctrl03: 6 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 444 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 449 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 57 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 88 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl02: 25 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl03: 77 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl01: 89 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl02: 26 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl03: 78 restarts
 kube-system/kube-scheduler-nlk8s-ctrl01: 26 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 25 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 23 restarts
@@ -62,21 +60,20 @@ kube-system/tetragon-vbs6v: 4 restarts
 monitoring/goldpinger-4fvxd: 10 restarts
 monitoring/goldpinger-cjzc4: 5 restarts
 monitoring/goldpinger-qs5xt: 5 restarts
+monitoring/monitoring-grafana-777dc75f9-85gdv: 4 restarts
 monitoring/monitoring-kube-state-metrics-74d579585b-6cprn: 16 restarts
 monitoring/monitoring-prometheus-node-exporter-d5wkz: 9 restarts
 monitoring/thanos-compactor-0: 6 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956swwjx: 28 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956swwjx: 29 restarts
 synology-csi/synology-csi-node-kxrjb: 4 restarts
 synology-csi/synology-csi-node-l72f8: 4 restarts
 synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-kube-system   44m         Warning   Unhealthy   pod/kube-controller-manager-nlk8s-ctrl01   Liveness probe failed: Get "https://127.0.0.1:10257/healthz": dial tcp 127.0.0.1:10257: connect: connection refused
-kube-system   44m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01                      Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   44m         Warning   Unhealthy   pod/kube-scheduler-nlk8s-ctrl01            Readiness probe failed: Get "https://127.0.0.1:10259/readyz": dial tcp 127.0.0.1:10259: connect: connection refused
-kube-system   44m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01                      Readiness probe failed: HTTP probe failed with statuscode: 503
-kube-system   26m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01            Liveness probe failed: HTTP probe failed with statuscode: 500
+NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
+kube-system   5m34s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   25s         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
