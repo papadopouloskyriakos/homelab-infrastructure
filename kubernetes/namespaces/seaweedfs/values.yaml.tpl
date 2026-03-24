@@ -60,14 +60,14 @@ volume:
       maxVolumes: 0  # auto-configure based on disk space
   idx: {}
   logs: {}
-  # Resources as YAML object
+  # Resources as YAML object — 4Gi limit needed for compaction of large thanos/loki volumes (700MB+)
   resources:
     requests:
       cpu: 200m
-      memory: 512Mi
+      memory: 1Gi
     limits:
       cpu: "1"
-      memory: 2Gi
+      memory: 4Gi
   # Affinity as STRING
   affinity: |
     nodeAffinity:
