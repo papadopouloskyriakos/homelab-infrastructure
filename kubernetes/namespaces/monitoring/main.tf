@@ -707,6 +707,17 @@ resource "helm_release" "monitoring" {
       kubeProxy = {
         enabled = false
       }
+
+      # Kubelet: enabled (default). Explicit config forces Helm reconciliation
+      # which regenerates the kubelet Service endpoints with current node IPs.
+      # Stale endpoints from pre-reIP (192.168.181.x) caused TargetDown alert
+      # (IFRNLLEI01PRD-251, firing since 2026-03-14).
+      kubelet = {
+        enabled = true
+        serviceMonitor = {
+          interval = "30s"
+        }
+      }
     })
   ]
 }
