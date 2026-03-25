@@ -396,36 +396,7 @@ resource "kubernetes_service_v1" "bgpalerter" {
   }
 }
 
-# -----------------------------------------------------------------------------
-# ServiceMonitor - Prometheus metrics
-# -----------------------------------------------------------------------------
-resource "kubernetes_manifest" "bgpalerter_servicemonitor" {
-  manifest = {
-    apiVersion = "monitoring.coreos.com/v1"
-    kind       = "ServiceMonitor"
-    metadata = {
-      name      = "bgpalerter"
-      namespace = "monitoring"
-      labels = {
-        "release"     = "monitoring"
-        "environment" = "production"
-        "managed-by"  = "opentofu"
-      }
-    }
-    spec = {
-      selector = {
-        matchLabels = {
-          "app.kubernetes.io/name" = "bgpalerter"
-        }
-      }
-      endpoints = [
-        {
-          port     = "http"
-          path     = "/status"
-          interval = "60s"
-        }
-      ]
-    }
-  }
-  depends_on = [kubernetes_service_v1.bgpalerter]
-}
+# ServiceMonitor removed (2026-03-25): bgpalerter does not expose /metrics.
+# Its /status endpoint returns JSON (not Prometheus exposition format), causing
+# TargetDown alert (IFRNLLEI01PRD-251). bgpalerter is an alert-push tool,
+# not a metrics source — no ServiceMonitor needed.
