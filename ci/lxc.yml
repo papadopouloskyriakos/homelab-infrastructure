@@ -25,7 +25,7 @@ validate_lxc_configs:
   extends: .lxc_base
   stage: validate
   rules:
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
         - pve/**/lxc/*.conf
@@ -128,7 +128,7 @@ pre_deploy_lxc_drift_gate:
   extends: .lxc_base
   stage: validate
   rules:
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
         - pve/**/lxc/*.conf
@@ -194,7 +194,7 @@ deploy_lxc_configs:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
       when: never
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
         - pve/**/lxc/*.conf
@@ -382,7 +382,7 @@ verify_lxc_deployments:
   extends: .lxc_base
   stage: verify
   rules:
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
         - pve/**/lxc/*.conf
