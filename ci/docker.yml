@@ -38,7 +38,7 @@ validate_docker_compose:
         paths:
           - docker/**/*
         compare_to: 'refs/heads/main'
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
   script:
     - |
@@ -107,7 +107,7 @@ deploy_docker:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
       when: never
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
@@ -314,7 +314,7 @@ verify_docker_deployments:
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
         - docker/**/*
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
   needs:
     - job: deploy_docker
