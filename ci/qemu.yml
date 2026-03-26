@@ -25,7 +25,7 @@ validate_qemu_configs:
   extends: .qemu_base
   stage: validate
   rules:
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
         - pve/**/qemu/*.conf
@@ -128,7 +128,7 @@ pre_deploy_qemu_drift_gate:
   extends: .qemu_base
   stage: validate
   rules:
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
         - pve/**/qemu/*.conf
@@ -194,7 +194,7 @@ deploy_qemu_configs:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
       when: never
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
         - pve/**/qemu/*.conf
@@ -382,7 +382,7 @@ verify_qemu_deployments:
   extends: .qemu_base
   stage: verify
   rules:
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
         - pve/**/qemu/*.conf

@@ -74,9 +74,9 @@ pre_deploy_drift_gate:
   extends: .cisco_base
   stage: validate
   rules:
-    - if: '$CI_COMMIT_AUTHOR_NAME == "NL Oxidized Bot" || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
+    - if: '$CI_COMMIT_AUTHOR =~ /^NL Oxidized Bot / || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
       when: never
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
         - network/configs/**/*
@@ -164,9 +164,9 @@ validate_cisco_configs:
   extends: .cisco_base
   stage: validate
   rules:
-    - if: '$CI_COMMIT_AUTHOR_NAME == "NL Oxidized Bot" || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
+    - if: '$CI_COMMIT_AUTHOR =~ /^NL Oxidized Bot / || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
       when: never
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
         - network/configs/**/*
@@ -265,9 +265,9 @@ generate_deployment_diffs:
   rules:
     - if: '$CI_MERGE_REQUEST_IID'
       when: never
-    - if: '$CI_COMMIT_AUTHOR_NAME == "NL Oxidized Bot" || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
+    - if: '$CI_COMMIT_AUTHOR =~ /^NL Oxidized Bot / || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
       when: never
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
         - network/configs/**/*
@@ -431,9 +431,9 @@ deploy_cisco_configs:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
       when: never
-    - if: '$CI_COMMIT_AUTHOR_NAME == "NL Oxidized Bot" || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
+    - if: '$CI_COMMIT_AUTHOR =~ /^NL Oxidized Bot / || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
       when: never
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
         - network/configs/**/*
@@ -531,9 +531,9 @@ verify_cisco_deployments:
   extends: .cisco_base
   stage: verify
   rules:
-    - if: '$CI_COMMIT_AUTHOR_NAME == "NL Oxidized Bot" || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
+    - if: '$CI_COMMIT_AUTHOR =~ /^NL Oxidized Bot / || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
       when: never
-    - if: '$CI_COMMIT_AUTHOR_NAME == "GitLab CI Auto-Sync"'
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
         - network/configs/**/*
