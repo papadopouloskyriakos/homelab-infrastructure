@@ -3,21 +3,21 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-03-26 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-03-27 03:00:12 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
-## Health: HEALTHY ✅
+## Health: DEGRADED ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 0 |
+| Unhealthy Pods | 5 |
 | Pending PVCs | 0 |
-| Total Restarts | 1335 |
+| Total Restarts | 1387 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.18.4
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 145
+- **Pods:** 157
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:8 Mem:8005572Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -31,53 +31,62 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 ## Anomalies
 
 ### Unhealthy Pods
-_None_
+```
+default                  node-debugger-nlk8s-node01-drblb                             0/1   Error              0                10h
+default                  node-debugger-nlk8s-node02-5wkqg                             0/1   Error              0                10h
+default                  node-debugger-nlk8s-node03-jjmv9                             0/1   Error              0                10h
+default                  node-debugger-nlk8s-node04-zmc56                             0/1   Error              0                10h
+kube-system              kube-apiserver-nlk8s-ctrl01                                 0/1   CrashLoopBackOff   519 (44s ago)    120d
+```
 
 ### High Restart Pods (>3)
-awx/awx-operator-controller-manager-846b99bbd-t9589: 21 restarts
-awx/my-awx-web-7bc5ccfbf4-bkrlp: 92 restarts
-cert-manager/cert-manager-75944f484-4v6qh: 14 restarts
+cert-manager/cert-manager-75944f484-4v6qh: 15 restarts
 cert-manager/cert-manager-cainjector-56b4cf957-s7xd9: 13 restarts
 cilium-spire/spire-agent-xwbn2: 9 restarts
+cilium-spire/spire-server-0: 4 restarts
 kube-system/cilium-22zgh: 9 restarts
 kube-system/cilium-envoy-mmfnj: 9 restarts
-kube-system/cilium-operator-6b94496fcd-l6cjl: 97 restarts
-kube-system/etcd-nlk8s-ctrl01: 87 restarts
+kube-system/cilium-operator-6b94496fcd-l6cjl: 100 restarts
+kube-system/etcd-nlk8s-ctrl01: 89 restarts
 kube-system/etcd-nlk8s-ctrl02: 39 restarts
 kube-system/etcd-nlk8s-ctrl03: 6 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 508 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 519 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 57 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 89 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl02: 26 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl03: 78 restarts
-kube-system/kube-scheduler-nlk8s-ctrl01: 26 restarts
-kube-system/kube-scheduler-nlk8s-ctrl02: 25 restarts
-kube-system/kube-scheduler-nlk8s-ctrl03: 23 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl01: 92 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl02: 30 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl03: 80 restarts
+kube-system/kube-scheduler-nlk8s-ctrl01: 29 restarts
+kube-system/kube-scheduler-nlk8s-ctrl02: 27 restarts
+kube-system/kube-scheduler-nlk8s-ctrl03: 26 restarts
 kube-system/tetragon-878gv: 4 restarts
 kube-system/tetragon-mdsn9: 18 restarts
 kube-system/tetragon-vbs6v: 4 restarts
-logging/loki-0: 5 restarts
+logging/loki-0: 7 restarts
 monitoring/goldpinger-4fvxd: 10 restarts
+monitoring/goldpinger-b44g9: 4 restarts
 monitoring/goldpinger-cjzc4: 5 restarts
+monitoring/goldpinger-f72lw: 4 restarts
 monitoring/goldpinger-qs5xt: 5 restarts
-monitoring/monitoring-grafana-777dc75f9-85gdv: 17 restarts
-monitoring/monitoring-grafana-777dc75f9-hl9fb: 11 restarts
-monitoring/monitoring-kube-state-metrics-74d579585b-6cprn: 17 restarts
+monitoring/goldpinger-vtfpx: 5 restarts
+monitoring/monitoring-grafana-777dc75f9-85gdv: 18 restarts
+monitoring/monitoring-grafana-777dc75f9-hl9fb: 12 restarts
+monitoring/monitoring-kube-state-metrics-74d579585b-6cprn: 19 restarts
 monitoring/monitoring-prometheus-node-exporter-d5wkz: 9 restarts
-monitoring/thanos-compactor-0: 6 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956swwjx: 29 restarts
+monitoring/monitoring-prometheus-node-exporter-f2fld: 6 restarts
+monitoring/thanos-compactor-0: 7 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956swwjx: 30 restarts
 synology-csi/synology-csi-node-kxrjb: 4 restarts
 synology-csi/synology-csi-node-l72f8: 4 restarts
 synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-monitoring    54m         Warning   Unhealthy               pod/bgpalerter-596d7b756b-256bk         Readiness probe failed: Get "http://10.0.2.127:8011/status": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   52m         Warning   Unhealthy               pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: Get "https://10.0.X.X:6443/readyz": dial tcp 10.0.X.X:6443: connect: connection refused
-kube-system   52m         Warning   Unhealthy               pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": dial tcp 127.0.0.1:2381: connect: connection refused
-default       50m         Warning   InvalidProviderConfig   clustersecretstore/openbao              unable to log in to auth method: unable to log in with Kubernetes auth: context deadline exceeded
-kube-system   47m         Warning   Unhealthy               pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+REDACTED_d97cef76     107s        Warning   Unhealthy               pod/REDACTED_d97cef76-kong-5c7f96dd9b-lbdrs               Readiness probe failed: Get "http://10.0.6.71:8100/status/ready": dial tcp 10.0.6.71:8100: connect: connection refused
+pihole                   102s        Warning   Unhealthy               pod/pihole-fb8b7b6df-lxh9p                                   Readiness probe failed: Get "http://10.0.2.220:80/admin/": dial tcp 10.0.2.220:80: connect: connection refused
+velero                   92s         Warning   Unhealthy               pod/velero-ui-687565868b-7vln5                               Readiness probe failed: Get "http://10.0.2.35:3000/": dial tcp 10.0.2.35:3000: connect: connection refused
+monitoring               91s         Warning   Unhealthy               pod/goldpinger-b44g9                                         Readiness probe failed: Get "http://10.0.6.49:8080/healthz": dial tcp 10.0.6.49:8080: connect: connection refused
+cert-manager             82s         Warning   Unhealthy               pod/cert-manager-webhook-5556f58976-kz9gp                    Readiness probe failed: Get "http://10.0.6.63:6080/healthz": dial tcp 10.0.6.63:6080: connect: connection refused
 ```
 
 ## Key Resources
