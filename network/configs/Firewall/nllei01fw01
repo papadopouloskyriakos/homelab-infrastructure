@@ -645,6 +645,7 @@ object-group network gr_all_subnets
  network-object 10.0.X.X 255.255.255.248
  network-object object GR_network-inside_nfs
  group-object gr_oas_vpn_pool_XX
+ network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_cctv
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_SKG_GRP_inside_mgmt
@@ -684,6 +685,18 @@ object-group network nl_strongswan_vpn_pool_XX
  network-object object nl_strongswan_vpn_pool_01
 object-group network S2S_SKG_GRP_dmz_servers02
  network-object 10.0.X.X 255.255.255.224
+object-group network S2S_LEI_GRP_inside_iot
+ network-object 10.0.X.X 255.255.255.192
+object-group network S2S_LEI_GRP_inside_servers01
+ network-object 10.0.X.X 255.255.255.224
+object-group network S2S_LEI_GRP_inside_servers02
+ network-object 10.0.X.X 255.255.255.224
+object-group network S2S_LEI_GRP_dmz_servers01
+ network-object 10.0.X.X 255.255.255.224
+object-group network S2S_LEI_GRP_dmz_servers02
+ network-object 10.0.X.X 255.255.255.224
+object-group network S2S_LEI_GRP_dmz_servers03
+ network-object 10.0.X.X 255.255.255.224
 object-group network nl_all_subnets
  group-object S2S_LEI_GRP_inside_cctv
  group-object S2S_LEI_GRP_inside_mgmt
@@ -695,6 +708,16 @@ object-group network nl_all_subnets
  network-object 10.0.X.X 255.255.255.0
  group-object nl_strongswan_vpn_pool_XX
  group-object S2S_SKG_GRP_dmz_servers02
+ group-object S2S_LEI_GRP_inside_iot
+ group-object S2S_LEI_GRP_inside_servers01
+ group-object S2S_LEI_GRP_inside_servers02
+ group-object S2S_LEI_GRP_dmz_servers01
+ group-object S2S_LEI_GRP_dmz_servers02
+ group-object S2S_LEI_GRP_dmz_servers03
+ network-object 10.0.X.X 255.255.255.224
+ network-object 10.0.X.X 255.255.255.224
+ network-object 10.0.X.X 255.255.255.224
+ network-object 10.0.X.X 255.255.255.240
 object-group protocol TCPUDP
  protocol-object udp
  protocol-object tcp
@@ -777,9 +800,13 @@ object-group network nlcl01iotXX
  network-object object nlcl01iot00
  network-object object nlcl01iot01
  network-object object nlcl01iot02
+object-group network ALL_VPS_OVERLAY
+ network-object 10.255.2.0 255.255.255.0
+ network-object 10.255.3.0 255.255.255.0
 object-group network whitelist_shun_nlgr_all_subnets
  group-object gr_all_subnets
  group-object nl_all_subnets
+ group-object ALL_VPS_OVERLAY
 object-group network BLACKLIST_FAIL2BAN
  network-object host 185.156.46.108
 object-group network S2S_LEI_GRP_inside_k8s
@@ -799,18 +826,6 @@ object-group network S2S_SKG_GRP_inside_iot
  network-object 10.0.X.X 255.255.255.224
 object-group network S2S_SKG_GRP_dmz_servers03
  network-object 10.0.X.X 255.255.255.248
-object-group network S2S_LEI_GRP_inside_iot
- network-object 10.0.X.X 255.255.255.192
-object-group network S2S_LEI_GRP_inside_servers01
- network-object 10.0.X.X 255.255.255.224
-object-group network S2S_LEI_GRP_inside_servers02
- network-object 10.0.X.X 255.255.255.224
-object-group network S2S_LEI_GRP_dmz_servers01
- network-object 10.0.X.X 255.255.255.224
-object-group network S2S_LEI_GRP_dmz_servers02
- network-object 10.0.X.X 255.255.255.224
-object-group network S2S_LEI_GRP_dmz_servers03
- network-object 10.0.X.X 255.255.255.224
 object-group network S2S_LEI_GRP_dmz_vpn01
  network-object 10.0.X.X 255.255.255.248
 object-group network nl_all_vpn_pools
@@ -844,9 +859,6 @@ object-group network S2S_LEI_VPN_DESTINATIONS
  group-object nl_strongswan_vpn_pool_XX
 object-group network S2S_SKG_GRP_inside_k8s
  network-object 10.0.X.X 255.255.255.0
-object-group network ALL_VPS_OVERLAY
- network-object 10.255.2.0 255.255.255.0
- network-object 10.255.3.0 255.255.255.0
 access-list inside_cctv_access_in extended permit tcp object nlunify01 object nln8n01 eq 5678 
 access-list inside_cctv_access_in extended permit tcp object nlunify01 object nlsmtp-gpg01 eq smtp 
 access-list inside_cctv_access_in extended permit object-group TCPUDP object nlunify01 object-group eu-nlgr-freeipa01 eq domain 
@@ -2033,5 +2045,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:f0f7a2b4b71a6b66de2f7e139ee12055
+Cryptochecksum:a73ebbe64999d6007156ebe6d5b9e189
 : end
