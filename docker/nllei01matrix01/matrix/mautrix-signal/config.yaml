@@ -48,6 +48,7 @@ encryption:
   require: false
   appservice: true
   msc4190: true
+  pickle_key: REDACTED_28ece096
 
 logging:
   min_level: info

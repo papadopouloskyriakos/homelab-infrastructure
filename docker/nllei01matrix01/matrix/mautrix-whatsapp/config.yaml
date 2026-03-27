@@ -50,6 +50,7 @@ encryption:
   require: false
   appservice: true
   msc4190: true
+  pickle_key: REDACTED_95901236
 
 logging:
   min_level: info
