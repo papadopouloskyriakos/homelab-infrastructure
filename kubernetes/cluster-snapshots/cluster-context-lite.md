@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-03-30 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-03-31 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 1320 |
+| Total Restarts | 1359 |
 
 ## Topology
 
@@ -42,10 +42,10 @@ kube-system/cilium-22zgh: 9 restarts
 kube-system/cilium-envoy-cfv8x: 4 restarts
 kube-system/cilium-envoy-mmfnj: 9 restarts
 kube-system/cilium-gz5mp: 4 restarts
-kube-system/etcd-nlk8s-ctrl01: 102 restarts
+kube-system/etcd-nlk8s-ctrl01: 108 restarts
 kube-system/etcd-nlk8s-ctrl02: 39 restarts
 kube-system/etcd-nlk8s-ctrl03: 6 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 591 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 624 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 57 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 94 restarts
@@ -58,7 +58,7 @@ kube-system/tetragon-878gv: 4 restarts
 kube-system/tetragon-mdsn9: 18 restarts
 kube-system/tetragon-tbcc7: 4 restarts
 kube-system/tetragon-vbs6v: 8 restarts
-logging/loki-0: 25 restarts
+logging/loki-0: 28 restarts
 logging/promtail-hp5sc: 4 restarts
 monitoring/goldpinger-4fvxd: 10 restarts
 monitoring/goldpinger-b44g9: 6 restarts
@@ -66,8 +66,8 @@ monitoring/goldpinger-cjzc4: 5 restarts
 monitoring/goldpinger-f72lw: 5 restarts
 monitoring/goldpinger-qs5xt: 5 restarts
 monitoring/goldpinger-vtfpx: 7 restarts
-monitoring/monitoring-grafana-777dc75f9-8l8qt: 23 restarts
-monitoring/monitoring-grafana-777dc75f9-zdlv4: 21 restarts
+monitoring/monitoring-grafana-777dc75f9-8l8qt: 33 restarts
+monitoring/monitoring-grafana-777dc75f9-zdlv4: 27 restarts
 monitoring/monitoring-prometheus-node-exporter-d5wkz: 9 restarts
 monitoring/monitoring-prometheus-node-exporter-f2fld: 8 restarts
 monitoring/monitoring-prometheus-node-exporter-fh2zz: 4 restarts
@@ -80,11 +80,11 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   49m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Liveness probe failed: Get "http://127.0.0.1:2381/livez": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   49m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   49m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
-kube-system   37m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+monitoring    43m         Warning   Unhealthy   pod/bgpalerter-596d7b756b-dkn62         Readiness probe failed: Get "http://10.0.2.130:8011/status": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system   40m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Liveness probe failed: Get "http://127.0.0.1:2381/livez": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system   38m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: Get "https://10.0.X.X:6443/readyz": dial tcp 10.0.X.X:6443: connect: connection refused
+kube-system   16m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system   16m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
 ```
 
 ## Key Resources
