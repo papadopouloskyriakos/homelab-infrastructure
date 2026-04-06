@@ -622,6 +622,10 @@ object network nl-matrix01
  host 10.0.X.X
 object network grafana.example.net
  host 10.0.X.X
+object network nlk8s-frr01
+ host 10.0.X.X
+object network nlk8s-frr02
+ host 10.0.X.X
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -1025,8 +1029,9 @@ access-list outside_freedom_cryptomap_24 extended permit ip object-group S2S_LEI
 access-list outside_freedom_cryptomap_25 extended permit ip object-group S2S_LEI_GRP_inside_cctv object-group S2S_SKG_GRP_oas_vpn01 
 access-list outside_freedom_cryptomap_26 extended permit ip object-group S2S_LEI_GRP_inside_cctv object-group S2S_SKG_GRP_oas_vpn02 
 access-list outside_freedom_cryptomap_27 extended permit ip object-group S2S_LEI_GRP_inside_cctv object-group S2S_SKG_GRP_oas_vpn03 
-access-list dmz_servers02_access_in extended permit object-group TCPUDP any object nlpihole02 eq domain inactive 
 access-list dmz_servers02_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp inactive 
+access-list dmz_servers02_access_in extended permit object-group TCPUDP object nlk8s-frr01 object nlpihole02 eq domain 
+access-list dmz_servers02_access_in extended permit object-group TCPUDP object nlk8s-frr02 object nlpihole02 eq domain 
 access-list dmz_servers02_access_in extended permit tcp object nl-matrix01 object nlsmtp-gpg01 eq smtp 
 access-list dmz_servers02_access_in extended permit tcp object nl-matrix01 object grafana.example.net eq https 
 access-list dmz_servers02_access_in extended permit ip object-group S2S_LEI_GRP_dmz_servers02 object-group S2S_SKG_GRP_dmz_servers02 
@@ -2045,5 +2050,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:a73ebbe64999d6007156ebe6d5b9e189
+Cryptochecksum:5fda20fed128a6cb8a53c3ba9387b361
 : end
