@@ -135,3 +135,22 @@ build_github_sync_runner:
       cd images/github-sync-runner
       docker build -t $IMAGE_REGISTRY/github-sync-runner:latest .
       docker push $IMAGE_REGISTRY/github-sync-runner:latest
+
+# ===========================================================================
+# PROTONMAIL BRIDGE
+# ===========================================================================
+
+build_protonmail_bridge:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/protonmail-bridge/**/*
+      when: manual
+  script:
+    - |
+      cd images/protonmail-bridge
+      docker build -t $IMAGE_REGISTRY/protonmail-bridge:latest .
+      docker push $IMAGE_REGISTRY/protonmail-bridge:latest
