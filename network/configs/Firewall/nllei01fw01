@@ -1343,6 +1343,42 @@ nat (inside_k8s,outside_freedom) source static S2S_LEI_GRP_inside_k8s S2S_LEI_GR
 nat (dmz_servers02,outside_freedom) source static S2S_SKG_GRP_dmz_servers02 S2S_SKG_GRP_dmz_servers02 destination static ALL_VPS_OVERLAY ALL_VPS_OVERLAY no-proxy-arp route-lookup
 nat (outside_freedom,outside_freedom) source static ALL_VPS_OVERLAY ALL_VPS_OVERLAY destination static S2S_SKG_GRP_dmz_servers02 S2S_SKG_GRP_dmz_servers02 no-proxy-arp route-lookup
 nat (dmz_servers02,outside_freedom) source static S2S_LEI_GRP_dmz_servers02 S2S_LEI_GRP_dmz_servers02 destination static S2S_SKG_GRP_dmz_servers02 S2S_SKG_GRP_dmz_servers02 no-proxy-arp route-lookup
+nat (inside_cctv,outside_xs4all) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_inside_mgmt S2S_SKG_GRP_inside_mgmt no-proxy-arp route-lookup
+nat (inside_cctv,outside_xs4all) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_inside_neapoli S2S_SKG_GRP_inside_neapoli no-proxy-arp route-lookup
+nat (inside_cctv,outside_xs4all) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_inside_cctv S2S_SKG_GRP_inside_cctv no-proxy-arp route-lookup
+nat (inside_cctv,outside_xs4all) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_inside_servers01 S2S_SKG_GRP_inside_servers01 no-proxy-arp route-lookup
+nat (inside_cctv,outside_xs4all) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_dmz_servers01 S2S_SKG_GRP_dmz_servers01 no-proxy-arp route-lookup
+nat (inside_cctv,outside_xs4all) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_dmz_vpn01 S2S_SKG_GRP_dmz_vpn01 no-proxy-arp route-lookup
+nat (inside_cctv,outside_xs4all) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_oas_vpn01 S2S_SKG_GRP_oas_vpn01 no-proxy-arp route-lookup
+nat (inside_cctv,outside_xs4all) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_oas_vpn02 S2S_SKG_GRP_oas_vpn02 no-proxy-arp route-lookup
+nat (inside_cctv,outside_xs4all) source static S2S_LEI_GRP_inside_cctv S2S_LEI_GRP_inside_cctv destination static S2S_SKG_GRP_oas_vpn03 S2S_SKG_GRP_oas_vpn03 no-proxy-arp route-lookup
+nat (inside_room_a,outside_xs4all) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_inside_mgmt S2S_SKG_GRP_inside_mgmt no-proxy-arp route-lookup
+nat (inside_room_a,outside_xs4all) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_inside_neapoli S2S_SKG_GRP_inside_neapoli no-proxy-arp route-lookup
+nat (inside_room_a,outside_xs4all) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_inside_cctv S2S_SKG_GRP_inside_cctv no-proxy-arp route-lookup
+nat (inside_room_a,outside_xs4all) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_inside_servers01 S2S_SKG_GRP_inside_servers01 no-proxy-arp route-lookup
+nat (inside_room_a,outside_xs4all) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_dmz_servers01 S2S_SKG_GRP_dmz_servers01 no-proxy-arp route-lookup
+nat (inside_room_a,outside_xs4all) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_dmz_vpn01 S2S_SKG_GRP_dmz_vpn01 no-proxy-arp route-lookup
+nat (inside_room_a,outside_xs4all) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_oas_vpn01 S2S_SKG_GRP_oas_vpn01 no-proxy-arp route-lookup
+nat (inside_room_a,outside_xs4all) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_oas_vpn02 S2S_SKG_GRP_oas_vpn02 no-proxy-arp route-lookup
+nat (inside_room_a,outside_xs4all) source static S2S_LEI_GRP_inside_room_a S2S_LEI_GRP_inside_room_a destination static S2S_SKG_GRP_oas_vpn03 S2S_SKG_GRP_oas_vpn03 no-proxy-arp route-lookup
+nat (inside_nfs,outside_xs4all) source static S2S_LEI_GRP_inside_nfs S2S_LEI_GRP_inside_nfs destination static S2S_SKG_GRP_inside_nfs S2S_SKG_GRP_inside_nfs no-proxy-arp route-lookup
+nat (inside_nfs,outside_xs4all) source static S2S_LEI_GRP_inside_nfs S2S_LEI_GRP_inside_nfs destination static S2S_SKG_GRP_inside_mgmt S2S_SKG_GRP_inside_mgmt no-proxy-arp route-lookup
+nat (inside_corosync,outside_xs4all) source static S2S_LEI_GRP_inside_corosync S2S_LEI_GRP_inside_corosync destination static S2S_SKG_GRP_inside_corosync S2S_SKG_GRP_inside_corosync no-proxy-arp route-lookup
+nat (inside_corosync,outside_xs4all) source static S2S_LEI_GRP_inside_corosync S2S_LEI_GRP_inside_corosync destination static S2S_SKG_GRP_inside_mgmt S2S_SKG_GRP_inside_mgmt no-proxy-arp route-lookup
+nat (inside_mgmt,outside_xs4all) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_SKG_GRP_dmz_servers02 S2S_SKG_GRP_dmz_servers02 no-proxy-arp route-lookup
+nat (inside_k8s,outside_xs4all) source static S2S_LEI_GRP_inside_k8s S2S_LEI_GRP_inside_k8s destination static S2S_SKG_GRP_dmz_servers02 S2S_SKG_GRP_dmz_servers02 no-proxy-arp route-lookup
+nat (dmz_servers02,outside_xs4all) source static S2S_LEI_GRP_dmz_servers02 S2S_LEI_GRP_dmz_servers02 destination static S2S_SKG_GRP_dmz_servers02 S2S_SKG_GRP_dmz_servers02 no-proxy-arp route-lookup
+nat (dmz_vpn01,outside_xs4all) source static nl_oas_vpn_pool_XX nl_oas_vpn_pool_XX destination static S2S_SKG_VPN_DESTINATIONS S2S_SKG_VPN_DESTINATIONS no-proxy-arp route-lookup
+nat (dmz_vpn01,outside_xs4all) source static nl_strongswan_vpn_pool_XX nl_strongswan_vpn_pool_XX destination static S2S_SKG_VPN_DESTINATIONS S2S_SKG_VPN_DESTINATIONS no-proxy-arp route-lookup
+nat (dmz_vpn01,outside_xs4all) source static nl_strongswan_vpn_pool_XX nl_strongswan_vpn_pool_XX destination static S2S_SKG_GRP_inside_mgmt S2S_SKG_GRP_inside_mgmt no-proxy-arp route-lookup
+nat (outside_xs4all,outside_xs4all) source static ALL_VPS_OVERLAY ALL_VPS_OVERLAY destination static S2S_SKG_GRP_dmz_servers02 S2S_SKG_GRP_dmz_servers02 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_xs4all) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_NO_TUNNEL S2S_NO_TUNNEL no-proxy-arp route-lookup
+nat (inside_k8s,outside_xs4all) source static S2S_LEI_GRP_inside_k8s S2S_LEI_GRP_inside_k8s destination static S2S_NO_TUNNEL S2S_NO_TUNNEL no-proxy-arp route-lookup
+nat (dmz_servers02,outside_xs4all) source static S2S_LEI_GRP_dmz_servers02 S2S_LEI_GRP_dmz_servers02 destination static S2S_NO_TUNNEL S2S_NO_TUNNEL no-proxy-arp route-lookup
+nat (inside_mgmt,outside_xs4all) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static S2S_CH_TUNNEL S2S_CH_TUNNEL no-proxy-arp route-lookup
+nat (inside_k8s,outside_xs4all) source static S2S_LEI_GRP_inside_k8s S2S_LEI_GRP_inside_k8s destination static S2S_CH_TUNNEL S2S_CH_TUNNEL no-proxy-arp route-lookup
+nat (dmz_servers02,outside_xs4all) source static S2S_LEI_GRP_dmz_servers02 S2S_LEI_GRP_dmz_servers02 destination static S2S_CH_TUNNEL S2S_CH_TUNNEL no-proxy-arp route-lookup
+nat (dmz_servers02,outside_xs4all) source static S2S_SKG_GRP_dmz_servers02 S2S_SKG_GRP_dmz_servers02 destination static ALL_VPS_OVERLAY ALL_VPS_OVERLAY no-proxy-arp route-lookup
 !
 object network NAT_dmz_servers01
  nat (dmz_servers01,outside_freedom) dynamic PUBLIC_dmz_servers01
@@ -1399,6 +1435,7 @@ nat (inside_cctv,outside_freedom) after-auto source dynamic any interface
 nat (inside_iot,outside_xs4all) after-auto source dynamic any interface
 nat (inside_iot,outside_freedom) after-auto source dynamic any interface
 nat (inside_guest,outside_freedom) after-auto source dynamic any interface
+nat (dmz_servers02,outside_xs4all) after-auto source dynamic any interface
 access-group outside_xs4all_access_in in interface outside_xs4all
 access-group outside_lte_access_in in interface outside_lte
 access-group outside_freedom_tv_access_in in interface outside_freedom_tv
@@ -1790,6 +1827,54 @@ crypto map outside_xs4all_map 35 set ikev2 ipsec-proposal TSET
 crypto map outside_xs4all_map 36 match address outside_freedom_cryptomap_36
 crypto map outside_xs4all_map 36 set peer 91.211.213.72 
 crypto map outside_xs4all_map 36 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 37 match address outside_freedom_cryptomap_37
+crypto map outside_xs4all_map 37 set peer 91.211.213.72 
+crypto map outside_xs4all_map 37 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 38 match address outside_freedom_cryptomap_38
+crypto map outside_xs4all_map 38 set peer 91.211.213.72 
+crypto map outside_xs4all_map 38 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 40 match address vpn-no-to-nl-dmz
+crypto map outside_xs4all_map 40 set peer 198.51.100.X 
+crypto map outside_xs4all_map 40 set ikev2 ipsec-proposal VTI-PROPOSAL
+crypto map outside_xs4all_map 41 match address vpn-no-to-gr-dmz-via-nl
+crypto map outside_xs4all_map 41 set peer 198.51.100.X 
+crypto map outside_xs4all_map 41 set ikev2 ipsec-proposal VTI-PROPOSAL
+crypto map outside_xs4all_map 42 match address outside_freedom_cryptomap_vps_gr_dmz
+crypto map outside_xs4all_map 42 set peer 91.211.213.72 
+crypto map outside_xs4all_map 42 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 43 match address vpn-no-to-nl-mgmt
+crypto map outside_xs4all_map 43 set peer 198.51.100.X 
+crypto map outside_xs4all_map 43 set ikev2 ipsec-proposal VTI-PROPOSAL
+crypto map outside_xs4all_map 44 match address vpn-no-to-nl-k8s
+crypto map outside_xs4all_map 44 set peer 198.51.100.X 
+crypto map outside_xs4all_map 44 set ikev2 ipsec-proposal VTI-PROPOSAL
+crypto map outside_xs4all_map 50 match address vpn-ch-to-nl-dmz
+crypto map outside_xs4all_map 50 set peer 198.51.100.X 
+crypto map outside_xs4all_map 50 set ikev2 ipsec-proposal VTI-PROPOSAL
+crypto map outside_xs4all_map 51 match address vpn-ch-to-gr-dmz-via-nl
+crypto map outside_xs4all_map 51 set peer 198.51.100.X 
+crypto map outside_xs4all_map 51 set ikev2 ipsec-proposal VTI-PROPOSAL
+crypto map outside_xs4all_map 52 match address vpn-ch-to-nl-mgmt
+crypto map outside_xs4all_map 52 set peer 198.51.100.X 
+crypto map outside_xs4all_map 52 set ikev2 ipsec-proposal VTI-PROPOSAL
+crypto map outside_xs4all_map 53 match address vpn-ch-to-nl-k8s
+crypto map outside_xs4all_map 53 set peer 198.51.100.X 
+crypto map outside_xs4all_map 53 set ikev2 ipsec-proposal VTI-PROPOSAL
+crypto map outside_xs4all_map 60 match address vpn-nl-to-gr-vpn
+crypto map outside_xs4all_map 60 set peer 91.211.213.72 
+crypto map outside_xs4all_map 60 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 61 match address vpn-gr-to-nl-vpn
+crypto map outside_xs4all_map 61 set peer 91.211.213.72 
+crypto map outside_xs4all_map 61 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 71 match address outside_freedom_cryptomap_71
+crypto map outside_xs4all_map 71 set peer 91.211.213.72 
+crypto map outside_xs4all_map 71 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 72 match address outside_freedom_cryptomap_72
+crypto map outside_xs4all_map 72 set peer 91.211.213.72 
+crypto map outside_xs4all_map 72 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 73 match address outside_freedom_cryptomap_73
+crypto map outside_xs4all_map 73 set peer 91.211.213.72 
+crypto map outside_xs4all_map 73 set ikev2 ipsec-proposal TSET
 crypto map outside_xs4all_map interface outside_xs4all
 crypto ca trustpool policy
 crypto isakmp nat-traversal 10
@@ -2050,5 +2135,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:5fda20fed128a6cb8a53c3ba9387b361
+Cryptochecksum:552503794aaccd7608b6a2f40b60b9ec
 : end
