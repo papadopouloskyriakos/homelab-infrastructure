@@ -9,6 +9,10 @@ server {
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
     gzip_min_length 1000;
 
+    # Allow Umami analytics in Element Web's built-in CSP
+    sub_filter "script-src 'self'" "script-src 'self' https://analytics.cubeos.app";
+    sub_filter "connect-src 'self'" "connect-src 'self' https://analytics.cubeos.app";
+
     # Rewrite branding in index.html (title, OG tags, app name)
     sub_filter '<title>Element</title>' '<title>Matrix @ Nuclear Lighters</title>';
     sub_filter 'content="Element"' 'content="Matrix @ Nuclear Lighters"';
