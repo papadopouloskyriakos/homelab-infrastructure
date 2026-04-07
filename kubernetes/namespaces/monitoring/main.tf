@@ -551,7 +551,9 @@ resource "helm_release" "monitoring" {
 
         "grafana.ini" = {
           security = {
-            allow_embedding = true
+            allow_embedding                  = true
+            content_security_policy          = true
+            content_security_policy_template = "script-src 'self' 'unsafe-eval' 'unsafe-inline' 'strict-dynamic' $NONCE;object-src 'none';font-src 'self';style-src 'self' 'unsafe-inline' blob:;img-src * data:;base-uri 'self';connect-src 'self' grafana.com ws://$ROOT_PATH wss://$ROOT_PATH;manifest-src 'self';media-src 'none';form-action 'self';frame-ancestors 'self' https://matrix.example.net vector://vector;"
           }
           "auth.anonymous" = {
             enabled  = true
