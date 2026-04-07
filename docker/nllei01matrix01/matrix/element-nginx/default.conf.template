@@ -13,7 +13,7 @@ server {
     sub_filter '<title>Element</title>' '<title>Matrix @ Nuclear Lighters</title>';
     sub_filter 'content="Element"' 'content="Matrix @ Nuclear Lighters"';
     sub_filter 'content="https://app.element.io/themes/element/img/logos/opengraph.png"' 'content="https://matrix.example.net/themes/element/img/backgrounds/lake.jpg"';
-    sub_filter '</head>' '<meta property="og:title" content="Matrix @ Nuclear Lighters" /><meta property="og:description" content="Secure messaging powered by Matrix" /><meta property="og:url" content="https://matrix.example.net/" /></head>';
+    sub_filter '</head>' '<meta property="og:title" content="Matrix @ Nuclear Lighters" /><meta property="og:description" content="Secure messaging powered by Matrix" /><meta property="og:url" content="https://matrix.example.net/" /><script defer src="https://analytics.cubeos.app/script.js" data-website-id="REDACTED_cb6b6f19"></script></head>';
     sub_filter_once off;
     sub_filter_types text/html;
 
