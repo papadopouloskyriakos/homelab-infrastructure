@@ -1379,6 +1379,15 @@ nat (inside_mgmt,outside_xs4all) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_G
 nat (inside_k8s,outside_xs4all) source static S2S_LEI_GRP_inside_k8s S2S_LEI_GRP_inside_k8s destination static S2S_CH_TUNNEL S2S_CH_TUNNEL no-proxy-arp route-lookup
 nat (dmz_servers02,outside_xs4all) source static S2S_LEI_GRP_dmz_servers02 S2S_LEI_GRP_dmz_servers02 destination static S2S_CH_TUNNEL S2S_CH_TUNNEL no-proxy-arp route-lookup
 nat (dmz_servers02,outside_xs4all) source static S2S_SKG_GRP_dmz_servers02 S2S_SKG_GRP_dmz_servers02 destination static ALL_VPS_OVERLAY ALL_VPS_OVERLAY no-proxy-arp route-lookup
+nat (dmz_servers01,outside_xs4all) source static S2S_LEI_GRP_dmz_servers01 S2S_LEI_GRP_dmz_servers01 destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (dmz_servers02,outside_xs4all) source static S2S_LEI_GRP_dmz_servers02 S2S_LEI_GRP_dmz_servers02 destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (dmz_servers03,outside_xs4all) source static S2S_LEI_GRP_dmz_servers03 S2S_LEI_GRP_dmz_servers03 destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (dmz_vpn01,outside_xs4all) source static S2S_LEI_GRP_dmz_vpn01 S2S_LEI_GRP_dmz_vpn01 destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (dmz_vpn01,outside_xs4all) source static nl_oas_vpn_pool_XX nl_oas_vpn_pool_XX destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (dmz_vpn01,outside_xs4all) source static nl_strongswan_vpn_pool_XX nl_strongswan_vpn_pool_XX destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (inside_iot,outside_xs4all) source static S2S_LEI_GRP_inside_iot S2S_LEI_GRP_inside_iot destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (inside_servers01,outside_xs4all) source static S2S_LEI_GRP_inside_servers01 S2S_LEI_GRP_inside_servers01 destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
+nat (inside_servers02,outside_xs4all) source static S2S_LEI_GRP_inside_servers02 S2S_LEI_GRP_inside_servers02 destination static gr_oas_vpn_pool_XX gr_oas_vpn_pool_XX no-proxy-arp route-lookup
 !
 object network NAT_dmz_servers01
  nat (dmz_servers01,outside_freedom) dynamic PUBLIC_dmz_servers01
@@ -1869,12 +1878,6 @@ crypto map outside_xs4all_map 61 set ikev2 ipsec-proposal TSET
 crypto map outside_xs4all_map 71 match address outside_freedom_cryptomap_71
 crypto map outside_xs4all_map 71 set peer 91.211.213.72 
 crypto map outside_xs4all_map 71 set ikev2 ipsec-proposal TSET
-crypto map outside_xs4all_map 72 match address outside_freedom_cryptomap_72
-crypto map outside_xs4all_map 72 set peer 91.211.213.72 
-crypto map outside_xs4all_map 72 set ikev2 ipsec-proposal TSET
-crypto map outside_xs4all_map 73 match address outside_freedom_cryptomap_73
-crypto map outside_xs4all_map 73 set peer 91.211.213.72 
-crypto map outside_xs4all_map 73 set ikev2 ipsec-proposal TSET
 crypto map outside_xs4all_map interface outside_xs4all
 crypto ca trustpool policy
 crypto isakmp nat-traversal 10
@@ -2135,5 +2138,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:552503794aaccd7608b6a2f40b60b9ec
+Cryptochecksum:ea178fcc981bcbbde1153ce50132176e
 : end
