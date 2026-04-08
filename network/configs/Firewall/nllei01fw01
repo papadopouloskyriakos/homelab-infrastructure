@@ -2175,9 +2175,6 @@ policy-map SPOCK[wireless]-THROTTLE-UP-PM
   police output 1000000 2000
 !
 service-policy global_policy global
-service-policy XS4ALL-ROOM-B-PM interface inside_room_b
-service-policy XS4ALL-ROOM-C-PM interface inside_room_c
-service-policy XS4ALL-ROOM-D-PM interface inside_room_d
 smtp-server 10.0.X.X 10.0.X.X
 prompt hostname context 
 no call-home reporting anonymous
@@ -2191,5 +2188,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:f2a0b43a05b05b2680d6cf968fcf453d
+Cryptochecksum:a0d21f3b0cb2aa08645835989c74e722
 : end
