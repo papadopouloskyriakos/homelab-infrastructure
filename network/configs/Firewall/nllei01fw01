@@ -1185,6 +1185,8 @@ access-list vpn-ch-to-nl-k8s extended permit ip 10.0.X.X 255.255.255.0 10.255.2.
 access-list XS4ALL-ROOM-B-UP extended permit ip 10.0.X.X 255.255.255.224 any 
 access-list XS4ALL-ROOM-C-UP extended permit ip 10.0.X.X 255.255.255.224 any 
 access-list XS4ALL-ROOM-D-UP extended permit ip 10.0.X.X 255.255.255.224 any 
+access-list outside_freedom_cryptomap_74 extended permit ip object-group S2S_LEI_GRP_inside_k8s object-group S2S_SKG_GRP_dmz_servers02 
+access-list outside_freedom_cryptomap_75 extended permit ip object-group S2S_LEI_GRP_inside_mgmt object-group S2S_SKG_GRP_dmz_servers02 
 !
 tcp-map mptcp-tm
   tcp-options range 30 30 allow
@@ -1759,6 +1761,12 @@ crypto map outside_freedom_map 72 set ikev2 ipsec-proposal TSET
 crypto map outside_freedom_map 73 match address outside_freedom_cryptomap_73
 crypto map outside_freedom_map 73 set peer 91.211.213.72 
 crypto map outside_freedom_map 73 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 74 match address outside_freedom_cryptomap_74
+crypto map outside_freedom_map 74 set peer 91.211.213.72 
+crypto map outside_freedom_map 74 set ikev2 ipsec-proposal TSET
+crypto map outside_freedom_map 75 match address outside_freedom_cryptomap_75
+crypto map outside_freedom_map 75 set peer 91.211.213.72 
+crypto map outside_freedom_map 75 set ikev2 ipsec-proposal TSET
 crypto map outside_freedom_map interface outside_freedom
 crypto map outside_xs4all_map 1 match address outside_freedom_cryptomap_01
 crypto map outside_xs4all_map 1 set peer 91.211.213.72 
@@ -1910,6 +1918,12 @@ crypto map outside_xs4all_map 61 set ikev2 ipsec-proposal TSET
 crypto map outside_xs4all_map 71 match address outside_freedom_cryptomap_71
 crypto map outside_xs4all_map 71 set peer 91.211.213.72 
 crypto map outside_xs4all_map 71 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 74 match address outside_freedom_cryptomap_74
+crypto map outside_xs4all_map 74 set peer 91.211.213.72 
+crypto map outside_xs4all_map 74 set ikev2 ipsec-proposal TSET
+crypto map outside_xs4all_map 75 match address outside_freedom_cryptomap_75
+crypto map outside_xs4all_map 75 set peer 91.211.213.72 
+crypto map outside_xs4all_map 75 set ikev2 ipsec-proposal TSET
 crypto map outside_xs4all_map interface outside_xs4all
 crypto ca trustpool policy
 crypto isakmp nat-traversal 10
@@ -2188,5 +2202,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:a0d21f3b0cb2aa08645835989c74e722
+Cryptochecksum:089903a9ff6d12861d5e8426a601b047
 : end
