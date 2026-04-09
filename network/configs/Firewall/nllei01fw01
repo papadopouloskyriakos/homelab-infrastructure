@@ -1504,6 +1504,22 @@ access-group global_access global
 !
 prefix-list METALLB-VIPS seq 10 permit 10.0.X.X/26 le 32
 !
+prefix-list NL_SITE_SUBNETS seq 10 permit 10.0.X.X/24
+prefix-list NL_SITE_SUBNETS seq 20 permit 10.0.X.X/27
+prefix-list NL_SITE_SUBNETS seq 30 permit 10.0.X.X/24
+prefix-list NL_SITE_SUBNETS seq 40 permit 10.0.X.X/27
+prefix-list NL_SITE_SUBNETS seq 50 permit 10.0.X.X/29
+prefix-list NL_SITE_SUBNETS seq 60 permit 10.0.X.X/27
+prefix-list NL_SITE_SUBNETS seq 70 permit 10.0.X.X/28
+prefix-list NL_SITE_SUBNETS seq 80 permit 10.0.X.X/27
+!
+!
+route-map BLOCK_SITE_TO_CILIUM deny 10
+ match ip address prefix-list NL_SITE_SUBNETS
+
+!
+route-map BLOCK_SITE_TO_CILIUM permit 20
+
 !
 route-map pbr_map permit 10
  match ip address pbr_acl
@@ -1519,21 +1535,37 @@ router bgp 65000
   neighbor 10.0.X.X remote-as 65000
   neighbor 10.0.X.X description nlk8s-frr01-DMZ
   neighbor 10.0.X.X activate
+  neighbor 10.0.X.X next-hop-self
   neighbor 10.0.X.X remote-as 65000
   neighbor 10.0.X.X description nlk8s-frr02-DMZ
   neighbor 10.0.X.X activate
+  neighbor 10.0.X.X next-hop-self
   neighbor 10.0.X.X remote-as 65001
   neighbor 10.0.X.X activate
+  neighbor 10.0.X.X route-map BLOCK_SITE_TO_CILIUM out
   neighbor 10.0.X.X remote-as 65001
   neighbor 10.0.X.X activate
+  neighbor 10.0.X.X route-map BLOCK_SITE_TO_CILIUM out
   neighbor 10.0.X.X remote-as 65001
   neighbor 10.0.X.X activate
+  neighbor 10.0.X.X route-map BLOCK_SITE_TO_CILIUM out
   neighbor 10.0.X.X remote-as 65001
   neighbor 10.0.X.X activate
+  neighbor 10.0.X.X route-map BLOCK_SITE_TO_CILIUM out
+  network 10.0.X.X
+  network 10.0.X.X mask 255.255.255.248
+  network 10.0.X.X mask 255.255.255.224
+  network 10.0.X.X mask 255.255.255.224
+  network 10.0.X.X
+  network 10.0.X.X mask 255.255.255.240
+  network 10.0.X.X mask 255.255.255.224
+  network 10.0.X.X mask 255.255.255.224
   no auto-summary
   no synchronization
  exit-address-family
 !
+route outside_freedom 0.0.0.0 0.0.0.0 185.93.175.233 1 track 1
+route outside_xs4all 0.0.0.0 0.0.0.0 195.190.228.131 10
 route outside_lte 0.0.0.0 0.0.0.0 10.0.X.X 20
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
@@ -1567,8 +1599,8 @@ snmp-server host inside_k8s 10.0.X.X community ***** version 2c
 no snmp-server location
 no snmp-server contact
 sla monitor 1
- type echo protocol ipIcmpEcho 91.211.213.72 interface outside_freedom
- frequency 10
+ type echo protocol ipIcmpEcho 185.93.175.233 interface outside_freedom
+ frequency 5
 sla monitor schedule 1 life forever start-time now
 service sw-reset-button
 crypto ipsec ikev2 ipsec-proposal TSET
@@ -2189,6 +2221,9 @@ policy-map SPOCK[wireless]-THROTTLE-UP-PM
   police output 1000000 2000
 !
 service-policy global_policy global
+service-policy XS4ALL-ROOM-B-PM interface inside_room_b
+service-policy XS4ALL-ROOM-C-PM interface inside_room_c
+service-policy XS4ALL-ROOM-D-PM interface inside_room_d
 smtp-server 10.0.X.X 10.0.X.X
 prompt hostname context 
 no call-home reporting anonymous
@@ -2202,5 +2237,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:089903a9ff6d12861d5e8426a601b047
+Cryptochecksum:f01a8fbbdba877a567e05fcd489beb71
 : end
