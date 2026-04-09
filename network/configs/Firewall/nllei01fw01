@@ -249,6 +249,30 @@ interface Tunnel3
  tunnel mode ipsec ipv4
  tunnel protection ipsec profile VTI-PROFILE
 !
+interface Tunnel4
+ nameif vti-gr-f
+ ip address 10.255.200.10 255.255.255.254 
+ tunnel source interface outside_freedom
+ tunnel destination 91.211.213.72
+ tunnel mode ipsec ipv4
+ tunnel protection ipsec profile VTI-PROFILE
+!
+interface Tunnel5
+ nameif vti-no-f
+ ip address 10.255.200.12 255.255.255.254 
+ tunnel source interface outside_freedom
+ tunnel destination 198.51.100.X
+ tunnel mode ipsec ipv4
+ tunnel protection ipsec profile VTI-PROFILE
+!
+interface Tunnel6
+ nameif vti-ch-f
+ ip address 10.255.200.14 255.255.255.254 
+ tunnel source interface outside_freedom
+ tunnel destination 198.51.100.X
+ tunnel mode ipsec ipv4
+ tunnel protection ipsec profile VTI-PROFILE
+!
 boot system disk0:/asa9-16-4-lfbff-k8.SPA
 ftp mode passive
 clock timezone CET 1
@@ -1529,6 +1553,9 @@ access-group inside_nfs_access_in in interface inside_nfs
 access-group vti_access_in in interface vti-gr
 access-group vti_access_in in interface vti-no
 access-group vti_access_in in interface vti-ch
+access-group vti_access_in in interface vti-gr-f
+access-group vti_access_in in interface vti-no-f
+access-group vti_access_in in interface vti-ch-f
 access-group global_access global
 !
 prefix-list METALLB-VIPS seq 10 permit 10.0.X.X/26 le 32
@@ -1599,14 +1626,23 @@ route outside_lte 0.0.0.0 0.0.0.0 10.0.X.X 20
 route vti-ch 10.255.2.0 255.255.255.0 10.255.200.5 1
 route vti-no 10.255.3.0 255.255.255.0 10.255.200.3 1
 route vti-gr 10.0.X.X 255.255.255.0 10.255.200.1 1
+route vti-no 10.0.X.X 255.255.255.0 10.255.200.3 10
 route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
+route vti-no 10.0.X.X 255.255.255.224 10.255.200.3 10
 route vti-gr 10.0.X.X 255.255.255.240 10.255.200.1 1
+route vti-no 10.0.X.X 255.255.255.240 10.255.200.3 10
 route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
+route vti-no 10.0.X.X 255.255.255.224 10.255.200.3 10
 route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
+route vti-no 10.0.X.X 255.255.255.224 10.255.200.3 10
 route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
+route vti-no 10.0.X.X 255.255.255.224 10.255.200.3 10
 route vti-gr 10.0.X.X 255.255.255.0 10.255.200.1 1
+route vti-no 10.0.X.X 255.255.255.0 10.255.200.3 10
 route vti-gr 10.0.X.X 255.255.255.248 10.255.200.1 1
+route vti-no 10.0.X.X 255.255.255.248 10.255.200.3 10
 route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
+route vti-no 10.0.X.X 255.255.255.224 10.255.200.3 10
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
@@ -2275,5 +2311,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:dca19917cf392f89059429d9f29adef2
+Cryptochecksum:090c753fbb22cd6ec3ae47da88a17777
 : end
