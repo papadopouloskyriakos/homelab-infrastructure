@@ -1459,6 +1459,9 @@ route outside_xs4all 0.0.0.0 0.0.0.0 195.190.228.131 10
 route outside_lte 0.0.0.0 0.0.0.0 10.0.X.X 20
 route vti-ch 10.255.2.0 255.255.255.0 10.255.200.5 1
 route vti-no 10.255.3.0 255.255.255.0 10.255.200.3 1
+route outside_xs4all 91.211.213.72 255.255.255.255 195.190.228.131 1
+route outside_xs4all 198.51.100.X 255.255.255.255 195.190.228.131 1
+route outside_xs4all 198.51.100.X 255.255.255.255 195.190.228.131 1
 route vti-gr 10.0.X.X 255.255.255.0 10.255.200.1 1
 route vti-no 10.0.X.X 255.255.255.0 10.255.200.3 10
 route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
@@ -1800,5 +1803,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:d323b5883e9b768b7293a2b0fccc1181
+Cryptochecksum:38535d5ba44f0cef8b87ddf0eee2c7c6
 : end
