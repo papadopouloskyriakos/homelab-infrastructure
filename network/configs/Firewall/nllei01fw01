@@ -1363,6 +1363,34 @@ nat (inside_k8s,outside_freedom) after-auto source dynamic any interface
 nat (inside_servers01,outside_freedom) after-auto source dynamic any interface
 nat (inside_corosync,outside_freedom) after-auto source dynamic any interface
 nat (dmz_servers02,outside_freedom) after-auto source dynamic any interface
+nat (inside_room_a,outside_lte) after-auto source dynamic any interface
+nat (inside_room_b,outside_lte) after-auto source dynamic any interface
+nat (inside_room_c,outside_lte) after-auto source dynamic any interface
+nat (inside_room_d,outside_lte) after-auto source dynamic any interface
+nat (inside_iot,outside_freedom) after-auto source dynamic any interface
+nat (inside_iot,outside_xs4all) after-auto source dynamic any interface
+nat (inside_iot,outside_lte) after-auto source dynamic any interface
+nat (inside_cctv,outside_freedom) after-auto source dynamic any interface
+nat (inside_cctv,outside_xs4all) after-auto source dynamic any interface
+nat (inside_cctv,outside_lte) after-auto source dynamic any interface
+nat (inside_guest,outside_freedom) after-auto source dynamic any interface
+nat (inside_guest,outside_xs4all) after-auto source dynamic any interface
+nat (inside_guest,outside_lte) after-auto source dynamic any interface
+nat (inside_servers02,outside_freedom) after-auto source dynamic any interface
+nat (inside_servers02,outside_xs4all) after-auto source dynamic any interface
+nat (inside_servers02,outside_lte) after-auto source dynamic any interface
+nat (inside_nfs,outside_freedom) after-auto source dynamic any interface
+nat (inside_nfs,outside_xs4all) after-auto source dynamic any interface
+nat (inside_nfs,outside_lte) after-auto source dynamic any interface
+nat (dmz_servers03,outside_freedom) after-auto source dynamic any interface
+nat (dmz_servers03,outside_xs4all) after-auto source dynamic any interface
+nat (dmz_servers03,outside_lte) after-auto source dynamic any interface
+nat (inside_servers01,outside_lte) after-auto source dynamic any interface
+nat (inside_k8s,outside_lte) after-auto source dynamic any interface
+nat (inside_corosync,outside_lte) after-auto source dynamic any interface
+nat (dmz_servers01,outside_lte) after-auto source dynamic any interface
+nat (dmz_servers02,outside_lte) after-auto source dynamic any interface
+nat (dmz_vpn01,outside_lte) after-auto source dynamic any interface
 access-group outside_xs4all_access_in in interface outside_xs4all
 access-group outside_lte_access_in in interface outside_lte
 access-group outside_freedom_tv_access_in in interface outside_freedom_tv
@@ -1803,5 +1831,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:38535d5ba44f0cef8b87ddf0eee2c7c6
+Cryptochecksum:40dd14b109e4ecf2e7c84b872ed06305
 : end
