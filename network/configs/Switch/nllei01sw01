@@ -1,9 +1,9 @@
 Building configuration...
 
-Current configuration : 24938 bytes
+Current configuration : 24921 bytes
 !
-! Last configuration change at 13:57:36 CET Fri Dec 26 2025 by kyriakosp
-! NVRAM config last updated at 13:58:11 CET Fri Dec 26 2025 by kyriakosp
+! Last configuration change at 00:18:41 CEST Thu Apr 9 2026 by kyriakosp
+! NVRAM config last updated at 00:40:48 CEST Thu Apr 9 2026 by kyriakosp
 !
 version 16.12
 no service pad
@@ -73,8 +73,7 @@ ip domain name example.net
 !
 !
 !
-login block-for 100 attempts 2 within 100
-login delay 10
+login block-for 10 attempts 5 within 30
 login on-failure log
 login on-success log
 !
