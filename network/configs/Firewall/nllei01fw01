@@ -1123,6 +1123,9 @@ access-list outside_freedom_access_in extended permit udp object-group WHITELIST
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_OAS object nloas01-443-tcp eq https 
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_OAS object nloas02-888-tcp eq 888 
 access-list outside_freedom_access_in extended permit udp object-group WHITELIST_OAS object nloas03-999-udp eq 999 
+access-list outside_freedom_access_in extended permit udp host 91.211.213.72 host 203.0.113.X eq isakmp 
+access-list outside_freedom_access_in extended permit udp host 91.211.213.72 host 203.0.113.X eq 4500 
+access-list outside_freedom_access_in extended permit esp host 91.211.213.72 host 203.0.113.X 
 access-list outside_freedom_access_in extended deny ip object-group BLACKLIST_FAIL2BAN any 
 access-list outside_freedom_access_in extended deny icmp object-group BLACKLIST_FAIL2BAN any 
 access-list outside_freedom_access_in extended permit tcp host 91.211.213.72 host 203.0.113.X eq bgp 
@@ -1831,5 +1834,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:40dd14b109e4ecf2e7c84b872ed06305
+Cryptochecksum:04070ebdef565cb124f2a0b3d3eb82f5
 : end
