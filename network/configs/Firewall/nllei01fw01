@@ -1044,6 +1044,8 @@ access-list inside_iot_access_in extended permit ip 10.0.X.X 255.255.255.0 any
 access-list inside_iot_access_in extended permit icmp 10.0.X.X 255.255.255.0 any 
 access-list inside_iot_access_in extended deny ip any any 
 access-list inside_iot_access_in extended deny icmp any any 
+access-list dmz_servers01_access_in extended permit tcp host 10.0.X.X host 10.0.X.X eq https 
+access-list dmz_servers01_access_in extended permit tcp host 10.0.X.X host 10.0.X.X eq 5678 
 access-list dmz_servers01_access_in extended permit tcp any object nlnpm01-443-tcp eq https 
 access-list dmz_servers01_access_in extended permit tcp any object ollama eq https 
 access-list dmz_servers01_access_in extended permit object-group TCPUDP any any eq domain 
@@ -1064,6 +1066,8 @@ access-list outside_lte_access_in extended deny ip object-group BLACKLIST_FAIL2B
 access-list outside_lte_access_in extended deny icmp object-group BLACKLIST_FAIL2BAN any 
 access-list outside_lte_access_in extended deny ip any any 
 access-list outside_lte_access_in extended deny icmp any any 
+access-list dmz_servers02_access_in extended permit tcp host 10.0.X.X host 10.0.X.X eq https 
+access-list dmz_servers02_access_in extended permit tcp host 10.0.X.X host 10.0.X.X eq 5678 
 access-list dmz_servers02_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp inactive 
 access-list dmz_servers02_access_in extended permit object-group TCPUDP object nlk8s-frr01 object nlpihole02 eq domain 
 access-list dmz_servers02_access_in extended permit object-group TCPUDP object nlk8s-frr02 object nlpihole02 eq domain 
@@ -1834,5 +1838,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:04070ebdef565cb124f2a0b3d3eb82f5
+Cryptochecksum:bf122e8206753f7e4b8cc800fa3f4a5c
 : end
