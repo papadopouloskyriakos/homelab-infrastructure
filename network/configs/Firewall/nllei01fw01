@@ -225,6 +225,30 @@ interface Port-channel1.88
  security-level 100
  ip address 10.0.X.X 255.255.255.224 
 !
+interface Tunnel1
+ nameif vti-gr
+ ip address 10.255.200.0 255.255.255.254 
+ tunnel source interface outside_xs4all
+ tunnel destination 91.211.213.72
+ tunnel mode ipsec ipv4
+ tunnel protection ipsec profile VTI-PROFILE
+!
+interface Tunnel2
+ nameif vti-no
+ ip address 10.255.200.2 255.255.255.254 
+ tunnel source interface outside_xs4all
+ tunnel destination 198.51.100.X
+ tunnel mode ipsec ipv4
+ tunnel protection ipsec profile VTI-PROFILE
+!
+interface Tunnel3
+ nameif vti-ch
+ ip address 10.255.200.4 255.255.255.254 
+ tunnel source interface outside_xs4all
+ tunnel destination 198.51.100.X
+ tunnel mode ipsec ipv4
+ tunnel protection ipsec profile VTI-PROFILE
+!
 boot system disk0:/asa9-16-4-lfbff-k8.SPA
 ftp mode passive
 clock timezone CET 1
@@ -1187,6 +1211,8 @@ access-list XS4ALL-ROOM-C-UP extended permit ip 10.0.X.X 255.255.255.224 any
 access-list XS4ALL-ROOM-D-UP extended permit ip 10.0.X.X 255.255.255.224 any 
 access-list outside_freedom_cryptomap_74 extended permit ip object-group S2S_LEI_GRP_inside_k8s object-group S2S_SKG_GRP_dmz_servers02 
 access-list outside_freedom_cryptomap_75 extended permit ip object-group S2S_LEI_GRP_inside_mgmt object-group S2S_SKG_GRP_dmz_servers02 
+access-list vti_access_in extended permit ip any any 
+access-list vti_access_in extended permit icmp any any 
 !
 tcp-map mptcp-tm
   tcp-options range 30 30 allow
@@ -1500,6 +1526,9 @@ access-group dmz_servers03_access_in in interface dmz_servers03
 access-group inside_k8s_access_in in interface inside_k8s
 access-group inside_corosync_access_in in interface inside_corosync
 access-group inside_nfs_access_in in interface inside_nfs
+access-group vti_access_in in interface vti-gr
+access-group vti_access_in in interface vti-no
+access-group vti_access_in in interface vti-ch
 access-group global_access global
 !
 prefix-list METALLB-VIPS seq 10 permit 10.0.X.X/26 le 32
@@ -1567,6 +1596,17 @@ router bgp 65000
 route outside_freedom 0.0.0.0 0.0.0.0 185.93.175.233 1 track 1
 route outside_xs4all 0.0.0.0 0.0.0.0 195.190.228.131 10
 route outside_lte 0.0.0.0 0.0.0.0 10.0.X.X 20
+route vti-ch 10.255.2.0 255.255.255.0 10.255.200.5 1
+route vti-no 10.255.3.0 255.255.255.0 10.255.200.3 1
+route vti-gr 10.0.X.X 255.255.255.0 10.255.200.1 1
+route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
+route vti-gr 10.0.X.X 255.255.255.240 10.255.200.1 1
+route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
+route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
+route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
+route vti-gr 10.0.X.X 255.255.255.0 10.255.200.1 1
+route vti-gr 10.0.X.X 255.255.255.248 10.255.200.1 1
+route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
@@ -1799,7 +1839,6 @@ crypto map outside_freedom_map 74 set ikev2 ipsec-proposal TSET
 crypto map outside_freedom_map 75 match address outside_freedom_cryptomap_75
 crypto map outside_freedom_map 75 set peer 91.211.213.72 
 crypto map outside_freedom_map 75 set ikev2 ipsec-proposal TSET
-crypto map outside_freedom_map interface outside_freedom
 crypto map outside_xs4all_map 1 match address outside_freedom_cryptomap_01
 crypto map outside_xs4all_map 1 set peer 91.211.213.72 
 crypto map outside_xs4all_map 1 set ikev2 ipsec-proposal TSET
@@ -1956,7 +1995,6 @@ crypto map outside_xs4all_map 74 set ikev2 ipsec-proposal TSET
 crypto map outside_xs4all_map 75 match address outside_freedom_cryptomap_75
 crypto map outside_xs4all_map 75 set peer 91.211.213.72 
 crypto map outside_xs4all_map 75 set ikev2 ipsec-proposal TSET
-crypto map outside_xs4all_map interface outside_xs4all
 crypto ca trustpool policy
 crypto isakmp nat-traversal 10
 crypto ikev2 policy 1
@@ -2237,5 +2275,5 @@ event manager applet weekly-reboot
  event timer watchdog time 604800
  action 1 cli command "reload noconfirm save-config"
  output none
-Cryptochecksum:f01a8fbbdba877a567e05fcd489beb71
+Cryptochecksum:dca19917cf392f89059429d9f29adef2
 : end
