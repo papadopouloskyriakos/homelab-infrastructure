@@ -1198,6 +1198,7 @@ access-list XS4ALL-ROOM-C-UP extended permit ip 10.0.X.X 255.255.255.224 any
 access-list XS4ALL-ROOM-D-UP extended permit ip 10.0.X.X 255.255.255.224 any 
 access-list vti_access_in extended permit ip any any 
 access-list vti_access_in extended permit icmp any any 
+access-list FREEDOM_ESP_OUT extended permit ip host 203.0.113.X any 
 !
 tcp-map mptcp-tm
   tcp-options range 30 30 allow
@@ -1490,13 +1491,15 @@ router bgp 65000
  exit-address-family
 !
 route outside_freedom 0.0.0.0 0.0.0.0 185.93.175.233 1 track 1
+route outside_freedom 198.51.100.X 255.255.255.255 185.93.175.233 1 track 1
+route outside_freedom 198.51.100.X 255.255.255.255 185.93.175.233 1 track 1
 route outside_xs4all 0.0.0.0 0.0.0.0 195.190.228.131 10
 route outside_lte 0.0.0.0 0.0.0.0 10.0.X.X 20
 route vti-ch 10.255.2.0 255.255.255.0 10.255.200.5 1
 route vti-no 10.255.3.0 255.255.255.0 10.255.200.3 1
 route outside_xs4all 91.211.213.72 255.255.255.255 195.190.228.131 1
-route outside_xs4all 198.51.100.X 255.255.255.255 195.190.228.131 1
-route outside_xs4all 198.51.100.X 255.255.255.255 195.190.228.131 1
+route outside_xs4all 198.51.100.X 255.255.255.255 195.190.228.131 10
+route outside_xs4all 198.51.100.X 255.255.255.255 195.190.228.131 10
 route vti-gr 10.0.X.X 255.255.255.0 10.255.200.1 1
 route vti-no 10.0.X.X 255.255.255.0 10.255.200.3 10
 route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
@@ -1834,5 +1837,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:c80c4991e8eadd239f6f7e3421fa64cb
+Cryptochecksum:4151ce71154394949ceaef2ed5c149f0
 : end
