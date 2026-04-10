@@ -1834,9 +1834,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-event manager applet weekly-reboot
- event timer watchdog time 604800
- action 1 cli command "reload noconfirm save-config"
- output none
-Cryptochecksum:bf122e8206753f7e4b8cc800fa3f4a5c
+Cryptochecksum:c80c4991e8eadd239f6f7e3421fa64cb
 : end
