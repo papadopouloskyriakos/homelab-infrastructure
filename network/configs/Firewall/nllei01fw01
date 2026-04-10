@@ -1267,7 +1267,6 @@ mtu inside_nfs 1500
 ip verify reverse-path interface outside_xs4all
 ip verify reverse-path interface outside_lte
 ip verify reverse-path interface outside_freedom_tv
-ip verify reverse-path interface outside_freedom
 no failover
 no failover wait-disable
 no monitor-interface outside_xs4all
@@ -1492,6 +1491,15 @@ router bgp 65000
 !
 route outside_freedom 0.0.0.0 0.0.0.0 185.93.175.233 1 track 1
 route outside_freedom 198.51.100.X 255.255.255.255 185.93.175.233 1 track 1
+route vti-no-f 10.0.X.X 255.255.255.0 10.255.200.13 1 track 1
+route vti-no-f 10.0.X.X 255.255.255.224 10.255.200.13 1 track 1
+route vti-no-f 10.0.X.X 255.255.255.240 10.255.200.13 1 track 1
+route vti-no-f 10.0.X.X 255.255.255.224 10.255.200.13 1 track 1
+route vti-no-f 10.0.X.X 255.255.255.224 10.255.200.13 1 track 1
+route vti-no-f 10.0.X.X 255.255.255.224 10.255.200.13 1 track 1
+route vti-no-f 10.0.X.X 255.255.255.0 10.255.200.13 1 track 1
+route vti-no-f 10.0.X.X 255.255.255.248 10.255.200.13 1 track 1
+route vti-no-f 10.0.X.X 255.255.255.224 10.255.200.13 1 track 1
 route outside_freedom 198.51.100.X 255.255.255.255 185.93.175.233 1 track 1
 route outside_xs4all 0.0.0.0 0.0.0.0 195.190.228.131 10
 route outside_lte 0.0.0.0 0.0.0.0 10.0.X.X 20
@@ -1500,24 +1508,15 @@ route vti-no 10.255.3.0 255.255.255.0 10.255.200.3 1
 route outside_xs4all 91.211.213.72 255.255.255.255 195.190.228.131 1
 route outside_xs4all 198.51.100.X 255.255.255.255 195.190.228.131 10
 route outside_xs4all 198.51.100.X 255.255.255.255 195.190.228.131 10
-route vti-gr 10.0.X.X 255.255.255.0 10.255.200.1 1
-route vti-no 10.0.X.X 255.255.255.0 10.255.200.3 10
-route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
-route vti-no 10.0.X.X 255.255.255.224 10.255.200.3 10
-route vti-gr 10.0.X.X 255.255.255.240 10.255.200.1 1
-route vti-no 10.0.X.X 255.255.255.240 10.255.200.3 10
-route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
-route vti-no 10.0.X.X 255.255.255.224 10.255.200.3 10
-route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
-route vti-no 10.0.X.X 255.255.255.224 10.255.200.3 10
-route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
-route vti-no 10.0.X.X 255.255.255.224 10.255.200.3 10
-route vti-gr 10.0.X.X 255.255.255.0 10.255.200.1 1
-route vti-no 10.0.X.X 255.255.255.0 10.255.200.3 10
-route vti-gr 10.0.X.X 255.255.255.248 10.255.200.1 1
-route vti-no 10.0.X.X 255.255.255.248 10.255.200.3 10
-route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 1
-route vti-no 10.0.X.X 255.255.255.224 10.255.200.3 10
+route vti-gr 10.0.X.X 255.255.255.0 10.255.200.1 10
+route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 10
+route vti-gr 10.0.X.X 255.255.255.240 10.255.200.1 10
+route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 10
+route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 10
+route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 10
+route vti-gr 10.0.X.X 255.255.255.0 10.255.200.1 10
+route vti-gr 10.0.X.X 255.255.255.248 10.255.200.1 10
+route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 10
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
@@ -1837,5 +1836,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:4151ce71154394949ceaef2ed5c149f0
+Cryptochecksum:284b9bfef509bd512d214341e2ad4704
 : end
