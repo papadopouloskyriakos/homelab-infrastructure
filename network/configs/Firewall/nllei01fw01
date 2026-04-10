@@ -250,6 +250,7 @@ interface Tunnel3
  tunnel protection ipsec profile VTI-PROFILE
 !
 interface Tunnel4
+ shutdown
  nameif vti-gr-f
  ip address 10.255.200.10 255.255.255.254 
  tunnel source interface outside_freedom
@@ -1439,12 +1440,24 @@ prefix-list NL_SITE_SUBNETS seq 70 permit 10.0.X.X/28
 prefix-list NL_SITE_SUBNETS seq 80 permit 10.0.X.X/27
 !
 !
+route-map FRR_TRANSIT_IN permit 10
+
+ set local-preference 100
+!
+route-map FREEDOM_IN permit 10
+
+ set local-preference 200
+!
 route-map BLOCK_SITE_TO_CILIUM deny 10
  match ip address prefix-list NL_SITE_SUBNETS
 
 !
 route-map BLOCK_SITE_TO_CILIUM permit 20
 
+!
+route-map XS4ALL_IN permit 10
+
+ set local-preference 150
 !
 route-map pbr_map permit 10
  match ip address pbr_acl
@@ -1457,14 +1470,24 @@ router bgp 65000
  bgp router-id 10.0.X.X
  timers bgp 30 90 0
  address-family ipv4 unicast
+  neighbor 10.255.200.1 remote-as 65000
+  neighbor 10.255.200.1 description GR-ASA-XS4ALL-VTI
+  neighbor 10.255.200.1 activate
+  neighbor 10.255.200.1 route-map XS4ALL_IN in
   neighbor 10.0.X.X remote-as 65000
   neighbor 10.0.X.X description nlk8s-frr01-DMZ
   neighbor 10.0.X.X activate
   neighbor 10.0.X.X next-hop-self
+  neighbor 10.0.X.X route-map FRR_TRANSIT_IN in
   neighbor 10.0.X.X remote-as 65000
   neighbor 10.0.X.X description nlk8s-frr02-DMZ
   neighbor 10.0.X.X activate
   neighbor 10.0.X.X next-hop-self
+  neighbor 10.0.X.X route-map FRR_TRANSIT_IN in
+  neighbor 10.255.200.11 remote-as 65000
+  neighbor 10.255.200.11 description GR-ASA-Freedom-VTI
+  neighbor 10.255.200.11 activate
+  neighbor 10.255.200.11 route-map FREEDOM_IN in
   neighbor 10.0.X.X remote-as 65001
   neighbor 10.0.X.X activate
   neighbor 10.0.X.X route-map BLOCK_SITE_TO_CILIUM out
@@ -1500,24 +1523,7 @@ route vti-no 10.255.3.0 255.255.255.0 10.255.200.3 1
 route outside_xs4all 91.211.213.72 255.255.255.255 195.190.228.131 10
 route outside_xs4all 198.51.100.X 255.255.255.255 195.190.228.131 10
 route outside_xs4all 198.51.100.X 255.255.255.255 195.190.228.131 10
-route vti-gr-f 10.0.X.X 255.255.255.0 10.255.200.11 1
-route vti-gr 10.0.X.X 255.255.255.0 10.255.200.1 10
-route vti-gr-f 10.0.X.X 255.255.255.224 10.255.200.11 1
-route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 10
-route vti-gr-f 10.0.X.X 255.255.255.240 10.255.200.11 1
-route vti-gr 10.0.X.X 255.255.255.240 10.255.200.1 10
-route vti-gr-f 10.0.X.X 255.255.255.224 10.255.200.11 1
-route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 10
-route vti-gr-f 10.0.X.X 255.255.255.224 10.255.200.11 1
-route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 10
-route vti-gr-f 10.0.X.X 255.255.255.224 10.255.200.11 1
-route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 10
-route vti-gr-f 10.0.X.X 255.255.255.0 10.255.200.11 1
-route vti-gr 10.0.X.X 255.255.255.0 10.255.200.1 10
-route vti-gr-f 10.0.X.X 255.255.255.248 10.255.200.11 1
-route vti-gr 10.0.X.X 255.255.255.248 10.255.200.1 10
-route vti-gr-f 10.0.X.X 255.255.255.224 10.255.200.11 1
-route vti-gr 10.0.X.X 255.255.255.224 10.255.200.1 10
+route vti-no 10.0.X.X 255.255.255.255 10.255.200.3 254
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
@@ -1837,5 +1843,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:27b0f60f1ce38fa4af563c28eae59e41
+Cryptochecksum:71892d8577b2c2ef0498a392bbe42c64
 : end
