@@ -65,8 +65,10 @@ resource "helm_release" "monitoring" {
   namespace        = "monitoring"
   create_namespace = true
   version          = "79.10.0"
-  timeout          = 1800
+  timeout          = 300
   wait             = true
+  atomic           = true
+  cleanup_on_fail  = true
 
   # Ensure ExternalSecret creates the secret first
   depends_on = [kubernetes_manifest.REDACTED_9675462a]
@@ -595,7 +597,6 @@ resource "helm_release" "monitoring" {
         sidecar = {
           datasources = {
             defaultDatasourceEnabled = false
-            initDatasources          = true
           }
         }
 
