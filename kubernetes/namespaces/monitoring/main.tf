@@ -620,6 +620,23 @@ resource "helm_release" "monitoring" {
             jsonData = {
               maxLines = 1000
             }
+          },
+          {
+            name          = "OpenObserve"
+            type          = "prometheus"
+            uid           = "openobserve"
+            url           = "http://10.0.X.X:5080/api/default/prometheus"
+            access        = "proxy"
+            isDefault     = false
+            basicAuth     = true
+            basicAuthUser = "chatops@mail.example.net"
+            secureJsonData = {
+              basicAuthPassword = REDACTED_c5267417
+            }
+            jsonData = {
+              httpMethod   = "POST"
+              timeInterval = "30s"
+            }
           }
         ]
       }
