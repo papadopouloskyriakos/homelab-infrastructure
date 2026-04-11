@@ -597,8 +597,6 @@ resource "helm_release" "monitoring" {
         sidecar = {
           datasources = {
             defaultDatasourceEnabled = false
-            initDatasources          = false
-            skipReload               = false
           }
         }
 
