@@ -248,10 +248,13 @@ variables:
 # Test Job - Run manually to verify OpenBao integration
 # =============================================================================
 test:openbao-jwt-auth:
-  stage: .pre
+  stage: validate
   image: alpine:latest
   tags:
     - k8s
+  rules:
+    - when: manual
+      allow_failure: true
   id_tokens:
     VAULT_ID_TOKEN:
       aud: https://gitlab.example.net
@@ -307,4 +310,4 @@ test:openbao-jwt-auth:
     - echo "OK - Retrieved api_key - ${API_KEY}"
   rules:
     - when: manual
-  allow_failure: true
+      allow_failure: true
