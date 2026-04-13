@@ -1475,6 +1475,7 @@ router bgp 65000
   neighbor 10.255.200.1 description GR-ASA-XS4ALL-VTI
   neighbor 10.255.200.1 timers 10 30
   neighbor 10.255.200.1 activate
+  neighbor 10.255.200.1 next-hop-self
   neighbor 10.255.200.1 route-map XS4ALL_IN in
   neighbor 10.0.X.X remote-as 65000
   neighbor 10.0.X.X description nlk8s-frr01-DMZ
@@ -1490,6 +1491,7 @@ router bgp 65000
   neighbor 10.255.200.11 description GR-ASA-Freedom-VTI
   neighbor 10.255.200.11 timers 10 30
   neighbor 10.255.200.11 activate
+  neighbor 10.255.200.11 next-hop-self
   neighbor 10.255.200.11 route-map FREEDOM_IN in
   neighbor 10.0.X.X remote-as 65001
   neighbor 10.0.X.X activate
@@ -1850,5 +1852,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:b884915e8212830583dbc5e8a89fd90b
+Cryptochecksum:a07337db806d96abfd92d5abe55fd90b
 : end
