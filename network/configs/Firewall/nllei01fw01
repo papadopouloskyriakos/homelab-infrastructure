@@ -1513,6 +1513,7 @@ router bgp 65000
   network 10.0.X.X mask 255.255.255.240
   network 10.0.X.X mask 255.255.255.224
   network 10.0.X.X mask 255.255.255.224
+  maximum-paths ibgp 4
   no auto-summary
   no synchronization
  exit-address-family
@@ -1852,5 +1853,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:a07337db806d96abfd92d5abe55fd90b
+Cryptochecksum:07dc99037d5ea7937b83f765da68e364
 : end
