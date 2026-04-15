@@ -86,12 +86,9 @@ resource "REDACTED_a9df2e77" "REDACTED_db2e277e" {
 
 # -----------------------------------------------------------------------------
 # Imported dashboards (previously created via kubectl, now IaC-managed)
+# Import blocks are in k8s/imports.tf (root module requirement).
+# Remove import blocks after first successful apply.
 # -----------------------------------------------------------------------------
-
-import {
-  to = REDACTED_a9df2e77.REDACTED_539bef88
-  id = "monitoring/REDACTED_5b332095"
-}
 
 resource "REDACTED_a9df2e77" "REDACTED_539bef88" {
   metadata {
@@ -104,11 +101,6 @@ resource "REDACTED_a9df2e77" "REDACTED_539bef88" {
   data = {
     "chatops-subsystem.json" = file("${path.module}/dashboards/chatops-subsystem.json")
   }
-}
-
-import {
-  to = REDACTED_a9df2e77.REDACTED_4bb7c763
-  id = "monitoring/REDACTED_36bc0539"
 }
 
 resource "REDACTED_a9df2e77" "REDACTED_4bb7c763" {
@@ -124,11 +116,6 @@ resource "REDACTED_a9df2e77" "REDACTED_4bb7c763" {
   }
 }
 
-import {
-  to = REDACTED_a9df2e77.REDACTED_7d9d2400
-  id = "monitoring/REDACTED_7962fb12"
-}
-
 resource "REDACTED_a9df2e77" "REDACTED_7d9d2400" {
   metadata {
     name      = "REDACTED_7962fb12"
@@ -140,11 +127,6 @@ resource "REDACTED_a9df2e77" "REDACTED_7d9d2400" {
   data = {
     "REDACTED_d3dde0ed.json" = file("${path.module}/dashboards/REDACTED_d3dde0ed.json")
   }
-}
-
-import {
-  to = REDACTED_a9df2e77.REDACTED_12611a94
-  id = "monitoring/REDACTED_6b3ca3f9"
 }
 
 resource "REDACTED_a9df2e77" "REDACTED_12611a94" {
