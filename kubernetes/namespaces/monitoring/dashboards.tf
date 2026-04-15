@@ -83,3 +83,61 @@ resource "REDACTED_a9df2e77" "REDACTED_db2e277e" {
     "chaos-engineering.json" = file("${path.module}/dashboards/chaos-engineering.json")
   }
 }
+
+# -----------------------------------------------------------------------------
+# Imported dashboards (previously created via kubectl, now IaC-managed)
+# Import blocks are in k8s/imports.tf (root module requirement).
+# Remove import blocks after first successful apply.
+# -----------------------------------------------------------------------------
+
+resource "REDACTED_a9df2e77" "REDACTED_539bef88" {
+  metadata {
+    name      = "REDACTED_5b332095"
+    namespace = "monitoring"
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+  data = {
+    "chatops-subsystem.json" = file("${path.module}/dashboards/chatops-subsystem.json")
+  }
+}
+
+resource "REDACTED_a9df2e77" "REDACTED_4bb7c763" {
+  metadata {
+    name      = "REDACTED_36bc0539"
+    namespace = "monitoring"
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+  data = {
+    "chatsecops-subsystem.json" = file("${path.module}/dashboards/chatsecops-subsystem.json")
+  }
+}
+
+resource "REDACTED_a9df2e77" "REDACTED_7d9d2400" {
+  metadata {
+    name      = "REDACTED_7962fb12"
+    namespace = "monitoring"
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+  data = {
+    "REDACTED_d3dde0ed.json" = file("${path.module}/dashboards/REDACTED_d3dde0ed.json")
+  }
+}
+
+resource "REDACTED_a9df2e77" "REDACTED_12611a94" {
+  metadata {
+    name      = "REDACTED_6b3ca3f9"
+    namespace = "monitoring"
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+  data = {
+    "otel-traces.json" = file("${path.module}/dashboards/otel-traces.json")
+  }
+}
