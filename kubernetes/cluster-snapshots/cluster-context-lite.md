@@ -3,21 +3,21 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-04-14 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-04-15 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
-## Health: HEALTHY ✅
+## Health: DEGRADED ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 0 |
+| Unhealthy Pods | 2 |
 | Pending PVCs | 0 |
-| Total Restarts | 1349 |
+| Total Restarts | 1357 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.18.4
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 151
+- **Pods:** 153
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8006952Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -31,10 +31,13 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 ## Anomalies
 
 ### Unhealthy Pods
-_None_
+```
+awx                      awx-instance-group-fix-29603700-d4n85                             0/1   Error       0               77s
+awx                      awx-instance-group-fix-29603700-qwhbq                             0/1   Error       0               65s
+```
 
 ### High Restart Pods (>3)
-awx/awx-operator-controller-manager-f84fc744-drg2t: 6 restarts
+awx/awx-operator-controller-manager-f84fc744-drg2t: 8 restarts
 cilium-spire/spire-agent-26mm7: 4 restarts
 cilium-spire/spire-agent-jn2zt: 5 restarts
 cilium-spire/spire-agent-lvrj5: 4 restarts
@@ -44,9 +47,9 @@ kube-system/cilium-22zgh: 9 restarts
 kube-system/cilium-envoy-cfv8x: 4 restarts
 kube-system/cilium-envoy-mmfnj: 9 restarts
 kube-system/cilium-gz5mp: 4 restarts
-kube-system/cilium-operator-6b94496fcd-qwll4: 9 restarts
+kube-system/cilium-operator-6b94496fcd-qwll4: 10 restarts
 kube-system/etcd-nlk8s-ctrl01: 11 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 746 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 751 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 57 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 95 restarts
@@ -59,7 +62,7 @@ kube-system/tetragon-878gv: 4 restarts
 kube-system/tetragon-mdsn9: 18 restarts
 kube-system/tetragon-tbcc7: 4 restarts
 kube-system/tetragon-vbs6v: 8 restarts
-logging/loki-0: 44 restarts
+logging/loki-0: 45 restarts
 logging/promtail-hp5sc: 4 restarts
 monitoring/bgpalerter-596d7b756b-dkn62: 5 restarts
 monitoring/goldpinger-4fvxd: 10 restarts
@@ -77,11 +80,11 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                    MESSAGE
-monitoring    35m         Warning   Unhealthy   pod/bgpalerter-596d7b756b-dkn62           Readiness probe failed: Get "http://10.0.2.130:8011/status": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-argocd        22m         Warning   Unhealthy   pod/argocd-repo-server-7dfc645f84-nx2zg   Liveness probe failed: Get "http://10.0.2.167:8084/healthz?full=true": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-argocd        4m52s       Warning   Unhealthy   pod/argocd-repo-server-7dfc645f84-xzfj5   Liveness probe failed: Get "http://10.0.2.96:8084/healthz?full=true": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   2m          Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01     Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   14m         Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl02   Liveness probe failed: HTTP probe failed with statuscode: 500
+awx           11m         Warning   BackoffLimitExceeded   job/awx-instance-group-fix-29603690     Job has reached the specified backoff limit
+awx           6m3s        Warning   BackoffLimitExceeded   job/awx-instance-group-fix-29603695     Job has reached the specified backoff limit
+kube-system   2m54s       Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl02   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   119s        Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
