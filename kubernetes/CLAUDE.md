@@ -125,7 +125,7 @@ k8s/
 
 - **Prometheus**: 2 replicas, 200Gi each, 1095-day retention, site label `nl`
 - **Thanos**: Query (2 replicas) + Store (2 replicas, SeaweedFS S3) + Compactor. GR store reached via ClusterMesh.
-- **Grafana**: 2 replicas, NFS-backed (20Gi). Datasources: Prometheus (local), Thanos (cross-site), Loki (logs)
+- **Grafana**: 2 replicas, NFS-backed (20Gi). Datasources: Prometheus (local), Thanos (cross-site), Loki (logs). 10 custom dashboards provisioned via sidecar ConfigMaps (`grafana_dashboard=1` label) — 6 managed by OpenTofu in `dashboards.tf`, 4 via kubectl. Dashboard JSON source files in `namespaces/monitoring/dashboards/`. Never import dashboards via Grafana UI — they don't survive pod restarts.
 - **Loki**: Single-binary, 100Gi iSCSI, 30-day retention, SeaweedFS S3 for chunks
 - **Promtail**: Syslog receiver on LB .68:514 — all Docker containers send logs here
 - **BGPalerter**: Monitors AS214304 prefix for hijacks, route leaks, RPKI invalidity
