@@ -481,5 +481,8 @@
       ]
     }
   ],
-  "id": null
+  "id": null,
+  "timepicker": {
+    "hidden": true
+  }
 }
