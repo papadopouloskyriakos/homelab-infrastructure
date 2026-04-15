@@ -83,3 +83,79 @@ resource "REDACTED_a9df2e77" "REDACTED_db2e277e" {
     "chaos-engineering.json" = file("${path.module}/dashboards/chaos-engineering.json")
   }
 }
+
+# -----------------------------------------------------------------------------
+# Imported dashboards (previously created via kubectl, now IaC-managed)
+# -----------------------------------------------------------------------------
+
+import {
+  to = REDACTED_a9df2e77.REDACTED_539bef88
+  id = "monitoring/REDACTED_5b332095"
+}
+
+resource "REDACTED_a9df2e77" "REDACTED_539bef88" {
+  metadata {
+    name      = "REDACTED_5b332095"
+    namespace = "monitoring"
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+  data = {
+    "chatops-subsystem.json" = file("${path.module}/dashboards/chatops-subsystem.json")
+  }
+}
+
+import {
+  to = REDACTED_a9df2e77.REDACTED_4bb7c763
+  id = "monitoring/REDACTED_36bc0539"
+}
+
+resource "REDACTED_a9df2e77" "REDACTED_4bb7c763" {
+  metadata {
+    name      = "REDACTED_36bc0539"
+    namespace = "monitoring"
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+  data = {
+    "chatsecops-subsystem.json" = file("${path.module}/dashboards/chatsecops-subsystem.json")
+  }
+}
+
+import {
+  to = REDACTED_a9df2e77.REDACTED_7d9d2400
+  id = "monitoring/REDACTED_7962fb12"
+}
+
+resource "REDACTED_a9df2e77" "REDACTED_7d9d2400" {
+  metadata {
+    name      = "REDACTED_7962fb12"
+    namespace = "monitoring"
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+  data = {
+    "REDACTED_d3dde0ed.json" = file("${path.module}/dashboards/REDACTED_d3dde0ed.json")
+  }
+}
+
+import {
+  to = REDACTED_a9df2e77.REDACTED_12611a94
+  id = "monitoring/REDACTED_6b3ca3f9"
+}
+
+resource "REDACTED_a9df2e77" "REDACTED_12611a94" {
+  metadata {
+    name      = "REDACTED_6b3ca3f9"
+    namespace = "monitoring"
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+  data = {
+    "otel-traces.json" = file("${path.module}/dashboards/otel-traces.json")
+  }
+}
