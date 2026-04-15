@@ -165,7 +165,7 @@ Claude Code L3 (reads YT comments, plans fix, waits for human approval)
 
 ## Known Issues
 
-- **kube-apiserver on ctrl01**: Intermittent HTTP 500 probe failures, 370+ restarts — present for entire cluster lifetime, does not impact stability
+- **kube-apiserver on ctrl01**: 754 restarts (exit code 137/SIGKILL) caused by etcd I/O starvation from PVE host memory pressure. Root cause: nl-pve01 ran 53 guests at 2.5x overcommit with zero swap, leaving only 1.9 GB free. etcd raft consensus latency 100-433ms (should be <10ms) causes apiserver readiness probe HTTP 500s (21,636 failures), then liveness probe kills it. Mitigated 2026-04-15: shut down nlandroidsdk01 (freed ~9.7 GB, host free 1.9->10 GB). Monitor: if restarts resume, further VM migration or swap addition needed.
 - **SeaweedFS filer**: Helm cleanup + filer memory re-applied at 2Gi (MR !229, 2026-03-15). Multipath/iSCSI conflict fixed via Synology multipath blacklist on all 7 K8s nodes.
 - **cilium-operator**: 90+ restarts accumulated — not a recent regression
 - **ArgoCD server.secretkey**: Runtime patch applied (2026-03-15). velero.io resource exclusions added via MR !230 to fix Velero OutOfSync.
