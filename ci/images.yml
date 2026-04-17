@@ -34,7 +34,7 @@ build_cisco_ee:
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
         - images/cisco-ee/**/*
-      when: manual
+      when: on_success
   script:
     - |
       cd images/cisco-ee
