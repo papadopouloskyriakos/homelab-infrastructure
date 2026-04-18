@@ -130,6 +130,32 @@ resource "kubernetes_manifest" "rag_alert_rules" {
                 description = "sync-openclaw-skills.sh cron (daily 04:12 UTC) last ran {{ $value }}s ago. Crontab may have been rewritten. Check crontab -l | grep sync-openclaw on nlclaude01."
               }
             },
+            {
+              alert = "REDACTED_79f92e77"
+              expr  = "kb_content_refresh_age_seconds > 172800"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                service  = "rag-content-refresh"
+              }
+              annotations = {
+                summary     = "Auto-refreshed doc '{{ $labels.doc }}' is >48h old"
+                description = "One of the 5 daily auto-refresh scripts has not regenerated its output in over 48h. Check /tmp/refresh-*.log and verify cron is installed."
+              }
+            },
+            {
+              alert = "KBWeeklyEvalStale"
+              expr  = "(time() - kb_hard_eval_last_run_timestamp_seconds) > 691200"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                service  = "rag-quality"
+              }
+              annotations = {
+                summary     = "Weekly hard-eval cron hasn't fired in >8 days"
+                description = "weekly-eval-cron.sh (Monday 05:00 UTC) last ran {{ $value }}s ago. Expected cadence is 7 days. Quality regressions will not be visible until eval resumes. Check /tmp/weekly-eval.log and crontab."
+              }
+            },
           ]
         },
       ]
