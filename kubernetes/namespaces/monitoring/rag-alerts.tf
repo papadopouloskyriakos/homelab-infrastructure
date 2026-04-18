@@ -158,6 +158,45 @@ resource "kubernetes_manifest" "rag_alert_rules" {
                 description = "weekly-eval-cron.sh (Monday 05:00 UTC) last ran {{ $value }}s ago. Expected cadence is 7 days. Quality regressions will not be visible until eval resumes. Check /tmp/weekly-eval.log and crontab."
               }
             },
+            {
+              alert = "REDACTED_35db2d09"
+              expr  = "absent(kb_hard_eval_last_run_timestamp_seconds)"
+              for   = "2h"
+              labels = {
+                severity = "warning"
+                service  = "rag-quality"
+              }
+              annotations = {
+                summary     = "Weekly hard-eval metric is ABSENT from Prometheus"
+                description = "kb_hard_eval_last_run_timestamp_seconds has no samples. KBWeeklyEvalStale evaluates to empty vector when absent (silently inactive) so a broken cron produces no pager. Causes: cron aborted before metric emit, textfile missing/unreadable, or weekly-eval-cron.sh exited early. Filed after IFRNLLEI01PRD-614 caught this live."
+              }
+            },
+            {
+              alert = "REDACTED_097d0d0b"
+              expr  = "absent(kb_content_refresh_age_seconds)"
+              for   = "2h"
+              labels = {
+                severity = "warning"
+                service  = "rag-content-refresh"
+              }
+              annotations = {
+                summary     = "kb_content_refresh_age_seconds is ABSENT from Prometheus"
+                description = "kb_content_refresh_age_seconds has no samples. REDACTED_79f92e77 cannot fire without the metric. Check the 5 daily refresh crons at 04:00-04:20 UTC and the textfile emitter."
+              }
+            },
+            {
+              alert = "REDACTED_2ea4c233"
+              expr  = "absent(kb_openclaw_sync_last_run_timestamp_seconds)"
+              for   = "2h"
+              labels = {
+                severity = "warning"
+                service  = "openclaw-sync"
+              }
+              annotations = {
+                summary     = "kb_openclaw_sync_last_run_timestamp_seconds is ABSENT from Prometheus"
+                description = "kb_openclaw_sync_last_run_timestamp_seconds has no samples. KBOpenClawSyncStale cannot fire without the metric. Check the daily 04:12 UTC cron and sync-openclaw-skills.sh textfile emit at the end."
+              }
+            },
           ]
         },
       ]
