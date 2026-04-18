@@ -41,15 +41,15 @@ resource "kubernetes_manifest" "rag_alert_rules" {
             },
             {
               alert = "RAGLatencyP95High"
-              expr  = "kb_retrieval_latency_seconds{quantile=\"0.95\"} > 6.0"
+              expr  = "kb_retrieval_latency_seconds{quantile=\"0.95\"} > 12.0"
               for   = "15m"
               labels = {
                 severity = "warning"
                 service  = "rag-retrieval"
               }
               annotations = {
-                summary     = "RAG retrieval p95 latency > 6s (current: {{ $value }}s)"
-                description = "Baseline p95 is 3-5s. Sustained >6s suggests Ollama model swapping, rerank service contention, or corpus growth past sweet spot."
+                summary     = "RAG retrieval p95 latency > 12s (current: {{ $value }}s)"
+                description = "Baseline p95 is ~8-9s when synthesis fires (~30% of queries hit Haiku synth via Anthropic API). Sustained >12s suggests rerank service contention, synth API degradation, or corpus growth past sweet spot. Baseline shifted from 5s to ~9s on 2026-04-18 after L02 Haiku synth swap (quality +2.7 pts traded for slightly higher p95)."
               }
             },
             {
