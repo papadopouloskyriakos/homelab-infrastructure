@@ -3,6 +3,8 @@
 # Emitted by kb-latency-probe (*/5 cron) and weekly-eval-cron on nlclaude01
 # via node-exporter textfile collector at
 # /var/lib/node_exporter/textfile_collector/kb_rag.prom + kb_rag_eval.prom
+#
+# Thresholds rebaselined 2026-04-18 post-L02 Haiku synth swap (p95 5s -> 9s).
 # =============================================================================
 
 resource "kubernetes_manifest" "rag_alert_rules" {
