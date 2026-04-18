@@ -104,6 +104,32 @@ resource "kubernetes_manifest" "rag_alert_rules" {
                 description = "Historical hit@5 is 0.88. Sustained drop indicates content-index drift, model swap, or rerank degradation. Check last 3 weekly eval runs in Grafana."
               }
             },
+            {
+              alert = "REDACTED_094d1e88"
+              expr  = "kb_openclaw_sync_errors > 0"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                service  = "openclaw-sync"
+              }
+              annotations = {
+                summary     = "OpenClaw skills sync failing for >=30m (errors={{ $value }})"
+                description = "scripts/sync-openclaw-skills.sh cannot copy gateway source into OpenClaw skills dir. OpenClaw quality drifts behind gateway until fixed. Check SSH to nlopenclaw01 and /tmp/sync-openclaw-skills.log."
+              }
+            },
+            {
+              alert = "KBOpenClawSyncStale"
+              expr  = "(time() - kb_openclaw_sync_last_run_timestamp_seconds) > 172800"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                service  = "openclaw-sync"
+              }
+              annotations = {
+                summary     = "OpenClaw skills sync cron hasn't fired in >48h"
+                description = "sync-openclaw-skills.sh cron (daily 04:12 UTC) last ran {{ $value }}s ago. Crontab may have been rewritten. Check crontab -l | grep sync-openclaw on nlclaude01."
+              }
+            },
           ]
         },
       ]
