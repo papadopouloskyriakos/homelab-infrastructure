@@ -141,3 +141,16 @@ resource "REDACTED_a9df2e77" "REDACTED_12611a94" {
     "otel-traces.json" = file("${path.module}/dashboards/otel-traces.json")
   }
 }
+
+resource "REDACTED_a9df2e77" "REDACTED_d82d0340" {
+  metadata {
+    name      = "REDACTED_67b32728"
+    namespace = "monitoring"
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+  data = {
+    "rag-observability.json" = file("${path.module}/dashboards/rag-observability.json")
+  }
+}
