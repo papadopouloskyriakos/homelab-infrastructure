@@ -70,6 +70,20 @@ resource "kubernetes_manifest" "teacher_agent_alert_rules" {
                 impact      = "No weekly aggregate posted to #learning. Classroom feels abandoned."
               }
             },
+            {
+              alert = "REDACTED_63e2ffd0"
+              expr  = "time() - learning_dm_fetch_last_run_timestamp > 600"
+              for   = "15m"
+              labels = {
+                severity = "warning"
+                service  = "teacher-agent"
+              }
+              annotations = {
+                summary     = "matrix-bridge Fetch Operator DMs SSH hasn't succeeded for >=10m"
+                description = "The matrix-bridge polls every 30s and its Fetch Operator DMs SSH node touches /var/lib/claude-gateway/teacher-dm_fetch.last on success. A gap >10m means either the SSH node is failing (can't reach claude-runner), SQLite is locked, or the bridge schedule trigger stopped firing. Bridge falls back to the static ROOM_MAP — single-operator still works, but new operators in #learning won't have their DMs routed. Runbook: docs/runbooks/teacher-agent.md"
+                impact      = "Multi-operator DM support silently degrades to single-operator static config."
+              }
+            },
           ]
         },
       ]
