@@ -1,5 +1,5 @@
 {
-  "title": "Teacher Agent \u2014 Learning Progress",
+  "title": "Teacher Agent — Learning Progress",
   "uid": "teacher-agent",
   "tags": [
     "teacher-agent",
@@ -17,16 +17,30 @@
       "id": 1,
       "title": "Operators",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
       "targets": [
-        { "expr": "learning_operators_total", "legendFormat": "Operators" }
+        {
+          "expr": "learning_operators_total",
+          "legendFormat": "Operators"
+        }
       ],
       "fieldConfig": {
         "defaults": {
           "thresholds": {
             "steps": [
-              { "color": "red", "value": 0 },
-              { "color": "green", "value": 1 }
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
             ]
           }
         }
@@ -36,17 +50,34 @@
       "id": 2,
       "title": "Topics Mastered (sum)",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
       "targets": [
-        { "expr": "sum(REDACTED_34f69bc3)", "legendFormat": "Mastered" }
+        {
+          "expr": "sum(REDACTED_34f69bc3)",
+          "legendFormat": "Mastered"
+        }
       ],
       "fieldConfig": {
         "defaults": {
           "thresholds": {
             "steps": [
-              { "color": "red", "value": 0 },
-              { "color": "yellow", "value": 5 },
-              { "color": "green", "value": 20 }
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "green",
+                "value": 20
+              }
             ]
           }
         }
@@ -56,17 +87,34 @@
       "id": 3,
       "title": "Topics Due (sum)",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
       "targets": [
-        { "expr": "sum(learning_topics_due)", "legendFormat": "Due" }
+        {
+          "expr": "sum(learning_topics_due)",
+          "legendFormat": "Due"
+        }
       ],
       "fieldConfig": {
         "defaults": {
           "thresholds": {
             "steps": [
-              { "color": "green", "value": 0 },
-              { "color": "yellow", "value": 5 },
-              { "color": "red", "value": 15 }
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 15
+              }
             ]
           }
         }
@@ -76,17 +124,34 @@
       "id": 4,
       "title": "Sessions (last 7d)",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
       "targets": [
-        { "expr": "sum(REDACTED_a4738246)", "legendFormat": "Sessions" }
+        {
+          "expr": "sum(REDACTED_a4738246)",
+          "legendFormat": "Sessions"
+        }
       ],
       "fieldConfig": {
         "defaults": {
           "thresholds": {
             "steps": [
-              { "color": "red", "value": 0 },
-              { "color": "yellow", "value": 3 },
-              { "color": "green", "value": 10 }
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 3
+              },
+              {
+                "color": "green",
+                "value": 10
+              }
             ]
           }
         }
@@ -96,18 +161,35 @@
       "id": 5,
       "title": "Longest Streak (days, max across operators)",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
       "targets": [
-        { "expr": "max(learning_longest_streak_days)", "legendFormat": "Streak" }
+        {
+          "expr": "max(learning_longest_streak_days)",
+          "legendFormat": "Streak"
+        }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "d",
           "thresholds": {
             "steps": [
-              { "color": "red", "value": 0 },
-              { "color": "yellow", "value": 3 },
-              { "color": "green", "value": 7 }
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 3
+              },
+              {
+                "color": "green",
+                "value": 7
+              }
             ]
           }
         }
@@ -117,9 +199,17 @@
       "id": 6,
       "title": "Accuracy (7d avg, max across operators)",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
       "targets": [
-        { "expr": "max(REDACTED_b7feec2f)", "legendFormat": "Accuracy" }
+        {
+          "expr": "max(REDACTED_b7feec2f)",
+          "legendFormat": "Accuracy"
+        }
       ],
       "fieldConfig": {
         "defaults": {
@@ -128,9 +218,18 @@
           "max": 1,
           "thresholds": {
             "steps": [
-              { "color": "red", "value": 0 },
-              { "color": "yellow", "value": 0.6 },
-              { "color": "green", "value": 0.8 }
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 0.6
+              },
+              {
+                "color": "green",
+                "value": 0.8
+              }
             ]
           }
         }
@@ -140,10 +239,23 @@
       "id": 7,
       "title": "Mastery distribution by operator",
       "type": "bargauge",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
       "targets": [
-        { "expr": "REDACTED_34f69bc3", "legendFormat": "{{operator}} mastered", "refId": "A" },
-        { "expr": "learning_topics_total - REDACTED_34f69bc3", "legendFormat": "{{operator}} remaining", "refId": "B" }
+        {
+          "expr": "REDACTED_34f69bc3",
+          "legendFormat": "{{operator}} mastered",
+          "refId": "A"
+        },
+        {
+          "expr": "learning_topics_total - REDACTED_34f69bc3",
+          "legendFormat": "{{operator}} remaining",
+          "refId": "B"
+        }
       ],
       "options": {
         "orientation": "horizontal",
@@ -154,30 +266,61 @@
       "id": 8,
       "title": "Bloom band distribution",
       "type": "piechart",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
       "targets": [
-        { "expr": "sum by (bloom_level) (learning_bloom_distribution)", "legendFormat": "{{bloom_level}}" }
+        {
+          "expr": "sum by (bloom_level) (learning_bloom_distribution)",
+          "legendFormat": "{{bloom_level}}"
+        }
       ],
       "options": {
-        "legend": { "showLegend": true, "displayMode": "table", "values": ["value", "percent"] }
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "values": [
+            "value",
+            "percent"
+          ]
+        }
       }
     },
     {
       "id": 9,
       "title": "Weekly sessions (7d rolling, per operator)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
       "targets": [
-        { "expr": "REDACTED_a4738246", "legendFormat": "{{operator}}" }
+        {
+          "expr": "REDACTED_a4738246",
+          "legendFormat": "{{operator}}"
+        }
       ]
     },
     {
       "id": 10,
       "title": "Quiz accuracy 7d (per operator)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
       "targets": [
-        { "expr": "REDACTED_b7feec2f", "legendFormat": "{{operator}}" }
+        {
+          "expr": "REDACTED_b7feec2f",
+          "legendFormat": "{{operator}}"
+        }
       ],
       "fieldConfig": {
         "defaults": {
@@ -191,33 +334,123 @@
       "id": 11,
       "title": "Due topics over time (per operator)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
       "targets": [
-        { "expr": "learning_topics_due", "legendFormat": "{{operator}}" }
+        {
+          "expr": "learning_topics_due",
+          "legendFormat": "{{operator}}"
+        }
       ]
     },
     {
       "id": 12,
       "title": "Cron freshness",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
       "targets": [
-        { "expr": "time() - learning_morning_nudge_last_run_timestamp", "legendFormat": "Morning nudge (age)", "refId": "A" },
-        { "expr": "time() - learning_class_digest_last_run_timestamp", "legendFormat": "Class digest (age)", "refId": "B" }
+        {
+          "expr": "time() - learning_morning_nudge_last_run_timestamp",
+          "legendFormat": "Morning nudge (age)",
+          "refId": "A"
+        },
+        {
+          "expr": "time() - learning_class_digest_last_run_timestamp",
+          "legendFormat": "Class digest (age)",
+          "refId": "B"
+        }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "s",
           "thresholds": {
             "steps": [
-              { "color": "green", "value": 0 },
-              { "color": "yellow", "value": 86400 },
-              { "color": "red", "value": 129600 }
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 86400
+              },
+              {
+                "color": "red",
+                "value": 129600
+              }
             ]
           }
         }
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } }
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "Chat sessions (7d, per operator)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 28
+      },
+      "targets": [
+        {
+          "expr": "REDACTED_6ff56d50",
+          "legendFormat": "{{operator}}"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "title": "Chat refusals (7d, per operator)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 28
+      },
+      "targets": [
+        {
+          "expr": "REDACTED_645233a7",
+          "legendFormat": "{{operator}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 3
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        }
+      }
     }
   ],
   "schemaVersion": 38,
