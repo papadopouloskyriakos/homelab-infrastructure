@@ -154,3 +154,19 @@ resource "REDACTED_a9df2e77" "REDACTED_d82d0340" {
     "rag-observability.json" = file("${path.module}/dashboards/rag-observability.json")
   }
 }
+
+# IFRNLLEI01PRD-654 teacher-agent loop — 12-panel dashboard fed by
+# /var/lib/node_exporter/textfile_collector/learning_progress.prom
+# (cron scripts/write-learning-metrics.sh on nlclaude01, */5).
+resource "REDACTED_a9df2e77" "REDACTED_dae6e5e3" {
+  metadata {
+    name      = "REDACTED_b0f6b4c9"
+    namespace = "monitoring"
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+  data = {
+    "teacher-agent.json" = file("${path.module}/dashboards/teacher-agent.json")
+  }
+}
