@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 24921 bytes
+Current configuration : 24969 bytes
 !
-! Last configuration change at 00:18:41 CEST Thu Apr 9 2026 by kyriakosp
+! Last configuration change at 18:08:59 CEST Tue Apr 21 2026 by kyriakosp
 ! NVRAM config last updated at 00:40:48 CEST Thu Apr 9 2026 by kyriakosp
 !
 version 16.12
@@ -559,9 +559,9 @@ interface GigabitEthernet1/0/31
  spanning-tree bpduguard enable
 !
 interface GigabitEthernet1/0/32
- description *** Connection to Cisco ISR4321 | Gi0/0/0 | PPPoE ***
- switchport access vlan 10
- switchport mode trunk
+ description *** Connection to nlrtr01 Gi0/0/0 | outside_budget transit | 1 Gbps ***
+ switchport access vlan 2
+ switchport mode access
  switchport nonegotiate
  load-interval 30
  power inline never
@@ -571,6 +571,7 @@ interface GigabitEthernet1/0/32
  storm-control broadcast level 5.00
  storm-control multicast level 5.00
  storm-control action shutdown
+ spanning-tree portfast
  spanning-tree bpduguard enable
 !
 interface GigabitEthernet1/0/33
