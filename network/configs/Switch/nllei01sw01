@@ -1,9 +1,9 @@
 Building configuration...
 
-Current configuration : 25071 bytes
+Current configuration : 25599 bytes
 !
-! Last configuration change at 18:37:23 CEST Tue Apr 21 2026 by kyriakosp
-! NVRAM config last updated at 18:37:47 CEST Tue Apr 21 2026 by kyriakosp
+! Last configuration change at 20:02:15 CEST Tue Apr 21 2026 by kyriakosp
+! NVRAM config last updated at 20:03:45 CEST Tue Apr 21 2026 by kyriakosp
 !
 version 16.12
 no service pad
@@ -237,6 +237,19 @@ interface Port-channel3
  description *** Connection to nl-pve03 | TRUNK | 20 Gbps | bond0 ***
  switchport mode trunk
  load-interval 30
+!
+interface Port-channel4
+ description *** Connection to nlrtr01 | LACP bundle | 2 Gbps ***
+ switchport trunk native vlan 10
+ switchport trunk allowed vlan 2
+ switchport mode trunk
+ switchport nonegotiate
+ load-interval 30
+ storm-control broadcast level 5.00
+ storm-control multicast level 5.00
+ storm-control action shutdown
+ spanning-tree portfast trunk
+ spanning-tree bpduguard enable
 !
 interface Port-channel5
  description *** Connection to nlsyno02 | VLAN 10 | 4 Gbps | Bond 1 ***
@@ -561,7 +574,7 @@ interface GigabitEthernet1/0/31
 interface GigabitEthernet1/0/32
  description *** Connection to nlrtr01 Gi0/0/0 | outside_budget transit | 1 Gbps ***
  switchport trunk native vlan 10
- switchport trunk allowed vlan 2,10
+ switchport trunk allowed vlan 2
  switchport mode trunk
  switchport nonegotiate
  load-interval 30
@@ -586,15 +599,20 @@ interface GigabitEthernet1/0/33
  spanning-tree portfast
 !
 interface GigabitEthernet1/0/34
- description *** DEPRECATED 2026-04-21 rtr01 Gi0/0/1 legacy mgmt, replaced by budget transit on Gi1/0/32 ***
- switchport access vlan 10
- switchport mode access
+ description *** Connection to nlrtr01 Gi0/0/1 | LACP bundle member | 1 Gbps ***
+ switchport trunk native vlan 10
+ switchport trunk allowed vlan 2
+ switchport mode trunk
  switchport nonegotiate
  load-interval 30
- shutdown
  power inline never
+ speed 1000
+ duplex full
  no cdp enable
- spanning-tree portfast
+ storm-control broadcast level 5.00
+ storm-control multicast level 5.00
+ storm-control action shutdown
+ channel-group 4 mode active
 !
 interface GigabitEthernet1/0/35
  description *** Connection to SLZB-MR1 | 100 Mbps | PoE ***
