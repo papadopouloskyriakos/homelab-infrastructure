@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 13130 bytes
+Current configuration : 13122 bytes
 !
-! Last configuration change at 16:45:46 CEST Tue Apr 21 2026 by kyriakosp
+! Last configuration change at 18:08:47 CEST Tue Apr 21 2026 by kyriakosp
 ! NVRAM config last updated at 16:45:46 CEST Tue Apr 21 2026 by kyriakosp
 !
 version 17.9
@@ -243,14 +243,12 @@ interface Tunnel3
 !
 interface GigabitEthernet0/0/0
  description *** Connection to nlsw01 | Gi1/0/32 | 1 Gbps ***
- no ip address
+ ip address 10.0.X.X 255.255.255.252
+ ip nat inside
+ ip tcp adjust-mss 1360
  speed 1000
  no negotiation auto
  no mop enabled
- service instance 2 ethernet
-  encapsulation dot1q 2
-  bridge-domain 2
- !
 !
 interface GigabitEthernet0/0/1
  description *** Connection to nlsw01 | Gi1/0/34 | 1 Gbps ***
