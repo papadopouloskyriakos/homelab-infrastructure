@@ -1307,6 +1307,17 @@ nat (inside_corosync,outside_lte) after-auto source dynamic any interface
 nat (dmz_servers01,outside_lte) after-auto source dynamic any interface
 nat (dmz_servers02,outside_lte) after-auto source dynamic any interface
 nat (dmz_vpn01,outside_lte) after-auto source dynamic any interface
+nat (inside_mgmt,outside_budget) after-auto source dynamic any interface
+nat (inside_k8s,outside_budget) after-auto source dynamic any interface
+nat (inside_servers01,outside_budget) after-auto source dynamic any interface
+nat (inside_corosync,outside_budget) after-auto source dynamic any interface
+nat (dmz_servers02,outside_budget) after-auto source dynamic any interface
+nat (inside_iot,outside_budget) after-auto source dynamic any interface
+nat (inside_cctv,outside_budget) after-auto source dynamic any interface
+nat (inside_guest,outside_budget) after-auto source dynamic any interface
+nat (inside_servers02,outside_budget) after-auto source dynamic any interface
+nat (inside_nfs,outside_budget) after-auto source dynamic any interface
+nat (dmz_servers03,outside_budget) after-auto source dynamic any interface
 access-group outside_budget_access_in in interface outside_budget
 access-group outside_lte_access_in in interface outside_lte
 access-group outside_freedom_tv_access_in in interface outside_freedom_tv
@@ -1741,5 +1752,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:5c66390eb133981cb664adcb3f70fee1
+Cryptochecksum:042ede0add37c330db0f2156c2bae620
 : end
