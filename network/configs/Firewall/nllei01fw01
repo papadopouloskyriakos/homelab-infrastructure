@@ -92,6 +92,7 @@ interface Port-channel1.1
  no ip address
 !
 interface Port-channel1.2
+ shutdown
  vlan 2
  nameif outside_xs4all
  security-level 0
@@ -1853,5 +1854,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:2e50071b2eb2423886bec749ae79131e
+Cryptochecksum:f78661b04856d4063b02563cb9817df3
 : end
