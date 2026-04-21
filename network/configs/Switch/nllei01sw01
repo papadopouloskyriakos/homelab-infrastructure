@@ -1,9 +1,9 @@
 Building configuration...
 
-Current configuration : 25599 bytes
+Current configuration : 25519 bytes
 !
-! Last configuration change at 20:02:15 CEST Tue Apr 21 2026 by kyriakosp
-! NVRAM config last updated at 20:03:45 CEST Tue Apr 21 2026 by kyriakosp
+! Last configuration change at 21:14:20 CEST Tue Apr 21 2026 by kyriakosp
+! NVRAM config last updated at 21:14:20 CEST Tue Apr 21 2026 by kyriakosp
 !
 version 16.12
 no service pad
@@ -572,21 +572,13 @@ interface GigabitEthernet1/0/31
  spanning-tree bpduguard enable
 !
 interface GigabitEthernet1/0/32
- description *** Connection to nlrtr01 Gi0/0/0 | outside_budget transit | 1 Gbps ***
+ description *** MIGRATING LACP bundle member to nlrtr01 Gi0/0/0 | LACP PDUs not crossing 2026-04-21 despite media-type rj45 + forced 1000/full - PHYSICAL CHECK NEEDED (cable swap / SFP cage / port hardware) 
  switchport trunk native vlan 10
  switchport trunk allowed vlan 2
  switchport mode trunk
  switchport nonegotiate
- load-interval 30
- power inline never
- speed 1000
- duplex full
- no cdp enable
- storm-control broadcast level 5.00
- storm-control multicast level 5.00
- storm-control action shutdown
- spanning-tree portfast trunk
- spanning-tree bpduguard enable
+ shutdown
+ channel-group 4 mode active
 !
 interface GigabitEthernet1/0/33
  description *** Connection to Synology DS1513+ | 1 Gbps | Port LAN 2 ***
