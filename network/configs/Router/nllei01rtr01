@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 5760 bytes
+Current configuration : 12761 bytes
 !
-! Last configuration change at 00:46:47 CET Fri Nov 21 2025 by kyriakosp
+! Last configuration change at 03:54:33 CEST Tue Apr 21 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -129,8 +129,48 @@ username kyriakosp privilege 15 secret 9 $14$45SJ$zrPaKhPdRoaK/E$Og9IU.EESqQUo9S
 !
 redundancy
  mode none
+bfd-template single-hop VTI-BFD
+ interval min-tx 300 min-rx 300 multiplier 3
 !
 !
+crypto ikev2 proposal VTI-IKEV2-PROP 
+ encryption aes-cbc-256
+ integrity sha256
+ group 14
+!
+crypto ikev2 policy VTI-IKEV2-POLICY 
+ proposal VTI-IKEV2-PROP
+!
+crypto ikev2 keyring VTI-KEYRING
+ peer grfw01
+  description VTI PSK to grfw01 xs4all-facing
+  address 91.211.213.72
+  pre-shared-key local VTI-Mesh-2026-NL-GR
+  pre-shared-key remote VTI-Mesh-2026-NL-GR
+ !
+ peer notrf01vps01
+  description VTI PSK to notrf01vps01 xs4all-facing
+  address 198.51.100.X
+  pre-shared-key local wZVHr+web+/J80OYyIVwyhlPnWpWZOp7tiLGnme3Lyk=
+  pre-shared-key remote wZVHr+web+/J80OYyIVwyhlPnWpWZOp7tiLGnme3Lyk=
+ !
+ peer chzrh01vps01
+  description VTI PSK to chzrh01vps01 xs4all-facing
+  address 198.51.100.X
+  pre-shared-key local wZVHr+web+/J80OYyIVwyhlPnWpWZOp7tiLGnme3Lyk=
+  pre-shared-key remote wZVHr+web+/J80OYyIVwyhlPnWpWZOp7tiLGnme3Lyk=
+ !
+!
+!
+crypto ikev2 profile VTI-IKEV2-PROFILE
+ description Match any of the three xs4all-facing peers
+ match identity remote address 91.211.213.72 255.255.255.255 
+ match identity remote address 198.51.100.X 255.255.255.255 
+ match identity remote address 198.51.100.X 255.255.255.255 
+ REDACTED_6fa691d2 remote pre-share
+ REDACTED_6fa691d2 local pre-share
+ keyring local VTI-KEYRING
+ dpd 10 5 on-demand
 !
 !
 controller VDSL 0/1/0
@@ -148,6 +188,13 @@ controller VDSL 0/1/0
 !
 !
 !
+crypto ipsec transform-set VTI-TRANSFORM esp-aes 256 esp-sha256-hmac 
+ mode tunnel
+!
+crypto ipsec profile VTI-PROFILE
+ set security-association lifetime seconds 28800
+ set transform-set VTI-TRANSFORM 
+ set ikev2-profile VTI-IKEV2-PROFILE
 !
 !
 bridge irb
@@ -157,6 +204,42 @@ bridge irb
 ! 
 ! 
 !
+!
+interface Tunnel1
+ description xs4all VTI to grfw01 (vti-gr) - STAGED
+ ip address 10.255.200.0 255.255.255.254
+ ip mtu 1400
+ ip tcp adjust-mss 1360
+ shutdown
+ bfd template VTI-BFD
+ tunnel source Dialer1
+ tunnel mode ipsec ipv4
+ tunnel destination 91.211.213.72
+ tunnel protection ipsec profile VTI-PROFILE
+!
+interface Tunnel2
+ description xs4all VTI to notrf01vps01 (vti-no) - STAGED
+ ip address 10.255.200.2 255.255.255.254
+ ip mtu 1400
+ ip tcp adjust-mss 1360
+ shutdown
+ bfd template VTI-BFD
+ tunnel source Dialer1
+ tunnel mode ipsec ipv4
+ tunnel destination 198.51.100.X
+ tunnel protection ipsec profile VTI-PROFILE
+!
+interface Tunnel3
+ description xs4all VTI to chzrh01vps01 (vti-ch) - STAGED
+ ip address 10.255.200.4 255.255.255.254
+ ip mtu 1400
+ ip tcp adjust-mss 1360
+ shutdown
+ bfd template VTI-BFD
+ tunnel source Dialer1
+ tunnel mode ipsec ipv4
+ tunnel destination 198.51.100.X
+ tunnel protection ipsec profile VTI-PROFILE
 !
 interface GigabitEthernet0/0/0
  description *** Connection to nlsw01 | Gi1/0/32 | 1 Gbps ***
@@ -172,6 +255,8 @@ interface GigabitEthernet0/0/0
 interface GigabitEthernet0/0/1
  description *** Connection to nlsw01 | Gi1/0/34 | 1 Gbps ***
  ip address 10.0.X.X 255.255.255.0
+ ip nat inside
+ ip tcp adjust-mss 1360
  negotiation auto
  no mop enabled
  spanning-tree portfast disable
@@ -197,19 +282,126 @@ interface GigabitEthernet0
  shutdown
  negotiation auto
 !
+interface Dialer1
+ description xs4all PPPoE - STAGED 2026-04-21 (shut until cutover)
+ mtu 1492
+ ip address negotiated
+ ip nat outside
+ ip access-group OUTSIDE_XS4ALL_IN in
+ encapsulation ppp
+ shutdown
+ dialer pool 1
+ dialer-group 1
+ ppp REDACTED_6fa691d2 pap callin
+ ppp pap sent-username fb7360@xs4all.nl password 7 000F0308
+ ppp ipcp route default
+!
 interface BDI2
  no ip address
+!
+router bgp 65000
+ bgp router-id 10.0.X.X
+ bgp log-neighbor-changes
+ no bgp default ipv4-unicast
+ timers bgp 10 30
+ neighbor 10.255.200.1 remote-as 65000
+ neighbor 10.255.200.1 description grfw01-xs4all-VTI
+ neighbor 10.255.200.1 shutdown
+ neighbor 10.255.200.1 timers 10 30
+ neighbor 10.255.200.1 fall-over bfd
+ neighbor 10.255.200.3 remote-as 65000
+ neighbor 10.255.200.3 description notrf01vps01-xs4all-VTI
+ neighbor 10.255.200.3 shutdown
+ neighbor 10.255.200.3 timers 10 30
+ neighbor 10.255.200.3 fall-over bfd
+ neighbor 10.255.200.5 remote-as 65000
+ neighbor 10.255.200.5 description chzrh01vps01-xs4all-VTI
+ neighbor 10.255.200.5 shutdown
+ neighbor 10.255.200.5 timers 10 30
+ neighbor 10.255.200.5 fall-over bfd
+ neighbor 10.0.X.X remote-as 65000
+ neighbor 10.0.X.X description nlfw01-iBGP-inside-LAN
+ neighbor 10.0.X.X shutdown
+ neighbor 10.0.X.X update-source GigabitEthernet0/0/1
+ neighbor 10.0.X.X remote-as 65000
+ neighbor 10.0.X.X description nlk8s-frr01-RR
+ neighbor 10.0.X.X shutdown
+ neighbor 10.0.X.X update-source GigabitEthernet0/0/1
+ neighbor 10.0.X.X remote-as 65000
+ neighbor 10.0.X.X description nlk8s-frr02-RR
+ neighbor 10.0.X.X shutdown
+ neighbor 10.0.X.X update-source GigabitEthernet0/0/1
+ !
+ address-family ipv4
+  network 10.0.X.X
+  neighbor 10.255.200.1 activate
+  neighbor 10.255.200.1 next-hop-self
+  neighbor 10.255.200.3 activate
+  neighbor 10.255.200.3 next-hop-self
+  neighbor 10.255.200.5 activate
+  neighbor 10.255.200.5 next-hop-self
+  neighbor 10.0.X.X activate
+  neighbor 10.0.X.X next-hop-self
+  neighbor 10.0.X.X default-originate
+  neighbor 10.0.X.X activate
+  neighbor 10.0.X.X next-hop-self
+  neighbor 10.0.X.X activate
+  neighbor 10.0.X.X next-hop-self
+ exit-address-family
 !
 no ip http server
 no ip http secure-server
 no ip forward-protocol nd
 ip tftp source-interface GigabitEthernet0/0/1
+ip nat inside source list NAT_OUTBOUND_ACL interface Dialer1 overload
+ip nat inside source static tcp 10.0.X.X 25 interface Dialer1 25
+ip nat inside source static udp 10.0.X.X 999 interface Dialer1 999
+ip nat inside source static tcp 10.0.X.X 888 interface Dialer1 888
+ip nat inside source static udp 10.0.X.X 3478 interface Dialer1 3478
+ip nat inside source static tcp 10.0.X.X 3478 interface Dialer1 3478
+ip nat inside source static tcp 10.0.X.X 2022 interface Dialer1 2022
+ip nat inside source static tcp 10.0.X.X 443 interface Dialer1 443
+ip nat inside source static tcp 10.0.X.X 80 interface Dialer1 80
 ip ssh version 2
 !
 !
+ip access-list extended NAT_OUTBOUND_ACL
+ 10 remark LAN ranges that egress xs4all via NAT when Dialer1 is up
+ 10 permit ip 10.0.X.X 0.0.255.255 any
+ip access-list extended OUTSIDE_XS4ALL_IN
+ 10 remark STAGED 2026-04-21 - mirrors nlfw01 outside_xs4all_access_in
+ 10 remark Public services
+ 10 permit tcp any host 10.0.X.X eq www
+ 20 permit tcp any host 10.0.X.X eq 443
+ 30 permit tcp any host 10.0.X.X eq 2022
+ 40 permit tcp any host 10.0.X.X eq 3478
+ 50 permit udp any host 10.0.X.X eq 3478
+ 60 permit tcp any host 10.0.X.X eq 888
+ 70 permit udp any host 10.0.X.X eq 999
+ 80 permit tcp any host 10.0.X.X eq smtp
+ 90 remark BGP TCP from VTI peer underlay (defence-in-depth; IKE/ESP already fine)
+ 90 permit tcp host 91.211.213.72 any eq bgp
+ 100 permit tcp any eq bgp host 91.211.213.72
+ 110 permit tcp host 198.51.100.X any eq bgp
+ 120 permit tcp any eq bgp host 198.51.100.X
+ 130 permit tcp host 198.51.100.X any eq bgp
+ 140 permit tcp any eq bgp host 198.51.100.X
+ 150 remark IPsec (IKE + ESP + NAT-T) to the three peers
+ 150 permit esp host 91.211.213.72 any
+ 160 permit esp host 198.51.100.X any
+ 170 permit esp host 198.51.100.X any
+ 180 permit udp host 91.211.213.72 eq isakmp any
+ 190 permit udp host 198.51.100.X eq isakmp any
+ 200 permit udp host 198.51.100.X eq isakmp any
+ 210 permit udp host 91.211.213.72 eq non500-isakmp any
+ 220 permit udp host 198.51.100.X eq non500-isakmp any
+ 230 permit udp host 198.51.100.X eq non500-isakmp any
+ 240 remark Block everything else
+ 240 deny ip any any log
 !
 logging host 10.0.X.X
 logging host 10.0.X.X
+dialer-list 1 protocol ip permit
 !
 snmp-server community REDACTED RO
 snmp-server host 10.0.X.X version 2c uBnr@W9dKOu#7ifTdVbA 
