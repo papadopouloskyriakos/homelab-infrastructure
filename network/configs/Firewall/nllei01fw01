@@ -1330,6 +1330,9 @@ access-group dmz_servers03_access_in in interface dmz_servers03
 access-group inside_k8s_access_in in interface inside_k8s
 access-group inside_corosync_access_in in interface inside_corosync
 access-group inside_nfs_access_in in interface inside_nfs
+access-group vti_access_in in interface vti-gr-f
+access-group vti_access_in in interface vti-no-f
+access-group vti_access_in in interface vti-ch-f
 access-group global_access global
 !
 prefix-list METALLB-VIPS seq 10 permit 10.0.X.X/26 le 32
@@ -1766,5 +1769,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:981f2afe79cdcbab255dfcd10b2d47e3
+Cryptochecksum:847cc88f89bb0aff0fa33909d074f944
 : end
