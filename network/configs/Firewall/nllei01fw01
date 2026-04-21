@@ -1475,9 +1475,11 @@ router bgp 65000
   neighbor 10.255.200.1 remote-as 65000
   neighbor 10.255.200.1 description GR-ASA-XS4ALL-VTI
   neighbor 10.255.200.1 timers 10 30
-  neighbor 10.255.200.1 activate
-  neighbor 10.255.200.1 next-hop-self
-  neighbor 10.255.200.1 route-map XS4ALL_IN in
+  no neighbor 10.255.200.1 activate
+  neighbor 10.0.X.X remote-as 65000
+  neighbor 10.0.X.X description nlrtr01-xs4all-edge
+  neighbor 10.0.X.X activate
+  neighbor 10.0.X.X next-hop-self
   neighbor 10.0.X.X remote-as 65000
   neighbor 10.0.X.X description nlk8s-frr01-DMZ
   neighbor 10.0.X.X activate
@@ -1509,9 +1511,18 @@ router bgp 65000
   network 10.0.X.X
   network 10.0.X.X mask 255.255.255.248
   network 10.0.X.X mask 255.255.255.224
+  network 10.0.X.X mask 255.255.255.192
+  network 10.0.X.X mask 255.255.255.224
+  network 10.0.X.X mask 255.255.255.224
+  network 10.0.X.X mask 255.255.255.224
   network 10.0.X.X mask 255.255.255.224
   network 10.0.X.X
   network 10.0.X.X mask 255.255.255.240
+  network 10.0.X.X mask 255.255.255.240
+  network 10.0.X.X mask 255.255.255.248
+  network 10.0.X.X mask 255.255.255.224
+  network 10.0.X.X mask 255.255.255.224
+  network 10.0.X.X mask 255.255.255.224
   network 10.0.X.X mask 255.255.255.224
   network 10.0.X.X mask 255.255.255.224
   no auto-summary
@@ -1522,11 +1533,7 @@ route outside_freedom 0.0.0.0 0.0.0.0 185.93.175.233 1 track 1
 route outside_freedom 198.51.100.X 255.255.255.255 185.93.175.233 1 track 1
 route outside_freedom 198.51.100.X 255.255.255.255 185.93.175.233 1 track 1
 route outside_freedom 91.211.213.72 255.255.255.255 185.93.175.233 1 track 1
-route outside_xs4all 0.0.0.0 0.0.0.0 195.190.228.131 10
-route outside_lte 0.0.0.0 0.0.0.0 10.0.X.X 20
-route outside_xs4all 91.211.213.72 255.255.255.255 195.190.228.131 10
-route outside_xs4all 198.51.100.X 255.255.255.255 195.190.228.131 10
-route outside_xs4all 198.51.100.X 255.255.255.255 195.190.228.131 10
+route inside_mgmt 0.0.0.0 0.0.0.0 10.0.X.X 5 track 2
 route Null0 10.0.X.X 255.255.255.0 255
 route Null0 10.0.X.X 255.255.255.0 255
 route vti-no 10.0.X.X 255.255.255.255 10.255.200.3 254
@@ -1567,8 +1574,16 @@ no snmp-server location
 no snmp-server contact
 sla monitor 1
  type echo protocol ipIcmpEcho 185.93.175.233 interface outside_freedom
- frequency 5
+ timeout 1000
+ threshold 500
+ frequency 3
 sla monitor schedule 1 life forever start-time now
+sla monitor 2
+ type echo protocol ipIcmpEcho 10.0.X.X interface inside_mgmt
+ timeout 500
+ threshold 300
+ frequency 2
+sla monitor schedule 2 life forever start-time now
 service sw-reset-button
 crypto ipsec ikev2 ipsec-proposal VTI-PROPOSAL
  protocol esp encryption aes-256
@@ -1599,6 +1614,8 @@ crypto ikev2 enable outside_freedom
 crypto ikev2 fragmentation mtu 1200
 !
 track 1 rtr 1 reachability
+!
+track 2 rtr 2 reachability
 telnet timeout 5
 ssh stricthostkeycheck
 ssh timeout 60
@@ -1854,5 +1871,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:f78661b04856d4063b02563cb9817df3
+Cryptochecksum:62e3dfe13ebe92efe079db621c9bd564
 : end
