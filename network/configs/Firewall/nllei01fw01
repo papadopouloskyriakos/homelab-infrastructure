@@ -645,6 +645,8 @@ object network NET_budget_transit
  subnet 10.0.X.X 255.255.255.252
 object network NET_k8s_rr
  subnet 10.0.X.X 255.255.255.224
+object network NET_vti_mesh
+ subnet 10.255.200.0 255.255.255.0
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -1247,6 +1249,7 @@ arp timeout 14400
 arp permit-nonconnected
 arp rate-limit 16384
 nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_budget_transit NET_budget_transit no-proxy-arp route-lookup
+nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_vti_mesh NET_vti_mesh no-proxy-arp route-lookup
 nat (inside_mgmt,dmz_vpn01) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static nl_strongswan_vpn_pool_XX nl_strongswan_vpn_pool_XX no-proxy-arp route-lookup
 nat (inside_k8s,dmz_vpn01) source static S2S_LEI_GRP_inside_k8s S2S_LEI_GRP_inside_k8s destination static nl_strongswan_vpn_pool_XX nl_strongswan_vpn_pool_XX no-proxy-arp route-lookup
 !
@@ -1757,5 +1760,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:76bfb74cf2f72aa29938b9db7e70ac4b
+Cryptochecksum:b1f7d285a4f19c8b1c8bf9eb99d1e6df
 : end
