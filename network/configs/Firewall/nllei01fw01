@@ -260,8 +260,6 @@ dns server-group DefaultDNS
  domain-name example.net
 same-security-traffic permit inter-interface
 same-security-traffic permit intra-interface
-object network PUBLIC_xs4all
- host 145.53.163.13
 object network PUBLIC_inalan
  host 91.211.213.72
 object network GR-Cisco_C819G
@@ -640,6 +638,9 @@ object network nlk8s-frr01
  host 10.0.X.X
 object network nlk8s-frr02
  host 10.0.X.X
+object network PUBLIC_budget
+ host 145.53.163.13
+ description Budget PPPoE public IP, rtr01 Dialer1
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -776,8 +777,8 @@ object-group network WHITELIST_KYRIAKOS
  group-object WHITELIST_GR_PUBLIC_SUBNETS
  network-object object papaniil.ddns.net
  network-object object panthere.dedyn.io
- network-object object PUBLIC_xs4all
  network-object object sorotos.cloudns.nz
+ network-object object PUBLIC_budget
 object-group network WHITELIST_OAS
  group-object WHITELIST_KYRIAKOS
  network-object object MARIA_GEORGIADOU_INALAN
@@ -1371,7 +1372,7 @@ router bgp 65000
  timers bgp 30 90 0
  address-family ipv4 unicast
   neighbor 10.0.X.X remote-as 65000
-  neighbor 10.0.X.X description nlrtr01-xs4all-edge
+  neighbor 10.0.X.X description nlrtr01-budget-edge
   neighbor 10.0.X.X activate
   neighbor 10.0.X.X next-hop-self
   neighbor 10.0.X.X remote-as 65000
@@ -1427,7 +1428,7 @@ route outside_freedom 0.0.0.0 0.0.0.0 185.93.175.233 1 track 1
 route outside_freedom 198.51.100.X 255.255.255.255 185.93.175.233 1 track 1
 route outside_freedom 198.51.100.X 255.255.255.255 185.93.175.233 1 track 1
 route outside_freedom 91.211.213.72 255.255.255.255 185.93.175.233 1 track 1
-route inside_mgmt 0.0.0.0 0.0.0.0 10.0.X.X 5 track 2
+route outside_budget 0.0.0.0 0.0.0.0 10.0.X.X 5 track 2
 route Null0 10.0.X.X 255.255.255.0 255
 route Null0 10.0.X.X 255.255.255.0 255
 route Null0 10.0.X.X 255.255.255.0 255
@@ -1472,7 +1473,7 @@ sla monitor 1
  frequency 3
 sla monitor schedule 1 life forever start-time now
 sla monitor 2
- type echo protocol ipIcmpEcho 10.0.X.X interface inside_mgmt
+ type echo protocol ipIcmpEcho 10.0.X.X interface outside_budget
  timeout 500
  threshold 300
  frequency 2
@@ -1740,5 +1741,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:964d200549158e460338bb496f75381a
+Cryptochecksum:5c66390eb133981cb664adcb3f70fee1
 : end
