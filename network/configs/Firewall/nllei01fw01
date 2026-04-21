@@ -226,30 +226,6 @@ interface Port-channel1.88
  security-level 100
  ip address 10.0.X.X 255.255.255.224 
 !
-interface Tunnel1
- nameif vti-gr
- ip address 10.255.200.0 255.255.255.254 
- tunnel source interface outside_xs4all
- tunnel destination 91.211.213.72
- tunnel mode ipsec ipv4
- tunnel protection ipsec profile VTI-PROFILE
-!
-interface Tunnel2
- nameif vti-no
- ip address 10.255.200.2 255.255.255.254 
- tunnel source interface outside_xs4all
- tunnel destination 198.51.100.X
- tunnel mode ipsec ipv4
- tunnel protection ipsec profile VTI-PROFILE
-!
-interface Tunnel3
- nameif vti-ch
- ip address 10.255.200.4 255.255.255.254 
- tunnel source interface outside_xs4all
- tunnel destination 198.51.100.X
- tunnel mode ipsec ipv4
- tunnel protection ipsec profile VTI-PROFILE
-!
 interface Tunnel4
  nameif vti-gr-f
  ip address 10.255.200.10 255.255.255.254 
@@ -592,14 +568,6 @@ object network nlhaproxy02
  host 10.0.X.X
 object network papaniil.ddns.net
  fqdn v4 papaniil.ddns.net
-object network nlnpm01-xs4all-80-tcp
- host 10.0.X.X
-object network nlnpm01-xs4all-443-tcp
- host 10.0.X.X
-object network nloas02-xs4all-888-tcp
- host 10.0.X.X
-object network nloas03-xs4all-999-udp
- host 10.0.X.X
 object network nln8n01
  host 10.0.X.X
 object network nlfreeipa01
@@ -674,14 +642,6 @@ object network grafana.example.net
 object network nlk8s-frr01
  host 10.0.X.X
 object network nlk8s-frr02
- host 10.0.X.X
-object network nlsftpgo01-xs4all-2022-tcp
- host 10.0.X.X
-object network nlhpb01-xs4all-3478-tcp
- host 10.0.X.X
-object network nlhpb01-xs4all-3478-udp
- host 10.0.X.X
-object network nlsmtp-gpg01-xs4all-smtp
  host 10.0.X.X
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
@@ -934,22 +894,8 @@ access-list inside_cctv_access_in extended permit ip any any inactive
 access-list inside_cctv_access_in extended permit icmp any any 
 access-list inside_cctv_access_in extended deny ip any any 
 access-list inside_cctv_access_in extended deny icmp any any 
-access-list outside_xs4all_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlsftpgo01-xs4all-2022-tcp eq 2022 
-access-list outside_xs4all_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlhpb01-xs4all-3478-tcp eq 3478 
-access-list outside_xs4all_access_in extended permit udp object-group WHITELIST_KYRIAKOS object nlhpb01-xs4all-3478-udp eq 3478 
-access-list outside_xs4all_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlsmtp-gpg01-xs4all-smtp eq smtp 
-access-list outside_xs4all_access_in extended permit tcp host 91.211.213.72 host 145.53.163.13 eq bgp 
-access-list outside_xs4all_access_in extended permit tcp host 91.211.213.72 eq bgp host 145.53.163.13 
-access-list outside_xs4all_access_in remark [Nginx Proxy Manager]
-access-list outside_xs4all_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlnpm01-xs4all-80-tcp eq www 
-access-list outside_xs4all_access_in remark [Nginx Proxy Manager]
-access-list outside_xs4all_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlnpm01-xs4all-443-tcp eq https 
-access-list outside_xs4all_access_in extended permit tcp object-group WHITELIST_OAS object nloas02-xs4all-888-tcp eq 888 
-access-list outside_xs4all_access_in extended permit udp object-group WHITELIST_OAS object nloas03-xs4all-999-udp eq 999 
-access-list outside_xs4all_access_in extended deny ip object-group BLACKLIST_FAIL2BAN any 
-access-list outside_xs4all_access_in extended deny icmp object-group BLACKLIST_FAIL2BAN any 
-access-list outside_xs4all_access_in extended deny ip any any 
-access-list outside_xs4all_access_in extended deny icmp any any 
+access-list vti_access_in extended permit ip any any 
+access-list vti_access_in extended permit icmp any any 
 access-list global_access extended deny icmp any any 
 access-list inside_guest_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
 access-list inside_guest_access_in extended deny tcp any any eq smtp 
@@ -1200,8 +1146,6 @@ access-list vpn-ch-to-nl-k8s extended permit ip 10.0.X.X 255.255.255.0 10.255.2.
 access-list XS4ALL-ROOM-B-UP extended permit ip 10.0.X.X 255.255.255.224 any 
 access-list XS4ALL-ROOM-C-UP extended permit ip 10.0.X.X 255.255.255.224 any 
 access-list XS4ALL-ROOM-D-UP extended permit ip 10.0.X.X 255.255.255.224 any 
-access-list vti_access_in extended permit ip any any 
-access-list vti_access_in extended permit icmp any any 
 access-list FREEDOM_ESP_OUT extended permit ip host 203.0.113.X any 
 !
 tcp-map mptcp-tm
@@ -1328,14 +1272,6 @@ object network nloas02-888-tcp
  nat (dmz_vpn01,outside_freedom) static PUBLIC_dmz_vpn01 service tcp 888 888 
 object network nloas03-999-udp
  nat (dmz_vpn01,outside_freedom) static PUBLIC_dmz_vpn01 service udp 999 999 
-object network nlnpm01-xs4all-80-tcp
- nat (inside_mgmt,outside_xs4all) static interface service tcp www www 
-object network nlnpm01-xs4all-443-tcp
- nat (inside_mgmt,outside_xs4all) static interface service tcp https https 
-object network nloas02-xs4all-888-tcp
- nat (dmz_vpn01,outside_xs4all) static interface service tcp 888 888 
-object network nloas03-xs4all-999-udp
- nat (dmz_vpn01,outside_xs4all) static interface service udp 999 999 
 object network nlsftpgo01-2022-tcp
  nat (inside_mgmt,outside_freedom) static interface service tcp 2022 2022 
 object network nlhpb01-3478-tcp
@@ -1346,28 +1282,7 @@ object network nlstrongswan01-ike
  nat (dmz_vpn01,outside_freedom) static 203.0.113.X service udp isakmp isakmp 
 object network nlstrongswan01-natt
  nat (dmz_vpn01,outside_freedom) static 203.0.113.X service udp 4500 4500 
-object network nlsftpgo01-xs4all-2022-tcp
- nat (inside_mgmt,outside_xs4all) static interface service tcp 2022 2022 
-object network nlhpb01-xs4all-3478-tcp
- nat (inside_mgmt,outside_xs4all) static interface service tcp 3478 3478 
-object network nlhpb01-xs4all-3478-udp
- nat (inside_mgmt,outside_xs4all) static interface service udp 3478 3478 
-object network nlsmtp-gpg01-xs4all-smtp
- nat (inside_mgmt,outside_xs4all) static interface service tcp smtp smtp 
 !
-nat (inside_mgmt,outside_lte) after-auto source dynamic any interface
-nat (outside_lte,inside_mgmt) after-auto source dynamic any interface
-nat (inside_mgmt,outside_xs4all) after-auto source dynamic any interface
-nat (inside_room_a,outside_xs4all) after-auto source dynamic any interface
-nat (inside_room_b,outside_xs4all) after-auto source dynamic any interface
-nat (inside_room_c,outside_xs4all) after-auto source dynamic any interface
-nat (inside_room_d,outside_xs4all) after-auto source dynamic any interface
-nat (dmz_servers01,outside_xs4all) after-auto source dynamic any interface
-nat (dmz_servers02,outside_xs4all) after-auto source dynamic any interface
-nat (dmz_vpn01,outside_xs4all) after-auto source dynamic any interface
-nat (inside_corosync,outside_xs4all) after-auto source dynamic any interface
-nat (inside_k8s,outside_xs4all) after-auto source dynamic any interface
-nat (inside_servers01,outside_xs4all) after-auto source dynamic any interface
 nat (inside_mgmt,outside_freedom) after-auto source dynamic any interface
 nat (inside_k8s,outside_freedom) after-auto source dynamic any interface
 nat (inside_servers01,outside_freedom) after-auto source dynamic any interface
@@ -1378,22 +1293,16 @@ nat (inside_room_b,outside_lte) after-auto source dynamic any interface
 nat (inside_room_c,outside_lte) after-auto source dynamic any interface
 nat (inside_room_d,outside_lte) after-auto source dynamic any interface
 nat (inside_iot,outside_freedom) after-auto source dynamic any interface
-nat (inside_iot,outside_xs4all) after-auto source dynamic any interface
 nat (inside_iot,outside_lte) after-auto source dynamic any interface
 nat (inside_cctv,outside_freedom) after-auto source dynamic any interface
-nat (inside_cctv,outside_xs4all) after-auto source dynamic any interface
 nat (inside_cctv,outside_lte) after-auto source dynamic any interface
 nat (inside_guest,outside_freedom) after-auto source dynamic any interface
-nat (inside_guest,outside_xs4all) after-auto source dynamic any interface
 nat (inside_guest,outside_lte) after-auto source dynamic any interface
 nat (inside_servers02,outside_freedom) after-auto source dynamic any interface
-nat (inside_servers02,outside_xs4all) after-auto source dynamic any interface
 nat (inside_servers02,outside_lte) after-auto source dynamic any interface
 nat (inside_nfs,outside_freedom) after-auto source dynamic any interface
-nat (inside_nfs,outside_xs4all) after-auto source dynamic any interface
 nat (inside_nfs,outside_lte) after-auto source dynamic any interface
 nat (dmz_servers03,outside_freedom) after-auto source dynamic any interface
-nat (dmz_servers03,outside_xs4all) after-auto source dynamic any interface
 nat (dmz_servers03,outside_lte) after-auto source dynamic any interface
 nat (inside_servers01,outside_lte) after-auto source dynamic any interface
 nat (inside_k8s,outside_lte) after-auto source dynamic any interface
@@ -1401,7 +1310,6 @@ nat (inside_corosync,outside_lte) after-auto source dynamic any interface
 nat (dmz_servers01,outside_lte) after-auto source dynamic any interface
 nat (dmz_servers02,outside_lte) after-auto source dynamic any interface
 nat (dmz_vpn01,outside_lte) after-auto source dynamic any interface
-access-group outside_xs4all_access_in in interface outside_xs4all
 access-group outside_lte_access_in in interface outside_lte
 access-group outside_freedom_tv_access_in in interface outside_freedom_tv
 access-group inside_iot_access_in in interface inside_iot
@@ -1422,12 +1330,6 @@ access-group dmz_servers03_access_in in interface dmz_servers03
 access-group inside_k8s_access_in in interface inside_k8s
 access-group inside_corosync_access_in in interface inside_corosync
 access-group inside_nfs_access_in in interface inside_nfs
-access-group vti_access_in in interface vti-gr
-access-group vti_access_in in interface vti-no
-access-group vti_access_in in interface vti-ch
-access-group vti_access_in in interface vti-gr-f
-access-group vti_access_in in interface vti-no-f
-access-group vti_access_in in interface vti-ch-f
 access-group global_access global
 !
 prefix-list METALLB-VIPS seq 10 permit 10.0.X.X/26 le 32
@@ -1536,7 +1438,6 @@ route outside_freedom 91.211.213.72 255.255.255.255 185.93.175.233 1 track 1
 route inside_mgmt 0.0.0.0 0.0.0.0 10.0.X.X 5 track 2
 route Null0 10.0.X.X 255.255.255.0 255
 route Null0 10.0.X.X 255.255.255.0 255
-route vti-no 10.0.X.X 255.255.255.255 10.255.200.3 254
 route Null0 10.0.X.X 255.255.255.0 255
 route Null0 10.0.X.X 255.255.255.0 255
 route Null0 10.0.X.X 255.255.255.248 255
@@ -1628,10 +1529,6 @@ management-access inside_mgmt
 vpdn group Freedom request dialout pppoe
 vpdn group Freedom localname fake@freedom.nl
 vpdn group Freedom ppp REDACTED_6fa691d2 pap
-vpdn group XS4ALL request dialout pppoe
-vpdn group XS4ALL localname fb7360@xs4all.nl
-vpdn group XS4ALL ppp REDACTED_6fa691d2 pap
-vpdn username fb7360@xs4all.nl password ***** store-local
 vpdn username fake@freedom.nl password ***** 
 
 dhcpd address 10.0.X.X-10.0.X.X inside_iot
@@ -1871,5 +1768,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:62e3dfe13ebe92efe079db621c9bd564
+Cryptochecksum:56c8bbb600057ff5f807bcf2f8d0f11c
 : end
