@@ -1493,7 +1493,6 @@ crypto ipsec profile VTI-PROFILE
  set ikev2 ipsec-proposal VTI-PROPOSAL
  set security-association lifetime seconds 28800
 crypto ipsec security-association pmtu-aging 10
-crypto ipsec df-bit clear-df outside_xs4all
 crypto ipsec df-bit clear-df outside_freedom
 crypto dynamic-map LTE-OOB-DYN 10 set pfs 
 crypto ca trustpool policy
@@ -1510,7 +1509,6 @@ crypto ikev2 policy 5
  group 14
  prf sha256
  lifetime seconds 86400
-crypto ikev2 enable outside_xs4all
 crypto ikev2 enable outside_freedom
 crypto ikev2 fragmentation mtu 1200
 !
@@ -1768,5 +1766,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:56c8bbb600057ff5f807bcf2f8d0f11c
+Cryptochecksum:981f2afe79cdcbab255dfcd10b2d47e3
 : end
