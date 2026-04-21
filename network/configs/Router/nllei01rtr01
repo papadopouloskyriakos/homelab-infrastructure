@@ -1,9 +1,9 @@
 Building configuration...
 
-Current configuration : 12720 bytes
+Current configuration : 13130 bytes
 !
-! Last configuration change at 14:26:17 CEST Tue Apr 21 2026 by kyriakosp
-! NVRAM config last updated at 14:23:36 CEST Tue Apr 21 2026 by kyriakosp
+! Last configuration change at 16:45:46 CEST Tue Apr 21 2026 by kyriakosp
+! NVRAM config last updated at 16:45:46 CEST Tue Apr 21 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -311,6 +311,12 @@ router bgp 65000
  neighbor 10.255.200.1 description grfw01-xs4all-VTI
  neighbor 10.255.200.1 timers 10 30
  neighbor 10.255.200.1 fall-over bfd
+ neighbor 10.255.200.3 remote-as 65000
+ neighbor 10.255.200.3 description notrf01vps01-xs4all-VTI
+ neighbor 10.255.200.3 timers 10 30
+ neighbor 10.255.200.5 remote-as 65000
+ neighbor 10.255.200.5 description chzrh01vps01-xs4all-VTI
+ neighbor 10.255.200.5 timers 10 30
  neighbor 10.0.X.X remote-as 65000
  neighbor 10.0.X.X description nlfw01-iBGP-inside-LAN
  neighbor 10.0.X.X update-source GigabitEthernet0/0/1
@@ -329,6 +335,10 @@ router bgp 65000
   neighbor 10.255.200.1 activate
   neighbor 10.255.200.1 route-reflector-client
   neighbor 10.255.200.1 next-hop-self all
+  neighbor 10.255.200.3 activate
+  neighbor 10.255.200.3 next-hop-self
+  neighbor 10.255.200.5 activate
+  neighbor 10.255.200.5 next-hop-self
   neighbor 10.0.X.X activate
   neighbor 10.0.X.X next-hop-self
   neighbor 10.0.X.X default-originate
