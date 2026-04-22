@@ -74,8 +74,6 @@ pre_deploy_drift_gate:
   extends: .cisco_base
   stage: validate
   rules:
-    - if: '$CI_COMMIT_AUTHOR =~ /^NL Oxidized Bot / || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
-      when: never
     - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
@@ -168,11 +166,7 @@ validate_nat_whitelist_membership:
   # to main via auto_sync_drift.py. Skipping auto-sync would leave exactly
   # the path that caused the 2026-04-22 rtr01 shun incident unguarded.
   # [IFRNLLEI01PRD-699]
-  # Still skip legacy Oxidized-bot commits (dead code; safe to skip so a
-  # revived Oxidized doesn't cause spurious failures).
   rules:
-    - if: '$CI_COMMIT_AUTHOR =~ /^NL Oxidized Bot / || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
-      when: never
     - changes:
         - REDACTED_0cc48b91**
       when: on_success
@@ -213,8 +207,6 @@ validate_cisco_configs:
   extends: .cisco_base
   stage: validate
   rules:
-    - if: '$CI_COMMIT_AUTHOR =~ /^NL Oxidized Bot / || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
-      when: never
     - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
@@ -313,8 +305,6 @@ generate_deployment_diffs:
   stage: pre-deploy
   rules:
     - if: '$CI_MERGE_REQUEST_IID'
-      when: never
-    - if: '$CI_COMMIT_AUTHOR =~ /^NL Oxidized Bot / || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
       when: never
     - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
@@ -480,8 +470,6 @@ deploy_cisco_configs:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
       when: never
-    - if: '$CI_COMMIT_AUTHOR =~ /^NL Oxidized Bot / || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
-      when: never
     - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
@@ -580,8 +568,6 @@ verify_cisco_deployments:
   extends: .cisco_base
   stage: verify
   rules:
-    - if: '$CI_COMMIT_AUTHOR =~ /^NL Oxidized Bot / || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
-      when: never
     - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
