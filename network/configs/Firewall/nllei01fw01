@@ -1266,8 +1266,14 @@ arp permit-nonconnected
 arp rate-limit 16384
 nat (inside_servers02,outside_budget) source static any any destination static NET_gr_private NET_gr_private no-proxy-arp route-lookup
 nat (inside_servers02,outside_budget) source static any any destination static NET_vti_mesh NET_vti_mesh no-proxy-arp route-lookup
+nat (inside_servers02,outside_budget) source static any any destination static NET_budget_transit NET_budget_transit no-proxy-arp route-lookup
+nat (inside_servers01,outside_budget) source static any any destination static NET_budget_transit NET_budget_transit no-proxy-arp route-lookup
+nat (inside_nfs,outside_budget) source static any any destination static NET_budget_transit NET_budget_transit no-proxy-arp route-lookup
+nat (inside_corosync,outside_budget) source static any any destination static NET_budget_transit NET_budget_transit no-proxy-arp route-lookup
 nat (inside_servers01,outside_budget) source static any any destination static NET_vti_mesh NET_vti_mesh no-proxy-arp route-lookup
+nat (inside_k8s,outside_budget) source static any any destination static NET_budget_transit NET_budget_transit no-proxy-arp route-lookup
 nat (inside_nfs,outside_budget) source static any any destination static NET_vti_mesh NET_vti_mesh no-proxy-arp route-lookup
+nat (inside_mgmt,outside_budget) source static any any destination static NET_budget_transit NET_budget_transit no-proxy-arp route-lookup
 nat (inside_corosync,outside_budget) source static any any destination static NET_vti_mesh NET_vti_mesh no-proxy-arp route-lookup
 nat (inside_servers01,outside_budget) source static any any destination static NET_gr_private NET_gr_private no-proxy-arp route-lookup
 nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_gr_private NET_gr_private no-proxy-arp route-lookup
@@ -1811,5 +1817,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:20ae7407c36c413e09ef1bea27fa1168
+Cryptochecksum:7e37ea72246202d6f8754c68f56a1605
 : end
