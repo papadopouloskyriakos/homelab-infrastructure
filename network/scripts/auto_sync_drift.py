@@ -29,7 +29,32 @@ class DriftSyncer:
     def __init__(self):
         self.synced_devices = []
         self.failed_devices = []
+        self.blocked_devices = []   # Drift refused by the whitelist guardrail
         self.filter = DynamicContentFilter()  # Use centralized filter
+
+    def check_whitelist_membership(self, gitlab_path):
+        """Run ci/scripts/check-whitelist-membership.py against the just-written config.
+
+        Returns (ok: bool, message: str). Fails CLOSED if the guardrail script
+        is missing — better to block sync than silently skip the check.
+        """
+        script = Path("ci/scripts/check-whitelist-membership.py")
+        if not script.exists():
+            return False, (
+                f"GUARDRAIL MISSING: {script} not found in repo. "
+                "Drift-sync refuses to commit firewall configs without the guardrail."
+            )
+        try:
+            result = subprocess.run(
+                ['python3', str(script), str(gitlab_path)],
+                capture_output=True, text=True, timeout=30,
+            )
+        except subprocess.TimeoutExpired:
+            return False, f"GUARDRAIL TIMEOUT on {gitlab_path}"
+        if result.returncode == 0:
+            return True, ""
+        msg = (result.stdout or "").strip() or (result.stderr or "").strip() or "violation"
+        return False, msg
     
     def normalize_config(self, config):
         """
@@ -112,17 +137,36 @@ class DriftSyncer:
             # Update GitLab config
             gitlab_path = Path(f"network/configs/{device_type}/{device_name}")
             gitlab_path.parent.mkdir(parents=True, exist_ok=True)
-            
+
             with open(gitlab_path, 'w') as f:
                 f.write(device_config)
-            
+
+            # Firewall-only: enforce NAT whitelist membership before committing
+            # the drift. Blocks the same class of incident that caused the
+            # 2026-04-22 rtr01 shun (transit /30 live-deployed before
+            # whitelist update → ASA auto-shun on traffic burst).
+            # [IFRNLLEI01PRD-699]
+            if device_type.lower() == 'firewall':
+                ok, msg = self.check_whitelist_membership(gitlab_path)
+                if not ok:
+                    # Revert the write — don't leave a dirty working tree.
+                    subprocess.run(
+                        ['git', 'checkout', '--', str(gitlab_path)],
+                        capture_output=True,
+                    )
+                    print("[BLOCKED] whitelist guardrail refused drift — not committing")
+                    for line in msg.splitlines()[:20]:
+                        print(f"  | {line}")
+                    self.blocked_devices.append((device_type, device_name, msg))
+                    return False
+
             # Stage the file
             subprocess.run(
                 ['git', 'add', str(gitlab_path)],
                 check=True,
                 capture_output=True
             )
-            
+
             print("[SYNCED]")
             self.synced_devices.append((device_type, device_name))
             return True
@@ -178,7 +222,26 @@ class DriftSyncer:
             for device_type, device_name, error in self.failed_devices:
                 print(f"  - {device_name} ({device_type})")
                 print(f"    Error: {error[:70]}")
-        
+
+        if self.blocked_devices:
+            print()
+            print(f"BLOCKED by whitelist guardrail: {len(self.blocked_devices)} device(s):")
+            for device_type, device_name, msg in self.blocked_devices:
+                print(f"  - {device_name} ({device_type})")
+                first_err = next(
+                    (ln for ln in msg.splitlines() if ln.strip().startswith("line ")),
+                    msg.splitlines()[0] if msg else "",
+                )
+                print(f"    {first_err.strip()[:100]}")
+            print()
+            print("ACTION REQUIRED: an RFC1918 network referenced by an outside_*")
+            print("NAT rule on the LIVE device is NOT a member of")
+            print("object-group whitelist_shun_nlgr_all_subnets. That subnet WILL")
+            print("be auto-shunned by threat-detection on the next traffic burst.")
+            print("Fix: add the subnet to gr_all_subnets / nl_all_subnets /")
+            print("ALL_VPS_OVERLAY on both ASAs, `write memory`, then the next")
+            print("drift-sync run will capture the change cleanly.")
+
         print()
         
         # Commit changes if any
@@ -211,15 +274,22 @@ class DriftSyncer:
                 print("  Pushed to GitLab")
                 print()
                 print("SUCCESS: Device configs synced to GitLab")
-                return 0
-            
+                # Fall through to the guardrail-exit check below so partial
+                # success (some devices synced, some blocked by the guardrail)
+                # surfaces as non-zero. [IFRNLLEI01PRD-699]
+
             except subprocess.CalledProcessError as e:
                 print(f"  ERROR: Git operation failed: {e}")
                 print(f"  You may need to manually commit and push")
                 return 1
         else:
             print("No changes to commit")
-            return 0
+
+        # Non-zero if any device was blocked by the guardrail so the CI
+        # job surfaces the failure even on partial success.
+        if self.blocked_devices:
+            return 2
+        return 0
 
 def main():
     """Main entry point"""

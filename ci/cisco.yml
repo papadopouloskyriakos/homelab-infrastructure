@@ -163,10 +163,15 @@ pre_deploy_drift_gate:
 validate_nat_whitelist_membership:
   extends: .cisco_base
   stage: validate
+  # Intentionally runs on `GitLab CI Auto-Sync` commits too — the guardrail
+  # is cheap + critical, and the actual production drift-path goes straight
+  # to main via auto_sync_drift.py. Skipping auto-sync would leave exactly
+  # the path that caused the 2026-04-22 rtr01 shun incident unguarded.
+  # [IFRNLLEI01PRD-699]
+  # Still skip legacy Oxidized-bot commits (dead code; safe to skip so a
+  # revived Oxidized doesn't cause spurious failures).
   rules:
     - if: '$CI_COMMIT_AUTHOR =~ /^NL Oxidized Bot / || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
-      when: never
-    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
         - REDACTED_0cc48b91**
