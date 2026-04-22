@@ -160,6 +160,50 @@ pre_deploy_drift_gate:
 # VALIDATION
 # ===========================================================================
 
+validate_nat_whitelist_membership:
+  extends: .cisco_base
+  stage: validate
+  rules:
+    - if: '$CI_COMMIT_AUTHOR =~ /^NL Oxidized Bot / || $CI_COMMIT_AUTHOR_EMAIL =~ /nl-oxidized-bot/ || $CI_COMMIT_MESSAGE =~ /\[oxidized-backup\]/'
+      when: never
+    - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
+      when: never
+    - changes:
+        - REDACTED_0cc48b91**
+      when: on_success
+  script:
+    - |
+      set -eu
+      echo "================================================"
+      echo "NAT whitelist-membership guardrail"
+      echo "================================================"
+      echo "Invariant: any RFC1918 object network referenced by"
+      echo "           nat (..,outside_*) must be covered by"
+      echo "           object-group whitelist_shun_nlgr_all_subnets"
+      echo "           (via gr_all_subnets / nl_all_subnets / ALL_VPS_OVERLAY)"
+      echo "================================================"
+
+      CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E 'REDACTED_0cc48b91' || true)
+      if [ -z "$CHANGED" ]; then
+        echo "No firewall config changes — skipping."
+        exit 0
+      fi
+
+      EXIT=0
+      for file in $CHANGED; do
+        echo ""
+        echo "Checking: $file"
+        echo "------------------------------------------------"
+        if python3 ci/scripts/check-whitelist-membership.py "$CI_PROJECT_DIR/$file"; then
+          echo "PASS"
+        else
+          echo "FAIL"
+          EXIT=1
+        fi
+      done
+      exit $EXIT
+  allow_failure: false
+
 validate_cisco_configs:
   extends: .cisco_base
   stage: validate
