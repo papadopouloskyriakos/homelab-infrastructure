@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-04-21 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-04-22 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 1398 |
+| Total Restarts | 1406 |
 
 ## Topology
 
@@ -34,7 +34,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 _None_
 
 ### High Restart Pods (>3)
-awx/awx-operator-controller-manager-f84fc744-drg2t: 8 restarts
+awx/awx-operator-controller-manager-f84fc744-drg2t: 9 restarts
 cilium-spire/spire-agent-26mm7: 4 restarts
 cilium-spire/spire-agent-jn2zt: 5 restarts
 cilium-spire/spire-agent-lvrj5: 4 restarts
@@ -44,9 +44,9 @@ kube-system/cilium-22zgh: 9 restarts
 kube-system/cilium-envoy-cfv8x: 4 restarts
 kube-system/cilium-envoy-mmfnj: 9 restarts
 kube-system/cilium-gz5mp: 4 restarts
-kube-system/cilium-operator-6b94496fcd-qwll4: 10 restarts
+kube-system/cilium-operator-6b94496fcd-qwll4: 13 restarts
 kube-system/etcd-nlk8s-ctrl01: 18 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 782 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 786 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 57 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 95 restarts
@@ -69,7 +69,7 @@ monitoring/goldpinger-f72lw: 5 restarts
 monitoring/goldpinger-qs5xt: 5 restarts
 monitoring/goldpinger-vtfpx: 7 restarts
 monitoring/monitoring-grafana-9d45cc6d4-k2kh7: 11 restarts
-monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 14 restarts
+monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 16 restarts
 seaweedfs/seaweedfs-volume-1: 8 restarts
 synology-csi/synology-csi-node-kxrjb: 8 restarts
 synology-csi/synology-csi-node-l72f8: 4 restarts
@@ -78,11 +78,11 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-kube-system   52m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   11m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   11m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system   2m17s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system   98s         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system   52m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01                    Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   47m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01                    Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   32m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02                    Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   32m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02                    Liveness probe failed: HTTP probe failed with statuscode: 500
+monitoring    34s         Warning   Unhealthy   pod/prometheus-REDACTED_6dfbe9fc-1   Liveness probe failed: Get "http://10.0.3.28:9090/-/healthy": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
 ```
 
 ## Key Resources
