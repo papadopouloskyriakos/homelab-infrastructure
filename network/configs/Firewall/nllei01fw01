@@ -1154,6 +1154,8 @@ access-list vpn-ch-to-nl-k8s extended permit ip 10.0.X.X 255.255.255.0 10.255.2.
 access-list outside_budget_access_in extended permit ip any any 
 access-list outside_budget_access_in extended permit icmp any any 
 access-list FREEDOM_ESP_OUT extended permit ip host 203.0.113.X any 
+access-list FREEDOM_NH_ACL standard permit 10.255.200.12 255.255.255.254 
+access-list FREEDOM_NH_ACL standard permit 10.255.200.14 255.255.255.254 
 !
 tcp-map mptcp-tm
   tcp-options range 30 30 allow
@@ -1373,6 +1375,9 @@ prefix-list NL_SITE_SUBNETS seq 60 permit 10.0.X.X/27
 prefix-list NL_SITE_SUBNETS seq 70 permit 10.0.X.X/28
 prefix-list NL_SITE_SUBNETS seq 80 permit 10.0.X.X/27
 !
+prefix-list VPS_LOOPBACKS seq 10 permit 10.255.2.0/24
+prefix-list VPS_LOOPBACKS seq 20 permit 10.255.3.0/24
+!
 !
 route-map FRR_TRANSIT_IN permit 10
 
@@ -1388,6 +1393,15 @@ route-map BLOCK_SITE_TO_CILIUM deny 10
 !
 route-map BLOCK_SITE_TO_CILIUM permit 20
 
+!
+route-map FREEDOM_FRR_IN permit 5
+ match ip address prefix-list VPS_LOOPBACKS
+
+ set local-preference 200
+!
+route-map FREEDOM_FRR_IN permit 10
+
+ set local-preference 100
 !
 route-map pbr_map permit 10
  match ip address pbr_acl
@@ -1408,7 +1422,7 @@ router bgp 65000
   neighbor 10.0.X.X description nlk8s-frr01-DMZ
   neighbor 10.0.X.X activate
   neighbor 10.0.X.X next-hop-self
-  neighbor 10.0.X.X route-map FRR_TRANSIT_IN in
+  neighbor 10.0.X.X route-map FREEDOM_FRR_IN in
   neighbor 10.0.X.X remote-as 65000
   neighbor 10.0.X.X description nlk8s-frr02-DMZ
   neighbor 10.0.X.X activate
@@ -1770,5 +1784,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:65ef7b14f6137ae191cbc53b93a8d174
+Cryptochecksum:f2d73286185816048e582e6d9d8e9b97
 : end
