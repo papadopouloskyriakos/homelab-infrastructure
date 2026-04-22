@@ -727,6 +727,7 @@ object-group network S2S_LEI_GRP_dmz_servers02
 object-group network S2S_LEI_GRP_dmz_servers03
  network-object 10.0.X.X 255.255.255.224
 object-group network nl_all_subnets
+ description includes 10.0.X.X/30 (budget transit rtr01-fw01, added post-shun-incident 2026-04-22)
  group-object S2S_LEI_GRP_inside_cctv
  group-object S2S_LEI_GRP_inside_mgmt
  group-object S2S_LEI_GRP_inside_room_a
@@ -747,6 +748,7 @@ object-group network nl_all_subnets
  network-object 10.0.X.X 255.255.255.224
  network-object 10.0.X.X 255.255.255.224
  network-object 10.0.X.X 255.255.255.240
+ network-object 10.0.X.X 255.255.255.252
 object-group protocol TCPUDP
  protocol-object udp
  protocol-object tcp
@@ -897,6 +899,8 @@ object-group network NET_gr_private
  network-object 10.0.X.X 255.255.255.0
  network-object 10.0.X.X 255.255.255.248
  network-object 10.0.X.X 255.255.255.224
+ network-object 10.0.X.X 255.255.255.0
+ network-object 10.0.X.X 255.255.255.0
 access-list inside_cctv_access_in extended permit tcp object nlunify01 object nln8n01 eq 5678 
 access-list inside_cctv_access_in extended permit tcp object nlunify01 object nlsmtp-gpg01 eq smtp 
 access-list inside_cctv_access_in extended permit object-group TCPUDP object nlunify01 object-group eu-nlgr-freeipa01 eq domain 
@@ -1261,8 +1265,14 @@ arp timeout 14400
 arp permit-nonconnected
 arp rate-limit 16384
 nat (inside_servers02,outside_budget) source static any any destination static NET_gr_private NET_gr_private no-proxy-arp route-lookup
+nat (inside_servers02,outside_budget) source static any any destination static NET_vti_mesh NET_vti_mesh no-proxy-arp route-lookup
+nat (inside_servers01,outside_budget) source static any any destination static NET_vti_mesh NET_vti_mesh no-proxy-arp route-lookup
+nat (inside_nfs,outside_budget) source static any any destination static NET_vti_mesh NET_vti_mesh no-proxy-arp route-lookup
+nat (inside_corosync,outside_budget) source static any any destination static NET_vti_mesh NET_vti_mesh no-proxy-arp route-lookup
 nat (inside_servers01,outside_budget) source static any any destination static NET_gr_private NET_gr_private no-proxy-arp route-lookup
 nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_gr_private NET_gr_private no-proxy-arp route-lookup
+nat (inside_k8s,outside_budget) source static any any destination static NET_vti_mesh NET_vti_mesh no-proxy-arp route-lookup
+nat (inside_mgmt,outside_budget) source static any any destination static NET_vti_mesh NET_vti_mesh no-proxy-arp route-lookup
 nat (inside_nfs,outside_budget) source static any any destination static NET_gr_private NET_gr_private no-proxy-arp route-lookup
 nat (inside_corosync,outside_budget) source static any any destination static NET_gr_private NET_gr_private no-proxy-arp route-lookup
 nat (inside_room_d,outside_budget) source static NAT_inside_room_d NAT_inside_room_d no-proxy-arp route-lookup
@@ -1801,5 +1811,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:4540cfe2a57cfff595b85878b875dc93
+Cryptochecksum:20ae7407c36c413e09ef1bea27fa1168
 : end
