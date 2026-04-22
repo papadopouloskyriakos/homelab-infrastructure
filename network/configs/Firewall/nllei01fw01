@@ -891,6 +891,12 @@ object-group network S2S_LEI_VPN_DESTINATIONS
  group-object nl_strongswan_vpn_pool_XX
 object-group network S2S_SKG_GRP_inside_k8s
  network-object 10.0.X.X 255.255.255.0
+object-group network NET_gr_private
+ network-object 10.0.X.X 255.255.255.0
+ network-object 10.0.X.X 255.255.255.0
+ network-object 10.0.X.X 255.255.255.0
+ network-object 10.0.X.X 255.255.255.248
+ network-object 10.0.X.X 255.255.255.224
 access-list inside_cctv_access_in extended permit tcp object nlunify01 object nln8n01 eq 5678 
 access-list inside_cctv_access_in extended permit tcp object nlunify01 object nlsmtp-gpg01 eq smtp 
 access-list inside_cctv_access_in extended permit object-group TCPUDP object nlunify01 object-group eu-nlgr-freeipa01 eq domain 
@@ -1254,8 +1260,15 @@ asdm history enable
 arp timeout 14400
 arp permit-nonconnected
 arp rate-limit 16384
+nat (inside_servers02,outside_budget) source static any any destination static NET_gr_private NET_gr_private no-proxy-arp route-lookup
+nat (inside_servers01,outside_budget) source static any any destination static NET_gr_private NET_gr_private no-proxy-arp route-lookup
+nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_gr_private NET_gr_private no-proxy-arp route-lookup
+nat (inside_nfs,outside_budget) source static any any destination static NET_gr_private NET_gr_private no-proxy-arp route-lookup
+nat (inside_corosync,outside_budget) source static any any destination static NET_gr_private NET_gr_private no-proxy-arp route-lookup
 nat (inside_room_d,outside_budget) source static NAT_inside_room_d NAT_inside_room_d no-proxy-arp route-lookup
 nat (inside_room_c,outside_budget) source static NAT_inside_room_c NAT_inside_room_c no-proxy-arp route-lookup
+nat (inside_k8s,outside_budget) source static any any destination static NET_gr_private NET_gr_private no-proxy-arp route-lookup
+nat (inside_mgmt,outside_budget) source static any any destination static NET_gr_private NET_gr_private no-proxy-arp route-lookup
 nat (inside_room_b,outside_budget) source static NAT_inside_room_b NAT_inside_room_b no-proxy-arp route-lookup
 nat (inside_room_a,outside_budget) source static NAT_inside_room_a NAT_inside_room_a no-proxy-arp route-lookup
 nat (inside_mgmt,outside_budget) source static any any destination static NET_vps_ch NET_vps_ch no-proxy-arp route-lookup
@@ -1788,5 +1801,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:4b7a8ec998651dbca01a791ffc557148
+Cryptochecksum:4540cfe2a57cfff595b85878b875dc93
 : end

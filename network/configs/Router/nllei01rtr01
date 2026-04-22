@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 14881 bytes
+Current configuration : 14926 bytes
 !
-! Last configuration change at 14:56:22 CEST Wed Apr 22 2026 by kyriakosp
+! Last configuration change at 15:12:37 CEST Wed Apr 22 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -206,10 +206,6 @@ policy-map TENANT_UL_NORMAL
   shape average 5000000   
  class TENANT_D_UL
   shape average 5000000   
-policy-map BUDGET_UL_PARENT_NORMAL
- class class-default
-  shape average 30000000   
-   service-policy TENANT_UL_NORMAL
 policy-map TENANT_DL_NORMAL
  class TENANT_A_DL
   shape average 15000000   
@@ -219,6 +215,14 @@ policy-map TENANT_DL_NORMAL
   shape average 15000000   
  class TENANT_D_DL
   shape average 15000000   
+policy-map TRANSIT_DL_PARENT_NORMAL
+ class class-default
+  shape average 60000000   
+   service-policy TENANT_DL_NORMAL
+policy-map BUDGET_UL_PARENT_NORMAL
+ class class-default
+  shape average 30000000   
+   service-policy TENANT_UL_NORMAL
 !
 !
 ! 
@@ -299,9 +303,6 @@ interface GigabitEthernet0/0/0
  shutdown
  negotiation auto
  no mop enabled
-!
-interface GigabitEthernet0/0/0.2
- service-policy output TENANT_DL_NORMAL
 !
 interface GigabitEthernet0/0/1
  description *** Connection to nlsw01 | Gi1/0/34 | 1 Gbps ***
