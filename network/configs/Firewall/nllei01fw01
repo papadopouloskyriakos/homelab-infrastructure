@@ -1254,6 +1254,10 @@ asdm history enable
 arp timeout 14400
 arp permit-nonconnected
 arp rate-limit 16384
+nat (inside_room_d,outside_budget) source static NAT_inside_room_d NAT_inside_room_d no-proxy-arp route-lookup
+nat (inside_room_c,outside_budget) source static NAT_inside_room_c NAT_inside_room_c no-proxy-arp route-lookup
+nat (inside_room_b,outside_budget) source static NAT_inside_room_b NAT_inside_room_b no-proxy-arp route-lookup
+nat (inside_room_a,outside_budget) source static NAT_inside_room_a NAT_inside_room_a no-proxy-arp route-lookup
 nat (inside_mgmt,outside_budget) source static any any destination static NET_vps_ch NET_vps_ch no-proxy-arp route-lookup
 nat (inside_mgmt,outside_budget) source static any any destination static NET_vps_no NET_vps_no no-proxy-arp route-lookup
 nat (inside_k8s,outside_budget) source static any any destination static NET_vps_ch NET_vps_ch no-proxy-arp route-lookup
@@ -1784,5 +1788,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:f2d73286185816048e582e6d9d8e9b97
+Cryptochecksum:4b7a8ec998651dbca01a791ffc557148
 : end

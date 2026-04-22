@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 12872 bytes
+Current configuration : 14881 bytes
 !
-! Last configuration change at 22:42:15 CEST Tue Apr 21 2026 by kyriakosp
+! Last configuration change at 14:56:22 CEST Wed Apr 22 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -180,6 +180,47 @@ controller VDSL 0/1/0
 !
 !
 !
+class-map match-any TENANT_D_DL
+ match access-group name TENANT_D_DL
+class-map match-any TENANT_A_DL
+ match access-group name TENANT_A_DL
+class-map match-any TENANT_B_DL
+ match access-group name TENANT_B_DL
+class-map match-any TENANT_C_DL
+ match access-group name TENANT_C_DL
+class-map match-any TENANT_D_UL
+ match access-group name TENANT_D_UL
+class-map match-any TENANT_A_UL
+ match access-group name TENANT_A_UL
+class-map match-any TENANT_C_UL
+ match access-group name TENANT_C_UL
+class-map match-any TENANT_B_UL
+ match access-group name TENANT_B_UL
+!
+policy-map TENANT_UL_NORMAL
+ class TENANT_A_UL
+  shape average 5000000   
+ class TENANT_B_UL
+  shape average 5000000   
+ class TENANT_C_UL
+  shape average 5000000   
+ class TENANT_D_UL
+  shape average 5000000   
+policy-map BUDGET_UL_PARENT_NORMAL
+ class class-default
+  shape average 30000000   
+   service-policy TENANT_UL_NORMAL
+policy-map TENANT_DL_NORMAL
+ class TENANT_A_DL
+  shape average 15000000   
+ class TENANT_B_DL
+  shape average 15000000   
+ class TENANT_C_DL
+  shape average 15000000   
+ class TENANT_D_DL
+  shape average 15000000   
+!
+!
 ! 
 !
 !
@@ -259,6 +300,9 @@ interface GigabitEthernet0/0/0
  negotiation auto
  no mop enabled
 !
+interface GigabitEthernet0/0/0.2
+ service-policy output TENANT_DL_NORMAL
+!
 interface GigabitEthernet0/0/1
  description *** Connection to nlsw01 | Gi1/0/34 | 1 Gbps ***
  no ip address
@@ -305,6 +349,7 @@ interface Dialer1
  ppp REDACTED_6fa691d2 pap callin
  ppp pap sent-username fb7360@xs4all.nl password 7 000F0308
  ppp ipcp route default
+ service-policy output BUDGET_UL_PARENT_NORMAL
 !
 router bgp 65000
  bgp router-id 10.0.X.X
@@ -375,6 +420,10 @@ ip access-list extended NAT_OUTBOUND_ACL
  60 permit ip 10.0.X.X 0.0.0.31 any
  70 remark Transit subnet - catches PAT traffic from nlfw01 outside_budget interface
  70 permit ip 10.0.X.X 0.0.0.3 any
+ 80 permit ip 10.0.X.X 0.0.0.31 any
+ 90 permit ip 10.0.X.X 0.0.0.31 any
+ 100 permit ip 10.0.X.X 0.0.0.31 any
+ 110 permit ip 10.0.X.X 0.0.0.31 any
 ip access-list extended OUTSIDE_BUDGET_IN
  10 remark Budget PPPoE b
  10 remark Budget PPPoE - transit + VTI underlay only, DNATs off rtr01
@@ -401,6 +450,22 @@ ip access-list extended OUTSIDE_BUDGET_IN
  210 permit icmp any any time-exceeded
  220 permit icmp any any packet-too-big
  230 deny ip any any log
+ip access-list extended TENANT_A_DL
+ 10 permit ip any 10.0.X.X 0.0.0.31
+ip access-list extended TENANT_A_UL
+ 10 permit ip 10.0.X.X 0.0.0.31 any
+ip access-list extended TENANT_B_DL
+ 10 permit ip any 10.0.X.X 0.0.0.31
+ip access-list extended TENANT_B_UL
+ 10 permit ip 10.0.X.X 0.0.0.31 any
+ip access-list extended TENANT_C_DL
+ 10 permit ip any 10.0.X.X 0.0.0.31
+ip access-list extended TENANT_C_UL
+ 10 permit ip 10.0.X.X 0.0.0.31 any
+ip access-list extended TENANT_D_DL
+ 10 permit ip any 10.0.X.X 0.0.0.31
+ip access-list extended TENANT_D_UL
+ 10 permit ip 10.0.X.X 0.0.0.31 any
 !
 logging host 10.0.X.X
 logging host 10.0.X.X
