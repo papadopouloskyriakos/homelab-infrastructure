@@ -1,9 +1,9 @@
 Building configuration...
 
-Current configuration : 25529 bytes
+Current configuration : 25519 bytes
 !
-! Last configuration change at 16:06:35 CEST Wed Apr 22 2026 by kyriakosp
-! NVRAM config last updated at 16:06:36 CEST Wed Apr 22 2026 by kyriakosp
+! Last configuration change at 19:18:01 CEST Wed Apr 22 2026 by kyriakosp
+! NVRAM config last updated at 19:19:46 CEST Wed Apr 22 2026 by kyriakosp
 !
 version 16.12
 no service pad
@@ -620,7 +620,6 @@ interface GigabitEthernet1/0/36
  switchport trunk allowed vlan 4,6
  switchport mode trunk
  switchport nonegotiate
- shutdown
  no cdp enable
 !
 interface TenGigabitEthernet1/0/37
