@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 15035 bytes
+Current configuration : 15432 bytes
 !
-! Last configuration change at 17:34:06 CEST Wed Apr 22 2026 by kyriakosp
+! Last configuration change at 18:45:03 CEST Wed Apr 22 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -219,6 +219,15 @@ policy-map TRANSIT_DL_PARENT_NORMAL
  class class-default
   shape average 60000000   
    service-policy TENANT_DL_NORMAL
+policy-map TENANT_DL_POLICER
+ class TENANT_A_DL
+  police 15000000 conform-action transmit  exceed-action drop 
+ class TENANT_B_DL
+  police 15000000 conform-action transmit  exceed-action drop 
+ class TENANT_C_DL
+  police 15000000 conform-action transmit  exceed-action drop 
+ class TENANT_D_DL
+  police 15000000 conform-action transmit  exceed-action drop 
 policy-map BUDGET_UL_PARENT_NORMAL
  class class-default
   shape average 30000000   
@@ -350,6 +359,7 @@ interface Dialer1
  ppp REDACTED_6fa691d2 pap callin
  ppp pap sent-username fb7360@xs4all.nl password 7 000F0308
  ppp ipcp route default
+ service-policy input TENANT_DL_POLICER
  service-policy output BUDGET_UL_PARENT_NORMAL
 !
 router bgp 65000

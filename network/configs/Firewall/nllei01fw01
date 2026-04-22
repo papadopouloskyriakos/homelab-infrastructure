@@ -1713,6 +1713,8 @@ dhcpd dns 185.93.175.43 185.232.98.76 interface inside_guest
 dhcpd enable inside_guest
 !
 dhcprelay timeout 60
+threat-detection rate scanning-threat rate-interval 600 average-rate 50 burst-rate 100
+threat-detection rate scanning-threat rate-interval 3600 average-rate 40 burst-rate 80
 threat-detection basic-threat
 threat-detection scanning-threat shun except object-group whitelist_shun_nlgr_all_subnets
 threat-detection statistics
@@ -1817,5 +1819,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:7e37ea72246202d6f8754c68f56a1605
+Cryptochecksum:47faf5d504bbc52ed37a97d80ae7a577
 : end
