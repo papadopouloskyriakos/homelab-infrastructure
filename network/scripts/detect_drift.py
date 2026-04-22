@@ -160,9 +160,12 @@ class DriftDetector:
                 continue
             
             for device_file in device_type_dir.iterdir():
-                if device_file.is_file():
+                if device_file.is_file() and not device_file.name.startswith('.'):
+                    # Skip .gitkeep and other dotfiles — netmiko would try to SSH
+                    # to a literal ".gitkeep" hostname and fail with
+                    # "UnicodeError: label empty". [IFRNLLEI01PRD-702]
                     device_name = device_file.name
-                    
+
                     self.check_device(device_type, device_name)
                     devices_checked += 1
         
