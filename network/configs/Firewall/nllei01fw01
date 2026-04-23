@@ -232,7 +232,6 @@ interface Tunnel4
  tunnel protection ipsec profile VTI-PROFILE
 !
 interface Tunnel5
- shutdown
  nameif vti-no-f
  ip address 10.255.200.12 255.255.255.254 
  tunnel source interface outside_freedom
@@ -1820,5 +1819,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:554054dd8d1749091bcf281b753d4fd8
+Cryptochecksum:47faf5d504bbc52ed37a97d80ae7a577
 : end
