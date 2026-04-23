@@ -1411,6 +1411,8 @@ prefix-list NL_SITE_SUBNETS seq 80 permit 10.0.X.X/27
 prefix-list VPS_LOOPBACKS seq 10 permit 10.255.2.0/24
 prefix-list VPS_LOOPBACKS seq 20 permit 10.255.3.0/24
 !
+community-list standard CL-VPS-ORIGIN permit 4259840100
+!
 !
 route-map FRR_TRANSIT_IN permit 10
 
@@ -1433,6 +1435,15 @@ route-map FREEDOM_FRR_IN permit 5
  set local-preference 200
 !
 route-map FREEDOM_FRR_IN permit 10
+
+ set local-preference 100
+!
+route-map XCLUSTER_RR_IN permit 5
+ match community CL-VPS-ORIGIN
+
+ set local-preference 50
+!
+route-map XCLUSTER_RR_IN permit 10
 
  set local-preference 100
 !
@@ -1819,5 +1830,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:47faf5d504bbc52ed37a97d80ae7a577
+Cryptochecksum:503fcd833fa9e9db3aa8e8d41dcef96c
 : end
