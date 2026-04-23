@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 15432 bytes
+Current configuration : 15476 bytes
 !
-! Last configuration change at 18:45:03 CEST Wed Apr 22 2026 by kyriakosp
+! Last configuration change at 13:17:39 CEST Thu Apr 23 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -393,6 +393,7 @@ router bgp 65000
   network 10.255.200.2 mask 255.255.255.254
   network 10.255.200.4 mask 255.255.255.254
   neighbor 10.255.200.1 activate
+  neighbor 10.255.200.1 send-community both
   neighbor 10.255.200.1 weight 200
   neighbor 10.255.200.1 route-reflector-client
   neighbor 10.255.200.1 next-hop-self all
