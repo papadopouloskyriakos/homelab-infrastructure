@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 15476 bytes
+Current configuration : 16398 bytes
 !
-! Last configuration change at 13:17:39 CEST Thu Apr 23 2026 by kyriakosp
+! Last configuration change at 16:07:18 CEST Thu Apr 23 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -379,6 +379,14 @@ router bgp 65000
  neighbor 10.255.200.5 description chzrh01vps01-budget-VTI
  neighbor 10.255.200.5 timers 10 30
  neighbor 10.0.X.X remote-as 65000
+ neighbor 10.0.X.X description grk8s-frr01-GR-RR
+ neighbor 10.0.X.X update-source Port-channel4.2
+ neighbor 10.0.X.X timers 10 30
+ neighbor 10.0.X.X remote-as 65000
+ neighbor 10.0.X.X description grk8s-frr02-GR-RR
+ neighbor 10.0.X.X update-source Port-channel4.2
+ neighbor 10.0.X.X timers 10 30
+ neighbor 10.0.X.X remote-as 65000
  neighbor 10.0.X.X description nlfw01-iBGP-budget-transit
  neighbor 10.0.X.X remote-as 65000
  neighbor 10.0.X.X description nlk8s-frr01-RR
@@ -406,6 +414,14 @@ router bgp 65000
   neighbor 10.255.200.5 route-reflector-client
   neighbor 10.255.200.5 next-hop-self
   neighbor 10.0.X.X activate
+  neighbor 10.0.X.X send-community both
+  neighbor 10.0.X.X next-hop-self
+  neighbor 10.0.X.X route-map XCLUSTER_RR_IN in
+  neighbor 10.0.X.X activate
+  neighbor 10.0.X.X send-community both
+  neighbor 10.0.X.X next-hop-self
+  neighbor 10.0.X.X route-map XCLUSTER_RR_IN in
+  neighbor 10.0.X.X activate
   neighbor 10.0.X.X next-hop-self all
   neighbor 10.0.X.X default-originate
   neighbor 10.0.X.X activate
@@ -424,6 +440,7 @@ ip nat inside source list NAT_OUTBOUND_ACL interface Dialer1 overload
 ip route 10.0.X.X 255.255.255.224 10.0.X.X
 ip ssh version 2
 !
+ip community-list standard CL-VPS-ORIGIN permit 4259840100
 !
 ip access-list extended NAT_OUTBOUND_ACL
  10 remark Narrowed to real NL subnets (no /16 sprawl)
@@ -491,6 +508,13 @@ ip access-list standard 23
  40 permit 10.0.X.X 0.0.0.255
  50 permit 10.0.X.X 0.0.0.31
 dialer-list 1 protocol ip permit
+!
+route-map XCLUSTER_RR_IN permit 5 
+ match community CL-VPS-ORIGIN
+ set local-preference 50
+!
+route-map XCLUSTER_RR_IN permit 10 
+ set local-preference 100
 !
 snmp-server community REDACTED RO
 snmp-server host 10.0.X.X version 2c uBnr@W9dKOu#7ifTdVbA 
