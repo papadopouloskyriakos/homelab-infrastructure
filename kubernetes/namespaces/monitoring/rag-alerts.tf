@@ -43,15 +43,22 @@ resource "kubernetes_manifest" "rag_alert_rules" {
             },
             {
               alert = "RAGLatencyP95High"
-              expr  = "kb_retrieval_latency_seconds{quantile=\"0.95\"} > 12.0"
-              for   = "15m"
+              # IFRNLLEI01PRD-703: target `real` probe cohort only. Union
+              # series was confounded by two synthetic-novel probe queries
+              # that deliberately have no corpus match; those always force
+              # rewrite + rerank + synth (15-20s) and were driving false
+              # positives disconnected from production RAG latency.
+              # `category="novel"` is still emitted by kb-latency-probe for
+              # Grafana corpus-coverage monitoring but is NOT alerted on.
+              expr = "kb_retrieval_latency_seconds{category=\"real\",quantile=\"0.95\"} > 12.0"
+              for  = "15m"
               labels = {
                 severity = "warning"
                 service  = "rag-retrieval"
               }
               annotations = {
-                summary     = "RAG retrieval p95 latency > 12s (current: {{ $value }}s)"
-                description = "Baseline p95 is ~8-9s when synthesis fires (~30% of queries hit Haiku synth via Anthropic API). Sustained >12s suggests rerank service contention, synth API degradation, or corpus growth past sweet spot. Baseline shifted from 5s to ~9s on 2026-04-18 after L02 Haiku synth swap (quality +2.7 pts traded for slightly higher p95)."
+                summary     = "RAG retrieval p95 latency (real queries) > 12s (current: {{ $value }}s)"
+                description = "Baseline p95 for real queries is ~4-8s. Sustained >12s suggests rerank service contention, synth API degradation, or corpus growth past sweet spot. Novel-query p95 is tracked separately (kb_retrieval_latency_seconds{category=\"novel\",quantile=\"0.95\"}, expected 15-20s, NOT alerted). SEARCH_BUDGET_S env (default 10s in kb-semantic-search.py) guards HyDE + synth fallback paths; lower to 6-8s if contention persists. Baseline shifted from 5s to 9s on 2026-04-18 after L02 Haiku synth swap."
               }
             },
             {
