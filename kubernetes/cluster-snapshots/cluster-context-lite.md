@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-04-24 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-04-25 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 1427 |
+| Total Restarts | 1436 |
 
 ## Topology
 
@@ -44,16 +44,16 @@ kube-system/cilium-22zgh: 9 restarts
 kube-system/cilium-envoy-cfv8x: 4 restarts
 kube-system/cilium-envoy-mmfnj: 9 restarts
 kube-system/cilium-gz5mp: 4 restarts
-kube-system/cilium-operator-6b94496fcd-qwll4: 14 restarts
-kube-system/etcd-nlk8s-ctrl01: 21 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 797 restarts
+kube-system/cilium-operator-6b94496fcd-qwll4: 15 restarts
+kube-system/etcd-nlk8s-ctrl01: 22 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 803 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 57 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 95 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl02: 31 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl03: 81 restarts
 kube-system/kube-scheduler-nlk8s-ctrl01: 31 restarts
-kube-system/kube-scheduler-nlk8s-ctrl02: 27 restarts
+kube-system/kube-scheduler-nlk8s-ctrl02: 28 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 28 restarts
 kube-system/tetragon-878gv: 4 restarts
 kube-system/tetragon-mdsn9: 18 restarts
@@ -69,7 +69,7 @@ monitoring/goldpinger-f72lw: 5 restarts
 monitoring/goldpinger-qs5xt: 5 restarts
 monitoring/goldpinger-vtfpx: 7 restarts
 monitoring/monitoring-grafana-9d45cc6d4-k2kh7: 13 restarts
-monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 20 restarts
+monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 21 restarts
 seaweedfs/seaweedfs-volume-1: 8 restarts
 synology-csi/synology-csi-node-kxrjb: 8 restarts
 synology-csi/synology-csi-node-l72f8: 4 restarts
@@ -78,11 +78,11 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   56m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   56m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
-kube-system   7m47s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   3m50s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   37m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   25m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Liveness probe failed: Get "http://127.0.0.1:2381/livez": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system   25m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system   4m15s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   73s         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
 ```
 
 ## Key Resources
