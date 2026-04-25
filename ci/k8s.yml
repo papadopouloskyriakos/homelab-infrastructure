@@ -249,6 +249,19 @@ detect_k8s_drift:
       when: always
     - when: manual
       allow_failure: true
+  # Retry on transient failures: GitHub 5xx fetching ingress-nginx/nfs-provisioner/synology-csi
+  # chart tarballs (3/8 helm_releases pull from github.com release CDN), OpenBao JWT auth flakes
+  # (VAULT_ID_TOKEN not set), runner pickup blips. Atlantis apply path is unaffected — this is
+  # the read-only drift-detection job only. Watch for retry_count > 0 on >50% of runs as a
+  # signal that retries are masking a real persistent issue.
+  retry:
+    max: 2
+    when:
+      - script_failure
+      - runner_system_failure
+      - stuck_or_timeout_failure
+      - api_failure
+      - unknown_failure
   script:
     - git config --global --add safe.directory $CI_PROJECT_DIR
     - |
