@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-04-27 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-04-28 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,12 +11,13 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 1465 |
+| Total Restarts | 1473 |
 
 ## Topology
 
-- **K8s:** v1.34.2 | **CNI:** Cilium 1.18.4
-- **Nodes:** 7 (3 control-plane, 4 workers)
+- **K8s:** null
+unknown | **CNI:** Cilium 1.18.4
+- **Nodes:** 7 (0 control-plane, 7 workers)
 - **Pods:** 151
 
 ### Nodes
@@ -45,8 +46,8 @@ kube-system/cilium-envoy-cfv8x: 4 restarts
 kube-system/cilium-envoy-mmfnj: 9 restarts
 kube-system/cilium-gz5mp: 4 restarts
 kube-system/cilium-operator-6b94496fcd-qwll4: 15 restarts
-kube-system/etcd-nlk8s-ctrl01: 26 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 820 restarts
+kube-system/etcd-nlk8s-ctrl01: 27 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 828 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 57 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 95 restarts
@@ -59,7 +60,7 @@ kube-system/tetragon-878gv: 4 restarts
 kube-system/tetragon-mdsn9: 18 restarts
 kube-system/tetragon-tbcc7: 4 restarts
 kube-system/tetragon-vbs6v: 8 restarts
-logging/loki-0: 47 restarts
+logging/loki-0: 49 restarts
 logging/promtail-hp5sc: 4 restarts
 monitoring/bgpalerter-596d7b756b-dkn62: 13 restarts
 monitoring/goldpinger-4fvxd: 10 restarts
@@ -69,7 +70,7 @@ monitoring/goldpinger-f72lw: 5 restarts
 monitoring/goldpinger-qs5xt: 5 restarts
 monitoring/goldpinger-vtfpx: 7 restarts
 monitoring/monitoring-grafana-9d45cc6d4-k2kh7: 14 restarts
-monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 26 restarts
+monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 28 restarts
 monitoring/thanos-compactor-0: 4 restarts
 seaweedfs/seaweedfs-volume-1: 9 restarts
 synology-csi/synology-csi-node-kxrjb: 8 restarts
@@ -79,23 +80,18 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-monitoring    51m         Warning   Unhealthy   pod/bgpalerter-596d7b756b-dkn62         Liveness probe failed: HTTP probe failed with statuscode: 500
-monitoring    50m         Warning   Unhealthy   pod/bgpalerter-596d7b756b-dkn62         Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system   4m17s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system   49s         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system   83s         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01              Liveness probe failed: Get "http://127.0.0.1:2381/livez": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+monitoring    58s         Warning   Unhealthy   pod/bgpalerter-596d7b756b-dkn62          Liveness probe failed: Get "http://10.0.2.130:8011/status": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+monitoring    52s         Warning   Unhealthy   pod/monitoring-grafana-9d45cc6d4-k2kh7   Readiness probe failed: Get "http://10.0.2.82:3000/api/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+seaweedfs     51s         Warning   Unhealthy   pod/seaweedfs-volume-0                   Readiness probe failed: Get "http://10.0.2.37:8080/healthz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+monitoring    50s         Warning   Unhealthy   pod/monitoring-grafana-9d45cc6d4-k2kh7   Liveness probe failed: Get "http://10.0.2.82:3000/api/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
 ```
 
 ## Key Resources
 
 ### LoadBalancer Services
 ```
-ingress-nginx/ingress-nginx-controller: 10.0.X.X -> 80:31689/TCP,443:30327/TCP
-kube-system/clustermesh-apiserver: 10.0.X.X -> 2379:30462/TCP
-kube-system/hubble-relay-lb: 10.0.X.X -> 80:30629/TCP
-logging/promtail-syslog: 10.0.X.X -> 514:30623/TCP
-pihole/pihole-dns-lb: 10.0.X.X -> 53:31803/UDP
-pihole/pihole-dns-tcp-lb: 10.0.X.X -> 53:30438/TCP
+
 ```
 
 ### Ingresses
