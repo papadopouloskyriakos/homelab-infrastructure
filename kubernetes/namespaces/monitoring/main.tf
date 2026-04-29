@@ -303,7 +303,6 @@ resource "helm_release" "monitoring" {
               static_configs = [{
                 targets = [
                   "10.0.X.X:9100", # nlclaude01 - Claude Code + n8n
-                  "10.0.X.X:9100", # nlopenclaw01 - OpenClaw gateway
                   "10.0.X.X:9100", # nlgpu01 - Ollama + RTX 3090 Ti
                 ]
                 labels = {
@@ -312,7 +311,6 @@ resource "helm_release" "monitoring" {
               }]
               relabel_configs = [
                 { source_labels = ["__address__"], regex = "192\\.168\\.181\\.111:.*", target_label = "instance", replacement = "nlclaude01" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.181\\.112:.*", target_label = "instance", replacement = "nlopenclaw01" },
                 { source_labels = ["__address__"], regex = "192\\.168\\.181\\.181:.*", target_label = "instance", replacement = "nlgpu01" },
                 { source_labels = ["__address__"], regex = "192\\.168\\.181\\..*", target_label = "site", replacement = "nl" },
               ]
