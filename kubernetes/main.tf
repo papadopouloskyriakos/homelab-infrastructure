@@ -218,6 +218,11 @@ module "gatus" {
   depends_on                    = [module.ingress_nginx, module.cert_manager]
   REDACTED_4f32e8a8 = var.REDACTED_2636fc38
   haproxy_stats_auth            = var.haproxy_stats_auth
+  twilio_account_sid            = var.REDACTED_d8050fb2
+  twilio_api_key_sid            = REDACTED_6b1fc2c8
+  REDACTED_4dd179f5         = var.REDACTED_7c52feb9
+  twilio_from_number            = var.REDACTED_8d5c4795
+  twilio_to_number              = var.REDACTED_bbaeeaa8
 }
 # =============================================================================
 # Well-Known Endpoints (security.txt, etc.)
