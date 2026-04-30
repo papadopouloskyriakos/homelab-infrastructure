@@ -22,6 +22,42 @@ resource "REDACTED_46569c16" "gatus" {
 }
 
 # -----------------------------------------------------------------------------
+# Locals — derived values for alerting providers
+# -----------------------------------------------------------------------------
+locals {
+  twilio_enabled = var.twilio_account_sid != "" && var.twilio_api_key_sid != "" && var.REDACTED_4dd179f5 != "" && var.twilio_to_number != ""
+  # Pre-compute Basic-auth header content. Twilio accepts API-Key auth as
+  # HTTP Basic where username=API_KEY_SID and password=REDACTED_4eae29e3.
+  # Computed at plan time (sensitive); injected into Gatus pod via Secret.
+  twilio_basic_auth = local.twilio_enabled ? base64encode("${var.twilio_api_key_sid}:${var.REDACTED_4dd179f5}") : ""
+}
+
+# -----------------------------------------------------------------------------
+# Secret - Twilio credentials (mounted as env vars in Gatus pod)
+# -----------------------------------------------------------------------------
+resource "kubernetes_secret_v1" "gatus_twilio" {
+  count = local.twilio_enabled ? 1 : 0
+
+  metadata {
+    name      = "gatus-twilio"
+    namespace = REDACTED_46569c16.gatus.metadata[0].name
+    labels = {
+      "app.kubernetes.io/name" = "gatus"
+      environment              = "production"
+      "managed-by"             = "opentofu"
+    }
+  }
+
+  type = "Opaque"
+  data = {
+    TWILIO_ACCOUNT_SID = var.twilio_account_sid
+    TWILIO_BASIC_AUTH  = local.twilio_basic_auth
+    TWILIO_FROM        = var.twilio_from_number
+    TWILIO_TO          = var.twilio_to_number
+  }
+}
+
+# -----------------------------------------------------------------------------
 # ConfigMap - Gatus Configuration
 # -----------------------------------------------------------------------------
 resource "REDACTED_a9df2e77_v1" "gatus_config" {
@@ -44,14 +80,23 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
         path = "/data/data.db"
       }
 
-      alerting = var.REDACTED_4f32e8a8 != "" ? {
+      alerting = local.twilio_enabled ? {
+        # Twilio SMS for tier-1 endpoints. Uses Gatus's built-in twilio
+        # provider via custom-style HTTP POST so we can authenticate with
+        # API-Key auth (no master Auth Token required). Pre-computed Basic
+        # auth header is injected via Secret.
+        # Refs: IFRNLLEI01PRD-802; recipe matches scripts/freedom-qos-toggle.sh.
         custom = {
-          url    = "https://gitlab.example.net/api/v4/projects/${var.REDACTED_680664be}/trigger/pipeline"
+          url    = "https://api.twilio.com/2010-04-01/Accounts/$${TWILIO_ACCOUNT_SID}/Messages.json"
           method = "POST"
           headers = {
-            "Content-Type" = "REDACTED_c71c8610"
+            "Content-Type"  = "REDACTED_c71c8610"
+            "Authorization" = "Basic $${TWILIO_BASIC_AUTH}"
           }
-          body = "token=${var.REDACTED_4f32e8a8}&ref=main&variables[TRIGGER_SOURCE]=gatus"
+          # [ALERT_DESCRIPTION] is the per-endpoint short description (URL-safe
+          # short slug like 'HA-down'). [ALERT_TRIGGERED_OR_RESOLVED] resolves
+          # to "TRIGGERED" or "RESOLVED" depending on event.
+          body = "From=$${TWILIO_FROM}&To=$${TWILIO_TO}&Body=Gatus+%5B[ALERT_TRIGGERED_OR_RESOLVED]%5D+%5B[ALERT_DESCRIPTION]%5D"
           default-alert = {
             enabled           = true
             send-on-resolved  = true
@@ -59,7 +104,22 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             success-threshold = 3
           }
         }
-      } : null
+        } : (var.REDACTED_4f32e8a8 != "" ? {
+          custom = {
+            url    = "https://gitlab.example.net/api/v4/projects/${var.REDACTED_680664be}/trigger/pipeline"
+            method = "POST"
+            headers = {
+              "Content-Type" = "REDACTED_c71c8610"
+            }
+            body = "token=${var.REDACTED_4f32e8a8}&ref=main&variables[TRIGGER_SOURCE]=gatus"
+            default-alert = {
+              enabled           = true
+              send-on-resolved  = true
+              failure-threshold = 2
+              success-threshold = 3
+            }
+          }
+      } : null)
 
       ui = {
         title       = var.gatus_ui_title
@@ -84,7 +144,13 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[BODY] == ok"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+            alerts = local.twilio_enabled ? [{
+              type              = "custom"
+              description       = "K8s-NL-API-down"
+              failure-threshold = 2
+              success-threshold = 3
+              send-on-resolved  = true
+            }] : (var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : [])
           },
           {
             name     = "GR Kubernetes API"
@@ -532,7 +598,51 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+            alerts = local.twilio_enabled ? [{
+              type              = "custom"
+              description       = "HA-down"
+              failure-threshold = 2
+              success-threshold = 3
+              send-on-resolved  = true
+            }] : (var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : [])
+          },
+          {
+            # FISHA file01 NFS server liveness — probes the stale-fh exporter
+            # (port 9101) as a cheap proxy for "OS up + NIC routable + Python
+            # services running". Detects a hard host failure that NFS-based
+            # checks would miss while sessions ride. Refs IFRNLLEI01PRD-805.
+            name     = "FISHA file01"
+            group    = "📱 Applications"
+            url      = "http://10.0.X.X:9101/metrics"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[BODY] == pat(*nfs_stale_fh_responses_total*)"
+            ]
+            alerts = local.twilio_enabled ? [{
+              type              = "custom"
+              description       = "file01-down"
+              failure-threshold = 2
+              success-threshold = 3
+              send-on-resolved  = true
+            }] : []
+          },
+          {
+            name     = "FISHA file02"
+            group    = "📱 Applications"
+            url      = "http://10.0.X.X:9101/metrics"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[BODY] == pat(*nfs_stale_fh_responses_total*)"
+            ]
+            alerts = local.twilio_enabled ? [{
+              type              = "custom"
+              description       = "file02-down"
+              failure-threshold = 2
+              success-threshold = 3
+              send-on-resolved  = true
+            }] : []
           }
         ],
 
@@ -633,6 +743,22 @@ resource "REDACTED_08d34ae1" "gatus" {
           env {
             name  = "GATUS_CONFIG_PATH"
             value = "/config/config.yaml"
+          }
+
+          # Twilio creds for the custom alerting provider — only injected
+          # when local.twilio_enabled. Each env block is conditional via
+          # a dynamic block keyed off twilio_enabled.
+          dynamic "env" {
+            for_each = local.twilio_enabled ? toset(["TWILIO_ACCOUNT_SID", "TWILIO_BASIC_AUTH", "TWILIO_FROM", "TWILIO_TO"]) : toset([])
+            content {
+              name = env.value
+              value_from {
+                secret_key_ref {
+                  name = kubernetes_secret_v1.gatus_twilio[0].metadata[0].name
+                  key  = env.value
+                }
+              }
+            }
           }
 
           resources {
