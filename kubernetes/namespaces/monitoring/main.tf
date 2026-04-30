@@ -473,6 +473,16 @@ resource "helm_release" "monitoring" {
                 matchers = ["alertname = InfoInhibitor"]
                 receiver = "null"
               },
+              # KubeAPIErrorBudgetBurn — silenced 2026-04-30 (IFRNLLEI01PRD-768).
+              # Root cause is nlk8s-ctrl01 etcd fsync stalls under pve01
+              # CPU pressure (load avg 25); IFRNLLEI01PRD-704 addressed memory
+              # pressure but CPU overcommit is the new bottleneck. No remediation
+              # plan in flight — the alert was creating YT/Matrix noise without
+              # actionable diagnostics. Re-enable once a remediation plan exists.
+              {
+                matchers = ["alertname = KubeAPIErrorBudgetBurn"]
+                receiver = "null"
+              },
               # Tier-1 critical alerts: dual-route to Matrix (via webhook-n8n
               # for visibility) AND Twilio (for operator SMS escalation).
               # `continue: true` ensures the matching alert continues to the
