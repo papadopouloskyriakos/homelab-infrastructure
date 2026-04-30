@@ -1,3 +1,4 @@
+# Atlantis re-apply trigger 2026-04-30: pick up TF_VAR_gatus_twilio_* now that Atlantis env has them. See IFRNLLEI01PRD-802.
 # =============================================================================
 # Gatus - Status Page with Cross-Site Monitoring
 # =============================================================================
