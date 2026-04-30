@@ -381,6 +381,27 @@ resource "helm_release" "monitoring" {
                 { source_labels = ["__address__"], regex = "10\\.255\\.3\\..*", target_label = "site", replacement = "no" },
               ]
             },
+
+            # FISHA NFS Stale-FH Exporter — counts NFS4ERR_STALE responses.
+            # Per IFRNLLEI01PRD-805. Healthy nfsd should report 0 forever.
+            # Service code: native/fisha/nlcl01file{01,02}/scripts/nfs-stale-fh-exporter.py
+            {
+              job_name = "fisha-nfs-stale-fh"
+              static_configs = [{
+                targets = [
+                  "10.0.X.X:9101", # nlcl01file01
+                  "10.0.X.X:9101", # nlcl01file02
+                ]
+                labels = {
+                  role = "nfs-server"
+                  site = "nl"
+                }
+              }]
+              relabel_configs = [
+                { source_labels = ["__address__"], regex = "192\\.168\\.181\\.155:.*", target_label = "instance", replacement = "nlcl01file01" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.181\\.156:.*", target_label = "instance", replacement = "nlcl01file02" },
+              ]
+            },
           ]
         }
 
@@ -423,6 +444,18 @@ resource "helm_release" "monitoring" {
                 send_resolved = true
                 max_alerts    = 10
               }]
+            },
+            # Tier-1 SMS path. Bridge runs on nlclaude01:9106 as a user
+            # systemd service, transforms Alertmanager JSON -> Twilio API
+            # form-urlencoded with API-Key auth (same pattern as
+            # claude-gateway/scripts/freedom-qos-toggle.sh). Refs IFRNLLEI01PRD-802.
+            {
+              name = "twilio-tier1"
+              webhook_configs = [{
+                url           = "http://10.0.X.X:9106/alert"
+                send_resolved = true
+                max_alerts    = 5
+              }]
             }
           ]
           route = {
@@ -439,6 +472,20 @@ resource "helm_release" "monitoring" {
               {
                 matchers = ["alertname = InfoInhibitor"]
                 receiver = "null"
+              },
+              # Tier-1 critical alerts: dual-route to Matrix (via webhook-n8n
+              # for visibility) AND Twilio (for operator SMS escalation).
+              # `continue: true` ensures the matching alert continues to the
+              # default route after hitting twilio-tier1.
+              {
+                matchers = ["tier = 1", "severity = critical"]
+                receiver = "twilio-tier1"
+                continue = true
+                # Independent timing — escalate fast, don't wait for the
+                # 30s/5m group_wait/group_interval used by the chat path.
+                group_wait      = "10s"
+                group_interval  = "1m"
+                repeat_interval = "1h"
               }
             ]
           }
