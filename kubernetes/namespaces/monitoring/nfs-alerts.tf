@@ -65,16 +65,21 @@ resource "kubernetes_manifest" "nfs_alert_rules" {
             },
             {
               alert = "REDACTED_dc405c9b"
-              expr  = "rate(nfs_stale_fh_exporter_packets_total[10m]) == 0 and on(instance) nfs_stale_fh_exporter_uptime_seconds > 600"
-              for   = "10m"
+              # Aggregate across both file01+file02 exporters: only fire when
+              # NEITHER node sees NFS traffic. Previous per-instance form fired
+              # on the standby HA member (which sees zero packets by design)
+              # — IFRNLLEI01PRD-817. `max` returns the max packet rate across
+              # instances; if it is zero, no exporter is seeing traffic.
+              expr = "max(rate(nfs_stale_fh_exporter_packets_total[10m])) == 0 and min(nfs_stale_fh_exporter_uptime_seconds) > 600"
+              for  = "10m"
               labels = {
                 severity = "warning"
                 tier     = "2"
                 service  = "fisha-nfs"
               }
               annotations = {
-                summary     = "NFS stale-fh exporter on {{ $labels.instance }} sees zero NFS traffic"
-                description = "Exporter is up but tcpdump has captured no NFS reply packets in 10 min on the active NFS node. Either nfsd is genuinely idle (verify with `ls /proc/fs/nfsd/clients/` on the active node) or the BPF filter / NIC name is wrong. Note: this alert will fire normally on the standby file node — silence with `instance=~\"<active>\"` matcher."
+                summary     = "NFS stale-fh exporters on file01 AND file02 see zero NFS traffic"
+                description = "Both fisha exporters are up but tcpdump has captured no NFS reply packets on either node for 10 min. Either nfsd is genuinely idle on whichever node is HA-active (verify with `ls /proc/fs/nfsd/clients/` and `pcs status resources`) or the BPF filter / NIC name is wrong on both nodes. Per-instance form was retired 2026-04-30 because it false-positived on the standby HA member; alert now requires BOTH exporters to be silent before firing."
               }
             },
           ]
