@@ -9,17 +9,12 @@ REDACTED_2636fc38 = ""
 
 # -----------------------------------------------------------------------------
 # Gatus → Twilio SMS (IFRNLLEI01PRD-802 replacement for the disabled GitLab
-# pipeline path). Populates Gatus's `custom` alerting provider when ALL
-# values are non-empty; falls back to GitLab pipeline if those are set; falls
-# back to no alerting when both are empty.
+# pipeline path).
 #
-# Real values are NOT committed here. Atlantis is configured to inject them
-# via TF_VAR_gatus_twilio_* environment variables sourced from its secret
-# store. To populate locally for plan/apply outside Atlantis, copy from
-# claude-gateway/.env (TWILIO_*) into a local secrets.auto.tfvars (gitignored).
+# Variable values come from TF_VAR_gatus_twilio_* env vars on the Atlantis
+# runner (loaded via env_file: /srv/atlantis/twilio.env). They are NOT set
+# here because tfvars OVERRIDE env vars (precedence: tfvars > TF_VAR_* env).
+# Default values in variables.tf are empty strings; with no tfvars override,
+# env vars apply, locals.twilio_enabled = true, gatus-twilio Secret is
+# created, and Gatus's custom alerting provider routes to Twilio.
 # -----------------------------------------------------------------------------
-REDACTED_d8050fb2    = ""
-REDACTED_57604654    = ""
-REDACTED_7c52feb9 = ""
-REDACTED_8d5c4795    = ""
-REDACTED_bbaeeaa8      = ""
