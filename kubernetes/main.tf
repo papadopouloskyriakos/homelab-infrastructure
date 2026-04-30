@@ -218,6 +218,11 @@ module "gatus" {
   depends_on                    = [module.ingress_nginx, module.cert_manager]
   gitlab_pipeline_trigger_token = var.gatus_gitlab_pipeline_trigger_token
   haproxy_stats_auth            = var.haproxy_stats_auth
+  twilio_account_sid            = var.gatus_twilio_account_sid
+  twilio_api_key_sid            = var.gatus_twilio_api_key_sid
+  twilio_api_key_secret         = var.gatus_twilio_api_key_secret
+  twilio_from_number            = var.gatus_twilio_from_number
+  twilio_to_number              = var.gatus_twilio_to_number
 }
 # =============================================================================
 # Well-Known Endpoints (security.txt, etc.)
