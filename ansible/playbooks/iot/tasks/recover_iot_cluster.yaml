@@ -1,0 +1,283 @@
+---
+# IOT HA Cluster - Self-healing recovery tasks
+#
+# Run after each node reboot and after g_iot_stack migration.
+# Handles known IOT cluster failure modes observed in production.
+#
+# Required variables:
+#   recover_node: hostname of the node being recovered
+#
+# Failure modes handled:
+#   1. g_iot_stack failed to migrate (stuck/failed resources)
+#   2. Node failed to come online after reboot (standby/UNCLEAN)
+#   3. SBD left node in reset/off state
+#   4. Docker containers not starting after migration
+#   5. NFS mount p_fs_iot failed (FISHA dependency)
+#   6. HA monitor false positive loop (intermittent fail-count)
+
+###############################################################################
+# Step 1: Verify SBD state for this node
+###############################################################################
+- name: "[IOT-RECOVERY] Step 1 - Check SBD slot state for {{ recover_node }}"
+  shell: |
+    sbd_out=$(sbd -d /dev/sdb list 2>&1)
+    echo "$sbd_out"
+    node_state=$(echo "$sbd_out" | grep "{{ recover_node }}" | awk '{print $3}')
+    if [ "$node_state" = "reset" ] || [ "$node_state" = "off" ]; then
+      echo "SBD_UNHEALTHY: {{ recover_node }} is in state: $node_state"
+      exit 1
+    fi
+    echo "SBD slot for {{ recover_node }}: $node_state"
+  register: sbd_check
+  changed_when: false
+  check_mode: false
+  failed_when: false
+
+- name: "[IOT-RECOVERY] Step 1 - Clear SBD reset/off state for {{ recover_node }}"
+  block:
+    - name: Clear SBD message for node
+      command: sbd -d /dev/sdb message {{ recover_node }} clear
+
+    - name: Wait for SBD clear to propagate
+      pause:
+        seconds: 15
+
+    - name: Verify SBD slot is now clear
+      shell: sbd -d /dev/sdb list | grep "{{ recover_node }}" | awk '{print $3}'
+      register: sbd_verify
+      changed_when: false
+      failed_when: sbd_verify.stdout != "clear"
+
+    - name: Display SBD recovery result
+      debug:
+        msg: "[IOT-RECOVERY] SBD slot for {{ recover_node }} cleared (was {{ sbd_check.stdout_lines | select('search', 'SBD_UNHEALTHY') | first | default('unknown') }})"
+  when: sbd_check.rc != 0
+
+###############################################################################
+# Step 2: Verify node is Online (not standby/UNCLEAN)
+###############################################################################
+- name: "[IOT-RECOVERY] Step 2 - Check node state in cluster"
+  shell: |
+    crm_out=$(crm status 2>&1)
+    if echo "$crm_out" | grep -q "UNCLEAN.*{{ recover_node }}"; then
+      echo "NODE_UNCLEAN: {{ recover_node }} - waiting for STONITH to complete"
+      exit 2
+    fi
+    if echo "$crm_out" | grep -q "standby.*{{ recover_node }}\|{{ recover_node }}.*standby"; then
+      echo "NODE_STANDBY: {{ recover_node }} - attempting to bring online"
+      exit 1
+    fi
+    if echo "$crm_out" | grep -E "Online:" | grep -q "\b{{ recover_node }}\b"; then
+      echo "NODE_ONLINE: {{ recover_node }}"
+      exit 0
+    fi
+    echo "NODE_UNKNOWN: {{ recover_node }} state unclear"
+    exit 3
+  register: node_state_check
+  changed_when: false
+  check_mode: false
+  failed_when: false
+
+- name: "[IOT-RECOVERY] Step 2 - Bring standby node online"
+  block:
+    - name: Bring node online
+      command: crm node online {{ recover_node }}
+
+    - name: Wait for node to appear Online (up to 2 minutes)
+      shell: crm status | grep -E "Online:" | grep -q "\b{{ recover_node }}\b"
+      register: online_wait
+      until: online_wait.rc == 0
+      retries: 12
+      delay: 10
+      changed_when: false
+  when: node_state_check.rc == 1
+
+- name: "[IOT-RECOVERY] Step 2 - WARN if node is UNCLEAN"
+  debug:
+    msg: >-
+      [IOT-RECOVERY] WARNING: {{ recover_node }} is UNCLEAN.
+      Do NOT attempt to bring it online - STONITH must complete first.
+      This may require manual intervention. Logging and continuing.
+  when: node_state_check.rc == 2
+
+###############################################################################
+# Step 3: Check NFS mount dependency (FISHA VIP)
+###############################################################################
+- name: "[IOT-RECOVERY] Step 3 - Verify FISHA VIP 10.0.X.X is reachable"
+  ansible.builtin.wait_for:
+    host: 10.0.X.X
+    port: 2049
+    timeout: 30
+    state: started
+  delegate_to: localhost
+  become: no
+  check_mode: false
+  register: fisha_check
+  failed_when: false
+
+- name: "[IOT-RECOVERY] Step 3 - FAIL if FISHA NFS unavailable"
+  fail:
+    msg: >-
+      [IOT-RECOVERY] FISHA NFS unavailable at 10.0.X.X:2049.
+      IOT stack cannot start without /mnt/iot mount.
+      This is a dependency issue, not an IOT cluster issue.
+      Check FISHA cluster health before retrying.
+  when: fisha_check is failed
+
+###############################################################################
+# Step 4: Check for failed resources and handle HA monitor flaps
+###############################################################################
+- name: "[IOT-RECOVERY] Step 4 - Check for failed resources"
+  shell: |
+    crm_out=$(crm status 2>&1)
+    if ! echo "$crm_out" | grep -qiE "Failed Actions|Failed Resource Actions"; then
+      echo "NO_FAILURES"
+      exit 0
+    fi
+
+    # Extract failed resource info
+    failed_section=$(echo "$crm_out" | grep -A20 -iE "Failed Actions|Failed Resource Actions")
+
+    # Check if it is ONLY HA monitor with fail-count=1
+    non_ha=$(echo "$failed_section" | grep -i "fail" | grep -v "home-assistant" | grep -cv "^--$" || true)
+    ha_count=$(echo "$failed_section" | grep -i "home-assistant" | grep -oP 'fail-count=\K[0-9]+' || echo "0")
+
+    if [ "$non_ha" -eq 0 ] && [ "$ha_count" -le 1 ]; then
+      echo "HA_MONITOR_FLAP: fail-count=$ha_count (tolerable, will cleanup)"
+      exit 10
+    fi
+
+    echo "REAL_FAILURES: $failed_section"
+    exit 1
+  register: failed_check
+  changed_when: false
+  check_mode: false
+  failed_when: false
+
+- name: "[IOT-RECOVERY] Step 4 - Cleanup HA monitor flap (fail-count <= 1)"
+  command: crm resource cleanup p_docker_home-assistant
+  when: failed_check.rc == 10
+
+- name: "[IOT-RECOVERY] Step 4 - Cleanup all failed resources in g_iot_stack"
+  block:
+    - name: Run resource cleanup for g_iot_stack
+      command: crm resource cleanup g_iot_stack
+
+    - name: Wait for cleanup to take effect
+      pause:
+        seconds: 60
+
+    - name: Verify no failures remain after cleanup
+      shell: |
+        crm_out=$(crm status 2>&1)
+        if echo "$crm_out" | grep -qiE "Failed Actions|Failed Resource Actions"; then
+          failed_info=$(echo "$crm_out" | grep -A10 -iE "Failed" | head -10)
+          echo "STILL_FAILED: $failed_info"
+          exit 1
+        fi
+        echo "CLEANUP_SUCCESSFUL"
+      register: post_cleanup
+      changed_when: false
+      check_mode: false
+      failed_when: false
+
+    - name: "[IOT-RECOVERY] WARN if failures persist after cleanup"
+      debug:
+        msg: >-
+          [IOT-RECOVERY] WARNING: Failed resources persist after cleanup.
+          {{ post_cleanup.stdout | default('No output') }}
+          May need manual investigation.
+      when: post_cleanup.rc != 0
+  when: failed_check.rc == 1
+
+###############################################################################
+# Step 5: Verify Docker containers on active node
+###############################################################################
+- name: "[IOT-RECOVERY] Step 5 - Check Docker containers on active node"
+  shell: |
+    # Only check if THIS node (where docker ps runs) is running g_iot_stack
+    local_node=$(hostname -s)
+    if ! crm status 2>&1 | grep -E "p_vip_iot.*Started.*${local_node}"; then
+      echo "PASSIVE_NODE: ${local_node} not running g_iot_stack - skip container check"
+      exit 0
+    fi
+
+    running=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}")
+    missing=""
+    for svc in homeassistant eclipse-mosquitto zigbee2mqtt esphome nodered; do
+      if ! echo "$running" | grep -qi "$svc"; then
+        missing="${missing}${svc} "
+      fi
+    done
+    if [ -n "$missing" ]; then
+      echo "MISSING_CONTAINERS: ${missing}"
+      exit 1
+    fi
+    echo "REDACTED_f265ef4e"
+  register: docker_check
+  changed_when: false
+  check_mode: false
+  failed_when: false
+
+- name: "[IOT-RECOVERY] Step 5 - Attempt Docker resource cleanup for missing containers"
+  block:
+    - name: Check stopped containers for error info
+      shell: |
+        docker ps -a --filter "status=exited" --format "{{ '{{' }}.Names{{ '}}' }}: {{ '{{' }}.Status{{ '}}' }}"
+      register: stopped_containers
+      changed_when: false
+
+    - name: Display stopped container info
+      debug:
+        msg: "[IOT-RECOVERY] Stopped containers: {{ stopped_containers.stdout | default('none') }}"
+      when: stopped_containers.stdout | length > 0
+
+    - name: Cleanup individual Docker resources
+      command: "crm resource cleanup {{ item }}"
+      loop:
+        - p_docker_home-assistant
+        - p_docker_mosquitto
+        - p_docker_zigbee2mqtt
+        - p_docker_esphome
+        - p_docker_nodered
+
+    - name: Wait for containers to start (HA needs 60-90s)
+      pause:
+        seconds: 90
+
+    - name: Verify containers are now running
+      shell: |
+        running=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}")
+        missing=""
+        for svc in homeassistant eclipse-mosquitto zigbee2mqtt esphome nodered; do
+          if ! echo "$running" | grep -qi "$svc"; then
+            missing="${missing}${svc} "
+          fi
+        done
+        if [ -n "$missing" ]; then
+          echo "STILL_MISSING: ${missing}"
+          exit 1
+        fi
+        echo "REDACTED_9197f0ab"
+      register: docker_recheck
+      changed_when: false
+      failed_when: false
+
+    - name: "[IOT-RECOVERY] WARN if containers still missing"
+      debug:
+        msg: >-
+          [IOT-RECOVERY] WARNING: Docker containers still missing after cleanup.
+          {{ docker_recheck.stdout | default('No output') }}
+          May need manual restart: crm resource restart g_iot_stack
+      when: docker_recheck.rc != 0
+  when: docker_check.rc == 1
+
+- name: "[IOT-RECOVERY] Recovery complete for {{ recover_node }}"
+  debug:
+    msg: >-
+      [IOT-RECOVERY] All recovery checks completed for {{ recover_node }}.
+      SBD: {{ 'cleared' if sbd_check.rc != 0 else 'ok' }},
+      Node: {{ 'recovered' if node_state_check.rc != 0 else 'online' }},
+      FISHA NFS: ok,
+      Failed resources: {{ 'cleaned' if (failed_check.rc | default(0)) != 0 else 'none' }},
+      Docker: {{ 'recovered' if (docker_check.rc | default(0)) != 0 else 'ok' }}

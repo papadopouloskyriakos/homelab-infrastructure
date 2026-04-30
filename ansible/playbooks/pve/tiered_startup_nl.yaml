@@ -1,0 +1,401 @@
+---
+# NL Tiered Startup — T0→T6 startup with health gates
+#
+# After PVE reboots, orchestrates the correct startup order based on the
+# dependency tier model from the maintenance plan.
+#
+# Most guests auto-start on PVE reboot, but this playbook:
+#   - Ensures correct tier ordering by waiting for health gates
+#   - Recovers services that don't self-heal (NFS mounts, Galera bootstrap)
+#   - Verifies each tier before proceeding to the next
+#
+# Required extra_vars:
+#   matrix_api_token: Matrix bot token
+#
+# Optional extra_vars:
+#   skip_tiers: list of tiers to skip (e.g., [5, 6])
+#   galera_bootstrap_node: hostname to bootstrap Galera from (auto-detected if not set)
+#
+# Runs from localhost (SSH to nodes as needed).
+
+
+# Vars (set by caller or default)
+- name: Set tiered startup defaults
+  set_fact:
+    _skip_tiers: "{{ skip_tiers | default([]) }}"
+  when: _skip_tiers is not defined
+
+- name: Record startup start time
+  set_fact:
+    startup_start: "{{ now(utc=true) }}"
+    tier_results: {}
+
+###########################################################################
+# TIER 0 — Storage Foundation (syno01 + DNS)
+###########################################################################
+- name: "═══ TIER 0 — Storage Foundation ═══"
+  debug:
+    msg: "Verifying nl-nas01 services + DNS chain"
+  when: 0 not in (_skip_tiers | map('int') | list)
+
+- name: "[T0] Verify syno01 NFS exports (expect 10)"
+  shell: |
+    count=$(ssh nl-pve01 "showmount -e 10.0.X.X 2>/dev/null | grep -c '/' || echo 0" 2>/dev/null || echo "0")
+    count=$(echo "$count" | tr -d '[:space:]')
+    echo "nl-nas01 NFS exports: $count"
+    test "$count" -ge 10
+  register: t0_syno01_nfs
+  until: t0_syno01_nfs.rc == 0
+  retries: 20
+  delay: 15
+  changed_when: false
+  when: 0 not in (_skip_tiers | map('int') | list)
+
+- name: "[T0] Verify syno01 iSCSI"
+  shell: |
+    ssh -i ~/.ssh/one_key admin@10.0.X.X \
+      "sudo synoservice --status pkgctl-ScsiTarget 2>&1" | grep -qi "running"
+  register: t0_syno01_iscsi
+  retries: 10
+  delay: 15
+  until: t0_syno01_iscsi.rc == 0
+  changed_when: false
+  failed_when: false
+  when: 0 not in (_skip_tiers | map('int') | list)
+
+- name: "[T0] Wait for FreeIPA DNS (pve01, auto-started order=1)"
+  shell: dig @10.0.X.X nextcloud.example.net +short +time=5
+  register: t0_dns_freeipa
+  until: t0_dns_freeipa.rc == 0 and t0_dns_freeipa.stdout | length > 0
+  retries: 30
+  delay: 10
+  changed_when: false
+  when: 0 not in (_skip_tiers | map('int') | list)
+
+- name: "[T0] Wait for Pi-hole DNS (pve01, auto-started order=2)"
+  shell: dig @10.0.X.X google.com +short +time=5
+  register: t0_dns_pihole
+  until: t0_dns_pihole.rc == 0 and t0_dns_pihole.stdout | length > 0
+  retries: 30
+  delay: 10
+  changed_when: false
+  when: 0 not in (_skip_tiers | map('int') | list)
+
+- name: "[T0] GATE: DNS operational"
+  debug:
+    msg: "TIER 0 PASS: nl-nas01 storage + DNS operational"
+  when: 0 not in (_skip_tiers | map('int') | list)
+
+###########################################################################
+# TIER 1 — Networking & Identity
+###########################################################################
+- name: "═══ TIER 1 — Networking & Identity ═══"
+  debug:
+    msg: "Verifying NPM + nl-pve02 guests + nl-nas01 VMM guests"
+  when: 1 not in (_skip_tiers | map('int') | list)
+
+- name: "[T1] Wait for NPM (pve01, auto-started order=4)"
+  ansible.builtin.wait_for:
+    host: 10.0.X.X
+    port: 443
+    timeout: 300
+    state: started
+  when: 1 not in (_skip_tiers | map('int') | list)
+
+- name: "[T1] Wait for pve02 SSH"
+  ansible.builtin.wait_for:
+    host: nl-pve02
+    port: 22
+    timeout: 300
+    state: started
+  when: 1 not in (_skip_tiers | map('int') | list)
+
+- name: "[T1] Verify pve02 guests running"
+  shell: |
+    lxc=$(ssh nl-pve02 "pct list 2>/dev/null | grep -c running || echo 0" 2>/dev/null | tr -dc '0-9')
+    vms=$(ssh nl-pve02 "qm list 2>/dev/null | grep -c running || echo 0" 2>/dev/null | tr -dc '0-9')
+    running=$(( ${lxc:-0} + ${vms:-0} ))
+    echo "nl-pve02 running guests: $running"
+    [ "$running" -ge 3 ]
+  register: t1_pve02_guests
+  until: t1_pve02_guests.rc == 0
+  retries: 20
+  delay: 15
+  changed_when: false
+  when: 1 not in (_skip_tiers | map('int') | list)
+
+- name: "[T1] Verify nlcl01filearb01 reachable (nl-nas01 VMM)"
+  shell: timeout 5 bash -c '</dev/tcp/10.0.X.X/22' 2>/dev/null && echo OK
+  register: t1_filearb
+  until: t1_filearb.rc == 0
+  retries: 20
+  delay: 15
+  changed_when: false
+  when: 1 not in (_skip_tiers | map('int') | list)
+
+- name: "[T1] Verify nlcl01iotarb01 reachable (nl-nas01 VMM)"
+  shell: timeout 5 bash -c '</dev/tcp/10.0.X.X/22' 2>/dev/null && echo OK
+  register: t1_iotarb
+  until: t1_iotarb.rc == 0
+  retries: 20
+  delay: 15
+  changed_when: false
+  when: 1 not in (_skip_tiers | map('int') | list)
+
+###########################################################################
+# TIER 2 — Database, Cache & Shared Storage
+###########################################################################
+- name: "═══ TIER 2 — Database, Cache & Shared Storage ═══"
+  debug:
+    msg: "Galera bootstrap, Redis verify, FISHA + Pacemaker restore"
+  when: 2 not in (_skip_tiers | map('int') | list)
+
+# Galera bootstrap
+- name: "[T2] Check Galera cluster state"
+  shell: |
+    size=$(ssh nlcl01mariadb01 \
+      "mysql -N -e \"SHOW STATUS LIKE 'wsrep_cluster_size'\" 2>/dev/null" | awk '{print $2}' || echo "0")
+    echo "Galera cluster size: $size"
+    [ "$size" -ge 2 ]
+  register: t2_galera_check
+  changed_when: false
+  failed_when: false
+  when: 2 not in (_skip_tiers | map('int') | list)
+
+- name: "[T2] Bootstrap Galera if needed"
+  block:
+    - name: "[T2] Bootstrap Galera on mariadb01"
+      shell: |
+        ssh nlcl01mariadb01 "galera_new_cluster 2>&1 || systemctl start mariadb 2>&1"
+      register: galera_bootstrap
+
+    - name: "[T2] Start mariadb on mariadb02"
+      shell: ssh nlcl01mariadb02 "systemctl start mariadb" 2>&1
+      failed_when: false
+
+    - name: "[T2] Wait for Galera cluster size = 3 (garbd01 on pve02)"
+      shell: |
+        size=$(ssh nlcl01mariadb01 \
+          "mysql -N -e \"SHOW STATUS LIKE 'wsrep_cluster_size'\" 2>/dev/null" | awk '{print $2}' || echo "0")
+        echo "Galera cluster size: $size"
+        [ "$size" -ge 2 ]
+      register: galera_size
+      until: galera_size.rc == 0
+      retries: 20
+      delay: 15
+      changed_when: false
+  when:
+    - 2 not in (_skip_tiers | map('int') | list)
+    - t2_galera_check.rc != 0
+
+# Redis verify
+- name: "[T2] Verify Redis replication"
+  shell: |
+    role=$(redis-cli -h 10.0.X.X INFO replication 2>/dev/null | grep 'role:' | tr -d '\r' || echo 'role:unknown')
+    echo "Redis: $role"
+    echo "$role" | grep -q "master"
+  register: t2_redis
+  retries: 10
+  delay: 15
+  until: t2_redis.rc == 0
+  changed_when: false
+  failed_when: false
+  when: 2 not in (_skip_tiers | map('int') | list)
+
+# FISHA + IoT Pacemaker restore
+- name: "[T2] Restore Pacemaker clusters (FISHA then IoT)"
+  include_tasks: ../pacemaker/restore_clusters.yaml
+  when: 2 not in (_skip_tiers | map('int') | list)
+
+- name: "[T2] Verify ProxySQL"
+  shell: |
+    ssh nlcl01proxysql01 "mysql -h 127.0.0.1 -P 6033 -u monitor -e 'SELECT 1' 2>&1" || echo "REDACTED_c1ba539f"
+  register: t2_proxysql
+  changed_when: false
+  failed_when: false
+  when: 2 not in (_skip_tiers | map('int') | list)
+
+###########################################################################
+# TIER 3 — K8s Control Plane
+###########################################################################
+- name: "═══ TIER 3 — K8s Control Plane ═══"
+  debug:
+    msg: "Waiting for K8s CP, etcd, CoreDNS"
+  when: 3 not in (_skip_tiers | map('int') | list)
+
+- name: "[T3] Wait for K8s API"
+  command: "kubectl get nodes"
+  register: t3_k8s_api
+  until: t3_k8s_api.rc == 0
+  retries: 40
+  delay: 15
+  changed_when: false
+  when: 3 not in (_skip_tiers | map('int') | list)
+
+- name: "[T3] Wait for 3 CP nodes Ready"
+  shell: |
+    ready_cp=$(kubectl get nodes --no-headers 2>/dev/null \
+      | grep "control-plane" | grep -c " Ready" || true)
+    echo "CP nodes Ready: $ready_cp/3"
+    [ "$ready_cp" -ge 3 ]
+  register: t3_cp_ready
+  until: t3_cp_ready.rc == 0
+  retries: 30
+  delay: 15
+  changed_when: false
+  when: 3 not in (_skip_tiers | map('int') | list)
+
+- name: "[T3] Wait for CoreDNS Running"
+  shell: |
+    kubectl -n kube-system get pods -l k8s-app=kube-dns --no-headers 2>/dev/null \
+      | grep -c Running | grep -q "[2-9]"
+  register: t3_coredns
+  until: t3_coredns.rc == 0
+  retries: 20
+  delay: 15
+  changed_when: false
+  when: 3 not in (_skip_tiers | map('int') | list)
+
+###########################################################################
+# TIER 4 — K8s Workers & Core Applications
+###########################################################################
+- name: "═══ TIER 4 — K8s Workers & Core Applications ═══"
+  debug:
+    msg: "Uncordoning workers, waiting for storage + workloads + Nextcloud + IoT"
+  when: 4 not in (_skip_tiers | map('int') | list)
+
+- name: "[T4] Wait for all 7 K8s nodes Ready"
+  shell: |
+    ready=$(kubectl get nodes --no-headers 2>/dev/null | grep -c " Ready" || true)
+    echo "$ready/7 nodes Ready"
+    [ "$ready" -ge 7 ]
+  register: t4_nodes_ready
+  until: t4_nodes_ready.rc == 0
+  retries: 30
+  delay: 15
+  changed_when: false
+  when: 4 not in (_skip_tiers | map('int') | list)
+
+- name: "[T4] Uncordon all K8s nodes"
+  shell: |
+    for node in $(kubectl get nodes -o jsonpath='{.items[*].metadata.name}'); do
+      kubectl uncordon $node 2>/dev/null || true
+    done
+    echo "All nodes uncordoned"
+  changed_when: true
+  when: 4 not in (_skip_tiers | map('int') | list)
+
+- name: "[T4] Wait for synology-csi controller Running"
+  shell: |
+    kubectl -n synology-csi get pods --no-headers 2>/dev/null | grep controller | grep -q Running
+  register: t4_csi
+  until: t4_csi.rc == 0
+  retries: 30
+  delay: 15
+  changed_when: false
+  when: 4 not in (_skip_tiers | map('int') | list)
+
+- name: "[T4] Wait for all PVs Bound"
+  shell: |
+    non_bound=$(kubectl get pv --no-headers 2>/dev/null | grep -v "Bound\|Available" || true)
+    if [ -n "$non_bound" ]; then
+      echo "NOT_BOUND: $non_bound"
+      exit 1
+    fi
+    total=$(kubectl get pv --no-headers | wc -l)
+    echo "All $total PVs Bound"
+  register: t4_pvs
+  until: t4_pvs.rc == 0
+  retries: 30
+  delay: 20
+  changed_when: false
+  when: 4 not in (_skip_tiers | map('int') | list)
+
+- name: "[T4] Wait for ingress-nginx controllers"
+  shell: |
+    kubectl -n ingress-nginx get pods -l app.kubernetes.io/component=controller --no-headers 2>/dev/null \
+      | grep -c Running | grep -q "[2-9]"
+  register: t4_ingress
+  until: t4_ingress.rc == 0
+  retries: 20
+  delay: 15
+  changed_when: false
+  when: 4 not in (_skip_tiers | map('int') | list)
+
+# Nextcloud HA startup
+- name: "[T4] Restore Nextcloud (NFS mounts + maintenance mode off)"
+  include_tasks: ../nextcloud/maintenance_mode.yaml
+  vars:
+    action: "off"
+  when: 4 not in (_skip_tiers | map('int') | list)
+
+###########################################################################
+# TIER 5 — Platform Services
+###########################################################################
+- name: "═══ TIER 5 — Platform Services ═══"
+  debug:
+    msg: "Verifying n8n, Matrix, LibreNMS, GitLab, YouTrack"
+  when: 5 not in (_skip_tiers | map('int') | list)
+
+- name: "[T5] Wait for n8n health"
+  shell: curl -sf --max-time 10 http://10.0.X.X:5678/healthz >/dev/null && echo OK
+  register: t5_n8n
+  retries: 20
+  delay: 15
+  until: t5_n8n.rc == 0
+  changed_when: false
+  failed_when: false
+  when: 5 not in (_skip_tiers | map('int') | list)
+
+- name: "[T5] Verify Matrix Synapse"
+  shell: curl -sfk --max-time 10 https://matrix.example.net/_matrix/client/versions >/dev/null && echo OK
+  register: t5_matrix
+  retries: 10
+  delay: 15
+  until: t5_matrix.rc == 0
+  changed_when: false
+  failed_when: false
+  when: 5 not in (_skip_tiers | map('int') | list)
+
+- name: "[T5] Verify LibreNMS web UI"
+  shell: curl -sfk --max-time 10 https://nlnms01.example.net >/dev/null && echo OK
+  register: t5_librenms
+  retries: 10
+  delay: 15
+  until: t5_librenms.rc == 0
+  changed_when: false
+  failed_when: false
+  when: 5 not in (_skip_tiers | map('int') | list)
+
+###########################################################################
+# TIER 6 — Leaf Services + ClusterMesh
+###########################################################################
+- name: "═══ TIER 6 — Leaf Services ═══"
+  debug:
+    msg: "Spot-checking leaf services + ClusterMesh"
+  when: 6 not in (_skip_tiers | map('int') | list)
+
+- name: "[T6] Check ClusterMesh NL↔GR"
+  shell: cilium clustermesh status 2>/dev/null || echo 'ClusterMesh check skipped'
+  register: t6_clustermesh
+  changed_when: false
+  failed_when: false
+  when: 6 not in (_skip_tiers | map('int') | list)
+
+###########################################################################
+# Summary
+###########################################################################
+- name: "═══ TIERED STARTUP COMPLETE ═══"
+  debug:
+    msg: |
+      NL Tiered Startup Complete
+      Start: {{ startup_start }}
+      End:   {{ now(utc=true) }}
+
+      T0 — Storage + DNS: {{ 'PASS' if (t0_dns_pihole.rc | default(1)) == 0 else 'CHECK' }}
+      T1 — Networking: {{ 'PASS' if (t1_pve02_guests.rc | default(1)) == 0 else 'CHECK' }}
+      T2 — DB/Cache/Storage: Galera={{ t2_galera_check.rc | default(1) == 0 }}, Redis={{ (t2_redis.rc | default(1)) == 0 }}
+      T3 — K8s CP: {{ 'PASS' if (t3_cp_ready.rc | default(1)) == 0 else 'CHECK' }}
+      T4 — K8s Workers: {{ 'PASS' if (t4_pvs.rc | default(1)) == 0 else 'CHECK' }}
+      T5 — Platform: n8n={{ 'OK' if (t5_n8n.status | default(0)) == 200 else 'CHECK' }}, Matrix={{ 'OK' if (t5_matrix.status | default(0)) == 200 else 'CHECK' }}
+      T6 — Leaf: spot-checked

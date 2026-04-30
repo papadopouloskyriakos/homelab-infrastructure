@@ -1,0 +1,777 @@
+---
+# IOT HA Cluster - Weekly Update
+#
+# Performs rolling apt updates with Docker image pulls and mandatory reboot
+# on a 2+1 node HA IOT cluster (2 active nodes + 1 arbiter), one node at
+# a time, ensuring cluster health throughout.
+#
+# Cluster stack: Corosync (udpu) + Pacemaker (crm) + iSCSI SBD + NFS mounts
+# Nodes: nlcl01iot01, nlcl01iot02 (active), nlcl01iotarb01 (arbiter)
+# Fencing: fence_pve (Proxmox) + sbd_stonith (iSCSI SBD on /dev/sdb)
+# Softdog: /dev/watchdog present - SBD uses for self-fencing
+# no-quorum-policy=suicide - losing quorum causes immediate self-fence
+#
+# Resource group g_iot_stack (single failover unit):
+#   p_fs_iot, p_vip_iot, p_fs_media, p_fs_backup,
+#   p_docker_home-assistant, p_docker_mosquitto, p_docker_zigbee2mqtt,
+#   p_docker_esphome, p_docker_nodered
+#
+# Arbiter resources (not part of g_iot_stack):
+#   sbd_stonith (stonith:external/sbd) - pinned via location constraint
+#   fence_iot02 (stonith:fence_pve) - may run here
+#
+# Update order (determined dynamically at runtime):
+#   1. Arbiter (while both primaries are healthy - quorum never at risk)
+#   2. Passive node (not currently running g_iot_stack)
+#   3. Migrate g_iot_stack to updated passive node
+#   4. Active node (now passive after migration)
+#
+# Health validation runs after each node update.
+#
+# Docker images pulled on every update (primaries only):
+#   ghcr.io/home-assistant/home-assistant:stable
+#   eclipse-mosquitto:latest
+#   koenkk/zigbee2mqtt:latest
+#   esphome/esphome:latest
+#   nodered/node-red:latest
+
+###############################################################################
+# Play 1: Discover cluster state and determine update order
+###############################################################################
+- name: Discover IOT cluster state and determine update order
+  hosts: iot_nodes[0]
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Record update start time
+      set_fact:
+        iot_update_start: "{{ now(utc=true) }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+    - name: Get current cluster status
+      command: crm status
+      register: crm_status_raw
+      changed_when: false
+      check_mode: false
+
+    - name: Verify cluster is healthy enough to begin updates
+      assert:
+        that:
+          - "'Online' in crm_status_raw.stdout"
+          - "'g_iot_stack' in crm_status_raw.stdout"
+          - "'Started' in crm_status_raw.stdout"
+        fail_msg: >-
+          IOT cluster does not appear healthy enough to begin rolling updates.
+          Manual investigation required before proceeding.
+
+    - name: Verify g_iot_stack is running on a node
+      assert:
+        that:
+          - crm_status_raw.stdout | regex_search('p_vip_iot.*Started\s+\S+')
+        fail_msg: >-
+          g_iot_stack is not running on any node. Cluster may be unhealthy.
+          Manual investigation required.
+
+    - name: Identify which node currently runs g_iot_stack
+      set_fact:
+        iot_active_node: >-
+          {{ crm_status_raw.stdout
+             | regex_search('p_vip_iot\s+\(ocf[^)]*\):\s+Started\s+(\S+)', '\1')
+             | first }}
+
+    - name: Verify active node was identified
+      assert:
+        that:
+          - iot_active_node is defined
+          - iot_active_node in groups['iot_nodes']
+        fail_msg: >-
+          Could not determine which node runs g_iot_stack.
+          Cluster may be unhealthy. Manual investigation required.
+
+    - name: Determine passive node (not running g_iot_stack)
+      set_fact:
+        iot_passive_node: >-
+          {{ groups['iot_nodes'] | difference([iot_active_node]) | first }}
+
+    - name: Display update order
+      debug:
+        msg: |
+          IOT cluster update order determined:
+            1. nlcl01iotarb01 (arbiter - sbd_stonith + fence resources)
+            2. {{ iot_passive_node }} (passive - not running g_iot_stack)
+            3. {{ iot_active_node }} (active - currently running g_iot_stack)
+
+    - name: Store cluster state for subsequent plays
+      set_fact:
+        iot_active_node: "{{ iot_active_node }}"
+        iot_passive_node: "{{ iot_passive_node }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+###############################################################################
+# Play 2: Update arbiter node
+###############################################################################
+- name: Update arbiter node (nlcl01iotarb01)
+  hosts: iot_arbiter
+  become: yes
+  gather_facts: no
+
+  tasks:
+    # --- Pre-reboot safety checks ---
+
+    - name: Get current cluster status
+      command: crm status
+      register: arb_crm_status
+      changed_when: false
+      check_mode: false
+
+    - name: Verify both primary nodes are Online before touching arbiter
+      assert:
+        that:
+          - arb_crm_status.stdout | regex_search('Online:.*nlcl01iot01')
+          - arb_crm_status.stdout | regex_search('Online:.*nlcl01iot02')
+        fail_msg: >-
+          Cannot update arbiter - both primary nodes must be Online first.
+          Current status: {{ arb_crm_status.stdout }}
+
+    - name: Verify quorum is healthy
+      shell: corosync-quorumtool -s 2>&1 | grep -q "Quorate:.*Yes"
+      changed_when: false
+      check_mode: false
+
+    - name: Check SBD slot state before proceeding
+      shell: |
+        sbd_out=$(sbd -d /dev/sdb list 2>&1)
+        echo "$sbd_out"
+        if echo "$sbd_out" | grep -qE "\b(reset|off)\b"; then
+          echo "SBD UNHEALTHY: one or more nodes show reset/off"
+          exit 1
+        fi
+        echo "All SBD slots clear"
+      register: sbd_pre_check
+      changed_when: false
+      check_mode: false
+      failed_when: false
+
+    - name: Fail if SBD shows unhealthy state
+      fail:
+        msg: >-
+          SBD slot state is unhealthy - aborting update.
+          {{ sbd_pre_check.stdout }}
+          Manual investigation required before proceeding.
+      when: sbd_pre_check.rc != 0
+
+    # --- Standby and resource handling ---
+
+    - name: Put arbiter in standby
+      command: crm node standby {{ inventory_hostname }}
+
+    - name: Wait for cluster to stabilize after standby
+      pause:
+        seconds: 15
+
+    - name: Check if sbd_stonith relocated off arbiter
+      shell: |
+        crm_out=$(crm status 2>&1)
+        if echo "$crm_out" | grep -q "sbd_stonith.*Started.*{{ inventory_hostname }}"; then
+          echo "sbd_stonith still on arbiter"
+          exit 1
+        fi
+        if echo "$crm_out" | grep -q "sbd_stonith.*Started"; then
+          echo "sbd_stonith relocated successfully"
+          exit 0
+        fi
+        echo "sbd_stonith not running"
+        exit 1
+      register: sbd_relocated
+      until: sbd_relocated.rc == 0
+      retries: 6
+      delay: 10
+      changed_when: false
+      check_mode: false
+      failed_when: false
+
+    - name: Put sbd_stonith in maintenance mode if it cannot relocate
+      block:
+        - name: Enable maintenance mode for sbd_stonith
+          command: crm resource maintenance sbd_stonith on
+          register: sbd_maintenance_set
+
+        - name: Display sbd_stonith maintenance notice
+          debug:
+            msg: >-
+              sbd_stonith could not relocate off arbiter (location constraint).
+              Set to maintenance mode for reboot. Will restore after.
+      when: sbd_relocated.rc != 0
+
+    - name: Track whether sbd_stonith was put in maintenance
+      set_fact:
+        _sbd_needs_restore: "{{ sbd_relocated.rc != 0 }}"
+
+    # --- Update (packages only, no Docker) ---
+
+    - name: Update apt cache and upgrade all packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      register: apt_result_arbiter
+
+    - name: Clean up unnecessary packages
+      apt:
+        autoremove: yes
+        autoclean: yes
+
+    - name: Put arbiter into LibreNMS maintenance
+      include_tasks: ../common/tasks/librenms_maintenance.yaml
+      vars:
+        maintenance_node: "{{ inventory_hostname }}"
+
+    - name: Reboot arbiter
+      reboot:
+        reboot_timeout: 300
+        msg: "IOT weekly update - rebooting arbiter"
+
+    # --- Post-reboot recovery ---
+
+    - name: Wait for Pacemaker to start after reboot
+      command: systemctl is-active pacemaker
+      register: pacemaker_status
+      until: pacemaker_status.rc == 0
+      retries: 18
+      delay: 10
+      changed_when: false
+      check_mode: false
+
+    - name: Bring arbiter back online
+      command: crm node online {{ inventory_hostname }}
+
+    - name: Wait for arbiter to show Online in cluster (up to 2 minutes)
+      shell: crm status | grep -E "Online:" | grep -q "\b{{ inventory_hostname }}\b"
+      register: arb_online
+      until: arb_online.rc == 0
+      retries: 12
+      delay: 10
+      changed_when: false
+      check_mode: false
+
+    - name: Restore sbd_stonith from maintenance mode
+      block:
+        - name: Disable maintenance mode for sbd_stonith
+          command: crm resource maintenance sbd_stonith off
+
+        - name: Cleanup sbd_stonith resource
+          command: crm resource cleanup sbd_stonith
+
+        - name: Wait for sbd_stonith to start
+          shell: crm status | grep -q "sbd_stonith.*Started"
+          register: sbd_started
+          until: sbd_started.rc == 0
+          retries: 12
+          delay: 10
+          changed_when: false
+          check_mode: false
+      when: _sbd_needs_restore | bool
+
+    - name: Verify SBD is healthy post-reboot
+      shell: |
+        sbd_out=$(sbd -d /dev/sdb list 2>&1)
+        echo "$sbd_out"
+        if echo "$sbd_out" | grep -qE "\b(reset|off)\b"; then
+          echo "SBD UNHEALTHY after reboot"
+          exit 1
+        fi
+        echo "All SBD slots clear after reboot"
+      register: sbd_post_check
+      changed_when: false
+      check_mode: false
+
+    - name: Verify quorum restored after arbiter reboot
+      shell: |
+        quorum=$(corosync-quorumtool -s 2>&1)
+        echo "$quorum"
+        echo "$quorum" | grep -q "Quorate:.*Yes" && \
+        echo "$quorum" | grep -q "Total votes:.*3"
+      register: quorum_result
+      until: quorum_result.rc == 0
+      retries: 30
+      delay: 10
+      changed_when: false
+      check_mode: false
+
+    # --- Post-arbiter health check ---
+
+    - name: Get cluster status for post-arbiter validation
+      command: crm status
+      register: arb_post_crm
+      changed_when: false
+      check_mode: false
+
+    - name: Verify all 3 nodes are Online after arbiter update
+      assert:
+        that:
+          - arb_post_crm.stdout | regex_search('Online:.*nlcl01iot01')
+          - arb_post_crm.stdout | regex_search('Online:.*nlcl01iot02')
+          - arb_post_crm.stdout | regex_search('Online:.*nlcl01iotarb01')
+        fail_msg: >-
+          Not all nodes Online after arbiter update.
+          {{ arb_post_crm.stdout }}
+
+    - name: Verify g_iot_stack still running on the original active node
+      assert:
+        that:
+          - arb_post_crm.stdout | regex_search('p_vip_iot.*Started.*' ~ hostvars['localhost']['iot_active_node'])
+        fail_msg: >-
+          g_iot_stack is no longer on the expected active node
+          ({{ hostvars['localhost']['iot_active_node'] }}).
+          {{ arb_post_crm.stdout }}
+
+    - name: Display arbiter update result
+      debug:
+        msg: |
+          Arbiter nlcl01iotarb01 updated and back online.
+          Packages upgraded: {{ apt_result_arbiter.changed | default(false) }}
+          SBD slots: all clear
+          Quorum: restored with 3 votes
+          sbd_stonith maintenance was needed: {{ _sbd_needs_restore }}
+
+    - name: Store arbiter update results
+      set_fact:
+        arbiter_apt_changed: "{{ apt_result_arbiter.changed | default(false) }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+###############################################################################
+# Play 3: Update passive node
+###############################################################################
+- name: Update passive IOT node
+  hosts: iot_nodes
+  become: yes
+  gather_facts: no
+  any_errors_fatal: true
+
+  tasks:
+    - name: Skip if not the passive node
+      meta: end_host
+      when: inventory_hostname != hostvars['localhost']['iot_passive_node']
+
+    - name: Display node being updated
+      debug:
+        msg: "Updating passive node {{ inventory_hostname }} (not running g_iot_stack)"
+
+    - name: Put node in standby
+      command: crm node standby {{ inventory_hostname }}
+
+    - name: Wait for cluster to stabilize after standby
+      pause:
+        seconds: 15
+
+    - name: Pull Docker images (async - 10 minute timeout per image)
+      command: "docker pull {{ item }}"
+      loop:
+        - ghcr.io/home-assistant/home-assistant:stable
+        - eclipse-mosquitto:latest
+        - koenkk/zigbee2mqtt:latest
+        - esphome/esphome:latest
+        - nodered/node-red:latest
+      register: docker_pull_passive
+      async: 600
+      poll: 30
+
+    - name: Prune old Docker images (older than 720h)
+      command: docker system prune -a --filter "until=720h" -f
+      register: docker_prune_passive
+
+    - name: Update apt cache and upgrade all packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      register: apt_result_passive
+
+    - name: Clean up unnecessary packages
+      apt:
+        autoremove: yes
+        autoclean: yes
+
+    - name: Put passive node into LibreNMS maintenance
+      include_tasks: ../common/tasks/librenms_maintenance.yaml
+      vars:
+        maintenance_node: "{{ inventory_hostname }}"
+
+    - name: Reboot node
+      reboot:
+        reboot_timeout: 600
+        msg: "IOT weekly update - rebooting passive node"
+
+    - name: Wait for Pacemaker to start after reboot
+      command: systemctl is-active pacemaker
+      register: pacemaker_status
+      until: pacemaker_status.rc == 0
+      retries: 30
+      delay: 10
+      changed_when: false
+      check_mode: false
+
+    - name: Bring node back online
+      command: crm node online {{ inventory_hostname }}
+
+    - name: Wait for node to show Online in cluster (up to 2 minutes)
+      shell: crm status | grep -E "Online:" | grep -q "\b{{ inventory_hostname }}\b"
+      register: node_online
+      until: node_online.rc == 0
+      retries: 12
+      delay: 10
+      changed_when: false
+      check_mode: false
+
+    - name: Verify node is Online
+      debug:
+        msg: "{{ inventory_hostname }} is back Online in the cluster. g_iot_stack NOT migrated yet."
+
+    - name: Run IOT cluster recovery checks (passive node)
+      include_tasks: tasks/recover_iot_cluster.yaml
+      vars:
+        recover_node: "{{ inventory_hostname }}"
+
+    - name: Store passive update results
+      set_fact:
+        passive_apt_changed: "{{ apt_result_passive.changed | default(false) }}"
+        passive_docker_pulls: "{{ docker_pull_passive.results | map(attribute='item') | list }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+###############################################################################
+# Play 4: Post-passive health validation
+###############################################################################
+- name: Validate IOT cluster health after passive node update
+  hosts: iot_nodes
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Skip if not the active node (run validation from active)
+      meta: end_host
+      when: inventory_hostname != hostvars['localhost']['iot_active_node']
+
+    - name: Run IOT cluster health validation
+      include_tasks: tasks/validate_cluster_health.yaml
+
+###############################################################################
+# Play 5: Migrate g_iot_stack to passive (now updated) node
+###############################################################################
+- name: Migrate g_iot_stack to updated passive node
+  hosts: iot_nodes
+  become: yes
+  gather_facts: no
+  any_errors_fatal: true
+
+  tasks:
+    - name: Skip if not the active node
+      meta: end_host
+      when: inventory_hostname != hostvars['localhost']['iot_active_node']
+
+    - name: Display migration plan
+      debug:
+        msg: >-
+          Migrating g_iot_stack from {{ inventory_hostname }}
+          to {{ hostvars['localhost']['iot_passive_node'] }}
+
+    - name: Migrate g_iot_stack to the updated passive node
+      command: crm resource migrate g_iot_stack {{ hostvars['localhost']['iot_passive_node'] }}
+
+    - name: Wait for g_iot_stack to start on target node (up to 5 minutes)
+      shell: |
+        crm_out=$(crm status)
+        echo "$crm_out" | grep -E 'p_vip_iot.*Started.*{{ hostvars["localhost"]["iot_passive_node"] }}'
+      register: stack_migrated
+      until: stack_migrated.rc == 0
+      retries: 20
+      delay: 15
+      changed_when: false
+
+    - name: Verify VIP is reachable after migration (HA port 8123, up to 3 minutes)
+      ansible.builtin.wait_for:
+        host: 10.0.X.X
+        port: 8123
+        timeout: 180
+        state: started
+      delegate_to: localhost
+      become: no
+      check_mode: false
+
+    - name: Remove migration constraint
+      command: crm resource unmigrate g_iot_stack
+
+    - name: Run IOT cluster recovery checks (post-migration)
+      include_tasks: tasks/recover_iot_cluster.yaml
+      vars:
+        recover_node: "{{ hostvars['localhost']['iot_passive_node'] }}"
+
+    - name: Display migration result
+      debug:
+        msg: "g_iot_stack successfully migrated to {{ hostvars['localhost']['iot_passive_node'] }}"
+
+###############################################################################
+# Play 6: Update previously active node (now passive)
+###############################################################################
+- name: Update previously active IOT node (now passive after migration)
+  hosts: iot_nodes
+  become: yes
+  gather_facts: no
+  any_errors_fatal: true
+
+  tasks:
+    - name: Skip if not the previously active node
+      meta: end_host
+      when: inventory_hostname != hostvars['localhost']['iot_active_node']
+
+    - name: Display node being updated
+      debug:
+        msg: >-
+          Updating previously active node {{ inventory_hostname }}
+          (g_iot_stack migrated away, now passive)
+
+    - name: Put node in standby
+      command: crm node standby {{ inventory_hostname }}
+
+    - name: Wait for cluster to stabilize after standby
+      pause:
+        seconds: 15
+
+    - name: Pull Docker images (async - 10 minute timeout per image)
+      command: "docker pull {{ item }}"
+      loop:
+        - ghcr.io/home-assistant/home-assistant:stable
+        - eclipse-mosquitto:latest
+        - koenkk/zigbee2mqtt:latest
+        - esphome/esphome:latest
+        - nodered/node-red:latest
+      register: docker_pull_active
+      async: 600
+      poll: 30
+
+    - name: Prune old Docker images (older than 720h)
+      command: docker system prune -a --filter "until=720h" -f
+      register: docker_prune_active
+
+    - name: Update apt cache and upgrade all packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      register: apt_result_active
+
+    - name: Clean up unnecessary packages
+      apt:
+        autoremove: yes
+        autoclean: yes
+
+    - name: Put previously active node into LibreNMS maintenance
+      include_tasks: ../common/tasks/librenms_maintenance.yaml
+      vars:
+        maintenance_node: "{{ inventory_hostname }}"
+
+    - name: Reboot node
+      reboot:
+        reboot_timeout: 600
+        msg: "IOT weekly update - rebooting previously active node"
+
+    - name: Wait for Pacemaker to start after reboot
+      command: systemctl is-active pacemaker
+      register: pacemaker_status
+      until: pacemaker_status.rc == 0
+      retries: 30
+      delay: 10
+      changed_when: false
+      check_mode: false
+
+    - name: Bring node back online
+      command: crm node online {{ inventory_hostname }}
+
+    - name: Wait for node to show Online in cluster (up to 2 minutes)
+      shell: crm status | grep -E "Online:" | grep -q "\b{{ inventory_hostname }}\b"
+      register: node_online
+      until: node_online.rc == 0
+      retries: 12
+      delay: 10
+      changed_when: false
+      check_mode: false
+
+    - name: Verify node is Online
+      debug:
+        msg: "{{ inventory_hostname }} is back Online in the cluster."
+
+    - name: Run IOT cluster recovery checks (previously active node)
+      include_tasks: tasks/recover_iot_cluster.yaml
+      vars:
+        recover_node: "{{ inventory_hostname }}"
+
+    - name: Store active update results
+      set_fact:
+        active_apt_changed: "{{ apt_result_active.changed | default(false) }}"
+        active_docker_pulls: "{{ docker_pull_active.results | map(attribute='item') | list }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+###############################################################################
+# Play 7: Remove migration constraints and final placement
+###############################################################################
+- name: Clear migration constraints and verify placement
+  hosts: iot_nodes
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Skip if not the node currently running g_iot_stack
+      meta: end_host
+      when: inventory_hostname != hostvars['localhost']['iot_passive_node']
+
+    - name: Check for stale location constraints
+      shell: crm configure show | grep -i "location.*g_iot_stack" || true
+      register: location_constraints
+      changed_when: false
+      check_mode: false
+
+    - name: Display any remaining constraints
+      debug:
+        msg: "Found constraints: {{ location_constraints.stdout }}"
+      when: location_constraints.stdout | length > 0
+
+    - name: Clear any remaining migration constraints
+      command: crm resource clear g_iot_stack
+      when: location_constraints.stdout | length > 0
+
+    - name: Allow cluster to settle (resource-stickiness=100 keeps current placement)
+      pause:
+        seconds: 15
+      when: location_constraints.stdout | length > 0
+
+    - name: Verify g_iot_stack is still running
+      shell: crm status | grep -E 'p_vip_iot.*Started'
+      register: stack_running
+      changed_when: false
+      check_mode: false
+      failed_when: stack_running.rc != 0
+
+###############################################################################
+# Play 8: Final health validation
+###############################################################################
+- name: Final IOT cluster validation after all updates
+  hosts: iot_nodes
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Determine which node is currently running g_iot_stack
+      shell: |
+        crm status | grep -E 'p_vip_iot.*Started' | grep -oP 'Started\s+\K\S+'
+      register: current_active
+      changed_when: false
+      check_mode: false
+      when: inventory_hostname == groups['iot_nodes'][0]
+
+    - name: Store current active node
+      set_fact:
+        iot_final_active: "{{ current_active.stdout }}"
+      delegate_to: localhost
+      delegate_facts: true
+      when: inventory_hostname == groups['iot_nodes'][0]
+
+    - name: Skip validation if not the active node
+      meta: end_host
+      when: inventory_hostname != hostvars['localhost']['iot_final_active']
+
+    - name: Run IOT cluster health validation
+      include_tasks: tasks/validate_cluster_health.yaml
+
+    - name: Verify all 5 Docker containers are running
+      shell: |
+        running=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}")
+        missing=""
+        for svc in homeassistant eclipse-mosquitto zigbee2mqtt esphome nodered; do
+          if ! echo "$running" | grep -qi "$svc"; then
+            missing="${missing}${svc} "
+          fi
+        done
+        if [ -n "$missing" ]; then
+          echo "MISSING CONTAINERS: ${missing}"
+          exit 1
+        fi
+        echo "All 5 Docker containers running"
+      register: docker_check
+      changed_when: false
+      check_mode: false
+
+    - name: Verify Home Assistant is responding on VIP
+      ansible.builtin.wait_for:
+        host: 10.0.X.X
+        port: 8123
+        timeout: 180
+        state: started
+      delegate_to: localhost
+      become: no
+      check_mode: false
+
+    - name: Log Docker image versions for audit trail
+      shell: |
+        echo "=== Docker image versions ==="
+        docker images --format "{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }} ({{ '{{' }}.ID{{ '}}' }}, {{ '{{' }}.CreatedSince{{ '}}' }})" | \
+          grep -E "home-assistant|mosquitto|zigbee2mqtt|esphome|node-red"
+      register: docker_versions
+      changed_when: false
+      check_mode: false
+
+    - name: Display image versions
+      debug:
+        msg: "{{ docker_versions.stdout }}"
+
+    - name: Mark all updates completed
+      set_fact:
+        iot_update_completed: true
+      delegate_to: localhost
+      delegate_facts: true
+
+###############################################################################
+# Play 9: Summary
+###############################################################################
+- name: IOT weekly update summary
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Display completion summary
+      debug:
+        msg: |
+          IOT weekly update completed successfully.
+
+          Update start: {{ iot_update_start }}
+          Update end:   {{ now(utc=true) }}
+
+          Nodes updated:
+            - nlcl01iotarb01 (arbiter - packages only, no Docker)
+            - {{ iot_passive_node }} (was passive, updated second)
+            - {{ iot_active_node }} (was active, updated third)
+
+          Current active node: {{ iot_final_active | default('unknown') }}
+
+          Docker images pulled (both primaries):
+            - ghcr.io/home-assistant/home-assistant:stable
+            - eclipse-mosquitto:latest
+            - koenkk/zigbee2mqtt:latest
+            - esphome/esphome:latest
+            - nodered/node-red:latest
+
+          Packages upgraded (arbiter):  {{ arbiter_apt_changed | default('unknown') }}
+          Packages upgraded (passive):  {{ passive_apt_changed | default('unknown') }}
+          Packages upgraded (active):   {{ active_apt_changed | default('unknown') }}
+
+          Cluster is healthy. All health validations passed.
+      when: iot_update_completed | default(false)
+
+    - name: Display failure summary
+      debug:
+        msg: |
+          IOT weekly update did NOT complete successfully.
+          One or more plays failed before all nodes were updated.
+          Review the job output above for details and investigate manually.
+      when: not (iot_update_completed | default(false))

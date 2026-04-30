@@ -1,0 +1,153 @@
+---
+# ┌──────────────────────────────────────────────────────────────────┐
+# │  Set LibreNMS maintenance on a PVE host + all its guests         │
+# │                                                                  │
+# │  Required extra_vars:                                            │
+# │    target_host: nl-pve01  (PVE hostname)                     │
+# │    duration: "2:00"           (HH:MM, default 2h)               │
+# │    api_token: <librenms token> (from AWX credential)             │
+# │                                                                  │
+# │  Optional extra_vars:                                            │
+# │    catastrophic: true  (set maintenance on ALL devices)          │
+# │                                                                  │
+# │  Reuses: common/tasks/librenms_maintenance.yaml                 │
+# └──────────────────────────────────────────────────────────────────┘
+
+- name: "Set maintenance window on {{ target_host }} + guests"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    librenms_api_url: "https://nlnms01.example.net/api/v0"
+    librenms_api_token: "{{ api_token }}"
+    maintenance_duration: "{{ duration | default('2:00') }}"
+    maintenance_title: "Maintenance companion: {{ target_host }}"
+    maintenance_notes: "Planned maintenance — alerts suppressed"
+    domain_suffix: ".example.net"
+    pve_api_user: "root@pam"
+
+  tasks:
+    # ── Catastrophic mode: ALL devices ──
+    - name: "Fetch all LibreNMS devices (catastrophic mode)"
+      uri:
+        url: "{{ librenms_api_url }}/devices?columns=hostname,device_id"
+        method: GET
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        validate_certs: no
+        timeout: 60
+      register: all_devices
+      when: catastrophic | default(false) | bool
+
+    - name: "Set maintenance on ALL devices (catastrophic)"
+      uri:
+        url: "{{ librenms_api_url }}/devices/{{ item.device_id }}/maintenance/"
+        method: POST
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+          Content-Type: application/json
+        body_format: json
+        body:
+          title: "{{ maintenance_title }}"
+          notes: "{{ maintenance_notes }}"
+          duration: "{{ maintenance_duration }}"
+        status_code: [200, 201, 204]
+        validate_certs: no
+        timeout: 60
+      loop: "{{ all_devices.json.devices }}"
+      loop_control:
+        label: "{{ item.hostname }}"
+      retries: 2
+      delay: 5
+      until: librenms_maint.status | default(0) in [200, 201, 204]
+      register: librenms_maint
+      ignore_errors: true
+      when: catastrophic | default(false) | bool
+
+    # ── Normal mode: PVE host + guests ──
+
+    # Step 1: Set maintenance on the PVE host itself
+    - name: "Set maintenance on PVE host: {{ target_host }}"
+      include_tasks: ../common/tasks/librenms_maintenance.yaml
+      vars:
+        maintenance_node: "{{ target_host }}"
+      when: not (catastrophic | default(false) | bool)
+
+    # Step 2: Discover guests via PVE API
+    - name: "Discover LXC guests on {{ target_host }}"
+      uri:
+        url: "https://{{ target_host }}:8006/api2/json/nodes/{{ target_host }}/lxc"
+        method: GET
+        headers:
+          Authorization: "PVEAPIToken={{ pve_api_user }}!ansible@{{ pve_api_token | default('') }}"
+        validate_certs: no
+        timeout: 30
+      register: pve_lxc
+      ignore_errors: true
+      when: not (catastrophic | default(false) | bool)
+
+    - name: "Discover QEMU guests on {{ target_host }}"
+      uri:
+        url: "https://{{ target_host }}:8006/api2/json/nodes/{{ target_host }}/qemu"
+        method: GET
+        headers:
+          Authorization: "PVEAPIToken={{ pve_api_user }}!ansible@{{ pve_api_token | default('') }}"
+        validate_certs: no
+        timeout: 30
+      register: pve_qemu
+      ignore_errors: true
+      when: not (catastrophic | default(false) | bool)
+
+    # Step 3: Build guest hostname list
+    - name: "Build guest list"
+      set_fact:
+        guest_hostnames: >-
+          {{
+            (pve_lxc.json.data | default([]) | map(attribute='name') | list) +
+            (pve_qemu.json.data | default([]) | map(attribute='name') | list)
+          }}
+      when: not (catastrophic | default(false) | bool)
+
+    - name: "Guest count"
+      debug:
+        msg: "Found {{ guest_hostnames | length }} guests on {{ target_host }}"
+      when: not (catastrophic | default(false) | bool) and guest_hostnames is defined
+
+    # Step 4: Set maintenance on each guest
+    - name: "Set maintenance on guest: {{ item }}"
+      uri:
+        url: "{{ librenms_api_url }}/devices/{{ item }}/maintenance/"
+        method: POST
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+          Content-Type: application/json
+        body_format: json
+        body:
+          title: "{{ maintenance_title }} (guest on {{ target_host }})"
+          notes: "{{ maintenance_notes }}"
+          duration: "{{ maintenance_duration }}"
+        status_code: [200, 201, 204]
+        validate_certs: no
+        timeout: 60
+      loop: "{{ guest_hostnames | default([]) }}"
+      register: guest_maint_results
+      retries: 2
+      delay: 5
+      until: guest_maint_results.status | default(0) in [200, 201, 204]
+      ignore_errors: true
+      when: not (catastrophic | default(false) | bool)
+
+    # Step 5: Summary
+    - name: "Maintenance summary"
+      debug:
+        msg: >-
+          Maintenance window set on {{ target_host }} +
+          {{ guest_hostnames | default([]) | length }} guests
+          for {{ maintenance_duration }}.
+          {% if guest_maint_results is defined %}
+          Successful: {{ guest_maint_results.results | default([]) | selectattr('status', 'defined') | selectattr('status', 'in', [200, 201, 204]) | list | length }},
+          Failed/skipped: {{ guest_maint_results.results | default([]) | rejectattr('status', 'defined') | list | length + guest_maint_results.results | default([]) | selectattr('status', 'defined') | rejectattr('status', 'in', [200, 201, 204]) | list | length }}
+          {% endif %}
+      when: not (catastrophic | default(false) | bool)
