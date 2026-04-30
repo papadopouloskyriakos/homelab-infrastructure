@@ -600,11 +600,46 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               type        = "custom"
               description = "HA-down"
             }] : (var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : [])
+          },
+          {
+            # FISHA file01 NFS server liveness — probes the stale-fh exporter
+            # (port 9101) as a cheap proxy for "OS up + NIC routable + Python
+            # services running". Re-added 2026-04-30 after fixing the actual
+            # root cause: the exporter responded HTTP/1.0 (Python http.server
+            # default) and Gatus's HTTP/1.1+keep-alive Go client deadlocked on
+            # connection reuse, causing 10s timeouts. Setting
+            # `protocol_version = "HTTP/1.1"` on the exporter handler (and
+            # adding do_HEAD) fixed it. Refs IFRNLLEI01PRD-805.
+            name     = "FISHA file01"
+            group    = "📱 Applications"
+            url      = "http://10.0.X.X:9101/metrics"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[BODY] == pat(*nfs_stale_fh_responses_total*)"
+            ]
+            alerts = local.twilio_enabled ? [{
+              type        = "custom"
+              description = "file01-down"
+            }] : []
+          },
+          {
+            name     = "FISHA file02"
+            group    = "📱 Applications"
+            url      = "http://10.0.X.X:9101/metrics"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[BODY] == pat(*nfs_stale_fh_responses_total*)"
+            ]
+            alerts = local.twilio_enabled ? [{
+              type        = "custom"
+              description = "file02-down"
+            }] : []
           }
-          # FISHA file01/02 endpoints removed 2026-04-30: Gatus pods on K8s
-          # cannot reach :9101 on management VLAN .181. The same liveness is
-          # covered by Prometheus's REDACTED_1395f6c8 rule (which scrapes
-          # via cluster networking and routes via Alertmanager → bridge →
+          # End of endpoints. Original removal note 2026-04-30: I incorrectly
+          # blamed K8s→inside_mgmt routing; actual cause was an HTTP-protocol
+          # mismatch in the exporter. See exporter IaC for the fix.
           # Twilio). Re-add here once K8s pod network has a route to
           # 10.0.X.X/24, or move the exporter to a node-internal service.
         ],
