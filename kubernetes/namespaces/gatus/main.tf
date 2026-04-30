@@ -600,39 +600,13 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               type        = "custom"
               description = "HA-down"
             }] : (var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : [])
-          },
-          {
-            # FISHA file01 NFS server liveness — probes the stale-fh exporter
-            # (port 9101) as a cheap proxy for "OS up + NIC routable + Python
-            # services running". Detects a hard host failure that NFS-based
-            # checks would miss while sessions ride. Refs IFRNLLEI01PRD-805.
-            name     = "FISHA file01"
-            group    = "📱 Applications"
-            url      = "http://10.0.X.X:9101/metrics"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[BODY] == pat(*nfs_stale_fh_responses_total*)"
-            ]
-            alerts = local.twilio_enabled ? [{
-              type        = "custom"
-              description = "file01-down"
-            }] : []
-          },
-          {
-            name     = "FISHA file02"
-            group    = "📱 Applications"
-            url      = "http://10.0.X.X:9101/metrics"
-            interval = "60s"
-            conditions = [
-              "[STATUS] == 200",
-              "[BODY] == pat(*nfs_stale_fh_responses_total*)"
-            ]
-            alerts = local.twilio_enabled ? [{
-              type        = "custom"
-              description = "file02-down"
-            }] : []
           }
+          # FISHA file01/02 endpoints removed 2026-04-30: Gatus pods on K8s
+          # cannot reach :9101 on management VLAN .181. The same liveness is
+          # covered by Prometheus's REDACTED_1395f6c8 rule (which scrapes
+          # via cluster networking and routes via Alertmanager → bridge →
+          # Twilio). Re-add here once K8s pod network has a route to
+          # 10.0.X.X/24, or move the exporter to a node-internal service.
         ],
 
         # Additional custom endpoints from tfvars
