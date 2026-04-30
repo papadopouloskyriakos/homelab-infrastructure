@@ -146,11 +146,8 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[BODY] == ok"
             ]
             alerts = local.twilio_enabled ? [{
-              type              = "custom"
-              description       = "K8s-NL-API-down"
-              failure-threshold = 2
-              success-threshold = 3
-              send-on-resolved  = true
+              type        = "custom"
+              description = "K8s-NL-API-down"
             }] : (var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : [])
           },
           {
@@ -600,11 +597,8 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[RESPONSE_TIME] < 3000"
             ]
             alerts = local.twilio_enabled ? [{
-              type              = "custom"
-              description       = "HA-down"
-              failure-threshold = 2
-              success-threshold = 3
-              send-on-resolved  = true
+              type        = "custom"
+              description = "HA-down"
             }] : (var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : [])
           },
           {
@@ -621,11 +615,8 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[BODY] == pat(*nfs_stale_fh_responses_total*)"
             ]
             alerts = local.twilio_enabled ? [{
-              type              = "custom"
-              description       = "file01-down"
-              failure-threshold = 2
-              success-threshold = 3
-              send-on-resolved  = true
+              type        = "custom"
+              description = "file01-down"
             }] : []
           },
           {
@@ -638,11 +629,8 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[BODY] == pat(*nfs_stale_fh_responses_total*)"
             ]
             alerts = local.twilio_enabled ? [{
-              type              = "custom"
-              description       = "file02-down"
-              failure-threshold = 2
-              success-threshold = 3
-              send-on-resolved  = true
+              type        = "custom"
+              description = "file02-down"
             }] : []
           }
         ],
