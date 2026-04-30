@@ -28,6 +28,15 @@ set -euo pipefail
 PVE_HOSTS="nl-pve01 nl-pve02 nl-pve03"
 CONFIG_TYPES="lxc qemu"
 
+# Sanity cap on bulk deletions per host/ctype block. PVE API can briefly
+# return empty inventory under host memory thrash (IFRNLLEI01PRD-739):
+# `ls /etc/pve/lxc` returns nothing → every Git VMID falls into the
+# "in_git && !in_pve" delete branch → script auto-pushes a 41-LXC-deletion
+# commit to main on a transient blink. Refuse to proceed if would-be
+# deletions exceed this cap; exit 2 (error) so the CI job fails loudly
+# rather than committing the bad state.
+MAX_DELETIONS_PER_RUN="${MAX_DELETIONS_PER_RUN:-5}"
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=pve_normalize_config.sh
 source "${SCRIPT_DIR}/pve_normalize_config.sh"
@@ -59,6 +68,7 @@ COUNT_UNCHANGED=0
 COUNT_ERROR=0
 
 CHANGES_MADE=false
+CAP_TRIPPED=false
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -135,6 +145,24 @@ for host in ${PVE_HOSTS}; do
 
     pve_vmids=$(ssh_cm_run "$host" "ls ${remote_dir}/ 2>/dev/null" | sed 's/\.conf$//' | sort || true)
 
+    # Sanity cap pre-flight (IFRNLLEI01PRD-739): count would-be deletions for
+    # this host/ctype before mutating Git. If the count exceeds the cap, this
+    # is almost certainly a transient PVE inventory blink — skip the block,
+    # mark the run as failed, and refuse to commit later.
+    would_delete=0
+    for vmid in $git_vmids; do
+      if ! echo "$pve_vmids" | grep -qw "$vmid"; then
+        would_delete=$((would_delete + 1))
+      fi
+    done
+    if [[ $would_delete -gt $MAX_DELETIONS_PER_RUN ]]; then
+      echo "  [ABORT]   ${ctype}: would-be deletions=${would_delete} exceeds cap=${MAX_DELETIONS_PER_RUN} — likely PVE inventory blink, skipping this ctype on ${host}"
+      echo "            (override via MAX_DELETIONS_PER_RUN env var if a real bulk-delete is intended)"
+      CAP_TRIPPED=true
+      COUNT_ERROR=$((COUNT_ERROR + 1))
+      continue
+    fi
+
     all_vmids=$(printf '%s\n%s\n' "$git_vmids" "$pve_vmids" | grep -v '^$' | sort -u || true)
 
     for vmid in $all_vmids; do
@@ -186,6 +214,19 @@ done
 echo "======================================================================"
 echo "Summary: ${COUNT_UNCHANGED} unchanged, ${COUNT_SYNCED} synced, ${COUNT_ADDED} added, ${COUNT_DELETED} deleted, ${COUNT_ERROR} errors"
 echo "======================================================================"
+
+# Cap-trip path: refuse to commit + push when the deletion sanity cap
+# tripped on at least one host/ctype block. The remaining ctypes may have
+# completed cleanly, but the run is unsafe overall — fail loudly so the
+# scheduled pipeline turns red and the operator can decide whether the
+# inventory blink was real (bump MAX_DELETIONS_PER_RUN once) or transient
+# (re-run on next schedule, no action needed). IFRNLLEI01PRD-739.
+if $CAP_TRIPPED; then
+  echo ""
+  echo "ABORT: deletion sanity cap tripped at least once. Not committing or pushing."
+  echo "       If this was a real bulk-delete, re-run with MAX_DELETIONS_PER_RUN=N where N is large enough."
+  exit 2
+fi
 
 # ---------------------------------------------------------------------------
 # Commit and push
