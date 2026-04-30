@@ -334,3 +334,39 @@ variable "haproxy_stats_auth" {
   default     = ""
   sensitive   = true
 }
+
+# Twilio SMS — for tier-1 service alerts via Gatus custom provider.
+# Closes IFRNLLEI01PRD-802. Reuses the same API-Key-based auth pattern as
+# claude-gateway/scripts/freedom-qos-toggle.sh (proven in production for
+# Freedom-ISP outage SMS since 2026-04-22). API Key auth means we do NOT
+# need the operator's master Twilio Auth Token — only API Key SID + Secret.
+variable "REDACTED_d8050fb2" {
+  description = "Twilio Account SID (AC...). Same value as TWILIO_ACCOUNT_SID in claude-gateway/.env."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+variable "REDACTED_57604654" {
+  description = "Twilio API Key SID (SK...). Same value as TWILIO_API_KEY_SID in claude-gateway/.env."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+variable "REDACTED_7c52feb9" {
+  description = "Twilio API Key Secret. Same value as TWILIO_REDACTED_4eae29e3 in claude-gateway/.env."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+variable "REDACTED_8d5c4795" {
+  description = "E.164 from-number, the Twilio-owned sender."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+variable "REDACTED_bbaeeaa8" {
+  description = "E.164 destination, the operator's mobile."
+  type        = string
+  default     = ""
+  sensitive   = true
+}

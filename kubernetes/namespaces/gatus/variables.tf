@@ -246,3 +246,42 @@ variable "haproxy_stats_auth" {
   default     = ""
   sensitive   = true
 }
+
+# -----------------------------------------------------------------------------
+# Twilio SMS — for tier-1 service alerts via Gatus custom provider.
+# Closes IFRNLLEI01PRD-802. Empty values disable Twilio alerting.
+# -----------------------------------------------------------------------------
+variable "twilio_account_sid" {
+  description = "Twilio Account SID"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "twilio_api_key_sid" {
+  description = "Twilio API Key SID (used as basic-auth username)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "REDACTED_4dd179f5" {
+  description = "Twilio API Key Secret (used as basic-auth password)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "twilio_from_number" {
+  description = "Twilio-owned sender phone number"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "twilio_to_number" {
+  description = "Operator destination phone number"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
