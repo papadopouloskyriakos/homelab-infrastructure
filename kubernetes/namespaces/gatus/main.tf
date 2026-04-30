@@ -1042,7 +1042,8 @@ resource "kubernetes_manifest" "REDACTED_74a3ea37" {
               { port = "443", protocol = "TCP" },
               { port = "80", protocol = "TCP" },
               { port = "6443", protocol = "TCP" },
-              { port = "8404", protocol = "TCP" } # HAProxy stats
+              { port = "8404", protocol = "TCP" }, # HAProxy stats
+              { port = "9101", protocol = "TCP" }  # nfs-stale-fh-exporter on FISHA file01/02
             ]
           }]
         },
