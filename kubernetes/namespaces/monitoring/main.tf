@@ -402,6 +402,30 @@ resource "helm_release" "monitoring" {
                 { source_labels = ["__address__"], regex = "192\\.168\\.181\\.156:.*", target_label = "instance", replacement = "nlcl01file02" },
               ]
             },
+
+            # HAHA (IoT) Pacemaker Cluster — node_exporter + pacemaker_node_standby
+            # textfile metric (native/haha/pacemaker-standby-exporter/). Feeds the
+            # REDACTED_2aa4f351 alert so we don't lose another 16h to a
+            # forgotten "crm node standby" the next time the weekly playbook fails.
+            {
+              job_name = "REDACTED_84f96d5e"
+              static_configs = [{
+                targets = [
+                  "10.0.X.X:9100", # nlcl01iot01 — primary (active/standby)
+                  "10.0.X.X:9100", # nlcl01iot02 — primary (active/standby)
+                  "10.0.X.X:9100", # nlcl01iotarb01 — arbiter (Synology VMM)
+                ]
+                labels = {
+                  role = "iot-cluster"
+                  site = "nl"
+                }
+              }]
+              relabel_configs = [
+                { source_labels = ["__address__"], regex = "192\\.168\\.181\\.175:.*", target_label = "instance", replacement = "nlcl01iot01" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.181\\.176:.*", target_label = "instance", replacement = "nlcl01iot02" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.181\\.174:.*", target_label = "instance", replacement = "nlcl01iotarb01" },
+              ]
+            },
           ]
         }
 

@@ -200,6 +200,40 @@ resource "kubernetes_manifest" "custom_alert_rules" {
               }
             }
           ]
+        },
+        {
+          # Pacemaker cluster (HAHA / IoT) — catches forgotten "crm node standby"
+          # state. Today's incident: weekly-update playbook left iot02 in standby
+          # for ~16h with zero alerting, so the cluster lost failover redundancy
+          # silently. Metric source: native/haha/pacemaker-standby-exporter/
+          # (textfile collector on iot01/iot02/iotarb01).
+          name = "custom-pacemaker"
+          rules = [
+            {
+              alert = "REDACTED_2aa4f351"
+              expr  = "max by (node) (pacemaker_node_standby) == 1"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+              }
+              annotations = {
+                summary     = "Pacemaker node {{ $labels.node }} stuck in standby for >30m"
+                description = "Pacemaker node {{ $labels.node }} has been in standby (no resources allowed) for more than 30 minutes — cluster has lost failover redundancy. Likely cause: a maintenance / weekly-update playbook left the node in standby and forgot to bring it back online. Recover with 'crm node online {{ $labels.node }}' from any cluster member."
+              }
+            },
+            {
+              alert = "REDACTED_d78e0784"
+              expr  = "(time() - max by (instance) (node_textfile_mtime_seconds{file=~\".*pacemaker_standby.prom\"})) > 600"
+              for   = "5m"
+              labels = {
+                severity = "warning"
+              }
+              annotations = {
+                summary     = "pacemaker-standby-exporter on {{ $labels.instance }} has not refreshed in >10m"
+                description = "The pacemaker-standby-exporter.timer on {{ $labels.instance }} has not updated /var/lib/node_exporter/textfile_collector/pacemaker_standby.prom in over 10 minutes. REDACTED_2aa4f351 may be evaluating stale data. Check 'systemctl status pacemaker-standby-exporter.timer'."
+              }
+            }
+          ]
         }
       ]
     }
