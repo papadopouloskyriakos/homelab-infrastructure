@@ -651,6 +651,8 @@ object network NET_vps_ch
  subnet 10.255.2.0 255.255.255.0
 object network NET_vps_no
  subnet 10.255.3.0 255.255.255.0
+object network defra01agri01
+ host 118.91.186.185
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -791,6 +793,7 @@ object-group network WHITELIST_KYRIAKOS
  network-object object panthere.dedyn.io
  network-object object sorotos.cloudns.nz
  network-object object PUBLIC_budget
+ network-object object defra01agri01
 object-group network WHITELIST_OAS
  group-object WHITELIST_KYRIAKOS
  network-object object MARIA_GEORGIADOU_INALAN
@@ -1830,5 +1833,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:503fcd833fa9e9db3aa8e8d41dcef96c
+Cryptochecksum:6c47bd5f65cb277591649012e9b3f510
 : end
