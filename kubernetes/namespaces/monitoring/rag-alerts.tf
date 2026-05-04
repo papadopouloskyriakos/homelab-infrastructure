@@ -114,32 +114,6 @@ resource "kubernetes_manifest" "rag_alert_rules" {
               }
             },
             {
-              alert = "KBOpenClawSyncFailing"
-              expr  = "kb_openclaw_sync_errors > 0"
-              for   = "30m"
-              labels = {
-                severity = "warning"
-                service  = "openclaw-sync"
-              }
-              annotations = {
-                summary     = "OpenClaw skills sync failing for >=30m (errors={{ $value }})"
-                description = "scripts/sync-openclaw-skills.sh cannot copy gateway source into OpenClaw skills dir. OpenClaw quality drifts behind gateway until fixed. Check SSH to nlopenclaw01 and /tmp/sync-openclaw-skills.log."
-              }
-            },
-            {
-              alert = "KBOpenClawSyncStale"
-              expr  = "(time() - kb_openclaw_sync_last_run_timestamp_seconds) > 172800"
-              for   = "1h"
-              labels = {
-                severity = "warning"
-                service  = "openclaw-sync"
-              }
-              annotations = {
-                summary     = "OpenClaw skills sync cron hasn't fired in >48h"
-                description = "sync-openclaw-skills.sh cron (daily 04:12 UTC) last ran {{ $value }}s ago. Crontab may have been rewritten. Check crontab -l | grep sync-openclaw on nlclaude01."
-              }
-            },
-            {
               alert = "REDACTED_79f92e77"
               expr  = "kb_content_refresh_age_seconds > 172800"
               for   = "1h"
@@ -189,19 +163,6 @@ resource "kubernetes_manifest" "rag_alert_rules" {
               annotations = {
                 summary     = "kb_content_refresh_age_seconds is ABSENT from Prometheus"
                 description = "kb_content_refresh_age_seconds has no samples. REDACTED_79f92e77 cannot fire without the metric. Check the 5 daily refresh crons at 04:00-04:20 UTC and the textfile emitter."
-              }
-            },
-            {
-              alert = "KBOpenClawSyncMetricAbsent"
-              expr  = "absent(kb_openclaw_sync_last_run_timestamp_seconds)"
-              for   = "2h"
-              labels = {
-                severity = "warning"
-                service  = "openclaw-sync"
-              }
-              annotations = {
-                summary     = "kb_openclaw_sync_last_run_timestamp_seconds is ABSENT from Prometheus"
-                description = "kb_openclaw_sync_last_run_timestamp_seconds has no samples. KBOpenClawSyncStale cannot fire without the metric. Check the daily 04:12 UTC cron and sync-openclaw-skills.sh textfile emit at the end."
               }
             },
           ]
