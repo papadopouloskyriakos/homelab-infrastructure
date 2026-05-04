@@ -472,6 +472,32 @@ resource "kubernetes_manifest" "REDACTED_79a1dc6b" {
 }
 
 # =============================================================================
+# Wildcard Certificate - omoikane.gr
+# =============================================================================
+resource "kubernetes_manifest" "REDACTED_b082092e" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_983d7ee1"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_983d7ee1-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.omoikane.gr",
+        "omoikane.gr"
+      ]
+    }
+  }
+}
+
+# =============================================================================
 # RBAC for AWX to read TLS secrets
 # =============================================================================
 resource "kubernetes_role" "awx_cert_reader" {
