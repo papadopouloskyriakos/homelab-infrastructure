@@ -368,6 +368,110 @@ resource "kubernetes_manifest" "REDACTED_56d1f068" {
 }
 
 # =============================================================================
+# Wildcard Certificate - omoikane.coach
+# =============================================================================
+resource "kubernetes_manifest" "REDACTED_af7e0fe5" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_eb368cbd"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_eb368cbd-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.omoikane.coach",
+        "omoikane.coach"
+      ]
+    }
+  }
+}
+
+# =============================================================================
+# Wildcard Certificate - omoikane.careers
+# =============================================================================
+resource "kubernetes_manifest" "REDACTED_93434549" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_21a6c4fc"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_21a6c4fc-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.omoikane.careers",
+        "omoikane.careers"
+      ]
+    }
+  }
+}
+
+# =============================================================================
+# Wildcard Certificate - omoikane.nl
+# =============================================================================
+resource "kubernetes_manifest" "REDACTED_5e8d96e9" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_b4121ee5"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_b4121ee5-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.omoikane.nl",
+        "omoikane.nl"
+      ]
+    }
+  }
+}
+
+# =============================================================================
+# Wildcard Certificate - omoikane.tech
+# =============================================================================
+resource "kubernetes_manifest" "REDACTED_79a1dc6b" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_d39fbd43"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_d39fbd43-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.omoikane.tech",
+        "omoikane.tech"
+      ]
+    }
+  }
+}
+
+# =============================================================================
 # RBAC for AWX to read TLS secrets
 # =============================================================================
 resource "kubernetes_role" "awx_cert_reader" {
