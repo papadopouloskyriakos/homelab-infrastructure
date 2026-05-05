@@ -216,6 +216,7 @@ resource "helm_release" "monitoring" {
                 targets = [
                   "10.255.2.11:9342",
                   "10.255.3.11:9342",
+                  "10.255.6.11:9342",
                 ]
                 labels = {
                   role = "edge-node"
@@ -226,6 +227,8 @@ resource "helm_release" "monitoring" {
                 { source_labels = ["__address__"], regex = "10\\.255\\.2\\.11:.*", target_label = "site", replacement = "ch" },
                 { source_labels = ["__address__"], regex = "10\\.255\\.3\\.11:.*", target_label = "instance", replacement = "no-edge" },
                 { source_labels = ["__address__"], regex = "10\\.255\\.3\\.11:.*", target_label = "site", replacement = "no" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.6\\.11:.*", target_label = "instance", replacement = "tx-edge" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.6\\.11:.*", target_label = "site", replacement = "tx" },
               ]
             },
             # IPsec Exporters - Edge Nodes
@@ -235,6 +238,7 @@ resource "helm_release" "monitoring" {
                 targets = [
                   "10.255.2.11:9536",
                   "10.255.3.11:9536",
+                  "10.255.6.11:9536",
                 ]
                 labels = {
                   role = "ipsec-gateway"
@@ -245,6 +249,8 @@ resource "helm_release" "monitoring" {
                 { source_labels = ["__address__"], regex = "10\\.255\\.2\\.11:.*", target_label = "site", replacement = "ch" },
                 { source_labels = ["__address__"], regex = "10\\.255\\.3\\.11:.*", target_label = "instance", replacement = "no-edge" },
                 { source_labels = ["__address__"], regex = "10\\.255\\.3\\.11:.*", target_label = "site", replacement = "no" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.6\\.11:.*", target_label = "instance", replacement = "tx-edge" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.6\\.11:.*", target_label = "site", replacement = "tx" },
               ]
             },
             # SNMP Exporter - Cisco ASA Firewall (local site only)
@@ -277,6 +283,7 @@ resource "helm_release" "monitoring" {
                   "10.0.X.X:9100",  # grdmz01 - GR DMZ Docker host
                   "10.255.2.11:9100",    # chzrh01vps01 - CH VPS edge proxy
                   "10.255.3.11:9100",    # notrf01vps01 - NO VPS edge proxy
+                  "10.255.6.11:9100",    # txhou01vps01 - TX VPS edge proxy
                 ]
                 labels = {
                   role = "edge-host"
@@ -288,11 +295,13 @@ resource "helm_release" "monitoring" {
                 { source_labels = ["__address__"], regex = "192\\.168\\.15\\.10:.*", target_label = "instance", replacement = "grdmz01" },
                 { source_labels = ["__address__"], regex = "10\\.255\\.2\\.11:.*", target_label = "instance", replacement = "chzrh01vps01" },
                 { source_labels = ["__address__"], regex = "10\\.255\\.3\\.11:.*", target_label = "instance", replacement = "notrf01vps01" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.6\\.11:.*", target_label = "instance", replacement = "txhou01vps01" },
                 # Site labels
                 { source_labels = ["__address__"], regex = "192\\.168\\.192\\..*", target_label = "site", replacement = "nl" },
                 { source_labels = ["__address__"], regex = "192\\.168\\.15\\..*", target_label = "site", replacement = "gr" },
                 { source_labels = ["__address__"], regex = "10\\.255\\.2\\..*", target_label = "site", replacement = "ch" },
                 { source_labels = ["__address__"], regex = "10\\.255\\.3\\..*", target_label = "site", replacement = "no" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.6\\..*", target_label = "site", replacement = "tx" },
               ]
             },
             # =============================================================
@@ -365,6 +374,7 @@ resource "helm_release" "monitoring" {
                   "10.0.X.X:6060",  # grdmz01
                   "10.255.2.11:6060",    # chzrh01vps01
                   "10.255.3.11:6060",    # notrf01vps01
+                  "10.255.6.11:6060",    # txhou01vps01
                 ]
                 labels = {
                   role = "security"
@@ -375,10 +385,12 @@ resource "helm_release" "monitoring" {
                 { source_labels = ["__address__"], regex = "192\\.168\\.15\\.10:.*", target_label = "instance", replacement = "grdmz01" },
                 { source_labels = ["__address__"], regex = "10\\.255\\.2\\.11:.*", target_label = "instance", replacement = "chzrh01vps01" },
                 { source_labels = ["__address__"], regex = "10\\.255\\.3\\.11:.*", target_label = "instance", replacement = "notrf01vps01" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.6\\.11:.*", target_label = "instance", replacement = "txhou01vps01" },
                 { source_labels = ["__address__"], regex = "192\\.168\\.192\\..*", target_label = "site", replacement = "nl" },
                 { source_labels = ["__address__"], regex = "192\\.168\\.15\\..*", target_label = "site", replacement = "gr" },
                 { source_labels = ["__address__"], regex = "10\\.255\\.2\\..*", target_label = "site", replacement = "ch" },
                 { source_labels = ["__address__"], regex = "10\\.255\\.3\\..*", target_label = "site", replacement = "no" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.6\\..*", target_label = "site", replacement = "tx" },
               ]
             },
 
