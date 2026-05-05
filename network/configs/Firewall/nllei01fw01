@@ -247,6 +247,22 @@ interface Tunnel6
  tunnel mode ipsec ipv4
  tunnel protection ipsec profile VTI-PROFILE
 !
+interface Tunnel7
+ nameif vti-no-dmz01-f
+ ip address 10.255.200.24 255.255.255.254 
+ tunnel source interface outside_freedom
+ tunnel destination 193.200.238.138
+ tunnel mode ipsec ipv4
+ tunnel protection ipsec profile VTI-PROFILE
+!
+interface Tunnel8
+ nameif vti-no-dmz02-f
+ ip address 10.255.200.36 255.255.255.254 
+ tunnel source interface outside_freedom
+ tunnel destination 193.200.238.139
+ tunnel mode ipsec ipv4
+ tunnel protection ipsec profile VTI-PROFILE
+!
 boot system disk0:/asa9-16-4-lfbff-k8.SPA
 ftp mode passive
 clock timezone CET 1
@@ -1762,6 +1778,16 @@ tunnel-group wan10.freeddns.org type ipsec-l2l
 tunnel-group wan10.freeddns.org ipsec-attributes
  ikev2 remote-REDACTED_6fa691d2 pre-shared-key *****
  ikev2 local-REDACTED_6fa691d2 pre-shared-key *****
+tunnel-group 193.200.238.138 type ipsec-l2l
+tunnel-group 193.200.238.138 ipsec-attributes
+ isakmp keepalive threshold 10 retry 5
+ ikev2 remote-REDACTED_6fa691d2 pre-shared-key *****
+ ikev2 local-REDACTED_6fa691d2 pre-shared-key *****
+tunnel-group 193.200.238.139 type ipsec-l2l
+tunnel-group 193.200.238.139 ipsec-attributes
+ isakmp keepalive threshold 10 retry 5
+ ikev2 remote-REDACTED_6fa691d2 pre-shared-key *****
+ ikev2 local-REDACTED_6fa691d2 pre-shared-key *****
 !
 class-map global-class
  match access-list global_mpc
@@ -1834,5 +1860,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:21fc6b6667c6d9252da7d7976e53cc04
+Cryptochecksum:be7681c1e4b57c345055b43248ced443
 : end
