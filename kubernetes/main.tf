@@ -200,7 +200,26 @@ module "seaweedfs" {
   site_code                     = "nl"
   remote_site_code              = "gr"
   REDACTED_4bbaa453 = true
-  depends_on                    = [module.nl-nas01_csi, module.external_secrets]
+
+  # filer.sync resume-offset override (stale-checkpoint recovery floor).
+  #
+  # IMPORTANT: SeaweedFS v4.01 has counter-intuitive flag semantics. The
+  # `-a.fromTsMs` flag controls the b->a goroutine (sync where filer A is the
+  # SINK), and `-b.fromTsMs` controls a->b (sync where filer B is the SINK).
+  # Verified empirically and against upstream filer_sync.go @ tag 4.01:
+  # the a->b goroutine consumes syncOptions.bFromTsMs, b->a consumes aFromTsMs.
+  #
+  # 2026-05-05 incident: b->a (GR->NL) was stuck at 2025-12-11 19:07:15 UTC
+  # because the change-log volumes from that day had been GC'd. The override
+  # below forces b->a to start at 2026-05-05 14:31:50 UTC. Once the new offset
+  # is persisted (~1 min after pod start), the flag silently no-ops on
+  # subsequent restarts because override < stored, acting as a permanent floor.
+  # REDACTED_88d37e0b was set in the same incident to add the same floor
+  # for a->b (a->b was healthy at the time, but the floor is harmless).
+  REDACTED_d063ac2f = 1777991510258 # b->a recovery floor (GR->NL)
+  REDACTED_88d37e0b = 1777991510258 # a->b recovery floor (NL->GR)
+
+  depends_on = [module.nl-nas01_csi, module.external_secrets]
 }
 
 # Kubernetes Dashboard
