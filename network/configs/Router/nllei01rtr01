@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 18563 bytes
+Current configuration : 18651 bytes
 !
-! Last configuration change at 22:01:50 CEST Tue May 5 2026 by kyriakosp
+! Last configuration change at 22:06:57 CEST Tue May 5 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -325,7 +325,7 @@ interface Tunnel4
  ip address 10.255.200.18 255.255.255.254
  ip mtu 1400
  ip tcp adjust-mss 1360
- keepalive 10 3
+ bfd template VTI-BFD
  tunnel source Dialer1
  tunnel mode ipsec ipv4
  tunnel destination 193.200.238.138
@@ -336,7 +336,7 @@ interface Tunnel5
  ip address 10.255.200.30 255.255.255.254
  ip mtu 1400
  ip tcp adjust-mss 1360
- keepalive 10 3
+ bfd template VTI-BFD
  tunnel source Dialer1
  tunnel mode ipsec ipv4
  tunnel destination 193.200.238.139
@@ -417,9 +417,11 @@ router bgp 65000
  neighbor 10.255.200.19 remote-as 65000
  neighbor 10.255.200.19 description notrf01dmz01-budget-VTI
  neighbor 10.255.200.19 timers 10 30
+ neighbor 10.255.200.19 fall-over bfd
  neighbor 10.255.200.31 remote-as 65000
  neighbor 10.255.200.31 description notrf01dmz02-budget-VTI
  neighbor 10.255.200.31 timers 10 30
+ neighbor 10.255.200.31 fall-over bfd
  neighbor 10.0.X.X remote-as 65000
  neighbor 10.0.X.X description grk8s-frr01-GR-RR
  neighbor 10.0.X.X update-source Port-channel4.2
