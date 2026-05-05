@@ -200,7 +200,18 @@ module "seaweedfs" {
   site_code                     = "nl"
   remote_site_code              = "gr"
   REDACTED_4bbaa453 = true
-  depends_on                    = [module.nl-nas01_csi, module.external_secrets]
+
+  # filer.sync resume-offset override (stale-checkpoint recovery floor).
+  # 2026-05-05: b->a (GR->NL) was stuck at 2025-12-11 19:07:15 UTC because the
+  # change-log volumes from that day had been GC'd. The override below forces
+  # b->a to start at 2026-05-05 14:31:50 UTC; once the new offset is persisted
+  # (~1 min after pod start), the flag silently no-ops on subsequent restarts
+  # and acts as a permanent floor against any future earlier-than-2026-05-05
+  # stale state. a->b was healthy at the time of fix; a_from_ts_ms left at 0.
+  REDACTED_d063ac2f = 0
+  REDACTED_88d37e0b = 1777991510258
+
+  depends_on = [module.nl-nas01_csi, module.external_secrets]
 }
 
 # Kubernetes Dashboard

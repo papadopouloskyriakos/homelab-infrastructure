@@ -114,3 +114,30 @@ variable "REDACTED_5bbf190b" {
   type        = string
   default     = "512Mi"
 }
+
+# -----------------------------------------------------------------------------
+# filer.sync Resume-Offset Override (stale-checkpoint recovery)
+# -----------------------------------------------------------------------------
+# When the SeaweedFS change-log volumes referenced by a persisted sync offset
+# get GC'd/compacted, filer.sync enters a tight retry loop ("failed to get next
+# log entry ... volume N not found") and replication stalls. The upstream
+# `-{a,b}.fromTsMs` flag overrides the persisted offset only when the override
+# is greater than the stored value, so a one-time non-zero setting acts as a
+# permanent recovery floor: once normal sync advances past it, the flag is
+# silently no-op'd on every subsequent restart.
+#
+# Set to 0 (default) to use the persisted offset (normal operation).
+# Set to a recent ms timestamp to skip past missing change-log entries.
+# Reference event: 2026-05-05 b->a (GR->NL) reset past stale 2025-12-11 offset.
+
+variable "REDACTED_d063ac2f" {
+  description = "Override starting timestamp (ms) for filer.sync direction A->B (local->remote). 0 = use persisted offset."
+  type        = number
+  default     = 0
+}
+
+variable "REDACTED_88d37e0b" {
+  description = "Override starting timestamp (ms) for filer.sync direction B->A (remote->local). 0 = use persisted offset."
+  type        = number
+  default     = 0
+}

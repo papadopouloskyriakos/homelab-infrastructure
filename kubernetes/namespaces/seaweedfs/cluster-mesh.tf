@@ -165,20 +165,25 @@ resource "REDACTED_08d34ae1" "filer_sync" {
           # -a: local site filer
           # -b: remote site filer (via Cluster Mesh)
           # filerProxy: route data transfers through filers (required for cross-site)
-          args = [
-            "filer.sync",
-            "-a", "seaweedfs-filer-${var.site_code}.seaweedfs.svc.cluster.local:8888",
-            "-b", "seaweedfs-filer-${var.remote_site_code}.seaweedfs.svc.cluster.local:8888",
-            "-a.filerProxy",
-            "-b.filerProxy",
-            "-a.path", "/buckets",
-            "-b.path", "/buckets",
-            "-a.excludePaths", "/buckets/thanos-nl,/buckets/thanos-gr,/buckets/loki,/buckets/loki-gr",
-            "-b.excludePaths", "/buckets/thanos-nl,/buckets/thanos-gr,/buckets/loki,/buckets/loki-gr",
-            "-concurrency", "4",
-            "-a.debug",
-            "-b.debug",
-          ]
+          # -{a,b}.fromTsMs: applied only when override > persisted offset (stale-checkpoint recovery floor)
+          args = concat(
+            [
+              "filer.sync",
+              "-a", "seaweedfs-filer-${var.site_code}.seaweedfs.svc.cluster.local:8888",
+              "-b", "seaweedfs-filer-${var.remote_site_code}.seaweedfs.svc.cluster.local:8888",
+              "-a.filerProxy",
+              "-b.filerProxy",
+              "-a.path", "/buckets",
+              "-b.path", "/buckets",
+              "-a.excludePaths", "/buckets/thanos-nl,/buckets/thanos-gr,/buckets/loki,/buckets/loki-gr",
+              "-b.excludePaths", "/buckets/thanos-nl,/buckets/thanos-gr,/buckets/loki,/buckets/loki-gr",
+              "-concurrency", "4",
+              "-a.debug",
+              "-b.debug",
+            ],
+            var.REDACTED_d063ac2f > 0 ? ["-a.fromTsMs", tostring(var.REDACTED_d063ac2f)] : [],
+            var.REDACTED_88d37e0b > 0 ? ["-b.fromTsMs", tostring(var.REDACTED_88d37e0b)] : [],
+          )
 
           resources {
             requests = {
