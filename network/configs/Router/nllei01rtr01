@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 18575 bytes
+Current configuration : 18563 bytes
 !
-! Last configuration change at 21:15:59 CEST Tue May 5 2026 by kyriakosp
+! Last configuration change at 22:01:50 CEST Tue May 5 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -325,7 +325,7 @@ interface Tunnel4
  ip address 10.255.200.18 255.255.255.254
  ip mtu 1400
  ip tcp adjust-mss 1360
- bfd template VTI-BFD
+ keepalive 10 3
  tunnel source Dialer1
  tunnel mode ipsec ipv4
  tunnel destination 193.200.238.138
@@ -336,7 +336,7 @@ interface Tunnel5
  ip address 10.255.200.30 255.255.255.254
  ip mtu 1400
  ip tcp adjust-mss 1360
- bfd template VTI-BFD
+ keepalive 10 3
  tunnel source Dialer1
  tunnel mode ipsec ipv4
  tunnel destination 193.200.238.139
