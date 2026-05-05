@@ -263,6 +263,14 @@ interface Tunnel8
  tunnel mode ipsec ipv4
  tunnel protection ipsec profile VTI-PROFILE
 !
+interface Tunnel9
+ nameif vti-txhou01-f
+ ip address 10.255.200.43 255.255.255.254 
+ tunnel source interface outside_freedom
+ tunnel destination 185.121.169.27
+ tunnel mode ipsec ipv4
+ tunnel protection ipsec profile VTI-PROFILE
+!
 boot system disk0:/asa9-16-4-lfbff-k8.SPA
 ftp mode passive
 clock timezone CET 1
@@ -673,6 +681,8 @@ object network NET_no_dmz01
  subnet 10.255.4.0 255.255.255.0
 object network NET_no_dmz02
  subnet 10.255.5.0 255.255.255.0
+object network NET_txhou01
+ subnet 10.255.6.0 255.255.255.0
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -1441,6 +1451,7 @@ access-group vti_access_in in interface vti-no-f
 access-group vti_access_in in interface vti-ch-f
 access-group vti_access_in in interface vti-no-dmz01-f
 access-group vti_access_in in interface vti-no-dmz02-f
+access-group vti_access_in in interface vti-txhou01-f
 access-group global_access global
 !
 prefix-list METALLB-VIPS seq 10 permit 10.0.X.X/26 le 32
@@ -1564,6 +1575,7 @@ route outside_freedom 91.211.213.72 255.255.255.255 185.93.175.233 1 track 1
 route outside_budget 0.0.0.0 0.0.0.0 10.0.X.X 5 track 2
 route vti-no-dmz01-f 10.255.4.0 255.255.255.0 10.255.200.25 100
 route vti-no-dmz02-f 10.255.5.0 255.255.255.0 10.255.200.37 100
+route vti-txhou01-f 10.255.6.0 255.255.255.0 10.255.200.42 100
 route Null0 10.0.X.X 255.255.255.0 255
 route Null0 10.0.X.X 255.255.255.0 255
 route Null0 10.0.X.X 255.255.255.0 255
@@ -1816,6 +1828,11 @@ tunnel-group 193.200.238.139 ipsec-attributes
  isakmp keepalive threshold 10 retry 5
  ikev2 remote-REDACTED_6fa691d2 pre-shared-key *****
  ikev2 local-REDACTED_6fa691d2 pre-shared-key *****
+tunnel-group 185.121.169.27 type ipsec-l2l
+tunnel-group 185.121.169.27 ipsec-attributes
+ isakmp keepalive threshold 10 retry 5
+ ikev2 remote-REDACTED_6fa691d2 pre-shared-key *****
+ ikev2 local-REDACTED_6fa691d2 pre-shared-key *****
 !
 class-map global-class
  match access-list global_mpc
@@ -1888,5 +1905,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:3c7cf41b29c40f5ff189c667b75c8834
+Cryptochecksum:50d75ad8492ef0efb56319f93f6d8f1a
 : end

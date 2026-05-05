@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 18651 bytes
+Current configuration : 19728 bytes
 !
-! Last configuration change at 22:06:57 CEST Tue May 5 2026 by kyriakosp
+! Last configuration change at 00:50:06 CEST Wed May 6 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -172,6 +172,12 @@ crypto ikev2 keyring VTI-KEYRING
   pre-shared-key local yzBXBcUt2rYThRZavmOem3bqkh0F3J+jDgwjVEs8N6Y
   pre-shared-key remote yzBXBcUt2rYThRZavmOem3bqkh0F3J+jDgwjVEs8N6Y
  !
+ peer txhou01vps01
+  description VTI PSK to txhou01vps01 budget-facing
+  address 185.121.169.27
+  pre-shared-key local y69Meb46IEbnoXUZWwxAzK4Xg/gImxFeNBKogTh3Y2U=
+  pre-shared-key remote y69Meb46IEbnoXUZWwxAzK4Xg/gImxFeNBKogTh3Y2U=
+ !
 !
 !
 crypto ikev2 profile VTI-IKEV2-PROFILE
@@ -181,6 +187,7 @@ crypto ikev2 profile VTI-IKEV2-PROFILE
  match identity remote address 198.51.100.X 255.255.255.255 
  match identity remote address 193.200.238.138 255.255.255.255 
  match identity remote address 193.200.238.139 255.255.255.255 
+ match identity remote address 185.121.169.27 255.255.255.255 
  identity local address 145.53.163.13
  REDACTED_6fa691d2 remote pre-share
  REDACTED_6fa691d2 local pre-share
@@ -342,6 +349,17 @@ interface Tunnel5
  tunnel destination 193.200.238.139
  tunnel protection ipsec profile VTI-PROFILE
 !
+interface Tunnel6
+ description Budget VTI to txhou01vps01 vti-txhou01
+ ip address 10.255.200.41 255.255.255.254
+ ip mtu 1400
+ ip tcp adjust-mss 1360
+ bfd template VTI-BFD
+ tunnel source Dialer1
+ tunnel mode ipsec ipv4
+ tunnel destination 185.121.169.27
+ tunnel protection ipsec profile VTI-PROFILE
+!
 interface GigabitEthernet0/0/0
  description 2026-04-21 LACP not negotiating with nlsw01 Gi1/0/32 - tried media-type rj45 and forced 1000/full - PHYSICAL CHECK NEEDED
  no ip address
@@ -422,6 +440,9 @@ router bgp 65000
  neighbor 10.255.200.31 description notrf01dmz02-budget-VTI
  neighbor 10.255.200.31 timers 10 30
  neighbor 10.255.200.31 fall-over bfd
+ neighbor 10.255.200.40 remote-as 65000
+ neighbor 10.255.200.40 description Texas-VPS-Budget
+ neighbor 10.255.200.40 timers 10 30
  neighbor 10.0.X.X remote-as 65000
  neighbor 10.0.X.X description grk8s-frr01-GR-RR
  neighbor 10.0.X.X update-source Port-channel4.2
@@ -446,6 +467,7 @@ router bgp 65000
   network 10.255.200.4 mask 255.255.255.254
   network 10.255.200.18 mask 255.255.255.254
   network 10.255.200.30 mask 255.255.255.254
+  network 10.255.200.40 mask 255.255.255.254
   neighbor 10.255.200.1 activate
   neighbor 10.255.200.1 send-community both
   neighbor 10.255.200.1 weight 200
@@ -467,6 +489,10 @@ router bgp 65000
   neighbor 10.255.200.31 weight 200
   neighbor 10.255.200.31 route-reflector-client
   neighbor 10.255.200.31 next-hop-self
+  neighbor 10.255.200.40 activate
+  neighbor 10.255.200.40 weight 200
+  neighbor 10.255.200.40 route-reflector-client
+  neighbor 10.255.200.40 next-hop-self
   neighbor 10.0.X.X activate
   neighbor 10.0.X.X send-community both
   neighbor 10.0.X.X next-hop-self
@@ -524,16 +550,19 @@ ip access-list extended OUTSIDE_BUDGET_IN
  90 permit esp host 198.51.100.X any
  91 permit esp host 193.200.238.138 any
  92 permit esp host 193.200.238.139 any
+ 93 permit esp host 185.121.169.27 any
  100 permit udp host 91.211.213.72 eq isakmp any
  110 permit udp host 198.51.100.X eq isakmp any
  120 permit udp host 198.51.100.X eq isakmp any
  121 permit udp host 193.200.238.138 eq isakmp any
  122 permit udp host 193.200.238.139 eq isakmp any
+ 123 permit udp host 185.121.169.27 eq isakmp any
  130 permit udp host 91.211.213.72 eq non500-isakmp any
  140 permit udp host 198.51.100.X eq non500-isakmp any
  150 permit udp host 198.51.100.X eq non500-isakmp any
  151 permit udp host 193.200.238.138 eq non500-isakmp any
  152 permit udp host 193.200.238.139 eq non500-isakmp any
+ 153 permit udp host 185.121.169.27 eq non500-isakmp any
  160 permit tcp any any established
  170 permit udp any any range 1024 65535
  180 permit icmp any any echo-reply
