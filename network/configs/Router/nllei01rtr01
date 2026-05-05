@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 18277 bytes
+Current configuration : 18575 bytes
 !
-! Last configuration change at 21:02:46 CEST Tue May 5 2026 by kyriakosp
+! Last configuration change at 21:15:59 CEST Tue May 5 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -520,12 +520,18 @@ ip access-list extended OUTSIDE_BUDGET_IN
  70 permit esp host 91.211.213.72 any
  80 permit esp host 198.51.100.X any
  90 permit esp host 198.51.100.X any
+ 91 permit esp host 193.200.238.138 any
+ 92 permit esp host 193.200.238.139 any
  100 permit udp host 91.211.213.72 eq isakmp any
  110 permit udp host 198.51.100.X eq isakmp any
  120 permit udp host 198.51.100.X eq isakmp any
+ 121 permit udp host 193.200.238.138 eq isakmp any
+ 122 permit udp host 193.200.238.139 eq isakmp any
  130 permit udp host 91.211.213.72 eq non500-isakmp any
  140 permit udp host 198.51.100.X eq non500-isakmp any
  150 permit udp host 198.51.100.X eq non500-isakmp any
+ 151 permit udp host 193.200.238.138 eq non500-isakmp any
+ 152 permit udp host 193.200.238.139 eq non500-isakmp any
  160 permit tcp any any established
  170 permit udp any any range 1024 65535
  180 permit icmp any any echo-reply
