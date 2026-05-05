@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 16398 bytes
+Current configuration : 18277 bytes
 !
-! Last configuration change at 22:33:57 CEST Sun Apr 26 2026 by kyriakosp
+! Last configuration change at 21:02:46 CEST Tue May 5 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -160,6 +160,18 @@ crypto ikev2 keyring VTI-KEYRING
   pre-shared-key local wZVHr+web+/J80OYyIVwyhlPnWpWZOp7tiLGnme3Lyk=
   pre-shared-key remote wZVHr+web+/J80OYyIVwyhlPnWpWZOp7tiLGnme3Lyk=
  !
+ peer notrf01dmz01
+  description VTI PSK to notrf01dmz01 budget-facing
+  address 193.200.238.138
+  pre-shared-key local TwgInzLIm5pq+VKKpN4fTQO0mUkyMRtn2h8LduTcH6Y
+  pre-shared-key remote TwgInzLIm5pq+VKKpN4fTQO0mUkyMRtn2h8LduTcH6Y
+ !
+ peer notrf01dmz02
+  description VTI PSK to notrf01dmz02 budget-facing
+  address 193.200.238.139
+  pre-shared-key local yzBXBcUt2rYThRZavmOem3bqkh0F3J+jDgwjVEs8N6Y
+  pre-shared-key remote yzBXBcUt2rYThRZavmOem3bqkh0F3J+jDgwjVEs8N6Y
+ !
 !
 !
 crypto ikev2 profile VTI-IKEV2-PROFILE
@@ -167,6 +179,8 @@ crypto ikev2 profile VTI-IKEV2-PROFILE
  match identity remote address 91.211.213.72 255.255.255.255 
  match identity remote address 198.51.100.X 255.255.255.255 
  match identity remote address 198.51.100.X 255.255.255.255 
+ match identity remote address 193.200.238.138 255.255.255.255 
+ match identity remote address 193.200.238.139 255.255.255.255 
  identity local address 145.53.163.13
  REDACTED_6fa691d2 remote pre-share
  REDACTED_6fa691d2 local pre-share
@@ -306,6 +320,28 @@ interface Tunnel3
  tunnel destination 198.51.100.X
  tunnel protection ipsec profile VTI-PROFILE
 !
+interface Tunnel4
+ description Budget VTI to notrf01dmz01 vti-no-dmz01
+ ip address 10.255.200.18 255.255.255.254
+ ip mtu 1400
+ ip tcp adjust-mss 1360
+ bfd template VTI-BFD
+ tunnel source Dialer1
+ tunnel mode ipsec ipv4
+ tunnel destination 193.200.238.138
+ tunnel protection ipsec profile VTI-PROFILE
+!
+interface Tunnel5
+ description Budget VTI to notrf01dmz02 vti-no-dmz02
+ ip address 10.255.200.30 255.255.255.254
+ ip mtu 1400
+ ip tcp adjust-mss 1360
+ bfd template VTI-BFD
+ tunnel source Dialer1
+ tunnel mode ipsec ipv4
+ tunnel destination 193.200.238.139
+ tunnel protection ipsec profile VTI-PROFILE
+!
 interface GigabitEthernet0/0/0
  description 2026-04-21 LACP not negotiating with nlsw01 Gi1/0/32 - tried media-type rj45 and forced 1000/full - PHYSICAL CHECK NEEDED
  no ip address
@@ -378,6 +414,12 @@ router bgp 65000
  neighbor 10.255.200.5 remote-as 65000
  neighbor 10.255.200.5 description chzrh01vps01-budget-VTI
  neighbor 10.255.200.5 timers 10 30
+ neighbor 10.255.200.19 remote-as 65000
+ neighbor 10.255.200.19 description notrf01dmz01-budget-VTI
+ neighbor 10.255.200.19 timers 10 30
+ neighbor 10.255.200.31 remote-as 65000
+ neighbor 10.255.200.31 description notrf01dmz02-budget-VTI
+ neighbor 10.255.200.31 timers 10 30
  neighbor 10.0.X.X remote-as 65000
  neighbor 10.0.X.X description grk8s-frr01-GR-RR
  neighbor 10.0.X.X update-source Port-channel4.2
@@ -400,6 +442,8 @@ router bgp 65000
   network 10.255.200.0 mask 255.255.255.254
   network 10.255.200.2 mask 255.255.255.254
   network 10.255.200.4 mask 255.255.255.254
+  network 10.255.200.18 mask 255.255.255.254
+  network 10.255.200.30 mask 255.255.255.254
   neighbor 10.255.200.1 activate
   neighbor 10.255.200.1 send-community both
   neighbor 10.255.200.1 weight 200
@@ -413,6 +457,14 @@ router bgp 65000
   neighbor 10.255.200.5 weight 200
   neighbor 10.255.200.5 route-reflector-client
   neighbor 10.255.200.5 next-hop-self
+  neighbor 10.255.200.19 activate
+  neighbor 10.255.200.19 weight 200
+  neighbor 10.255.200.19 route-reflector-client
+  neighbor 10.255.200.19 next-hop-self
+  neighbor 10.255.200.31 activate
+  neighbor 10.255.200.31 weight 200
+  neighbor 10.255.200.31 route-reflector-client
+  neighbor 10.255.200.31 next-hop-self
   neighbor 10.0.X.X activate
   neighbor 10.0.X.X send-community both
   neighbor 10.0.X.X next-hop-self
