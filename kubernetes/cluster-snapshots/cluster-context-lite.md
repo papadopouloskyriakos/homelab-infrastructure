@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-05-06 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-05-07 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 1687 |
+| Total Restarts | 1711 |
 
 ## Topology
 
@@ -46,8 +46,8 @@ kube-system/cilium-envoy-cfv8x: 5 restarts
 kube-system/cilium-envoy-mmfnj: 9 restarts
 kube-system/cilium-gz5mp: 5 restarts
 kube-system/cilium-operator-6b94496fcd-qwll4: 16 restarts
-kube-system/etcd-nlk8s-ctrl01: 45 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 992 restarts
+kube-system/etcd-nlk8s-ctrl01: 46 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 1015 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 57 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 97 restarts
@@ -60,7 +60,7 @@ kube-system/tetragon-878gv: 4 restarts
 kube-system/tetragon-mdsn9: 18 restarts
 kube-system/tetragon-tbcc7: 4 restarts
 kube-system/tetragon-vbs6v: 10 restarts
-logging/loki-0: 63 restarts
+logging/loki-0: 64 restarts
 logging/promtail-hp5sc: 5 restarts
 monitoring/bgpalerter-596d7b756b-dkn62: 15 restarts
 monitoring/goldpinger-4fvxd: 10 restarts
@@ -69,8 +69,8 @@ monitoring/goldpinger-cjzc4: 5 restarts
 monitoring/goldpinger-f72lw: 5 restarts
 monitoring/goldpinger-qs5xt: 5 restarts
 monitoring/goldpinger-vtfpx: 8 restarts
-monitoring/monitoring-grafana-9d45cc6d4-k2kh7: 50 restarts
-monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 62 restarts
+monitoring/monitoring-grafana-9d45cc6d4-k2kh7: 55 restarts
+monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 65 restarts
 monitoring/thanos-compactor-0: 5 restarts
 seaweedfs/seaweedfs-volume-0: 4 restarts
 seaweedfs/seaweedfs-volume-1: 11 restarts
@@ -82,10 +82,8 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 ### Recent Warnings (5)
 ```
 NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-monitoring    45m         Warning   Unhealthy   pod/bgpalerter-596d7b756b-dkn62         Readiness probe failed: Get "http://10.0.2.130:8011/status": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   37m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system   35m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
-kube-system   34m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system   37m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   111s        Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
