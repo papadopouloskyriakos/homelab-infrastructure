@@ -137,6 +137,28 @@ build_github_sync_runner:
       docker push $IMAGE_REGISTRY/github-sync-runner:latest
 
 # ===========================================================================
+# RUST RUNNER (omoikane-daemon + future Rust services)
+# ===========================================================================
+# Rust 1.94.0 + protoc/openssl/pkg-config preinstalled. Saves ~30-60s per CI
+# run vs apt-installing every time on a bare rust:* image.
+
+build_rust_runner:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/rust-runner/**/*
+      when: manual
+  script:
+    - |
+      cd images/rust-runner
+      docker build -t $IMAGE_REGISTRY/rust-runner:1.0 -t $IMAGE_REGISTRY/rust-runner:latest .
+      docker push $IMAGE_REGISTRY/rust-runner:1.0
+      docker push $IMAGE_REGISTRY/rust-runner:latest
+
+# ===========================================================================
 # PROTONMAIL BRIDGE
 # ===========================================================================
 
