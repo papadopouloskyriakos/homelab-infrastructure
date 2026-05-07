@@ -112,7 +112,7 @@ variable "REDACTED_7c4dc246" {
 variable "REDACTED_5bbf190b" {
   description = "Memory limit for filer.sync container"
   type        = string
-  default     = "512Mi"
+  default     = "2Gi"
 }
 
 # -----------------------------------------------------------------------------
