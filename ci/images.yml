@@ -159,6 +159,35 @@ build_rust_runner:
       docker push $IMAGE_REGISTRY/rust-runner:latest
 
 # ===========================================================================
+# OMOIKANE-DAEMON RUNNER (project-specific runner with prebuilt deps)
+# ===========================================================================
+# Builds FROM rust-runner:1.0, then compiles all of omoikane-daemon's 200+
+# Cargo.lock dependencies in release mode. Daemon CI's validate + docker
+# stages then `cargo build` against the prebuilt deps — only user-source
+# compile happens, ~30-60s instead of 5-7 min per stage.
+#
+# Maintenance: re-sync images/omoikane-daemon-runner/manifests/{Cargo.toml,
+# Cargo.lock,rust-toolchain.toml} from daemon/app/ when deps change. Bump
+# the :1.0 tag below + the RUST_IMAGE pin in daemon/.gitlab-ci.yml in
+# lockstep.
+
+build_omoikane_daemon_runner:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/omoikane-daemon-runner/**/*
+      when: manual
+  script:
+    - |
+      cd images/omoikane-daemon-runner
+      docker build -t $IMAGE_REGISTRY/omoikane-daemon-runner:1.0 -t $IMAGE_REGISTRY/omoikane-daemon-runner:latest .
+      docker push $IMAGE_REGISTRY/omoikane-daemon-runner:1.0
+      docker push $IMAGE_REGISTRY/omoikane-daemon-runner:latest
+
+# ===========================================================================
 # PROTONMAIL BRIDGE
 # ===========================================================================
 
