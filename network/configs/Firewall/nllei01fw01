@@ -867,11 +867,15 @@ object-group network nlcl01iotXX
 object-group network ALL_VPS_OVERLAY
  network-object 10.255.2.0 255.255.255.0
  network-object 10.255.3.0 255.255.255.0
- network-object 10.255.6.0 255.255.255.0
  network-object 10.255.200.0 255.255.255.0
  network-object host 198.51.100.X
  network-object host 198.51.100.X
+ network-object 10.255.6.0 255.255.255.0
  network-object host 185.121.169.27
+ network-object 10.255.4.0 255.255.255.0
+ network-object 10.255.5.0 255.255.255.0
+ network-object host 193.200.238.138
+ network-object host 193.200.238.139
 object-group network whitelist_shun_nlgr_all_subnets
  group-object gr_all_subnets
  group-object nl_all_subnets
@@ -1325,13 +1329,10 @@ nat (inside_room_b,outside_budget) source static NAT_inside_room_b NAT_inside_ro
 nat (inside_room_a,outside_budget) source static NAT_inside_room_a NAT_inside_room_a no-proxy-arp route-lookup
 nat (inside_mgmt,outside_budget) source static any any destination static NET_vps_ch NET_vps_ch no-proxy-arp route-lookup
 nat (inside_mgmt,outside_budget) source static any any destination static NET_vps_no NET_vps_no no-proxy-arp route-lookup
-nat (inside_mgmt,outside_budget) source static any any destination static NET_vps_tx NET_vps_tx no-proxy-arp route-lookup
 nat (inside_k8s,outside_budget) source static any any destination static NET_vps_ch NET_vps_ch no-proxy-arp route-lookup
 nat (inside_k8s,outside_budget) source static any any destination static NET_vps_no NET_vps_no no-proxy-arp route-lookup
-nat (inside_k8s,outside_budget) source static any any destination static NET_vps_tx NET_vps_tx no-proxy-arp route-lookup
 nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_vps_ch NET_vps_ch no-proxy-arp route-lookup
 nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_vps_no NET_vps_no no-proxy-arp route-lookup
-nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_vps_tx NET_vps_tx no-proxy-arp route-lookup
 nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_budget_transit NET_budget_transit no-proxy-arp route-lookup
 nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_vti_mesh NET_vti_mesh no-proxy-arp route-lookup
 nat (inside_mgmt,dmz_vpn01) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static nl_strongswan_vpn_pool_XX nl_strongswan_vpn_pool_XX no-proxy-arp route-lookup
@@ -1356,6 +1357,9 @@ nat (inside_mgmt,outside_freedom) source static any any destination static NET_n
 nat (inside_mgmt,outside_freedom) source static any any destination static NET_no_dmz02 NET_no_dmz02 no-proxy-arp route-lookup
 nat (inside_k8s,outside_freedom) source static any any destination static NET_no_dmz01 NET_no_dmz01 no-proxy-arp route-lookup
 nat (inside_k8s,outside_freedom) source static any any destination static NET_no_dmz02 NET_no_dmz02 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_budget) source static any any destination static NET_vps_tx NET_vps_tx no-proxy-arp route-lookup
+nat (inside_k8s,outside_budget) source static any any destination static NET_vps_tx NET_vps_tx no-proxy-arp route-lookup
+nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_vps_tx NET_vps_tx no-proxy-arp route-lookup
 !
 object network NAT_dmz_servers01
  nat (dmz_servers01,outside_freedom) dynamic PUBLIC_dmz_servers01
@@ -1912,5 +1916,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:50d75ad8492ef0efb56319f93f6d8f1a
+Cryptochecksum:373f1292ace41c203342ef08434efaa6
 : end
