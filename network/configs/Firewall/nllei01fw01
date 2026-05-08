@@ -681,7 +681,7 @@ object network NET_no_dmz01
  subnet 10.255.4.0 255.255.255.0
 object network NET_no_dmz02
  subnet 10.255.5.0 255.255.255.0
-object network NET_txhou01
+object network NET_vps_tx
  subnet 10.255.6.0 255.255.255.0
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
@@ -867,9 +867,11 @@ object-group network nlcl01iotXX
 object-group network ALL_VPS_OVERLAY
  network-object 10.255.2.0 255.255.255.0
  network-object 10.255.3.0 255.255.255.0
+ network-object 10.255.6.0 255.255.255.0
  network-object 10.255.200.0 255.255.255.0
  network-object host 198.51.100.X
  network-object host 198.51.100.X
+ network-object host 185.121.169.27
 object-group network whitelist_shun_nlgr_all_subnets
  group-object gr_all_subnets
  group-object nl_all_subnets
@@ -1323,10 +1325,13 @@ nat (inside_room_b,outside_budget) source static NAT_inside_room_b NAT_inside_ro
 nat (inside_room_a,outside_budget) source static NAT_inside_room_a NAT_inside_room_a no-proxy-arp route-lookup
 nat (inside_mgmt,outside_budget) source static any any destination static NET_vps_ch NET_vps_ch no-proxy-arp route-lookup
 nat (inside_mgmt,outside_budget) source static any any destination static NET_vps_no NET_vps_no no-proxy-arp route-lookup
+nat (inside_mgmt,outside_budget) source static any any destination static NET_vps_tx NET_vps_tx no-proxy-arp route-lookup
 nat (inside_k8s,outside_budget) source static any any destination static NET_vps_ch NET_vps_ch no-proxy-arp route-lookup
 nat (inside_k8s,outside_budget) source static any any destination static NET_vps_no NET_vps_no no-proxy-arp route-lookup
+nat (inside_k8s,outside_budget) source static any any destination static NET_vps_tx NET_vps_tx no-proxy-arp route-lookup
 nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_vps_ch NET_vps_ch no-proxy-arp route-lookup
 nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_vps_no NET_vps_no no-proxy-arp route-lookup
+nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_vps_tx NET_vps_tx no-proxy-arp route-lookup
 nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_budget_transit NET_budget_transit no-proxy-arp route-lookup
 nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_vti_mesh NET_vti_mesh no-proxy-arp route-lookup
 nat (inside_mgmt,dmz_vpn01) source static S2S_LEI_GRP_inside_mgmt S2S_LEI_GRP_inside_mgmt destination static nl_strongswan_vpn_pool_XX nl_strongswan_vpn_pool_XX no-proxy-arp route-lookup
@@ -1467,6 +1472,7 @@ prefix-list NL_SITE_SUBNETS seq 80 permit 10.0.X.X/27
 !
 prefix-list VPS_LOOPBACKS seq 10 permit 10.255.2.0/24
 prefix-list VPS_LOOPBACKS seq 20 permit 10.255.3.0/24
+prefix-list VPS_LOOPBACKS seq 30 permit 10.255.6.0/24
 !
 community-list standard CL-VPS-ORIGIN permit 4259840100
 !
@@ -1572,6 +1578,7 @@ route outside_freedom 0.0.0.0 0.0.0.0 185.93.175.233 1 track 1
 route outside_freedom 198.51.100.X 255.255.255.255 185.93.175.233 1 track 1
 route outside_freedom 198.51.100.X 255.255.255.255 185.93.175.233 1 track 1
 route outside_freedom 91.211.213.72 255.255.255.255 185.93.175.233 1 track 1
+route outside_freedom 185.121.169.27 255.255.255.255 185.93.175.233 1 track 1
 route outside_budget 0.0.0.0 0.0.0.0 10.0.X.X 5 track 2
 route vti-no-dmz01-f 10.255.4.0 255.255.255.0 10.255.200.25 100
 route vti-no-dmz02-f 10.255.5.0 255.255.255.0 10.255.200.37 100
