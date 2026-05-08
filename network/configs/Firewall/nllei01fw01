@@ -1711,15 +1711,15 @@ dhcpd reserve-address 10.0.X.X 001d.c084.79a0 inside_iot
 dhcpd reserve-address 10.0.X.X b8e9.372e.25d0 inside_iot
 !
 dhcpd address 10.0.X.X-10.0.X.X inside_room_b
-dhcpd dns 185.93.175.43 185.232.98.76 interface inside_room_b
+dhcpd dns 1.1.1.1 8.8.8.8 interface inside_room_b
 dhcpd enable inside_room_b
 !
 dhcpd address 10.0.X.X-10.0.X.X inside_room_c
-dhcpd dns 185.93.175.43 185.232.98.76 interface inside_room_c
+dhcpd dns 1.1.1.1 8.8.8.8 interface inside_room_c
 dhcpd enable inside_room_c
 !
 dhcpd address 10.0.X.X-10.0.X.X inside_room_d
-dhcpd dns 185.93.175.43 185.232.98.76 interface inside_room_d
+dhcpd dns 1.1.1.1 8.8.8.8 interface inside_room_d
 dhcpd enable inside_room_d
 !
 dhcpd address 10.0.X.X-10.0.X.X inside_mgmt
@@ -1772,7 +1772,7 @@ dhcpd reserve-address 10.0.X.X 98e7.43d3.7ebe inside_mgmt
 dhcpd reserve-address 10.0.X.X f402.2845.fb0d inside_mgmt
 !
 dhcpd address 10.0.X.X-10.0.X.X inside_room_a
-dhcpd dns 185.93.175.43 185.232.98.76 interface inside_room_a
+dhcpd dns 1.1.1.1 8.8.8.8 interface inside_room_a
 dhcpd enable inside_room_a
 dhcpd reserve-address 10.0.X.X 3842.0b9c.83e6 inside_room_a
 dhcpd reserve-address 10.0.X.X 3842.0b9c.7ef2 inside_room_a
@@ -1782,7 +1782,7 @@ dhcpd reserve-address 10.0.X.X 3842.0b9c.568e inside_room_a
 dhcpd reserve-address 10.0.X.X 3842.0b9c.5b14 inside_room_a
 !
 dhcpd address 10.0.X.X-10.0.X.X inside_cctv
-dhcpd dns 185.93.175.43 185.232.98.76 interface inside_cctv
+dhcpd dns 1.1.1.1 8.8.8.8 interface inside_cctv
 dhcpd enable inside_cctv
 dhcpd reserve-address 10.0.X.X f492.bf86.f8db inside_cctv
 dhcpd reserve-address 10.0.X.X 68d7.9ae2.d2f7 inside_cctv
@@ -1791,7 +1791,7 @@ dhcpd reserve-address 10.0.X.X 28ee.52e4.0cda inside_cctv
 dhcpd reserve-address 10.0.X.X e4c3.2a2c.1c50 inside_cctv
 !
 dhcpd address 10.0.X.X-10.0.X.X inside_guest
-dhcpd dns 185.93.175.43 185.232.98.76 interface inside_guest
+dhcpd dns 1.1.1.1 8.8.8.8 interface inside_guest
 dhcpd enable inside_guest
 !
 dhcprelay timeout 60
@@ -1916,5 +1916,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:373f1292ace41c203342ef08434efaa6
+Cryptochecksum:07a6a5c1d6db4994c88548e1a408dce8
 : end
