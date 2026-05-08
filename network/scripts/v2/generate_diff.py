@@ -55,6 +55,7 @@ def generate_remediation(device_type, device_name, config_file):
     """Generate remediation config from running vs intended."""
     profile = build_profile(device_type, device_name)
     content_filter = DynamicContentFilter()
+    platform = PLATFORM_MAP[device_type]
 
     # Load intended config from git
     config_path = Path(config_file)
