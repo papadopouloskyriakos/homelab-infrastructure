@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 19728 bytes
+Current configuration : 19748 bytes
 !
-! Last configuration change at 00:50:06 CEST Wed May 6 2026 by kyriakosp
+! Last configuration change at 13:55:06 CEST Fri May 8 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -476,23 +476,23 @@ router bgp 65000
   neighbor 10.255.200.3 activate
   neighbor 10.255.200.3 weight 200
   neighbor 10.255.200.3 route-reflector-client
-  neighbor 10.255.200.3 next-hop-self
+  neighbor 10.255.200.3 next-hop-self all
   neighbor 10.255.200.5 activate
   neighbor 10.255.200.5 weight 200
   neighbor 10.255.200.5 route-reflector-client
-  neighbor 10.255.200.5 next-hop-self
+  neighbor 10.255.200.5 next-hop-self all
   neighbor 10.255.200.19 activate
   neighbor 10.255.200.19 weight 200
   neighbor 10.255.200.19 route-reflector-client
-  neighbor 10.255.200.19 next-hop-self
+  neighbor 10.255.200.19 next-hop-self all
   neighbor 10.255.200.31 activate
   neighbor 10.255.200.31 weight 200
   neighbor 10.255.200.31 route-reflector-client
-  neighbor 10.255.200.31 next-hop-self
+  neighbor 10.255.200.31 next-hop-self all
   neighbor 10.255.200.40 activate
   neighbor 10.255.200.40 weight 200
   neighbor 10.255.200.40 route-reflector-client
-  neighbor 10.255.200.40 next-hop-self
+  neighbor 10.255.200.40 next-hop-self all
   neighbor 10.0.X.X activate
   neighbor 10.0.X.X send-community both
   neighbor 10.0.X.X next-hop-self
