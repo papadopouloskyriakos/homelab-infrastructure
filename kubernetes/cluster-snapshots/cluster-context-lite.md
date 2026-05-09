@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-05-07 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-05-09 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 1711 |
+| Total Restarts | 1791 |
 
 ## Topology
 
@@ -34,7 +34,8 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 _None_
 
 ### High Restart Pods (>3)
-argocd/argocd-repo-server-7dfc645f84-xzfj5: 5 restarts
+argocd/argocd-repo-server-7dfc645f84-nx2zg: 4 restarts
+argocd/argocd-repo-server-7dfc645f84-xzfj5: 6 restarts
 awx/awx-operator-controller-manager-f84fc744-drg2t: 9 restarts
 cilium-spire/spire-agent-26mm7: 4 restarts
 cilium-spire/spire-agent-jn2zt: 5 restarts
@@ -45,9 +46,9 @@ kube-system/cilium-22zgh: 9 restarts
 kube-system/cilium-envoy-cfv8x: 5 restarts
 kube-system/cilium-envoy-mmfnj: 9 restarts
 kube-system/cilium-gz5mp: 5 restarts
-kube-system/cilium-operator-6b94496fcd-qwll4: 16 restarts
-kube-system/etcd-nlk8s-ctrl01: 46 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 1015 restarts
+kube-system/cilium-operator-6b94496fcd-qwll4: 17 restarts
+kube-system/etcd-nlk8s-ctrl01: 50 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 1078 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 57 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 97 restarts
@@ -60,19 +61,20 @@ kube-system/tetragon-878gv: 4 restarts
 kube-system/tetragon-mdsn9: 18 restarts
 kube-system/tetragon-tbcc7: 4 restarts
 kube-system/tetragon-vbs6v: 10 restarts
-logging/loki-0: 64 restarts
+logging/loki-0: 71 restarts
 logging/promtail-hp5sc: 5 restarts
-monitoring/bgpalerter-596d7b756b-dkn62: 15 restarts
+monitoring/bgpalerter-596d7b756b-dkn62: 17 restarts
 monitoring/goldpinger-4fvxd: 10 restarts
 monitoring/goldpinger-b44g9: 6 restarts
 monitoring/goldpinger-cjzc4: 5 restarts
-monitoring/goldpinger-f72lw: 5 restarts
+monitoring/goldpinger-f72lw: 6 restarts
 monitoring/goldpinger-qs5xt: 5 restarts
 monitoring/goldpinger-vtfpx: 8 restarts
-monitoring/monitoring-grafana-9d45cc6d4-k2kh7: 55 restarts
-monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 65 restarts
+monitoring/monitoring-grafana-9d45cc6d4-k2kh7: 75 restarts
+monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 76 restarts
 monitoring/thanos-compactor-0: 5 restarts
-seaweedfs/seaweedfs-volume-0: 4 restarts
+seaweedfs/seaweedfs-filer-0: 4 restarts
+seaweedfs/seaweedfs-volume-0: 5 restarts
 seaweedfs/seaweedfs-volume-1: 11 restarts
 synology-csi/synology-csi-node-kxrjb: 10 restarts
 synology-csi/synology-csi-node-l72f8: 4 restarts
@@ -81,9 +83,11 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   37m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   111s        Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   11m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01    Startup probe failed: Get "https://10.0.X.X:6443/livez": dial tcp 10.0.X.X:6443: connect: connection refused
+kube-system   6m53s       Warning   Unhealthy   pod/etcd-nlk8s-ctrl01              Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system   6m23s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01    Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   3m16s       Warning   Unhealthy   pod/etcd-nlk8s-ctrl01              Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+monitoring    2m15s       Warning   Unhealthy   pod/bgpalerter-596d7b756b-dkn62          Liveness probe failed: Get "http://10.0.2.130:8011/status": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
 ```
 
 ## Key Resources
