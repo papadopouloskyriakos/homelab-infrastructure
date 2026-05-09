@@ -1,9 +1,9 @@
 Building configuration...
 
-Current configuration : 25519 bytes
+Current configuration : 25660 bytes
 !
-! Last configuration change at 03:06:32 CEST Mon Apr 27 2026 by kyriakosp
-! NVRAM config last updated at 03:06:46 CEST Mon Apr 27 2026 by kyriakosp
+! Last configuration change at 00:44:24 CEST Sun May 10 2026 by kyriakosp
+! NVRAM config last updated at 00:44:30 CEST Sun May 10 2026 by kyriakosp
 !
 version 16.12
 no service pad
@@ -268,6 +268,11 @@ interface Port-channel6
 !
 interface Port-channel7
  description *** Connection to nl-pve01 | TRUNK | 20 Gbps | bond0 ***
+ switchport mode trunk
+ load-interval 30
+!
+interface Port-channel8
+ description *** Connection to nlpve04 | TRUNK | 20 Gbps | bond0 ***
  switchport mode trunk
  load-interval 30
 !
