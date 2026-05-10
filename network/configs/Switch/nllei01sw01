@@ -1,9 +1,9 @@
 Building configuration...
 
-Current configuration : 25716 bytes
+Current configuration : 25675 bytes
 !
-! Last configuration change at 17:00:27 CEST Sun May 10 2026 by kyriakosp
-! NVRAM config last updated at 15:48:12 CEST Sun May 10 2026 by kyriakosp
+! Last configuration change at 17:32:28 CEST Sun May 10 2026 by kyriakosp
+! NVRAM config last updated at 17:32:54 CEST Sun May 10 2026 by kyriakosp
 !
 version 16.12
 no service pad
@@ -316,13 +316,14 @@ interface GigabitEthernet1/0/3
  spanning-tree portfast
 !
 interface GigabitEthernet1/0/4
- description *** Connection to ASRock Rack GENOAD8X-2T/BCM | TRUNK | 10 Gbps | Port 10G ***
- switchport mode trunk
+ description *** Connection to room-a | 10m extension | desk #2 | ELLI | On-Board | Patch.  ***
+ switchport access vlan 10
+ switchport mode access
  switchport nonegotiate
  load-interval 30
  power inline never
  no cdp enable
- channel-group 8 mode active
+ spanning-tree portfast
 !
 interface GigabitEthernet1/0/5
  description *** Connection to room-a, ceiling | AIR-CAP3702I-E-K9 - nlap02 | Patch. 5 | PoE ***
@@ -694,15 +695,12 @@ interface TenGigabitEthernet1/0/43
  switchport mode trunk
  load-interval 30
  no cdp enable
- channel-group 8 mode active
 !
 interface TenGigabitEthernet1/0/44
  description *** Connection to ASRock Rack GENOAD8X-2T/BCM | TRUNK | 10 Gbps | enp5s0f1np1 Port 10G ***
  switchport mode trunk
  load-interval 30
- shutdown
  no cdp enable
- channel-group 8 mode active
 !
 interface TenGigabitEthernet1/0/45
  description *** Connection to Synology DS1513+ | 1 Gbps | Port LAN 3 ***
