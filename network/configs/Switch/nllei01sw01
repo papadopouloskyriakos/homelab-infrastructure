@@ -1,9 +1,9 @@
 Building configuration...
 
-Current configuration : 25627 bytes
+Current configuration : 25656 bytes
 !
-! Last configuration change at 15:03:07 CEST Sun May 10 2026 by kyriakosp
-! NVRAM config last updated at 15:03:08 CEST Sun May 10 2026 by kyriakosp
+! Last configuration change at 15:07:41 CEST Sun May 10 2026 by kyriakosp
+! NVRAM config last updated at 15:17:10 CEST Sun May 10 2026 by kyriakosp
 !
 version 16.12
 no service pad
@@ -322,6 +322,7 @@ interface GigabitEthernet1/0/4
  load-interval 30
  power inline never
  no cdp enable
+ channel-group 8 mode active
 !
 interface GigabitEthernet1/0/5
  description *** Connection to room-a, ceiling | AIR-CAP3702I-E-K9 - nlap02 | Patch. 5 | PoE ***
