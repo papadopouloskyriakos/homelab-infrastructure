@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 25706 bytes
+Current configuration : 25716 bytes
 !
-! Last configuration change at 15:47:13 CEST Sun May 10 2026 by kyriakosp
+! Last configuration change at 17:00:27 CEST Sun May 10 2026 by kyriakosp
 ! NVRAM config last updated at 15:48:12 CEST Sun May 10 2026 by kyriakosp
 !
 version 16.12
@@ -700,6 +700,7 @@ interface TenGigabitEthernet1/0/44
  description *** Connection to ASRock Rack GENOAD8X-2T/BCM | TRUNK | 10 Gbps | enp5s0f1np1 Port 10G ***
  switchport mode trunk
  load-interval 30
+ shutdown
  no cdp enable
  channel-group 8 mode active
 !
