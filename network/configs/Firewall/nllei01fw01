@@ -117,7 +117,6 @@ interface Port-channel1.5
  ip address 10.0.X.X 255.255.255.192 
 !
 interface Port-channel1.6
- shutdown
  vlan 6
  nameif outside_freedom
  security-level 0
@@ -1917,5 +1916,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:43ebf98ae902a22ba483260c8ff8fa8c
+Cryptochecksum:07a6a5c1d6db4994c88548e1a408dce8
 : end
