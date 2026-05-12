@@ -14,6 +14,15 @@
 #   - chatops_jailbreak_detector_match_total ← scripts/qa/suites/test-jailbreak-corpus.sh (cron 0 5 * * 3) + write-jailbreak-metrics.sh (*/30)
 #   - chatops_intermediate_rail_drift_score  ← scripts/write-intermediate-rail-metrics.sh (cron */10)
 #
+# Metric sources for the REDACTED_765f1697 group (textfile collector on
+# nlgpu01, /etc/cron.weekly/gpu01-health-metrics, runs via anacron):
+#   - gpu01_docker_reclaimable_bytes{type="..."}  ← `docker system df`
+#   - gpu01_fstrim_timer_active                   ← `systemctl is-active fstrim.timer`
+# Added 2026-05-12 after the qcow2 io-error freeze RCA — see claude-gateway
+# memory/gpu01_freeze_qcow2_io_error_20260512.md. The new alerts catch the
+# two leading indicators of a recurrence: Docker bloat accumulating faster
+# than pruning, and the weekly TRIM automation drifting off.
+#
 # History: previously contained ReceiverCanaryFailing + ReceiverCanaryStale —
 # retired 2026-04-30 alongside the receiver-canary cron itself (real alert
 # volume covers silent-dispatch-break detection). See claude-gateway commit
@@ -103,6 +112,46 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               annotations = {
                 summary     = "Intermediate rail drift > 20% in category {{ $labels.category }} for 24h"
                 description = "scripts/lib/intermediate_rail.py is flagging > 20% of intermediate steps as out-of-distribution for this alert category. Either the heuristic keyword bucket is too narrow (false positives), the agent is going off-topic (real drift), or Ollama is returning bad classifications. DARK-FIRST: this alert observes only — no Build Prompt blocking. Inspect with: sqlite3 ~/gitlab/products/cubeos/claude-context/gateway.db \"SELECT payload_json FROM event_log WHERE event_type='REDACTED_be143759' AND emitted_at > datetime('now','-24 hours') ORDER BY id DESC LIMIT 20\""
+              }
+            },
+          ]
+        },
+        {
+          name     = "REDACTED_765f1697"
+          interval = "1m"
+          rules = [
+            {
+              # 107374182400 bytes = 100 GiB. Docker can't prune images held
+              # by active containers (gitlab-runner holds the largest set),
+              # so reclaimable creeping above 100 GiB is the leading signal
+              # that pruning isn't keeping up — the same condition that
+              # filled the qcow2 to 99.56% on 2026-05-12.
+              alert = "Gpu01DockerImagesReclaimableHigh"
+              expr  = "gpu01_docker_reclaimable_bytes{instance=\"nlgpu01\",type=\"images\"} > 107374182400"
+              for   = "6h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "nlgpu01 reclaimable Docker images > 100 GiB"
+                description = "Docker reports more than 100 GiB of reclaimable image storage on nlgpu01. Without `discard=on` + fstrim keeping up, this orphan-cluster growth is exactly what filled the qcow2 to 99.56% and caused the recurring `paused (io-error)` freezes on 2026-05-12. Investigate with `ssh nlgpu01 docker system df` and run `docker image prune -af` (be aware: 89% of reclaimable is held by exited gitlab-runner containers — run `docker container prune -f --filter until=24h` first). Runbook: claude-gateway memory/gpu01_freeze_qcow2_io_error_20260512.md."
+              }
+            },
+            {
+              # fstrim.timer is what keeps the qcow2 self-maintaining. If it
+              # ever flips inactive, the discard=on plumbing becomes a no-op
+              # and the 2026-05-12 freeze pattern returns within weeks.
+              alert = "REDACTED_228d1bfb"
+              expr  = "gpu01_fstrim_timer_active{instance=\"nlgpu01\"} == 0"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "nlgpu01 fstrim.timer is not active"
+                description = "The weekly fstrim.timer on nlgpu01 is reported inactive. Without it, deleted Docker layers won't release qcow2 clusters back to the underlying ZFS, and disk-1 (scsi0) will refill toward the 99.56% cluster-allocation level that caused the 2026-05-12 freezes. Re-enable with: `ssh nlgpu01 sudo systemctl enable --now fstrim.timer && systemctl status fstrim.timer`. Runbook: claude-gateway memory/gpu01_freeze_qcow2_io_error_20260512.md."
               }
             },
           ]
