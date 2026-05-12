@@ -16,12 +16,16 @@
 #
 # Metric sources for the REDACTED_765f1697 group (textfile collector on
 # nlgpu01, /etc/cron.weekly/gpu01-health-metrics, runs via anacron):
-#   - gpu01_docker_reclaimable_bytes{type="..."}  ← `docker system df`
-#   - gpu01_fstrim_timer_active                   ← `systemctl is-active fstrim.timer`
+#   - gpu01_docker_dangling_image_bytes  ← `docker images -f dangling=true` (truly orphan layers)
+#   - gpu01_docker_reclaimable_bytes{type="..."}  ← `docker system df` (diagnostic only, no alert)
+#   - gpu01_fstrim_timer_active          ← `systemctl is-active fstrim.timer`
 # Added 2026-05-12 after the qcow2 io-error freeze RCA — see claude-gateway
-# memory/gpu01_freeze_qcow2_io_error_20260512.md. The new alerts catch the
-# two leading indicators of a recurrence: Docker bloat accumulating faster
-# than pruning, and the weekly TRIM automation drifting off.
+# memory/gpu01_freeze_qcow2_io_error_20260512.md. The first iteration of
+# this group alerted on `gpu01_docker_reclaimable_bytes` but that metric
+# drifts upward forever on a healthy host (Docker considers any image not
+# pinned to a *running* container "reclaimable", even when stopped
+# containers depend on it) — see the second commit on this group for the
+# swap to dangling-image bytes, which only counts truly orphan layers.
 #
 # History: previously contained ReceiverCanaryFailing + ReceiverCanaryStale —
 # retired 2026-04-30 alongside the receiver-canary cron itself (real alert
@@ -121,21 +125,22 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
           interval = "1m"
           rules = [
             {
-              # 107374182400 bytes = 100 GiB. Docker can't prune images held
-              # by active containers (gitlab-runner holds the largest set),
-              # so reclaimable creeping above 100 GiB is the leading signal
-              # that pruning isn't keeping up — the same condition that
-              # filled the qcow2 to 99.56% on 2026-05-12.
-              alert = "Gpu01DockerImagesReclaimableHigh"
-              expr  = "gpu01_docker_reclaimable_bytes{instance=\"nlgpu01\",type=\"images\"} > 107374182400"
+              # 5368709120 bytes = 5 GiB. Dangling images are truly orphan
+              # layers from `docker pull` (tag-replaced) or `docker build`
+              # (incremental rebuild). They have no tag and no container
+              # reference; `docker image prune` removes them safely. A
+              # healthy host carries < 1 GiB of these; > 5 GiB for 6h means
+              # build-churn or pull-churn is accumulating without cleanup.
+              alert = "REDACTED_c50264b9"
+              expr  = "gpu01_docker_dangling_image_bytes{instance=\"nlgpu01\"} > 5368709120"
               for   = "6h"
               labels = {
                 severity = "warning"
                 category = "agentic-platform"
               }
               annotations = {
-                summary     = "nlgpu01 reclaimable Docker images > 100 GiB"
-                description = "Docker reports more than 100 GiB of reclaimable image storage on nlgpu01. Without `discard=on` + fstrim keeping up, this orphan-cluster growth is exactly what filled the qcow2 to 99.56% and caused the recurring `paused (io-error)` freezes on 2026-05-12. Investigate with `ssh nlgpu01 docker system df` and run `docker image prune -af` (be aware: 89% of reclaimable is held by exited gitlab-runner containers — run `docker container prune -f --filter until=24h` first). Runbook: claude-gateway memory/gpu01_freeze_qcow2_io_error_20260512.md."
+                summary     = "nlgpu01 dangling Docker images > 5 GiB"
+                description = "More than 5 GiB of dangling (truly orphan) Docker images have accumulated on nlgpu01. Each is a layer with no tag and no container reference — safe to remove. Investigate with `ssh nlgpu01 docker images -f dangling=true` and prune with `docker image prune -f` (no `-a` needed; dangling-only). Builds repulling base layers without an intermediate prune are the most common cause. Runbook: claude-gateway memory/gpu01_freeze_qcow2_io_error_20260512.md."
               }
             },
             {
