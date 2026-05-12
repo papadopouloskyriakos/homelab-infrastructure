@@ -188,6 +188,32 @@ build_omoikane_daemon_runner:
       docker push $IMAGE_REGISTRY/omoikane-daemon-runner:latest
 
 # ===========================================================================
+# OMOIKANE NGINX BASE — hardened chainguard-nginx + omoikane.coach CSP
+# ===========================================================================
+# Consumed by both `omoikane.coach/www` and `omoikane.coach/beta` CI as
+# their FROM. Bake the CSP + TLS + site-routing nginx.conf once so the
+# Hugo product repos can stay minimal (just COPY public/ on top).
+#
+# Was untracked at /srv/omoikane-nginx-base/ on nlgitlab01 until
+# 2026-05-12. Imported into git after a CSP form-action update for the
+# contact form needed proper IaC discipline.
+
+build_omoikane_nginx_base:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/omoikane-nginx-base/**/*
+      when: manual
+  script:
+    - |
+      cd images/omoikane-nginx-base
+      docker build -t $IMAGE_REGISTRY/omoikane-nginx-base:latest .
+      docker push $IMAGE_REGISTRY/omoikane-nginx-base:latest
+
+# ===========================================================================
 # PROTONMAIL BRIDGE
 # ===========================================================================
 
