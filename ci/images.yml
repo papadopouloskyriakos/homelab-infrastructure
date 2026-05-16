@@ -11,13 +11,20 @@ variables:
 
 .image_build_base:
   stage: .pre
-  image: docker:24
+  # docker:28 bumped from :24 on 2026-05-16. Runner host docker engine is
+  # 29.x which requires API ≥1.44; docker:24's client speaks API 1.43
+  # → `docker login` fails with "client version too old" inside the build
+  # container. docker:28 client speaks 1.46+ and works with docker 29.
+  # Same fix as daemon/.gitlab-ci.yml's docker stage (already on :28).
+  image: docker:28
   services:
-    - docker:24-dind
+    - docker:28-dind
   tags:
     - docker
   before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    # --password-stdin avoids the deprecation warning and is safer
+    # (password not in process args).
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
   environment:
     name: docker-registry
   allow_failure: true
