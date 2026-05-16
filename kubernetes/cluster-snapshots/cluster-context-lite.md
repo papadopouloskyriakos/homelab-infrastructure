@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-05-15 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-05-16 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 2396 |
+| Total Restarts | 2521 |
 
 ## Topology
 
@@ -20,7 +20,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 - **Pods:** 151
 
 ### Nodes
-- **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:4934956Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
+- **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8005928Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-ctrl02** (control-plane) 10.0.X.X | CPU:4 Mem:8092Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-ctrl03** (control-plane) 10.0.X.X | CPU:4 Mem:8006944Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-node01** (worker) 10.0.X.X | CPU:8 Mem:5974100Ki | Taints:none
@@ -37,51 +37,55 @@ _None_
 awx/awx-operator-controller-manager-f84fc744-drg2t: 10 restarts
 cilium-spire/spire-agent-26mm7: 5 restarts
 cilium-spire/spire-agent-jn2zt: 5 restarts
-cilium-spire/spire-agent-lvrj5: 6 restarts
+cilium-spire/spire-agent-lvrj5: 7 restarts
 cilium-spire/spire-agent-xwbn2: 9 restarts
 kube-system/cilium-22zgh: 9 restarts
-kube-system/cilium-envoy-cfv8x: 6 restarts
+kube-system/cilium-envoy-cfv8x: 7 restarts
 kube-system/cilium-envoy-mmfnj: 9 restarts
-kube-system/cilium-gz5mp: 6 restarts
+kube-system/cilium-gz5mp: 7 restarts
 kube-system/cilium-operator-6b94496fcd-qwll4: 27 restarts
-kube-system/etcd-nlk8s-ctrl01: 63 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 1654 restarts
+kube-system/etcd-nlk8s-ctrl01: 64 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 1766 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 58 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 99 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl01: 100 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl02: 34 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl03: 86 restarts
-kube-system/kube-scheduler-nlk8s-ctrl01: 34 restarts
-kube-system/kube-scheduler-nlk8s-ctrl02: 29 restarts
+kube-system/kube-scheduler-nlk8s-ctrl01: 35 restarts
+kube-system/kube-scheduler-nlk8s-ctrl02: 30 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 31 restarts
 kube-system/tetragon-75hdg: 4 restarts
 kube-system/tetragon-878gv: 4 restarts
 kube-system/tetragon-mdsn9: 18 restarts
 kube-system/tetragon-tbcc7: 4 restarts
-kube-system/tetragon-vbs6v: 12 restarts
+kube-system/tetragon-vbs6v: 14 restarts
 logging/loki-0: 75 restarts
-logging/promtail-hp5sc: 6 restarts
+logging/promtail-hp5sc: 7 restarts
 monitoring/bgpalerter-596d7b756b-kngvb: 8 restarts
 monitoring/goldpinger-4fvxd: 10 restarts
 monitoring/goldpinger-b44g9: 6 restarts
 monitoring/goldpinger-cjzc4: 5 restarts
 monitoring/goldpinger-f72lw: 8 restarts
 monitoring/goldpinger-qs5xt: 5 restarts
-monitoring/goldpinger-vtfpx: 9 restarts
-monitoring/monitoring-grafana-9d45cc6d4-l558l: 106 restarts
-monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 197 restarts
+monitoring/goldpinger-vtfpx: 10 restarts
+monitoring/monitoring-grafana-9d45cc6d4-l558l: 130 restarts
+monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 225 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 4 restarts
 monitoring/thanos-compactor-0: 7 restarts
 seaweedfs/seaweedfs-volume-1: 14 restarts
 synology-csi/synology-csi-node-577mq: 4 restarts
-synology-csi/synology-csi-node-kxrjb: 12 restarts
+synology-csi/synology-csi-node-kxrjb: 14 restarts
 synology-csi/synology-csi-node-l72f8: 4 restarts
 synology-csi/synology-csi-node-ptwb8: 4 restarts
 synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-
+NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
+kube-system   24m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   24m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Liveness probe failed: Get "http://127.0.0.1:2381/livez": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system   23m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system   15m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
