@@ -9,6 +9,7 @@
 - [Architecture Diagram](architecture.txt)
 
 ## History
+- [2026-05-16](history/2026-05-16.md)
 - [2026-05-15](history/2026-05-15.md)
 - [2026-05-14](history/2026-05-14.md)
 - [2026-05-13](history/2026-05-13.md)
@@ -28,6 +29,5 @@
 - [2026-04-27](history/2026-04-27.md)
 - [2026-04-26](history/2026-04-26.md)
 - [2026-04-25](history/2026-04-25.md)
-- [2026-04-24](history/2026-04-24.md)
 
 Full backups: MinIO `cluster-snapshots//`
