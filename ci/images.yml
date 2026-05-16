@@ -188,6 +188,32 @@ build_omoikane_daemon_runner:
       docker push $IMAGE_REGISTRY/omoikane-daemon-runner:latest
 
 # ===========================================================================
+# CI DEPLOY TOOLS — alpine + curl + jq + bash for AWX-deploy + utility jobs
+# ===========================================================================
+# Used by daemon/.gitlab-ci.yml's deploy job (and any other AWX-deploy job)
+# to skip the noisy `apk add curl jq` install (~5-10s + log spam) on every
+# pipeline. Pre-baked image is ~8MB, layer-cached on the runner.
+#
+# Bump :1.0 → :1.1 when curl/jq/bash major versions need to change. The
+# `--no-progress` install flag suppresses per-package output that operator
+# flagged as wasteful triage noise on 2026-05-16.
+build_ci_deploy_tools:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/ci-deploy-tools/**/*
+      when: manual
+  script:
+    - |
+      cd images/ci-deploy-tools
+      docker build -t $IMAGE_REGISTRY/ci-deploy-tools:1.0 -t $IMAGE_REGISTRY/ci-deploy-tools:latest .
+      docker push $IMAGE_REGISTRY/ci-deploy-tools:1.0
+      docker push $IMAGE_REGISTRY/ci-deploy-tools:latest
+
+# ===========================================================================
 # OMOIKANE NGINX BASE — hardened chainguard-nginx + omoikane.coach CSP
 # ===========================================================================
 # Consumed by both `omoikane.coach/www` and `omoikane.coach/beta` CI as
