@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-05-18 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-05-19 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 2703 |
+| Total Restarts | 2740 |
 
 ## Topology
 
@@ -45,7 +45,7 @@ kube-system/cilium-envoy-mmfnj: 9 restarts
 kube-system/cilium-gz5mp: 7 restarts
 kube-system/cilium-operator-6b94496fcd-qwll4: 27 restarts
 kube-system/etcd-nlk8s-ctrl01: 64 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 1948 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 1985 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 58 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 100 restarts
@@ -68,8 +68,8 @@ monitoring/goldpinger-cjzc4: 5 restarts
 monitoring/goldpinger-f72lw: 8 restarts
 monitoring/goldpinger-qs5xt: 5 restarts
 monitoring/goldpinger-vtfpx: 10 restarts
-monitoring/monitoring-grafana-9d45cc6d4-l558l: 169 restarts
-monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 259 restarts
+monitoring/monitoring-grafana-9d45cc6d4-l558l: 180 restarts
+monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 267 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 4 restarts
 monitoring/thanos-compactor-0: 7 restarts
 seaweedfs/seaweedfs-volume-1: 14 restarts
@@ -81,11 +81,11 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-monitoring    54m         Warning   BackOff     pod/monitoring-grafana-9d45cc6d4-l558l   Back-off restarting failed container grafana-sc-datasources in pod monitoring-grafana-9d45cc6d4-l558l_monitoring(fad699e0-3b5e-4ada-a6ca-b704a61c9756)
-kube-system   47m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01              Liveness probe failed: Get "http://127.0.0.1:2381/livez": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   6m56s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01    Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   2m50s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01    Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system   2m38s       Warning   Unhealthy   pod/etcd-nlk8s-ctrl01              Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system   55m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   55m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   55m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl03   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   55m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system   55m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
