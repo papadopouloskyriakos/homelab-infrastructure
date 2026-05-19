@@ -683,6 +683,10 @@ object network NET_no_dmz02
  subnet 10.255.5.0 255.255.255.0
 object network NET_vps_tx
  subnet 10.255.6.0 255.255.255.0
+object network notrf01dmz01
+ host 193.200.238.138
+object network notrf01dmz02
+ host 193.200.238.139
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -827,6 +831,8 @@ object-group network WHITELIST_KYRIAKOS
 object-group network WHITELIST_OAS
  group-object WHITELIST_KYRIAKOS
  network-object object MARIA_GEORGIADOU_INALAN
+ network-object object notrf01dmz01
+ network-object object notrf01dmz02
 object-group network WHITELIST_PLEX
  group-object WHITELIST_KYRIAKOS
  network-object object plex_sino_01
@@ -1916,5 +1922,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:07a6a5c1d6db4994c88548e1a408dce8
+Cryptochecksum:51c11a62df3f404afef5b6273351b1af
 : end
