@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-05-20 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-05-21 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -81,11 +81,11 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-monitoring    43m         Warning   Unhealthy   pod/prometheus-REDACTED_6dfbe9fc-1   Readiness probe failed: Get "http://10.0.3.28:9090/-/ready": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   38m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01                              Readiness probe failed: HTTP probe failed with statuscode: 503
-kube-system   29s         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01                    Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   24s         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01                    Readiness probe failed: HTTP probe failed with statuscode: 500
-monitoring    20s         Warning   Unhealthy   pod/prometheus-REDACTED_6dfbe9fc-0   Readiness probe failed: Get "http://10.0.6.156:9090/-/ready": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
+kube-system   21m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   10m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system   10m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system   91s         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
