@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-05-23 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-05-24 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 2744 |
+| Total Restarts | 2746 |
 
 ## Topology
 
@@ -43,7 +43,7 @@ kube-system/cilium-22zgh: 9 restarts
 kube-system/cilium-envoy-cfv8x: 7 restarts
 kube-system/cilium-envoy-mmfnj: 9 restarts
 kube-system/cilium-gz5mp: 7 restarts
-kube-system/cilium-operator-6b94496fcd-qwll4: 27 restarts
+kube-system/cilium-operator-6b94496fcd-qwll4: 29 restarts
 kube-system/etcd-nlk8s-ctrl01: 64 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 1985 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 58 restarts
@@ -68,8 +68,8 @@ monitoring/goldpinger-cjzc4: 5 restarts
 monitoring/goldpinger-f72lw: 8 restarts
 monitoring/goldpinger-qs5xt: 5 restarts
 monitoring/goldpinger-vtfpx: 10 restarts
-monitoring/monitoring-grafana-9d45cc6d4-l558l: 180 restarts
-monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 267 restarts
+monitoring/monitoring-grafana-9d45cc6d4-l558l: 181 restarts
+monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 268 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 4 restarts
 monitoring/thanos-compactor-0: 7 restarts
 seaweedfs/seaweedfs-volume-1: 14 restarts
@@ -81,11 +81,7 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE     LAST SEEN   TYPE      REASON          OBJECT                                  MESSAGE
-awx           58m         Warning   FailedKillPod   pod/automation-job-23250-ph8l5          error killing pod: failed to "KillContainer" for "worker" with KillContainerError: "rpc error: code = Unknown desc = failed to stop container \"fb3bab503179dc93602e4ba65fba55286180d1ecd4ab679a9edbbfae978b8f91\": ttrpc: closed"
-kube-system   38m         Warning   Unhealthy       pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   38m         Warning   Unhealthy       pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
-kube-system   10m         Warning   Unhealthy       pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+
 ```
 
 ## Key Resources
