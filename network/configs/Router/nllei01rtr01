@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 19748 bytes
+Current configuration : 21900 bytes
 !
-! Last configuration change at 13:55:06 CEST Fri May 8 2026 by kyriakosp
+! Last configuration change at 19:55:35 CEST Mon Jun 1 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -178,6 +178,16 @@ crypto ikev2 keyring VTI-KEYRING
   pre-shared-key local y69Meb46IEbnoXUZWwxAzK4Xg/gImxFeNBKogTh3Y2U=
   pre-shared-key remote y69Meb46IEbnoXUZWwxAzK4Xg/gImxFeNBKogTh3Y2U=
  !
+ peer notrf01dmz03
+  address 193.200.238.240
+  pre-shared-key local b3a2b20006b42b4b8f1b894822eeb379b3fa3546655c306bfd5583db8b3346c9
+  pre-shared-key remote b3a2b20006b42b4b8f1b894822eeb379b3fa3546655c306bfd5583db8b3346c9
+ !
+ peer notrf01dmz04
+  address 193.200.238.241
+  pre-shared-key local 56987c396db06cbdf943bb9d1560b29a51caa9a4ffc05296709f29feb738eec6
+  pre-shared-key remote 56987c396db06cbdf943bb9d1560b29a51caa9a4ffc05296709f29feb738eec6
+ !
 !
 !
 crypto ikev2 profile VTI-IKEV2-PROFILE
@@ -188,6 +198,8 @@ crypto ikev2 profile VTI-IKEV2-PROFILE
  match identity remote address 193.200.238.138 255.255.255.255 
  match identity remote address 193.200.238.139 255.255.255.255 
  match identity remote address 185.121.169.27 255.255.255.255 
+ match identity remote address 193.200.238.240 255.255.255.255 
+ match identity remote address 193.200.238.241 255.255.255.255 
  identity local address 145.53.163.13
  REDACTED_6fa691d2 remote pre-share
  REDACTED_6fa691d2 local pre-share
@@ -360,6 +372,28 @@ interface Tunnel6
  tunnel destination 185.121.169.27
  tunnel protection ipsec profile VTI-PROFILE
 !
+interface Tunnel7
+ description Budget VTI to notrf01dmz03 vti-no-dmz03
+ ip address 10.255.200.54 255.255.255.254
+ ip mtu 1400
+ ip tcp adjust-mss 1360
+ bfd template VTI-BFD
+ tunnel source Dialer1
+ tunnel mode ipsec ipv4
+ tunnel destination 193.200.238.240
+ tunnel protection ipsec profile VTI-PROFILE
+!
+interface Tunnel8
+ description Budget VTI to notrf01dmz04 vti-no-dmz04
+ ip address 10.255.200.68 255.255.255.254
+ ip mtu 1400
+ ip tcp adjust-mss 1360
+ bfd template VTI-BFD
+ tunnel source Dialer1
+ tunnel mode ipsec ipv4
+ tunnel destination 193.200.238.241
+ tunnel protection ipsec profile VTI-PROFILE
+!
 interface GigabitEthernet0/0/0
  description 2026-04-21 LACP not negotiating with nlsw01 Gi1/0/32 - tried media-type rj45 and forced 1000/full - PHYSICAL CHECK NEEDED
  no ip address
@@ -443,6 +477,14 @@ router bgp 65000
  neighbor 10.255.200.40 remote-as 65000
  neighbor 10.255.200.40 description Texas-VPS-Budget
  neighbor 10.255.200.40 timers 10 30
+ neighbor 10.255.200.55 remote-as 65000
+ neighbor 10.255.200.55 description notrf01dmz03-budget-VTI
+ neighbor 10.255.200.55 timers 10 30
+ neighbor 10.255.200.55 fall-over bfd
+ neighbor 10.255.200.69 remote-as 65000
+ neighbor 10.255.200.69 description notrf01dmz04-budget-VTI
+ neighbor 10.255.200.69 timers 10 30
+ neighbor 10.255.200.69 fall-over bfd
  neighbor 10.0.X.X remote-as 65000
  neighbor 10.0.X.X description grk8s-frr01-GR-RR
  neighbor 10.0.X.X update-source Port-channel4.2
@@ -493,6 +535,14 @@ router bgp 65000
   neighbor 10.255.200.40 weight 200
   neighbor 10.255.200.40 route-reflector-client
   neighbor 10.255.200.40 next-hop-self all
+  neighbor 10.255.200.55 activate
+  neighbor 10.255.200.55 weight 200
+  neighbor 10.255.200.55 route-reflector-client
+  neighbor 10.255.200.55 next-hop-self all
+  neighbor 10.255.200.69 activate
+  neighbor 10.255.200.69 weight 200
+  neighbor 10.255.200.69 route-reflector-client
+  neighbor 10.255.200.69 next-hop-self all
   neighbor 10.0.X.X activate
   neighbor 10.0.X.X send-community both
   neighbor 10.0.X.X next-hop-self
@@ -551,18 +601,24 @@ ip access-list extended OUTSIDE_BUDGET_IN
  91 permit esp host 193.200.238.138 any
  92 permit esp host 193.200.238.139 any
  93 permit esp host 185.121.169.27 any
+ 94 permit esp host 193.200.238.240 any
+ 95 permit esp host 193.200.238.241 any
  100 permit udp host 91.211.213.72 eq isakmp any
  110 permit udp host 198.51.100.X eq isakmp any
  120 permit udp host 198.51.100.X eq isakmp any
  121 permit udp host 193.200.238.138 eq isakmp any
  122 permit udp host 193.200.238.139 eq isakmp any
  123 permit udp host 185.121.169.27 eq isakmp any
+ 124 permit udp host 193.200.238.240 eq isakmp any
+ 125 permit udp host 193.200.238.241 eq isakmp any
  130 permit udp host 91.211.213.72 eq non500-isakmp any
  140 permit udp host 198.51.100.X eq non500-isakmp any
  150 permit udp host 198.51.100.X eq non500-isakmp any
  151 permit udp host 193.200.238.138 eq non500-isakmp any
  152 permit udp host 193.200.238.139 eq non500-isakmp any
  153 permit udp host 185.121.169.27 eq non500-isakmp any
+ 154 permit udp host 193.200.238.240 eq non500-isakmp any
+ 155 permit udp host 193.200.238.241 eq non500-isakmp any
  160 permit tcp any any established
  170 permit udp any any range 1024 65535
  180 permit icmp any any echo-reply
