@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-05-31 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-06-01 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,13 +11,13 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 2759 |
+| Total Restarts | 2760 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.18.4
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 152
+- **Pods:** 151
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8005928Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -61,7 +61,7 @@ kube-system/tetragon-tbcc7: 4 restarts
 kube-system/tetragon-vbs6v: 14 restarts
 logging/loki-0: 75 restarts
 logging/promtail-hp5sc: 7 restarts
-monitoring/bgpalerter-596d7b756b-kngvb: 11 restarts
+monitoring/bgpalerter-596d7b756b-kngvb: 12 restarts
 monitoring/goldpinger-4fvxd: 10 restarts
 monitoring/goldpinger-b44g9: 6 restarts
 monitoring/goldpinger-cjzc4: 5 restarts
@@ -82,9 +82,10 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 ### Recent Warnings (5)
 ```
 NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-monitoring    18m         Warning   Unhealthy   pod/bgpalerter-596d7b756b-kngvb         Liveness probe failed: Get "http://10.0.6.173:8011/status": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-monitoring    18m         Warning   Unhealthy   pod/bgpalerter-596d7b756b-kngvb         Readiness probe failed: Get "http://10.0.6.173:8011/status": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   3m9s        Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+logging       59m         Warning   Unhealthy   pod/promtail-ng69s                      Readiness probe failed: Get "http://10.0.2.77:3101/ready": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system   56m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   45m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system   40m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
