@@ -1,0 +1,178 @@
+---
+# ChatOps Maintenance Mode — Set or Clear
+#
+# Controls the gateway maintenance file and posts Matrix notices.
+#
+# Required extra_vars:
+#   action: "set" or "clear"
+#
+# Optional extra_vars (for action=set):
+#   reason: "PVE kernel updates + Synology DSM" (default)
+#   eta_minutes: 135 (default)
+#   operator: "kyriakos" (default)
+#   site: "nl" or "gr" or "both" (default: "both")
+#
+# Mechanism:
+#   Set: writes /home/claude-runner/gateway.maintenance JSON file
+#        + posts m.notice to relevant Matrix rooms
+#   Clear: removes the file + posts "maintenance complete" notice
+#
+# Matrix rooms (by site):
+#   NL: #chatops, #cubeos, #meshsat, #infra-nl-prod, #alerts
+#   GR: #infra-gr-prod, #alerts
+#   both: all of the above
+
+- name: "ChatOps maintenance mode: {{ action }}"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    gateway_maintenance_file: "/home/claude-runner/gateway.maintenance"
+    claude_host: "nlclaude01"
+    ssh_user: "claude-runner"
+    matrix_base_url: "https://matrix.example.net"
+    matrix_token: "{{ matrix_api_token }}"
+    maint_reason: "{{ reason | default('PVE kernel updates + Synology DSM') }}"
+    maint_eta: "{{ eta_minutes | default(135) }}"
+    maint_operator: "{{ operator | default('kyriakos') }}"
+    maint_site: "{{ site | default('both') }}"
+
+    # Matrix room IDs by site
+    nl_rooms:
+      - "!PVkZvHgyrtBVEbgpRt:matrix.example.net"  # chatops
+      - "!iXTnQsFJahUquYPDdG:matrix.example.net"  # cubeos
+      - "!miZJJDwFQZDkuMcBqL:matrix.example.net"  # meshsat
+      - "!AOMuEtXGyzGFLgObKN:matrix.example.net"  # infra-nl-prod
+    gr_rooms:
+      - "!NKosBPujbWMevzHaaM:matrix.example.net"  # infra-gr-prod
+    alert_room:
+      - "!xeNxtpScJWCmaFjeCL:matrix.example.net"  # alerts
+
+  tasks:
+    ###########################################################################
+    # Build room list based on site
+    ###########################################################################
+    - name: Build target room list
+      set_fact:
+        target_rooms: >-
+          {%- if maint_site == 'nl' -%}
+            {{ nl_rooms + alert_room }}
+          {%- elif maint_site == 'gr' -%}
+            {{ gr_rooms + alert_room }}
+          {%- else -%}
+            {{ nl_rooms + gr_rooms + alert_room }}
+          {%- endif -%}
+
+    ###########################################################################
+    # SET maintenance mode
+    ###########################################################################
+    - name: "Write gateway.maintenance file"
+      block:
+        - name: Build maintenance JSON
+          set_fact:
+            maint_json:
+              started: "{{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}"
+              reason: "{{ maint_reason }}"
+              eta_minutes: "{{ maint_eta | int }}"
+              operator: "{{ maint_operator }}"
+              site: "{{ maint_site }}"
+
+        - name: Write maintenance file via SSH
+          command: >-
+            ssh {{ ssh_user }}@{{ claude_host }}
+            "cat > {{ gateway_maintenance_file }} << 'MEOF'
+            {{ maint_json | to_nice_json }}
+            MEOF"
+          register: write_result
+
+        - name: Verify maintenance file written
+          command: >-
+            ssh {{ ssh_user }}@{{ claude_host }}
+            "test -f {{ gateway_maintenance_file }} && echo EXISTS"
+          register: verify_file
+          failed_when: "'EXISTS' not in verify_file.stdout"
+
+        - name: Build maintenance notice message
+          set_fact:
+            maint_message: >-
+              Scheduled maintenance starting: {{ maint_reason }}.
+              ETA: {{ maint_eta }} minutes. Operator: {{ maint_operator }}.
+              Alert processing suspended until maintenance completes.
+
+        - name: Post maintenance notice to Matrix rooms
+          uri:
+            url: "{{ matrix_base_url }}/_matrix/client/v3/rooms/{{ item }}/send/m.room.message"
+            method: POST
+            headers:
+              Authorization: "Bearer {{ matrix_token }}"
+              Content-Type: application/json
+            body_format: json
+            body:
+              msgtype: "m.notice"
+              body: "{{ maint_message }}"
+            status_code: [200]
+            timeout: 30
+          loop: "{{ target_rooms }}"
+          register: matrix_results
+          ignore_errors: true
+
+        - name: Log Matrix posting results
+          debug:
+            msg: >-
+              Posted maintenance notice to {{ matrix_results.results
+              | selectattr('status', 'defined')
+              | selectattr('status', 'eq', 200)
+              | list | length }}/{{ target_rooms | length }} rooms
+      when: action == "set"
+
+    ###########################################################################
+    # CLEAR maintenance mode
+    ###########################################################################
+    - name: "Clear gateway.maintenance file"
+      block:
+        - name: Remove maintenance file via SSH
+          command: >-
+            ssh {{ ssh_user }}@{{ claude_host }}
+            "rm -f {{ gateway_maintenance_file }}"
+          register: remove_result
+
+        - name: Verify maintenance file removed
+          command: >-
+            ssh {{ ssh_user }}@{{ claude_host }}
+            "test ! -f {{ gateway_maintenance_file }} && echo REMOVED"
+          register: verify_removed
+          failed_when: "'REMOVED' not in verify_removed.stdout"
+
+        - name: Build clearance notice message
+          set_fact:
+            clear_message: >-
+              Maintenance complete. All services restored.
+              15-minute cooldown period starting — post-maintenance recovery alerts will be auto-tagged.
+
+        - name: Post clearance notice to Matrix rooms
+          uri:
+            url: "{{ matrix_base_url }}/_matrix/client/v3/rooms/{{ item }}/send/m.room.message"
+            method: POST
+            headers:
+              Authorization: "Bearer {{ matrix_token }}"
+              Content-Type: application/json
+            body_format: json
+            body:
+              msgtype: "m.notice"
+              body: "{{ clear_message }}"
+            status_code: [200]
+            timeout: 30
+          loop: "{{ target_rooms }}"
+          register: matrix_clear_results
+          ignore_errors: true
+
+        - name: Log Matrix clearance results
+          debug:
+            msg: >-
+              Posted clearance notice to {{ matrix_clear_results.results
+              | selectattr('status', 'defined')
+              | selectattr('status', 'eq', 200)
+              | list | length }}/{{ target_rooms | length }} rooms
+      when: action == "clear"

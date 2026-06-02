@@ -1,0 +1,26 @@
+---
+- name: Install SSH public key for root with hardening
+  hosts: all
+  become: true
+  vars:
+    ssh_pubkey: ""  # Set via extra vars
+  tasks:
+    - name: Ensure .ssh directory exists
+      file:
+        path: /root/.ssh
+        state: directory
+        mode: '0700'
+        owner: root
+        group: root
+
+    - name: Ensure SSH pubkey is present for root
+      authorized_key:
+        user: root
+        state: present
+        key: "{{ ssh_pubkey }}"
+
+  handlers:
+    - name: Restart SSH
+      service:
+        name: "{{ 'ssh' if ansible_os_family == 'Debian' else 'sshd' }}"
+        state: restarted
