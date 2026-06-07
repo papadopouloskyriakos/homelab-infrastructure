@@ -21,7 +21,7 @@
   "panels": [
     {
       "type": "stat",
-      "title": "Income (last full month)",
+      "title": "Net \u2014 last full month",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -40,15 +40,27 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT ROUND(SUM(CASE WHEN base_amount>0 AND COALESCE(category,'')<>'transfer' THEN base_amount ELSE 0 END),2) AS Income FROM transactions WHERE account_id='ing-checking' AND booked_date >= DATE_FORMAT(DATE_SUB(CURDATE(),INTERVAL 1 MONTH),'%Y-%m-01') AND booked_date < DATE_FORMAT(CURDATE(),'%Y-%m-01')"
+          "rawSql": "SELECT ROUND(SUM(base_amount),2) AS Net FROM transactions WHERE (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND booked_date >= DATE_FORMAT(DATE_SUB(CURDATE(),INTERVAL 1 MONTH),'%Y-%m-01') AND booked_date < DATE_FORMAT(CURDATE(),'%Y-%m-01')"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "currencyEUR",
           "color": {
-            "mode": "fixed",
-            "fixedColor": "green"
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 0,
+                "color": "green"
+              }
+            ]
           }
         },
         "overrides": []
@@ -68,7 +80,7 @@
     },
     {
       "type": "stat",
-      "title": "Spending (last full month)",
+      "title": "Net \u2014 last 13 months",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -87,15 +99,27 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT ROUND(-SUM(CASE WHEN base_amount<0 AND COALESCE(category,'')<>'transfer' THEN base_amount ELSE 0 END),2) AS Spending FROM transactions WHERE account_id='ing-checking' AND booked_date >= DATE_FORMAT(DATE_SUB(CURDATE(),INTERVAL 1 MONTH),'%Y-%m-01') AND booked_date < DATE_FORMAT(CURDATE(),'%Y-%m-01')"
+          "rawSql": "SELECT ROUND(SUM(base_amount),2) AS Net FROM transactions WHERE (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND booked_date>=DATE_SUB(CURDATE(),INTERVAL 13 MONTH)"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "currencyEUR",
           "color": {
-            "mode": "fixed",
-            "fixedColor": "orange"
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 0,
+                "color": "green"
+              }
+            ]
           }
         },
         "overrides": []
@@ -115,7 +139,7 @@
     },
     {
       "type": "stat",
-      "title": "Free (last full month)",
+      "title": "Total liquid now (confirmed balances)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -134,7 +158,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT ROUND(SUM(CASE WHEN COALESCE(category,'')<>'transfer' THEN base_amount ELSE 0 END),2) AS Free FROM transactions WHERE account_id='ing-checking' AND booked_date >= DATE_FORMAT(DATE_SUB(CURDATE(),INTERVAL 1 MONTH),'%Y-%m-01') AND booked_date < DATE_FORMAT(CURDATE(),'%Y-%m-01')"
+          "rawSql": "SELECT ROUND(SUM(base_balance),2) AS Liquid FROM (SELECT base_balance, ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY as_of DESC) rn FROM balances) z WHERE rn=1"
         }
       ],
       "fieldConfig": {
@@ -162,22 +186,41 @@
     },
     {
       "type": "barchart",
-      "title": "Income vs Spending vs Free \u2014 per month",
+      "title": "Net per month (all accounts) \u2014 what actually stayed",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
       },
       "gridPos": {
         "h": 8,
-        "w": 24,
+        "w": 12,
         "x": 0,
         "y": 4
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "currencyEUR"
+          "unit": "currencyEUR",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 0,
+                "color": "green"
+              }
+            ]
+          }
         },
         "overrides": []
+      },
+      "options": {
+        "xField": "time"
       },
       "targets": [
         {
@@ -187,16 +230,13 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(booked_date,'%Y-%m'),'-01'),'%Y-%m-%d') AS time, ROUND(SUM(CASE WHEN base_amount>0 AND COALESCE(category,'')<>'transfer' THEN base_amount ELSE 0 END),2) AS Income, ROUND(-SUM(CASE WHEN base_amount<0 AND COALESCE(category,'')<>'transfer' THEN base_amount ELSE 0 END),2) AS Spending, ROUND(SUM(CASE WHEN COALESCE(category,'')<>'transfer' THEN base_amount ELSE 0 END),2) AS Free FROM transactions WHERE account_id='ing-checking' AND $__timeFilter(booked_date) GROUP BY 1 ORDER BY 1"
+          "rawSql": "SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(booked_date,'%Y-%m'),'-01'),'%Y-%m-%d') AS time, ROUND(SUM(base_amount),2) AS Net FROM transactions WHERE (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND $__timeFilter(booked_date) GROUP BY 1 ORDER BY 1"
         }
-      ],
-      "options": {
-        "xField": "time"
-      }
+      ]
     },
     {
       "type": "timeseries",
-      "title": "Cumulative operating surplus (excl. transfers)",
+      "title": "Cumulative net (real trajectory)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -204,8 +244,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 12
+        "x": 12,
+        "y": 4
       },
       "fieldConfig": {
         "defaults": {
@@ -225,97 +265,22 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT t AS time, ROUND(SUM(net) OVER (ORDER BY t),2) AS `Cumulative net` FROM (SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(booked_date,'%Y-%m'),'-01'),'%Y-%m-%d') t, SUM(CASE WHEN COALESCE(category,'')<>'transfer' THEN base_amount ELSE 0 END) net FROM transactions WHERE account_id='ing-checking' AND $__timeFilter(booked_date) GROUP BY 1) x ORDER BY t"
+          "rawSql": "SELECT t AS time, ROUND(SUM(net) OVER (ORDER BY t),2) AS `Cumulative net` FROM (SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(booked_date,'%Y-%m'),'-01'),'%Y-%m-%d') t, SUM(base_amount) net FROM transactions WHERE (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND $__timeFilter(booked_date) GROUP BY 1) x ORDER BY t"
         }
       ]
     },
     {
-      "type": "timeseries",
-      "title": "Savings / transfer churn (the leak)",
-      "datasource": {
-        "type": "mysql",
-        "uid": "finops-ledger"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 12
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "currencyEUR",
-          "custom": {
-            "drawStyle": "bars",
-            "fillOpacity": 70
-          }
-        },
-        "overrides": []
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "mysql",
-            "uid": "finops-ledger"
-          },
-          "format": "table",
-          "rawSql": "SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(booked_date,'%Y-%m'),'-01'),'%Y-%m-%d') AS time, ROUND(SUM(CASE WHEN base_amount>0 THEN base_amount ELSE 0 END),2) AS `From savings (in)`, ROUND(-SUM(CASE WHEN base_amount<0 THEN base_amount ELSE 0 END),2) AS `To savings (out)` FROM transactions WHERE account_id='ing-checking' AND COALESCE(category,'')='transfer' AND $__timeFilter(booked_date) GROUP BY 1 ORDER BY 1"
-        }
-      ]
-    },
-    {
-      "type": "timeseries",
-      "title": "Spending by category \u2014 per month (top 10, stacked)",
+      "type": "table",
+      "title": "Real consumption by category \u2014 last 6 months (refunds netted)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
       },
       "gridPos": {
         "h": 9,
-        "w": 24,
+        "w": 12,
         "x": 0,
-        "y": 20
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "currencyEUR",
-          "custom": {
-            "drawStyle": "bars",
-            "fillOpacity": 80,
-            "stacking": {
-              "mode": "normal",
-              "group": "A"
-            },
-            "lineWidth": 0
-          }
-        },
-        "overrides": []
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "mysql",
-            "uid": "finops-ledger"
-          },
-          "format": "time_series",
-          "rawSql": "SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(t.booked_date,'%Y-%m'),'-01'),'%Y-%m-%d') AS time, COALESCE(top.category,'other') AS metric, ROUND(-SUM(t.base_amount),2) AS value FROM transactions t JOIN categories c ON t.category=c.slug LEFT JOIN (SELECT category FROM transactions WHERE account_id='ing-checking' AND base_amount<0 AND booked_date>=DATE_SUB(CURDATE(),INTERVAL 13 MONTH) GROUP BY category ORDER BY SUM(base_amount) ASC LIMIT 10) top ON top.category=t.category WHERE c.kind='expense' AND t.account_id='ing-checking' AND $__timeFilter(t.booked_date) GROUP BY 1,2 ORDER BY 1"
-        }
-      ]
-    },
-    {
-      "type": "table",
-      "title": "Top spending categories \u2014 last 6 months",
-      "datasource": {
-        "type": "mysql",
-        "uid": "finops-ledger"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 29
+        "y": 12
       },
       "fieldConfig": {
         "defaults": {},
@@ -342,7 +307,82 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT t.category AS Category, ROUND(-SUM(t.base_amount),2) AS Spend, COUNT(*) AS Txns FROM transactions t JOIN categories c ON t.category=c.slug WHERE c.kind='expense' AND t.account_id='ing-checking' AND t.booked_date >= DATE_SUB(CURDATE(),INTERVAL 6 MONTH) GROUP BY 1 ORDER BY 2 DESC LIMIT 15"
+          "rawSql": "SELECT t.category AS Category, ROUND(-SUM(t.base_amount),2) AS Spend, COUNT(*) AS Txns FROM transactions t JOIN categories c ON t.category=c.slug WHERE c.kind='expense' AND (t.account_id IN ('ing-checking','ing-card') OR (t.account_id LIKE 'ing-sav-%' AND t.account_id<>'ing-sav-k797')) AND NOT (t.account_id='ing-checking' AND t.payee_raw LIKE '%Incasso ING creditcard%') AND t.booked_date>=DATE_SUB(CURDATE(),INTERVAL 6 MONTH) GROUP BY 1 ORDER BY 2 DESC LIMIT 12"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Real income per month (earnings)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(t.booked_date,'%Y-%m'),'-01'),'%Y-%m-%d') AS time, ROUND(SUM(CASE WHEN t.base_amount>0 AND c.kind='income' THEN t.base_amount ELSE 0 END),2) AS Income FROM transactions t LEFT JOIN categories c ON t.category=c.slug WHERE (t.account_id IN ('ing-checking','ing-card') OR (t.account_id LIKE 'ing-sav-%' AND t.account_id<>'ing-sav-k797')) AND $__timeFilter(t.booked_date) GROUP BY 1 ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Spending by category \u2014 per month (top 10, stacked)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "time_series",
+          "rawSql": "SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(t.booked_date,'%Y-%m'),'-01'),'%Y-%m-%d') AS time, COALESCE(top.category,'other') AS metric, ROUND(-SUM(t.base_amount),2) AS value FROM transactions t JOIN categories c ON t.category=c.slug LEFT JOIN (SELECT category FROM transactions WHERE (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND base_amount<0 AND booked_date>=DATE_SUB(CURDATE(),INTERVAL 13 MONTH) GROUP BY category ORDER BY SUM(base_amount) ASC LIMIT 10) top ON top.category=t.category WHERE c.kind='expense' AND (t.account_id IN ('ing-checking','ing-card') OR (t.account_id LIKE 'ing-sav-%' AND t.account_id<>'ing-sav-k797')) AND NOT (t.account_id='ing-checking' AND t.payee_raw LIKE '%Incasso ING creditcard%') AND $__timeFilter(t.booked_date) GROUP BY 1,2 ORDER BY 1"
         }
       ]
     }
