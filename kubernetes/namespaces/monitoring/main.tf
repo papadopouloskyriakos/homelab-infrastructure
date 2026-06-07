@@ -365,6 +365,70 @@ resource "helm_release" "monitoring" {
                 { source_labels = ["__address__"], regex = "192\\.168\\.181\\..*", target_label = "site", replacement = "nl" },
               ]
             },
+            # =============================================================
+            # omoikane Production Hosts (node_exporter)
+            #
+            # Five-host production stack (verified live 2026-06-02):
+            #   notrf01dmz01 + notrf01dmz02 — app tier (omoikane-daemon,
+            #     Authentik, Temporal, claudecode-runner, KeyDB, Qdrant,
+            #     Anubis, Tika, Gotenberg, Browserless, ClamAV)
+            #   notrf01dmz03 + notrf01dmz04 — YB tier (yb-master + yb-tserver,
+            #     RF=2 tablets; dmz04 currently master LEADER post-2026-06-02
+            #     migration)
+            #   nldmz01                 — YB master ONLY (arbitrator),
+            #     ~400 MB RSS, Raft 3rd vote
+            #
+            # Plus the benchmark host (omoikane-benchmark + Playwright
+            # workers; nlomktst01) — separated by role label so it
+            # can be excluded from production-only alert rules.
+            #
+            # All hosts run prometheus-node-exporter 1.7.0-1ubuntu0.3 on
+            # :9100, verified 2026-06-02 23:18 UTC. Added so the
+            # benchmark's stress-test runs can correlate concurrent
+            # persona load with per-host CPU/RAM/network/disk — closes
+            # spec/032 REQ-32012 CPU/RAM growth assertion's data
+            # collection gap (assertion was coded but the observation
+            # field was never populated).
+            # =============================================================
+            {
+              job_name = "omoikane-node"
+              static_configs = [
+                {
+                  targets = [
+                    "10.255.4.11:9100",    # notrf01dmz01 — app NL primary
+                    "10.255.5.11:9100",    # notrf01dmz02 — app NL peer
+                    "10.255.7.11:9100",    # notrf01dmz03 — YB primary
+                    "10.255.8.11:9100",    # notrf01dmz04 — YB peer + current LEADER
+                    "10.0.X.X:9100", # nldmz01 — YB arbitrator (NL)
+                  ]
+                  labels = {
+                    role = "omoikane-production"
+                  }
+                },
+                {
+                  targets = [
+                    "10.0.X.X:9100", # nlomktst01 — benchmark host
+                  ]
+                  labels = {
+                    role = "omoikane-benchmark"
+                  }
+                },
+              ]
+              relabel_configs = [
+                { source_labels = ["__address__"], regex = "10\\.255\\.4\\.11:.*", target_label = "instance", replacement = "notrf01dmz01" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.5\\.11:.*", target_label = "instance", replacement = "notrf01dmz02" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.7\\.11:.*", target_label = "instance", replacement = "notrf01dmz03" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.8\\.11:.*", target_label = "instance", replacement = "notrf01dmz04" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.192\\.10:.*", target_label = "instance", replacement = "nldmz01" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.181\\.30:.*", target_label = "instance", replacement = "nlomktst01" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.4\\..*", target_label = "site", replacement = "no" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.5\\..*", target_label = "site", replacement = "no" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.7\\..*", target_label = "site", replacement = "no" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.8\\..*", target_label = "site", replacement = "no" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.192\\..*", target_label = "site", replacement = "nl" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.181\\..*", target_label = "site", replacement = "nl" },
+              ]
+            },
             # ChatOps Infrastructure - GPU Metrics (nvidia_gpu_exporter)
             {
               job_name = "chatops-nvidia"
