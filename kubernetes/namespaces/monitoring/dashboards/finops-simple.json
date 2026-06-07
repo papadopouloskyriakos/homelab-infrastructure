@@ -1,0 +1,217 @@
+{
+  "uid": "finops-simple",
+  "title": "My Money \u2014 simple",
+  "tags": [
+    "finops"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "",
+  "time": {
+    "from": "now-13M",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "\ud83d\udcb0 Money I have right now",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT ROUND(SUM(base_balance),0) AS Money FROM (SELECT base_balance, ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY as_of DESC) rn FROM balances) z WHERE rn=1"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "\ud83d\udcc9 Every month, on average",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 0,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT ROUND(SUM(base_amount)/13,0) AS PerMonth FROM transactions WHERE (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND booked_date>=DATE_SUB(CURDATE(),INTERVAL 13 MONTH)"
+        }
+      ]
+    },
+    {
+      "type": "barchart",
+      "title": "\ud83d\uded2 Where my money goes (each month)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "Where it goes",
+        "showValue": "always",
+        "barWidth": 0.8,
+        "groupWidth": 0.8,
+        "stacking": "none",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT CASE t.category WHEN 'online-shopping' THEN 'Online shopping' WHEN 'card-spending' THEN 'Paying credit card' WHEN 'groceries' THEN 'Food (groceries)' WHEN 'mortgage' THEN 'Home (mortgage)' WHEN 'REDACTED_358be28b' THEN 'Apps & subscriptions' WHEN 'electronics-homelab' THEN 'Gear / electronics' WHEN 'takeaway-delivery' THEN 'Takeaway' WHEN 'loans' THEN 'Loan payments' WHEN 'electric-gas' THEN 'Electric & gas' WHEN 'greece-family' THEN 'Family (Greece)' WHEN 'supplements-fitness' THEN 'Supplements' ELSE t.category END AS `Where it goes`, ROUND(-SUM(t.base_amount)/6,0) AS `Per month` FROM transactions t JOIN categories c ON t.category=c.slug WHERE c.kind='expense' AND (t.account_id IN ('ing-checking','ing-card') OR (t.account_id LIKE 'ing-sav-%' AND t.account_id<>'ing-sav-k797')) AND NOT (t.account_id='ing-checking' AND t.payee_raw LIKE '%Incasso ING creditcard%') AND t.booked_date>=DATE_SUB(CURDATE(),INTERVAL 6 MONTH) GROUP BY 1 ORDER BY 2 DESC LIMIT 8"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "\ud83d\udcca My money over time (going down = bad)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 25,
+            "lineWidth": 3
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT t AS time, ROUND(SUM(net) OVER (ORDER BY t),2) AS `My money (change since start)` FROM (SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(booked_date,'%Y-%m'),'-01'),'%Y-%m-%d') t, SUM(base_amount) net FROM transactions WHERE (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND $__timeFilter(booked_date) GROUP BY 1) x ORDER BY t"
+        }
+      ]
+    }
+  ]
+}

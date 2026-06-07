@@ -184,3 +184,17 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_behavior" {
     "finops-behavior.json" = file("${path.module}/dashboards/finops-behavior.json")
   }
 }
+
+# My Money — simple (neurodivergent-friendly view: 4 big plain panels)
+resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_simple" {
+  metadata {
+    name      = "REDACTED_9e73b182-simple"
+    namespace = "monitoring"
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+  data = {
+    "finops-simple.json" = file("${path.module}/dashboards/finops-simple.json")
+  }
+}
