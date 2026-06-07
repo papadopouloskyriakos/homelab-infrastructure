@@ -171,7 +171,7 @@ resource "REDACTED_a9df2e77" "REDACTED_dae6e5e3" {
   }
 }
 
-# finops · spending-behavior dashboard v2 (all-accounts net; refunds netted; k797 excluded)
+# finops · spending-behavior dashboard v2.1 (Net-13M stat uses dashboard time window for consistency)
 resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_behavior" {
   metadata {
     name      = "REDACTED_9e73b182-behavior"
