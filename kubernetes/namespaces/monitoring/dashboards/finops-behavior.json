@@ -99,7 +99,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT ROUND(SUM(base_amount),2) AS Net FROM transactions WHERE (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND booked_date>=DATE_SUB(CURDATE(),INTERVAL 13 MONTH)"
+          "rawSql": "SELECT ROUND(SUM(base_amount),2) AS Net FROM transactions WHERE (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND $__timeFilter(booked_date)"
         }
       ],
       "fieldConfig": {
