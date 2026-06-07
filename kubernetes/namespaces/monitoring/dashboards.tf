@@ -185,7 +185,7 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_behavior" {
   }
 }
 
-# My Money — simple (neurodivergent-friendly view: 4 big plain panels)
+# My Money — clear (neurodivergent dashboard: plan-vs-actual, fixed IN/OUT constants, sections)
 resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_simple" {
   metadata {
     name      = "REDACTED_9e73b182-simple"

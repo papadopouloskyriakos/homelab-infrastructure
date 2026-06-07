@@ -1,6 +1,6 @@
 {
   "uid": "finops-simple",
-  "title": "My Money \u2014 simple",
+  "title": "My Money \u2014 clear",
   "tags": [
     "finops"
   ],
@@ -20,17 +20,45 @@
   },
   "panels": [
     {
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "# \ud83d\udca1 Your money, in plain words\n**Green = good \u00b7 Red = watch out.** Every box says what it means. Your numbers come from your real bank data + your v6 plan."
+      }
+    },
+    {
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 3
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## \u2460 WHERE I STAND \u2014 true today"
+      }
+    },
+    {
       "type": "stat",
-      "title": "\ud83d\udcb0 Money I have right now",
+      "title": "\ud83d\udcb0 Money I can spend now",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
       },
       "gridPos": {
-        "h": 6,
-        "w": 12,
+        "h": 5,
+        "w": 8,
         "x": 0,
-        "y": 0
+        "y": 5
       },
       "fieldConfig": {
         "defaults": {
@@ -63,22 +91,70 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT ROUND(SUM(base_balance),0) AS Money FROM (SELECT base_balance, ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY as_of DESC) rn FROM balances) z WHERE rn=1"
+          "rawSql": "SELECT ROUND(SUM(base_balance),0) FROM (SELECT base_balance, ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY as_of DESC) rn FROM balances) z WHERE rn=1"
         }
       ]
     },
     {
       "type": "stat",
-      "title": "\ud83d\udcc9 Every month, on average",
+      "title": "\ud83d\udcb3 Money I owe friends (Ilias+Christos)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
       },
       "gridPos": {
-        "h": 6,
-        "w": 12,
-        "x": 12,
-        "y": 0
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "yellow"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT 3800"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "\ud83c\udfe6 Left in my savings pots",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 5
       },
       "fieldConfig": {
         "defaults": {
@@ -94,7 +170,7 @@
                 "color": "red"
               },
               {
-                "value": 0,
+                "value": 1,
                 "color": "green"
               }
             ]
@@ -123,22 +199,360 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT ROUND(SUM(base_amount)/13,0) AS PerMonth FROM transactions WHERE (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND booked_date>=DATE_SUB(CURDATE(),INTERVAL 13 MONTH)"
+          "rawSql": "SELECT 0"
         }
       ]
     },
     {
-      "type": "barchart",
-      "title": "\ud83d\uded2 Where my money goes (each month)",
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## \u2461 MY MONTHLY PLAN \u2014 fixed numbers (not a bouncing average)"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "\ud83d\udce5 Money IN \u2014 reliable (UWV+3 rooms+ASR)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
       },
       "gridPos": {
-        "h": 12,
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 12
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT 6029"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "\ud83d\udce4 Money OUT \u2014 my v6 plan",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 12
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT 5314"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "\u2705 Spare each month IF I follow the plan",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 12
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 1,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT 6029-5314"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "\u27a1\ufe0f **+\u20ac715/month spare = \u20ac165/week.** Put it toward Ilias + Christos and you're **debt-free in ~6 months.** The catch: this only works if OUT stays at \u20ac5,314 \u2014 you actually spend ~\u20ac7,387 (\u2248\u20ac2,000/mo over, mostly gadgets)."
+      }
+    },
+    {
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## \u2462 THIS MONTH \u2014 am I sticking to the \u20ac5,314 plan?"
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "\ud83d\udcc5 Spent this month (of my \u20ac5,314 plan)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 7,
         "w": 12,
         "x": 0,
-        "y": 6
+        "y": 21
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "min": 0,
+          "max": 5314,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 4250,
+                "color": "yellow"
+              },
+              {
+                "value": 5314,
+                "color": "red"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT ROUND(-SUM(t.base_amount),0) FROM transactions t JOIN categories c ON t.category=c.slug WHERE c.kind='expense' AND (t.account_id IN ('ing-checking','ing-card') OR (t.account_id LIKE 'ing-sav-%' AND t.account_id<>'ing-sav-k797')) AND NOT (t.account_id='ing-checking' AND t.payee_raw LIKE '%Incasso ING creditcard%') AND t.booked_date>=DATE_FORMAT(CURDATE(),'%Y-%m-01')"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "\ud83d\uded2 Online shopping THIS month (was ~\u20ac1,900/mo in spring!)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 21
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 300,
+                "color": "yellow"
+              },
+              {
+                "value": 800,
+                "color": "red"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT ROUND(-COALESCE(SUM(base_amount),0),0) FROM transactions WHERE category='online-shopping' AND base_amount<0 AND (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND booked_date>=DATE_FORMAT(CURDATE(),'%Y-%m-01')"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## \u2463 WHERE MY MONEY GOES \u2014 biggest first"
+      }
+    },
+    {
+      "type": "barchart",
+      "title": "\ud83d\uded2 Where my money goes (average per month)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 30
       },
       "fieldConfig": {
         "defaults": {
@@ -155,8 +569,6 @@
         "xField": "Where it goes",
         "showValue": "always",
         "barWidth": 0.8,
-        "groupWidth": 0.8,
-        "stacking": "none",
         "legend": {
           "showLegend": false
         }
@@ -169,22 +581,92 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT CASE t.category WHEN 'online-shopping' THEN 'Online shopping' WHEN 'card-spending' THEN 'Paying credit card' WHEN 'groceries' THEN 'Food (groceries)' WHEN 'mortgage' THEN 'Home (mortgage)' WHEN 'REDACTED_358be28b' THEN 'Apps & subscriptions' WHEN 'electronics-homelab' THEN 'Gear / electronics' WHEN 'takeaway-delivery' THEN 'Takeaway' WHEN 'loans' THEN 'Loan payments' WHEN 'electric-gas' THEN 'Electric & gas' WHEN 'greece-family' THEN 'Family (Greece)' WHEN 'supplements-fitness' THEN 'Supplements' ELSE t.category END AS `Where it goes`, ROUND(-SUM(t.base_amount)/6,0) AS `Per month` FROM transactions t JOIN categories c ON t.category=c.slug WHERE c.kind='expense' AND (t.account_id IN ('ing-checking','ing-card') OR (t.account_id LIKE 'ing-sav-%' AND t.account_id<>'ing-sav-k797')) AND NOT (t.account_id='ing-checking' AND t.payee_raw LIKE '%Incasso ING creditcard%') AND t.booked_date>=DATE_SUB(CURDATE(),INTERVAL 6 MONTH) GROUP BY 1 ORDER BY 2 DESC LIMIT 8"
+          "rawSql": "SELECT CASE t.category WHEN 'online-shopping' THEN 'Online shopping' WHEN 'card-spending' THEN 'Paying credit card' WHEN 'groceries' THEN 'Food (groceries)' WHEN 'mortgage' THEN 'Home (mortgage)' WHEN 'REDACTED_358be28b' THEN 'Apps & subscriptions' WHEN 'electronics-homelab' THEN 'Gear / electronics' WHEN 'takeaway-delivery' THEN 'Takeaway' WHEN 'loans' THEN 'Loan payments' WHEN 'electric-gas' THEN 'Electric & gas' WHEN 'greece-family' THEN 'Family (Greece)' WHEN 'supplements-fitness' THEN 'Supplements' WHEN 'health-insurance-nn' THEN 'Health insurance' ELSE t.category END AS `Where it goes`, ROUND(-SUM(t.base_amount)/6,0) AS `Per month` FROM transactions t JOIN categories c ON t.category=c.slug WHERE c.kind='expense' AND (t.account_id IN ('ing-checking','ing-card') OR (t.account_id LIKE 'ing-sav-%' AND t.account_id<>'ing-sav-k797')) AND NOT (t.account_id='ing-checking' AND t.payee_raw LIKE '%Incasso ING creditcard%') AND t.booked_date>=DATE_SUB(CURDATE(),INTERVAL 6 MONTH) GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
         }
       ]
     },
     {
-      "type": "timeseries",
-      "title": "\ud83d\udcca My money over time (going down = bad)",
+      "type": "table",
+      "title": "\ud83d\udccb My subscriptions (\u2248\u20ac611/mo \u2014 cancel what you don't use)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
       },
       "gridPos": {
-        "h": 12,
+        "h": 10,
         "w": 12,
         "x": 12,
-        "y": 6
+        "y": 30
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Per month"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyEUR"
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT LEFT(payee_raw,28) AS `Subscription`, ROUND(-SUM(base_amount)/6,0) AS `Per month` FROM transactions WHERE category='REDACTED_358be28b' AND base_amount<0 AND (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND booked_date>=DATE_SUB(CURDATE(),INTERVAL 6 MONTH) GROUP BY 1 ORDER BY 2 DESC LIMIT 12"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## \u2464 THE BIG PICTURE"
+      }
+    },
+    {
+      "type": "text",
+      "title": "\ud83d\udcb3 When can I repay Ilias + Christos? (\u20ac3,800)",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 42
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "### \u20ac3,800 to clear\n\n\u2705 **Follow your plan (+\u20ac715/mo spare) \u2192 debt-free in ~6 months.**\n\n\u274c **Keep overspending (\u20ac7,387/mo like now) \u2192 never** \u2014 you go backwards.\n\n\ud83d\udc49 The whole game = keep spending at **\u20ac5,314**, not \u20ac7,387. Online shopping is the lever."
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "\ud83c\udfe6 My savings this year (I emptied them to cover overspending)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 42
       },
       "fieldConfig": {
         "defaults": {
@@ -209,7 +691,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT t AS time, ROUND(SUM(net) OVER (ORDER BY t),2) AS `My money (change since start)` FROM (SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(booked_date,'%Y-%m'),'-01'),'%Y-%m-%d') t, SUM(base_amount) net FROM transactions WHERE (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND $__timeFilter(booked_date) GROUP BY 1) x ORDER BY t"
+          "rawSql": "SELECT t AS time, ROUND((SELECT -SUM(base_amount) FROM transactions WHERE account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797' AND booked_date>'2025-05-07') + SUM(net) OVER (ORDER BY t),0) AS `Savings (\u20ac)` FROM (SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(booked_date,'%Y-%m'),'-01'),'%Y-%m-%d') t, SUM(base_amount) net FROM transactions WHERE account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797' AND $__timeFilter(booked_date) GROUP BY 1) x ORDER BY t"
         }
       ]
     }
