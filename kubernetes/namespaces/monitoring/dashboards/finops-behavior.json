@@ -196,7 +196,7 @@
     },
     {
       "type": "timeseries",
-      "title": "Cumulative net (real account drift, excl. transfers)",
+      "title": "Cumulative operating surplus (excl. transfers)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -265,8 +265,8 @@
       ]
     },
     {
-      "type": "barchart",
-      "title": "Spending by category \u2014 per month (stacked)",
+      "type": "timeseries",
+      "title": "Spending by category \u2014 per month (top 10, stacked)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -281,9 +281,13 @@
         "defaults": {
           "unit": "currencyEUR",
           "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
             "stacking": {
-              "mode": "normal"
-            }
+              "mode": "normal",
+              "group": "A"
+            },
+            "lineWidth": 0
           }
         },
         "overrides": []
@@ -296,12 +300,9 @@
             "uid": "finops-ledger"
           },
           "format": "time_series",
-          "rawSql": "SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(t.booked_date,'%Y-%m'),'-01'),'%Y-%m-%d') AS time, t.category AS metric, ROUND(-SUM(t.base_amount),2) AS value FROM transactions t JOIN categories c ON t.category=c.slug WHERE c.kind='expense' AND t.account_id='ing-checking' AND $__timeFilter(t.booked_date) GROUP BY 1,2 ORDER BY 1"
+          "rawSql": "SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(t.booked_date,'%Y-%m'),'-01'),'%Y-%m-%d') AS time, COALESCE(top.category,'other') AS metric, ROUND(-SUM(t.base_amount),2) AS value FROM transactions t JOIN categories c ON t.category=c.slug LEFT JOIN (SELECT category FROM transactions WHERE account_id='ing-checking' AND base_amount<0 AND booked_date>=DATE_SUB(CURDATE(),INTERVAL 13 MONTH) GROUP BY category ORDER BY SUM(base_amount) ASC LIMIT 10) top ON top.category=t.category WHERE c.kind='expense' AND t.account_id='ing-checking' AND $__timeFilter(t.booked_date) GROUP BY 1,2 ORDER BY 1"
         }
-      ],
-      "options": {
-        "xField": "time"
-      }
+      ]
     },
     {
       "type": "table",
