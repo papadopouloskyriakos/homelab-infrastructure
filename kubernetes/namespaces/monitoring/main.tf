@@ -56,6 +56,47 @@ resource "kubernetes_manifest" "REDACTED_9675462a" {
 }
 
 # -----------------------------------------------------------------------------
+# ExternalSecret for the finops ledger read-only DB password (Grafana datasource)
+# -----------------------------------------------------------------------------
+resource "kubernetes_manifest" "grafana_finops_db_ro" {
+  manifest = {
+    apiVersion = "external-secrets.io/v1"
+    kind       = "ExternalSecret"
+    metadata = {
+      name      = "monitoring-finops-db-ro"
+      namespace = "monitoring"
+      labels = {
+        "app.kubernetes.io/name"      = "grafana"
+        "app.kubernetes.io/component" = "finops-datasource"
+        environment                   = "production"
+        "managed-by"                  = "opentofu"
+      }
+    }
+    spec = {
+      refreshInterval = "1h"
+      secretStoreRef = {
+        name = "openbao"
+        kind = "ClusterSecretStore"
+      }
+      target = {
+        name           = "monitoring-finops-db-ro"
+        creationPolicy = "Owner"
+        deletionPolicy = "Retain"
+      }
+      data = [
+        {
+          secretKey = "password"
+          remoteRef = {
+            key      = "REDACTED_b284d0f9"
+            property = "password"
+          }
+        }
+      ]
+    }
+  }
+}
+
+# -----------------------------------------------------------------------------
 # Monitoring Helm Release
 # -----------------------------------------------------------------------------
 resource "helm_release" "monitoring" {
@@ -71,7 +112,7 @@ resource "helm_release" "monitoring" {
   cleanup_on_fail  = true
 
   # Ensure ExternalSecret creates the secret first
-  depends_on = [kubernetes_manifest.REDACTED_9675462a]
+  depends_on = [kubernetes_manifest.REDACTED_9675462a, kubernetes_manifest.grafana_finops_db_ro]
 
   values = [
     yamlencode({
@@ -685,6 +726,16 @@ resource "helm_release" "monitoring" {
 
         tolerations = []
 
+        # Mount the finops read-only DB password (from ExternalSecret) for the mysql datasource
+        extraSecretMounts = [
+          {
+            name       = "finops-db-ro"
+            secretName = "monitoring-finops-db-ro"
+            mountPath  = "REDACTED_c7ec4346"
+            readOnly   = true
+          }
+        ]
+
         sidecar = {
           datasources = {
             defaultDatasourceEnabled = false
@@ -729,6 +780,24 @@ resource "helm_release" "monitoring" {
             jsonData = {
               httpMethod   = "POST"
               timeInterval = "30s"
+            }
+          },
+          {
+            name      = "finops-ledger"
+            type      = "mysql"
+            uid       = "finops-ledger"
+            url       = "nlproxysql01.example.net:6033"
+            database  = "finops"
+            user      = "grafana_ro"
+            access    = "proxy"
+            isDefault = false
+            jsonData = {
+              maxOpenConns    = 5
+              maxIdleConns    = 2
+              connMaxLifetime = 14400
+            }
+            secureJsonData = {
+              password = "$__file{REDACTED_c7ec4346/password}"
             }
           }
         ]
