@@ -185,7 +185,7 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_behavior" {
   }
 }
 
-# My Money — clear (neurodivergent dashboard: plan-vs-actual, fixed IN/OUT constants, sections)
+# My Money — clear v2 (EU number format de_DE, reliable IN 5619, no K abbreviations)
 resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_simple" {
   metadata {
     name      = "REDACTED_9e73b182-simple"
