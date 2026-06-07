@@ -185,7 +185,7 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_behavior" {
   }
 }
 
-# My Money — clear v2 (EU number format de_DE, reliable IN 5619, no K abbreviations)
+# My Money — clear v3 (fix stat tiles: numeric+locale EU format, no No-data)
 resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_simple" {
   metadata {
     name      = "REDACTED_9e73b182-simple"

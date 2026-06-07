@@ -30,7 +30,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "# \ud83d\udca1 Your money, in plain words\n**Green = good \u00b7 Red = watch out.** Every box says what it means. Amounts in \u20ac (NL format)."
+        "content": "# \ud83d\udca1 Your money, in plain words\n**Green = good \u00b7 Red = watch out.** \ud83d\udcb6 All amounts in **euros (\u20ac), NL format** (1.234,56)."
       }
     },
     {
@@ -44,12 +44,12 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## \u2460 WHERE I STAND \u2014 true today"
+        "content": "## \u2460 WHERE I STAND \u2014 true today  \u00b7  (\u20ac)"
       }
     },
     {
       "type": "stat",
-      "title": "\ud83d\udcb0 Money I can spend now",
+      "title": "\ud83d\udcb0 Money I can spend now  (\u20ac)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -62,7 +62,8 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
+          "unit": "locale",
+          "decimals": 2,
           "color": {
             "mode": "fixed",
             "fixedColor": "blue"
@@ -91,13 +92,13 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT CONCAT('\u20ac ', FORMAT((SELECT SUM(base_balance) FROM (SELECT base_balance, ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY as_of DESC) rn FROM balances) z WHERE rn=1),2,'de_DE')) AS v"
+          "rawSql": "SELECT ROUND(SUM(base_balance),2) FROM (SELECT base_balance, ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY as_of DESC) rn FROM balances) z WHERE rn=1"
         }
       ]
     },
     {
       "type": "stat",
-      "title": "\ud83d\udcb3 Money I owe friends (Ilias+Christos)",
+      "title": "\ud83d\udcb3 Money I owe friends (Ilias+Christos)  (\u20ac)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -110,7 +111,8 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
+          "unit": "locale",
+          "decimals": 2,
           "color": {
             "mode": "fixed",
             "fixedColor": "yellow"
@@ -139,13 +141,13 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT CONCAT('\u20ac ', FORMAT(3800,2,'de_DE')) AS v"
+          "rawSql": "SELECT 3800"
         }
       ]
     },
     {
       "type": "stat",
-      "title": "\ud83c\udfe6 Left in my savings pots",
+      "title": "\ud83c\udfe6 Left in my savings pots  (\u20ac)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -158,7 +160,8 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
+          "unit": "locale",
+          "decimals": 2,
           "color": {
             "mode": "fixed",
             "fixedColor": "red"
@@ -187,7 +190,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT CONCAT('\u20ac ', FORMAT(0,2,'de_DE')) AS v"
+          "rawSql": "SELECT 0"
         }
       ]
     },
@@ -202,12 +205,12 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## \u2461 MY MONTHLY PLAN \u2014 fixed numbers (not a bouncing average)"
+        "content": "## \u2461 MY MONTHLY PLAN \u2014 fixed numbers (not a bouncing average)  \u00b7  (\u20ac)"
       }
     },
     {
       "type": "stat",
-      "title": "\ud83d\udce5 Money IN \u2014 reliable (UWV+3 rooms+ASR)",
+      "title": "\ud83d\udce5 Money IN \u2014 reliable (UWV+3 rooms+ASR)  (\u20ac)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -220,7 +223,8 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
+          "unit": "locale",
+          "decimals": 2,
           "color": {
             "mode": "fixed",
             "fixedColor": "green"
@@ -249,13 +253,13 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT CONCAT('\u20ac ', FORMAT(5619,2,'de_DE')) AS v"
+          "rawSql": "SELECT 5619"
         }
       ]
     },
     {
       "type": "stat",
-      "title": "\ud83d\udce4 Money OUT \u2014 my v6 plan",
+      "title": "\ud83d\udce4 Money OUT \u2014 my v6 plan  (\u20ac)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -268,7 +272,8 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
+          "unit": "locale",
+          "decimals": 2,
           "color": {
             "mode": "fixed",
             "fixedColor": "orange"
@@ -297,13 +302,13 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT CONCAT('\u20ac ', FORMAT(5314,2,'de_DE')) AS v"
+          "rawSql": "SELECT 5314"
         }
       ]
     },
     {
       "type": "stat",
-      "title": "\u2705 Spare each month IF I follow the plan",
+      "title": "\u2705 Spare each month IF I follow the plan  (\u20ac)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -316,7 +321,8 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
+          "unit": "locale",
+          "decimals": 2,
           "color": {
             "mode": "fixed",
             "fixedColor": "green"
@@ -345,7 +351,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT CONCAT('\u20ac ', FORMAT(5619-5314,2,'de_DE')) AS v"
+          "rawSql": "SELECT 5619-5314"
         }
       ]
     },
@@ -360,7 +366,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "\u27a1\ufe0f **+\u20ac 305,00/month spare \u2248 \u20ac 70/week.** Put it toward Ilias + Christos \u2192 **debt-free in ~13 months** (your once-a-year holiday pay could clear most of it in one go). The catch: this only works if OUT stays at **\u20ac 5.314,00** \u2014 you actually spend ~**\u20ac 7.387,00** (\u2248\u20ac 2.000 over, mostly gadgets)."
+        "content": "\u27a1\ufe0f **+\u20ac 305,00/month spare \u2248 \u20ac 70/week.** Put it toward Ilias + Christos \u2192 **debt-free in ~13 months** (your once-a-year holiday pay could clear most of it in one go). The catch: only works if OUT stays at **\u20ac 5.314,00** \u2014 you actually spend ~**\u20ac 7.387,00** (\u2248\u20ac 2.000 over, mostly gadgets)."
       }
     },
     {
@@ -393,6 +399,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "locale",
+          "decimals": 2,
           "min": 0,
           "max": 5314,
           "color": {
@@ -435,13 +442,13 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT ROUND(-SUM(t.base_amount),0) FROM transactions t JOIN categories c ON t.category=c.slug WHERE c.kind='expense' AND (t.account_id IN ('ing-checking','ing-card') OR (t.account_id LIKE 'ing-sav-%' AND t.account_id<>'ing-sav-k797')) AND NOT (t.account_id='ing-checking' AND t.payee_raw LIKE '%Incasso ING creditcard%') AND t.booked_date>=DATE_FORMAT(CURDATE(),'%Y-%m-01')"
+          "rawSql": "SELECT ROUND(-SUM(t.base_amount),2) FROM transactions t JOIN categories c ON t.category=c.slug WHERE c.kind='expense' AND (t.account_id IN ('ing-checking','ing-card') OR (t.account_id LIKE 'ing-sav-%' AND t.account_id<>'ing-sav-k797')) AND NOT (t.account_id='ing-checking' AND t.payee_raw LIKE '%Incasso ING creditcard%') AND t.booked_date>=DATE_FORMAT(CURDATE(),'%Y-%m-01')"
         }
       ]
     },
     {
       "type": "stat",
-      "title": "\ud83d\uded2 Online shopping THIS month (was ~\u20ac 1.900/mo in spring!)",
+      "title": "\ud83d\uded2 Online shopping THIS month (was ~\u20ac 1.900/mo in spring!)  (\u20ac)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -455,6 +462,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "locale",
+          "decimals": 2,
           "color": {
             "mode": "thresholds"
           },
@@ -499,7 +507,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT ROUND(-COALESCE(SUM(base_amount),0),0) FROM transactions WHERE category='online-shopping' AND base_amount<0 AND (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND booked_date>=DATE_FORMAT(CURDATE(),'%Y-%m-01')"
+          "rawSql": "SELECT ROUND(-COALESCE(SUM(base_amount),0),2) FROM transactions WHERE category='online-shopping' AND base_amount<0 AND (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND booked_date>=DATE_FORMAT(CURDATE(),'%Y-%m-01')"
         }
       ]
     },
@@ -514,7 +522,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## \u2463 WHERE MY MONEY GOES \u2014 biggest first"
+        "content": "## \u2463 WHERE MY MONEY GOES \u2014 biggest first  \u00b7  (\u20ac/month)"
       }
     },
     {
@@ -620,7 +628,7 @@
     },
     {
       "type": "timeseries",
-      "title": "\ud83c\udfe6 My savings this year (I emptied them to cover overspending)",
+      "title": "\ud83c\udfe6 My savings this year (I emptied them to cover overspending) \u00b7 \u20ac",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -654,7 +662,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT t AS time, ROUND((SELECT -SUM(base_amount) FROM transactions WHERE account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797' AND booked_date>'2025-05-07') + SUM(net) OVER (ORDER BY t),0) AS `Savings (\u20ac)` FROM (SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(booked_date,'%Y-%m'),'-01'),'%Y-%m-%d') t, SUM(base_amount) net FROM transactions WHERE account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797' AND $__timeFilter(booked_date) GROUP BY 1) x ORDER BY t"
+          "rawSql": "SELECT t AS time, ROUND((SELECT -SUM(base_amount) FROM transactions WHERE account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797' AND booked_date>'2025-05-07') + SUM(net) OVER (ORDER BY t),0) AS `Savings` FROM (SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(booked_date,'%Y-%m'),'-01'),'%Y-%m-%d') t, SUM(base_amount) net FROM transactions WHERE account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797' AND $__timeFilter(booked_date) GROUP BY 1) x ORDER BY t"
         }
       ]
     }
