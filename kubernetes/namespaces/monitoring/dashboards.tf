@@ -170,3 +170,16 @@ resource "REDACTED_a9df2e77" "REDACTED_dae6e5e3" {
     "teacher-agent.json" = file("${path.module}/dashboards/teacher-agent.json")
   }
 }
+
+resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_behavior" {
+  metadata {
+    name      = "REDACTED_9e73b182-behavior"
+    namespace = "monitoring"
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+  data = {
+    "finops-behavior.json" = file("${path.module}/dashboards/finops-behavior.json")
+  }
+}
