@@ -30,7 +30,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "# \ud83d\udca1 Your money, in plain words\n**Green = good \u00b7 Red = watch out.** Every box says what it means. Your numbers come from your real bank data + your v6 plan."
+        "content": "# \ud83d\udca1 Your money, in plain words\n**Green = good \u00b7 Red = watch out.** Every box says what it means. Amounts in \u20ac (NL format)."
       }
     },
     {
@@ -62,7 +62,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "currencyEUR",
+          "unit": "none",
           "color": {
             "mode": "fixed",
             "fixedColor": "blue"
@@ -91,7 +91,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT ROUND(SUM(base_balance),0) FROM (SELECT base_balance, ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY as_of DESC) rn FROM balances) z WHERE rn=1"
+          "rawSql": "SELECT CONCAT('\u20ac ', FORMAT((SELECT SUM(base_balance) FROM (SELECT base_balance, ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY as_of DESC) rn FROM balances) z WHERE rn=1),2,'de_DE')) AS v"
         }
       ]
     },
@@ -110,7 +110,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "currencyEUR",
+          "unit": "none",
           "color": {
             "mode": "fixed",
             "fixedColor": "yellow"
@@ -139,7 +139,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT 3800"
+          "rawSql": "SELECT CONCAT('\u20ac ', FORMAT(3800,2,'de_DE')) AS v"
         }
       ]
     },
@@ -158,22 +158,10 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "currencyEUR",
+          "unit": "none",
           "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "value": null,
-                "color": "red"
-              },
-              {
-                "value": 1,
-                "color": "green"
-              }
-            ]
+            "mode": "fixed",
+            "fixedColor": "red"
           }
         },
         "overrides": []
@@ -199,7 +187,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT 0"
+          "rawSql": "SELECT CONCAT('\u20ac ', FORMAT(0,2,'de_DE')) AS v"
         }
       ]
     },
@@ -232,7 +220,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "currencyEUR",
+          "unit": "none",
           "color": {
             "mode": "fixed",
             "fixedColor": "green"
@@ -261,7 +249,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT 6029"
+          "rawSql": "SELECT CONCAT('\u20ac ', FORMAT(5619,2,'de_DE')) AS v"
         }
       ]
     },
@@ -280,7 +268,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "currencyEUR",
+          "unit": "none",
           "color": {
             "mode": "fixed",
             "fixedColor": "orange"
@@ -309,7 +297,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT 5314"
+          "rawSql": "SELECT CONCAT('\u20ac ', FORMAT(5314,2,'de_DE')) AS v"
         }
       ]
     },
@@ -328,22 +316,10 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "currencyEUR",
+          "unit": "none",
           "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "value": null,
-                "color": "red"
-              },
-              {
-                "value": 1,
-                "color": "green"
-              }
-            ]
+            "mode": "fixed",
+            "fixedColor": "green"
           }
         },
         "overrides": []
@@ -369,7 +345,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT 6029-5314"
+          "rawSql": "SELECT CONCAT('\u20ac ', FORMAT(5619-5314,2,'de_DE')) AS v"
         }
       ]
     },
@@ -384,7 +360,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "\u27a1\ufe0f **+\u20ac715/month spare = \u20ac165/week.** Put it toward Ilias + Christos and you're **debt-free in ~6 months.** The catch: this only works if OUT stays at \u20ac5,314 \u2014 you actually spend ~\u20ac7,387 (\u2248\u20ac2,000/mo over, mostly gadgets)."
+        "content": "\u27a1\ufe0f **+\u20ac 305,00/month spare \u2248 \u20ac 70/week.** Put it toward Ilias + Christos \u2192 **debt-free in ~13 months** (your once-a-year holiday pay could clear most of it in one go). The catch: this only works if OUT stays at **\u20ac 5.314,00** \u2014 you actually spend ~**\u20ac 7.387,00** (\u2248\u20ac 2.000 over, mostly gadgets)."
       }
     },
     {
@@ -398,12 +374,12 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## \u2462 THIS MONTH \u2014 am I sticking to the \u20ac5,314 plan?"
+        "content": "## \u2462 THIS MONTH \u2014 am I sticking to the \u20ac 5.314,00 plan?"
       }
     },
     {
       "type": "gauge",
-      "title": "\ud83d\udcc5 Spent this month (of my \u20ac5,314 plan)",
+      "title": "\ud83d\udcc5 Spent this month (plan: \u20ac 5.314,00)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -416,7 +392,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "currencyEUR",
+          "unit": "locale",
           "min": 0,
           "max": 5314,
           "color": {
@@ -465,7 +441,7 @@
     },
     {
       "type": "stat",
-      "title": "\ud83d\uded2 Online shopping THIS month (was ~\u20ac1,900/mo in spring!)",
+      "title": "\ud83d\uded2 Online shopping THIS month (was ~\u20ac 1.900/mo in spring!)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -478,7 +454,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "currencyEUR",
+          "unit": "locale",
           "color": {
             "mode": "thresholds"
           },
@@ -543,7 +519,7 @@
     },
     {
       "type": "barchart",
-      "title": "\ud83d\uded2 Where my money goes (average per month)",
+      "title": "\ud83d\uded2 Where my money goes (average per month, \u20ac)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -556,7 +532,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "currencyEUR",
+          "unit": "locale",
           "color": {
             "mode": "fixed",
             "fixedColor": "orange"
@@ -587,7 +563,7 @@
     },
     {
       "type": "table",
-      "title": "\ud83d\udccb My subscriptions (\u2248\u20ac611/mo \u2014 cancel what you don't use)",
+      "title": "\ud83d\udccb My subscriptions (cancel what you don't use)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -600,20 +576,7 @@
       },
       "fieldConfig": {
         "defaults": {},
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Per month"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "currencyEUR"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "targets": [
         {
@@ -623,7 +586,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT LEFT(payee_raw,28) AS `Subscription`, ROUND(-SUM(base_amount)/6,0) AS `Per month` FROM transactions WHERE category='REDACTED_358be28b' AND base_amount<0 AND (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND booked_date>=DATE_SUB(CURDATE(),INTERVAL 6 MONTH) GROUP BY 1 ORDER BY 2 DESC LIMIT 12"
+          "rawSql": "SELECT LEFT(payee_raw,28) AS `Subscription`, CONCAT('\u20ac ', FORMAT(-SUM(base_amount)/6,2,'de_DE')) AS `Per month` FROM transactions WHERE category='REDACTED_358be28b' AND base_amount<0 AND (account_id IN ('ing-checking','ing-card') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND booked_date>=DATE_SUB(CURDATE(),INTERVAL 6 MONTH) GROUP BY 1 ORDER BY -SUM(base_amount) DESC LIMIT 12"
         }
       ]
     },
@@ -643,7 +606,7 @@
     },
     {
       "type": "text",
-      "title": "\ud83d\udcb3 When can I repay Ilias + Christos? (\u20ac3,800)",
+      "title": "\ud83d\udcb3 When can I repay Ilias + Christos? (\u20ac 3.800,00)",
       "gridPos": {
         "h": 9,
         "w": 12,
@@ -652,7 +615,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "### \u20ac3,800 to clear\n\n\u2705 **Follow your plan (+\u20ac715/mo spare) \u2192 debt-free in ~6 months.**\n\n\u274c **Keep overspending (\u20ac7,387/mo like now) \u2192 never** \u2014 you go backwards.\n\n\ud83d\udc49 The whole game = keep spending at **\u20ac5,314**, not \u20ac7,387. Online shopping is the lever."
+        "content": "### \u20ac 3.800,00 to clear\n\n\u2705 **Follow your plan (+\u20ac 305,00/mo) \u2192 debt-free in ~13 months.**\n\n\u274c **Keep overspending (\u20ac 7.387,00/mo like now) \u2192 never** \u2014 you go backwards.\n\n\ud83d\udc49 The whole game = keep spending at **\u20ac 5.314,00**, not \u20ac 7.387,00. Online shopping is the lever."
       }
     },
     {
@@ -670,7 +633,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "currencyEUR",
+          "unit": "locale",
           "custom": {
             "drawStyle": "line",
             "fillOpacity": 25,
