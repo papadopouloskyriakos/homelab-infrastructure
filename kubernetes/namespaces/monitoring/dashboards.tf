@@ -198,3 +198,5 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_simple" {
     "finops-simple.json" = file("${path.module}/dashboards/finops-simple.json")
   }
 }
+
+# finops-simple: real subscriptions (Wallos snapshot wallos_subs) + "what changed" YoY panel — 2026-06-08
