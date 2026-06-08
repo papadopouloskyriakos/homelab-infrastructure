@@ -185,7 +185,7 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_behavior" {
   }
 }
 
-# My Money — clear v7 (typography: fixed value sizes — heroes 38px, supporting 26px, no more auto-fill billboards)
+# My Money — clear v8 (compact layout: shorter tiles, tightly packed — no more dead space)
 resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_simple" {
   metadata {
     name      = "REDACTED_9e73b182-simple"
