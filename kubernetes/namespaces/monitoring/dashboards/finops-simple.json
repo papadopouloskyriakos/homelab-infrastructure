@@ -83,7 +83,10 @@
         "graphMode": "none",
         "textMode": "value",
         "justifyMode": "center",
-        "text": {}
+        "text": {
+          "valueSize": 38,
+          "titleSize": 12
+        }
       },
       "targets": [
         {
@@ -133,7 +136,10 @@
         "graphMode": "none",
         "textMode": "value",
         "justifyMode": "center",
-        "text": {}
+        "text": {
+          "valueSize": 38,
+          "titleSize": 12
+        }
       },
       "targets": [
         {
@@ -183,7 +189,10 @@
         "graphMode": "none",
         "textMode": "value",
         "justifyMode": "center",
-        "text": {}
+        "text": {
+          "valueSize": 38,
+          "titleSize": 12
+        }
       },
       "targets": [
         {
@@ -247,7 +256,10 @@
         "graphMode": "none",
         "textMode": "value",
         "justifyMode": "center",
-        "text": {}
+        "text": {
+          "valueSize": 38,
+          "titleSize": 12
+        }
       },
       "targets": [
         {
@@ -297,7 +309,10 @@
         "graphMode": "none",
         "textMode": "value",
         "justifyMode": "center",
-        "text": {}
+        "text": {
+          "valueSize": 38,
+          "titleSize": 12
+        }
       },
       "targets": [
         {
@@ -347,7 +362,10 @@
         "graphMode": "none",
         "textMode": "value",
         "justifyMode": "center",
-        "text": {}
+        "text": {
+          "valueSize": 38,
+          "titleSize": 12
+        }
       },
       "targets": [
         {
@@ -438,7 +456,11 @@
           ]
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "showThresholdMarkers": true,
+        "text": {
+          "valueSize": 26,
+          "titleSize": 12
+        }
       },
       "targets": [
         {
@@ -504,7 +526,10 @@
         "graphMode": "none",
         "textMode": "value",
         "justifyMode": "center",
-        "text": {}
+        "text": {
+          "valueSize": 26,
+          "titleSize": 12
+        }
       },
       "targets": [
         {
@@ -671,7 +696,10 @@
         "graphMode": "none",
         "textMode": "value",
         "justifyMode": "center",
-        "text": {}
+        "text": {
+          "valueSize": 26,
+          "titleSize": 12
+        }
       },
       "targets": [
         {
@@ -786,7 +814,10 @@
         "graphMode": "none",
         "textMode": "value",
         "justifyMode": "center",
-        "text": {}
+        "text": {
+          "valueSize": 26,
+          "titleSize": 12
+        }
       },
       "targets": [
         {
@@ -852,7 +883,10 @@
         "graphMode": "none",
         "textMode": "value",
         "justifyMode": "center",
-        "text": {}
+        "text": {
+          "valueSize": 26,
+          "titleSize": 12
+        }
       },
       "targets": [
         {
@@ -932,7 +966,10 @@
         "graphMode": "none",
         "textMode": "value",
         "justifyMode": "center",
-        "text": {}
+        "text": {
+          "valueSize": 26,
+          "titleSize": 12
+        }
       },
       "targets": [
         {
@@ -998,7 +1035,10 @@
         "graphMode": "none",
         "textMode": "value",
         "justifyMode": "center",
-        "text": {}
+        "text": {
+          "valueSize": 26,
+          "titleSize": 12
+        }
       },
       "targets": [
         {
@@ -1060,7 +1100,10 @@
         "graphMode": "none",
         "textMode": "value",
         "justifyMode": "center",
-        "text": {}
+        "text": {
+          "valueSize": 26,
+          "titleSize": 12
+        }
       },
       "targets": [
         {
