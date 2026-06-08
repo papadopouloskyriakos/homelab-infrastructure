@@ -185,7 +185,7 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_behavior" {
   }
 }
 
-# My Money — clear v4 (sync-health: last-sync + re-consent alert)
+# My Money — clear v5 (fully dynamic via budget_plan table + PayPal scope + overdraft runway, biggest expenses, income-landed)
 resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_simple" {
   metadata {
     name      = "REDACTED_9e73b182-simple"
