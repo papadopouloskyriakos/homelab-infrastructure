@@ -3,15 +3,15 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-06-07 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-06-08 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
-## Health: HEALTHY ✅
+## Health: DEGRADED ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 0 |
+| Unhealthy Pods | 1 |
 | Pending PVCs | 0 |
-| Total Restarts | 2775 |
+| Total Restarts | 2776 |
 
 ## Topology
 
@@ -31,7 +31,9 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 ## Anomalies
 
 ### Unhealthy Pods
-_None_
+```
+ingress-nginx            ingress-nginx-controller-54679f6994-jkxnn                         0/1   ContainerStatusUnknown   1                61d
+```
 
 ### High Restart Pods (>3)
 awx/awx-operator-controller-manager-f84fc744-drg2t: 10 restarts
@@ -68,8 +70,6 @@ monitoring/goldpinger-cjzc4: 5 restarts
 monitoring/goldpinger-f72lw: 8 restarts
 monitoring/goldpinger-qs5xt: 5 restarts
 monitoring/goldpinger-vtfpx: 10 restarts
-monitoring/monitoring-grafana-9d45cc6d4-l558l: 184 restarts
-monitoring/monitoring-grafana-9d45cc6d4-lbrsf: 272 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 4 restarts
 monitoring/thanos-compactor-0: 7 restarts
 seaweedfs/seaweedfs-filer-1: 6 restarts
@@ -82,9 +82,7 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE    LAST SEEN   TYPE      REASON                OBJECT                            MESSAGE
-monitoring   13m         Warning   Unhealthy             pod/bgpalerter-596d7b756b-kngvb   Readiness probe failed: Get "http://10.0.6.173:8011/status": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-default      4m10s       Warning   FreeDiskSpaceFailed   node/nlk8s-node02            (combined from similar events): Failed to garbage collect required amount of images. Attempted to free 6445383680 bytes, but only found 0 bytes eligible to free.
+
 ```
 
 ## Key Resources
