@@ -1,6 +1,6 @@
 {
   "uid": "finops-simple",
-  "title": "My Money \u2014 clear",
+  "title": "My Money — clear",
   "tags": [
     "finops"
   ],
@@ -30,7 +30,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "# \ud83d\udca1 Your money, in plain words\n**Green = good \u00b7 Red = watch out.** \ud83d\udcb6 All amounts in **euros, NL format** (1.234,56)."
+        "content": "# 💡 Your money, in plain words\n**Green = good · Red = watch out.** 💶 All amounts in **euros, NL format** (1.234,56)."
       }
     },
     {
@@ -44,12 +44,12 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## \u2460 WHERE I STAND"
+        "content": "## ① WHERE I STAND"
       }
     },
     {
       "type": "stat",
-      "title": "\ud83d\udcb0 Money I can spend now  (\u20ac)",
+      "title": "💰 Money I can spend now  (€)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -102,7 +102,7 @@
     },
     {
       "type": "stat",
-      "title": "\ud83d\udcb3 Money I owe friends (Ilias+Christos)  (\u20ac)",
+      "title": "💳 Money I owe friends (Ilias+Christos)  (€)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -155,7 +155,7 @@
     },
     {
       "type": "stat",
-      "title": "\ud83c\udfe6 Left in my savings pots  (\u20ac)",
+      "title": "🏦 Left in my savings pots  (€)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -217,12 +217,12 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## \u2461 MY MONTHLY PLAN"
+        "content": "## ② MY MONTHLY PLAN"
       }
     },
     {
       "type": "stat",
-      "title": "\ud83d\udce5 Money IN \u2014 reliable (UWV+3 rooms+ASR)  (\u20ac)",
+      "title": "📥 Money IN — reliable (UWV+3 rooms+ASR)  (€)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -275,7 +275,7 @@
     },
     {
       "type": "stat",
-      "title": "\ud83d\udce4 Money OUT \u2014 my v6 plan  (\u20ac)",
+      "title": "📤 Money OUT — my v6 plan  (€)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -328,7 +328,7 @@
     },
     {
       "type": "stat",
-      "title": "\u2705 Spare each month IF I follow the plan  (\u20ac)",
+      "title": "✅ Spare each month IF I follow the plan  (€)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -390,7 +390,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "\u27a1\ufe0f **+\u20ac 305,00/month spare \u2248 \u20ac 70/week.** Put it toward Ilias + Christos \u2192 **debt-free in ~13 months** (your once-a-year holiday pay could clear most of it in one go). The catch: only works if OUT stays at **\u20ac 5.314,00** \u2014 you actually spend ~**\u20ac 7.387,00** (\u2248\u20ac 2.000 over, mostly gadgets)."
+        "content": "➡️ **+€ 305,00/month spare ≈ € 70/week.** Put it toward Ilias + Christos → **debt-free in ~13 months** (your once-a-year holiday pay could clear most of it in one go). The catch: only works if OUT stays at **€ 5.314,00** — you actually spend ~**€ 7.387,00** (≈€ 2.000 over, mostly gadgets)."
       }
     },
     {
@@ -404,12 +404,12 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## \u2462 THIS MONTH \u2014 this month"
+        "content": "## ③ THIS MONTH — this month"
       }
     },
     {
       "type": "gauge",
-      "title": "\ud83d\udcc5 Spent this month (plan: \u20ac 5.314,00)",
+      "title": "📅 Spent this month (plan: € 5.314,00)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -476,7 +476,7 @@
     },
     {
       "type": "stat",
-      "title": "\ud83d\uded2 Online shopping THIS month (was ~\u20ac 1.900/mo in spring!)  (\u20ac)",
+      "title": "🛒 Online shopping THIS month (was ~€ 1.900/mo in spring!)  (€)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -554,12 +554,12 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## \u2463 WHERE MY MONEY GOES"
+        "content": "## ④ WHERE MY MONEY GOES"
       }
     },
     {
       "type": "barchart",
-      "title": "\ud83d\uded2 Where my money goes (average per month, \u20ac)",
+      "title": "🛒 Where my money goes (average per month, €)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -603,7 +603,7 @@
     },
     {
       "type": "table",
-      "title": "\ud83d\udccb My subscriptions (cancel what you don't use)",
+      "title": "📋 My subscriptions (real — from Wallos)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -626,7 +626,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT LEFT(payee_raw,28) AS `Subscription`, CONCAT('\u20ac ', FORMAT(-SUM(base_amount)/6,2,'de_DE')) AS `Per month` FROM transactions WHERE category='REDACTED_358be28b' AND base_amount<0 AND (account_id IN ('ing-checking','ing-card','paypal') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND booked_date>=DATE_SUB(CURDATE(),INTERVAL 6 MONTH) GROUP BY 1 ORDER BY -SUM(base_amount) DESC LIMIT 12"
+          "rawSql": "SELECT name AS `Subscription`, CONCAT('€ ', FORMAT(monthly_eur,2,'de_DE')) AS `Per month`, cycle_label AS `Billed` FROM wallos_subs WHERE active=1 ORDER BY monthly_eur DESC LIMIT 14"
         }
       ]
     },
@@ -641,12 +641,12 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## \u2464 THE BIG PICTURE"
+        "content": "## ⑤ THE BIG PICTURE"
       }
     },
     {
       "type": "stat",
-      "title": "\ud83d\udcb3 Clear Ilias+Christos in\u2026 (months, IF you follow the plan)",
+      "title": "💳 Clear Ilias+Christos in… (months, IF you follow the plan)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -715,7 +715,7 @@
     },
     {
       "type": "timeseries",
-      "title": "\ud83c\udfe6 My savings this year (I emptied them to cover overspending) \u00b7 \u20ac",
+      "title": "🏦 My savings this year (I emptied them to cover overspending) · €",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -764,12 +764,12 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## \u2699\ufe0f DATA FRESHNESS \u2014 is the bank sync working?"
+        "content": "## ⚙️ DATA FRESHNESS — is the bank sync working?"
       }
     },
     {
       "type": "stat",
-      "title": "\ud83d\udd04 Last successful bank sync (ago)",
+      "title": "🔄 Last successful bank sync (ago)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -833,7 +833,7 @@
     },
     {
       "type": "stat",
-      "title": "\ud83d\udd10 Bank access expires in (days) \u2014 re-click to renew",
+      "title": "🔐 Bank access expires in (days) — re-click to renew",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -911,12 +911,12 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## \ud83d\udea8 REALITY CHECK \u2014 the overdraft wall"
+        "content": "## 🚨 REALITY CHECK — the overdraft wall"
       }
     },
     {
       "type": "stat",
-      "title": "\ud83d\udedf Overdraft room left (\u20ac)",
+      "title": "🛟 Overdraft room left (€)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -985,7 +985,7 @@
     },
     {
       "type": "stat",
-      "title": "\u23f3 Months of room left (if spending doesn't change)",
+      "title": "⏳ Months of room left (if spending doesn't change)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -1054,7 +1054,7 @@
     },
     {
       "type": "stat",
-      "title": "\ud83d\udce5 Income landed this month (plan \u20ac 5.619)",
+      "title": "📥 Income landed this month (plan € 5.619)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -1119,7 +1119,7 @@
     },
     {
       "type": "table",
-      "title": "\ud83d\uded2 Biggest expenses this month (real spending, no transfers)",
+      "title": "🛒 Biggest expenses this month (real spending, no transfers)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -1142,9 +1142,39 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT DATE_FORMAT(booked_date,'%e %b') AS `When`, CONCAT('\u20ac ',FORMAT(-base_amount,2,'de_DE')) AS Amount, LEFT(payee_raw,34) AS `Paid to` FROM transactions WHERE (account_id IN ('ing-checking','ing-card','paypal') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND base_amount<0 AND (category IS NULL OR category<>'transfer') AND booked_date>=DATE_FORMAT(CURDATE(),'%Y-%m-01') ORDER BY base_amount ASC LIMIT 8"
+          "rawSql": "SELECT DATE_FORMAT(booked_date,'%e %b') AS `When`, CONCAT('€ ',FORMAT(-base_amount,2,'de_DE')) AS Amount, LEFT(payee_raw,34) AS `Paid to` FROM transactions WHERE (account_id IN ('ing-checking','ing-card','paypal') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND base_amount<0 AND (category IS NULL OR category<>'transfer') AND booked_date>=DATE_FORMAT(CURDATE(),'%Y-%m-01') ORDER BY base_amount ASC LIMIT 8"
         }
       ]
+    },
+    {
+      "type": "table",
+      "title": "📊 What changed — where my spending shifted (Jan–Jun 2025 vs 2026)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 61,
+        "w": 24,
+        "h": 9
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT CASE cat WHEN 'online-shopping' THEN 'Online shopping' WHEN 'REDACTED_358be28b' THEN 'Apps & subscriptions' WHEN 'electronics-homelab' THEN 'Gear / electronics' WHEN 'groceries' THEN 'Food (groceries)' WHEN 'takeaway-delivery' THEN 'Takeaway' WHEN 'health-insurance-nn' THEN 'Health insurance' WHEN 'internet-mobile' THEN 'Internet / mobile' WHEN 'water-dunea' THEN 'Water' WHEN 'supplements-fitness' THEN 'Supplements' WHEN 'loans' THEN 'Loan payments' ELSE cat END AS `Category`, CONCAT('€ ', FORMAT(y25,0,'de_DE')) AS `Jan–Jun 2025`, CONCAT('€ ', FORMAT(y26,0,'de_DE')) AS `Jan–Jun 2026`, CONCAT(IF(y26-y25>=0,'▲ +€ ','▼ −€ '), FORMAT(ABS(y26-y25),0,'de_DE')) AS `Change` FROM (SELECT category AS cat, ROUND(-SUM(IF(booked_date BETWEEN '2025-01-01' AND '2025-06-30',base_amount,0)),0) AS y25, ROUND(-SUM(IF(booked_date BETWEEN '2026-01-01' AND '2026-06-30',base_amount,0)),0) AS y26 FROM transactions WHERE base_amount<0 AND category IS NOT NULL AND (account_id IN ('ing-checking','ing-card','paypal','ing-parents') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND category NOT IN ('transfer','greece-family','cash','card-spending','mortgage','electric-gas','taxes','disability-supp-asr') GROUP BY category) t WHERE ABS(y26-y25)>=60 ORDER BY ABS(y26-y25) DESC LIMIT 10"
+        }
+      ],
+      "id": 200
     }
   ],
   "style": "dark"
