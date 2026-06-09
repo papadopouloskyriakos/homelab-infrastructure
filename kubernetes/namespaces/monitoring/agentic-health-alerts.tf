@@ -118,6 +118,48 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
                 description = "scripts/lib/intermediate_rail.py is flagging > 20% of intermediate steps as out-of-distribution for this alert category. Either the heuristic keyword bucket is too narrow (false positives), the agent is going off-topic (real drift), or Ollama is returning bad classifications. DARK-FIRST: this alert observes only — no Build Prompt blocking. Inspect with: sqlite3 ~/gitlab/products/cubeos/claude-context/gateway.db \"SELECT payload_json FROM event_log WHERE event_type='REDACTED_be143759' AND emitted_at > datetime('now','-24 hours') ORDER BY id DESC LIMIT 20\""
               }
             },
+            {
+              # IFRNLLEI01PRD-1037 — Infragraph health (epic IFRNLLEI01PRD-1029).
+              # Mirror of claude-gateway prometheus/alert-rules/agentic-health.yml
+              # (the YAML is the test+doc copy; this tf is the deployed truth).
+              alert = "REDACTED_d60ef67f"
+              expr  = "time() - infragraph_exporter_last_run_timestamp > 1800"
+              for   = "10m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "infragraph metrics exporter has not run in 30+ minutes"
+                description = "scripts/write-infragraph-metrics.py is cron */5 on nlclaude01 — if its last-run timestamp is more than 30 minutes behind, the cron is wedged or the script errors. Without it, InfragraphSeedStale and REDACTED_74c7322d are blind. Runbook: claude-gateway docs/runbooks/infragraph.md."
+              }
+            },
+            {
+              alert = "InfragraphSeedStale"
+              expr  = "time() - min by (source) (infragraph_last_seed_timestamp{source=~\"pve|netbox|librenms\"}) > 129600"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "infragraph seed source {{ $labels.source }} stale > 36h"
+                description = "scripts/infragraph-seed.py --all is cron 10 4 * * * daily on nlclaude01. A source more than 36h behind means the seeder failed twice or the upstream API (PVE/NetBox/LibreNMS) is unreachable. Automated edges expire 7 days after their last seed (valid_until) — stale seeds degrade into visible stale_edges, never silently wrong predictions, but fix within the week. Run manually and read stderr: python3 scripts/infragraph-seed.py --all. Runbook: claude-gateway docs/runbooks/infragraph.md."
+              }
+            },
+            {
+              alert = "REDACTED_74c7322d"
+              expr  = "infragraph_precision_30d < 0.80 and infragraph_predictions_evaluated_total > 20"
+              for   = "6h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "infragraph 30d shadow-prediction precision below 0.80"
+                description = "Phase B shadow predictions are scoring below 0.80 precision over 30 days (with a meaningful sample). The cascade model is drifting from reality — topology changed without a reseed, or learned dynamics went stale. Phase C suppression eligibility requires >= 0.95 on the conf>=0.8 subset, so investigate BEFORE the IFRNLLEI01PRD-1040 gate review. Scorecard: test-results/infragraph-scorecard.json on nlclaude01. Runbook: claude-gateway docs/runbooks/infragraph.md."
+              }
+            },
           ]
         },
         {
