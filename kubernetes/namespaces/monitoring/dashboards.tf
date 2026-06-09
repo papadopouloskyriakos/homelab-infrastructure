@@ -185,7 +185,8 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_behavior" {
   }
 }
 
-# My Money — clear v8 (compact layout: shorter tiles, tightly packed — no more dead space)
+# My Money — where I stand v9 (calm single-page redesign: single-hue blue, plain-word
+# value mappings, variance-first, bar gauge over radial — research-backed, ASD/ADHD-friendly)
 resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_simple" {
   metadata {
     name      = "REDACTED_9e73b182-simple"
@@ -196,6 +197,21 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_simple" {
   }
   data = {
     "finops-simple.json" = file("${path.module}/dashboards/finops-simple.json")
+  }
+}
+
+# My Money — details (drill-down for finops-simple: big expenses, 6-mo category avg,
+# YoY changes, savings trajectory, Wallos subscriptions, debt payoff)
+resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_details" {
+  metadata {
+    name      = "REDACTED_9e73b182-details"
+    namespace = "monitoring"
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+  data = {
+    "finops-details.json" = file("${path.module}/dashboards/finops-details.json")
   }
 }
 
