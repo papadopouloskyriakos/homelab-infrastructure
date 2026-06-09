@@ -1,0 +1,185 @@
+{
+  "uid": "finops-details",
+  "title": "My Money — details",
+  "tags": [
+    "finops"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "",
+  "style": "dark",
+  "time": {
+    "from": "now-13M",
+    "to": "now"
+  },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": false,
+      "title": "← Back to where I stand",
+      "tooltip": "Back to the main page",
+      "type": "link",
+      "url": "/d/finops-simple"
+    }
+  ],
+  "panels": [
+    {
+      "type": "text",
+      "title": "",
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "# 🔎 My money — details\nThe deeper breakdown. [← Back to where I stand](/d/finops-simple).  All amounts in euros (1.234,56)."
+      }
+    },
+
+    {
+      "type": "bargauge",
+      "title": "🛒 Where my money goes — average per month, last 6 months  (€)",
+      "datasource": { "type": "mysql", "uid": "finops-ledger" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 3 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "locale",
+          "decimals": 0,
+          "color": { "mode": "fixed", "fixedColor": "#6E8FB8" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "text",
+        "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "mysql", "uid": "finops-ledger" },
+          "format": "table",
+          "rawSql": "SELECT CASE t.category WHEN 'online-shopping' THEN 'Online shopping' WHEN 'card-spending' THEN 'Paying credit card' WHEN 'groceries' THEN 'Food (groceries)' WHEN 'mortgage' THEN 'Home (mortgage)' WHEN 'REDACTED_358be28b' THEN 'Apps & subscriptions' WHEN 'electronics-homelab' THEN 'Gear / electronics' WHEN 'takeaway-delivery' THEN 'Takeaway' WHEN 'loans' THEN 'Loan payments' WHEN 'electric-gas' THEN 'Electric & gas' WHEN 'greece-family' THEN 'Family (Greece)' WHEN 'supplements-fitness' THEN 'Supplements' WHEN 'health-insurance-nn' THEN 'Health insurance' ELSE t.category END AS `Where it goes`, ROUND(-SUM(t.base_amount)/6,0) AS `Per month` FROM transactions t JOIN categories c ON t.category=c.slug WHERE c.kind='expense' AND (t.account_id IN ('ing-checking','ing-card','paypal') OR (t.account_id LIKE 'ing-sav-%' AND t.account_id<>'ing-sav-k797')) AND NOT (t.account_id='ing-checking' AND t.payee_raw LIKE '%Incasso ING creditcard%') AND t.booked_date>=DATE_SUB(CURDATE(),INTERVAL 6 MONTH) GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "📋 My subscriptions — real, from Wallos",
+      "datasource": { "type": "mysql", "uid": "finops-ledger" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 3 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "mysql", "uid": "finops-ledger" },
+          "format": "table",
+          "rawSql": "SELECT name AS `Subscription`, CONCAT('€ ', FORMAT(monthly_eur,2,'de_DE')) AS `Per month`, cycle_label AS `Billed` FROM wallos_subs WHERE active=1 ORDER BY monthly_eur DESC LIMIT 14"
+        }
+      ]
+    },
+
+    {
+      "type": "table",
+      "title": "🧾 Biggest expenses this month  (real spending, no transfers)",
+      "datasource": { "type": "mysql", "uid": "finops-ledger" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "mysql", "uid": "finops-ledger" },
+          "format": "table",
+          "rawSql": "SELECT DATE_FORMAT(booked_date,'%e %b') AS `When`, CONCAT('€ ',FORMAT(-base_amount,2,'de_DE')) AS `Amount`, LEFT(payee_raw,34) AS `Paid to` FROM transactions WHERE (account_id IN ('ing-checking','ing-card','paypal') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND base_amount<0 AND (category IS NULL OR category<>'transfer') AND booked_date>=DATE_FORMAT(CURDATE(),'%Y-%m-01') ORDER BY base_amount ASC LIMIT 8"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "🤝 Months to clear Ilias + Christos  (if I follow the plan)",
+      "datasource": { "type": "mysql", "uid": "finops-ledger" },
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 12 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "#9DB8D8" },
+              { "value": 13, "color": "#6E8FB8" },
+              { "value": 25, "color": "#3F6196" }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "text": { "valueSize": 36, "titleSize": 13 }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "mysql", "uid": "finops-ledger" },
+          "format": "table",
+          "rawSql": "SELECT CEIL((SELECT v FROM budget_plan WHERE k='debt_friends') / GREATEST((SELECT v FROM budget_plan WHERE k='income_monthly')-(SELECT v FROM budget_plan WHERE k='REDACTED_6c219e94'),1)) AS m"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "🏦 My savings this year  (I emptied them to cover overspending)  ·  €",
+      "datasource": { "type": "mysql", "uid": "finops-ledger" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "locale",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineWidth": 3
+          },
+          "color": { "mode": "fixed", "fixedColor": "#6E8FB8" }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "mysql", "uid": "finops-ledger" },
+          "format": "table",
+          "rawSql": "SELECT t AS time, ROUND((SELECT -SUM(base_amount) FROM transactions WHERE account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797' AND booked_date>'2025-05-07') + SUM(net) OVER (ORDER BY t),0) AS `Savings` FROM (SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(booked_date,'%Y-%m'),'-01'),'%Y-%m-%d') t, SUM(base_amount) net FROM transactions WHERE account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797' AND $__timeFilter(booked_date) GROUP BY 1) x ORDER BY t"
+        }
+      ]
+    },
+
+    {
+      "type": "table",
+      "title": "📊 What changed — where my spending shifted (Jan–Jun 2025 vs 2026)",
+      "datasource": { "type": "mysql", "uid": "finops-ledger" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 24 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "mysql", "uid": "finops-ledger" },
+          "format": "table",
+          "rawSql": "SELECT CASE cat WHEN 'online-shopping' THEN 'Online shopping' WHEN 'REDACTED_358be28b' THEN 'Apps & subscriptions' WHEN 'electronics-homelab' THEN 'Gear / electronics' WHEN 'groceries' THEN 'Food (groceries)' WHEN 'takeaway-delivery' THEN 'Takeaway' WHEN 'health-insurance-nn' THEN 'Health insurance' WHEN 'internet-mobile' THEN 'Internet / mobile' WHEN 'water-dunea' THEN 'Water' WHEN 'supplements-fitness' THEN 'Supplements' WHEN 'loans' THEN 'Loan payments' ELSE cat END AS `Category`, CONCAT('€ ', FORMAT(y25,0,'de_DE')) AS `Jan–Jun 2025`, CONCAT('€ ', FORMAT(y26,0,'de_DE')) AS `Jan–Jun 2026`, CONCAT(IF(y26-y25>=0,'▲ +€ ','▼ −€ '), FORMAT(ABS(y26-y25),0,'de_DE')) AS `Change` FROM (SELECT category AS cat, ROUND(-SUM(IF(booked_date BETWEEN '2025-01-01' AND '2025-06-30',base_amount,0)),0) AS y25, ROUND(-SUM(IF(booked_date BETWEEN '2026-01-01' AND '2026-06-30',base_amount,0)),0) AS y26 FROM transactions WHERE base_amount<0 AND category IS NOT NULL AND (account_id IN ('ing-checking','ing-card','paypal','ing-parents') OR (account_id LIKE 'ing-sav-%' AND account_id<>'ing-sav-k797')) AND category NOT IN ('transfer','greece-family','cash','card-spending','mortgage','electric-gas','taxes','disability-supp-asr') GROUP BY category) t WHERE ABS(y26-y25)>=60 ORDER BY ABS(y26-y25) DESC LIMIT 10"
+        }
+      ],
+      "id": 200
+    }
+  ]
+}
