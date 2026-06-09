@@ -58,7 +58,7 @@
         "displayMode": "basic",
         "showUnfilled": true,
         "valueMode": "text",
-        "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false }
+        "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "/^Per month$/", "values": true }
       },
       "targets": [
         {
