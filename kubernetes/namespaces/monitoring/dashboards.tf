@@ -171,49 +171,20 @@ resource "REDACTED_a9df2e77" "REDACTED_dae6e5e3" {
   }
 }
 
-# finops · spending-behavior dashboard v2.1 (Net-13M stat uses dashboard time window for consistency)
-resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_behavior" {
+# My Money — UNIFIED dashboard (uid finops). Fuses the former finops-simple +
+# finops-details + finops-behavior into ONE page: calm single-hue blue, plain-word
+# value mappings, variance-first, live SQL on the ledger, 30-min auto-refresh.
+# Sections: ① right now ② this month ③ where it goes ④ trends ⑤ data health.
+resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a" {
   metadata {
-    name      = "REDACTED_9e73b182-behavior"
+    name      = "REDACTED_9e73b182"
     namespace = "monitoring"
     labels = {
       grafana_dashboard = "1"
     }
   }
   data = {
-    "finops-behavior.json" = file("${path.module}/dashboards/finops-behavior.json")
-  }
-}
-
-# My Money — where I stand v9.1 (calm single-page redesign: single-hue blue, plain-word
-# value mappings, variance-first, bar gauge over radial — research-backed, ASD/ADHD-friendly)
-# v9.1: fix category bar gauges (values:true + field regex) — Playwright audit caught them
-# collapsing to a single reduced value instead of one labelled bar per category.
-resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_simple" {
-  metadata {
-    name      = "REDACTED_9e73b182-simple"
-    namespace = "monitoring"
-    labels = {
-      grafana_dashboard = "1"
-    }
-  }
-  data = {
-    "finops-simple.json" = file("${path.module}/dashboards/finops-simple.json")
-  }
-}
-
-# My Money — details (drill-down for finops-simple: big expenses, 6-mo category avg,
-# YoY changes, savings trajectory, Wallos subscriptions, debt payoff)
-resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_details" {
-  metadata {
-    name      = "REDACTED_9e73b182-details"
-    namespace = "monitoring"
-    labels = {
-      grafana_dashboard = "1"
-    }
-  }
-  data = {
-    "finops-details.json" = file("${path.module}/dashboards/finops-details.json")
+    "finops.json" = file("${path.module}/dashboards/finops.json")
   }
 }
 
