@@ -185,8 +185,10 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_behavior" {
   }
 }
 
-# My Money — where I stand v9 (calm single-page redesign: single-hue blue, plain-word
+# My Money — where I stand v9.1 (calm single-page redesign: single-hue blue, plain-word
 # value mappings, variance-first, bar gauge over radial — research-backed, ASD/ADHD-friendly)
+# v9.1: fix category bar gauges (values:true + field regex) — Playwright audit caught them
+# collapsing to a single reduced value instead of one labelled bar per category.
 resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a_simple" {
   metadata {
     name      = "REDACTED_9e73b182-simple"
