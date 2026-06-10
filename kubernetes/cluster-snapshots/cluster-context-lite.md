@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-06-09 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-06-10 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: DEGRADED ⚠️
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 1 |
 | Pending PVCs | 0 |
-| Total Restarts | 2780 |
+| Total Restarts | 2781 |
 
 ## Topology
 
@@ -23,7 +23,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8005928Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-ctrl02** (control-plane) 10.0.X.X | CPU:4 Mem:8092Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-ctrl03** (control-plane) 10.0.X.X | CPU:4 Mem:8006944Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
-- **nlk8s-node01** (worker) 10.0.X.X | CPU:8 Mem:5974100Ki | Taints:none
+- **nlk8s-node01** (worker) 10.0.X.X | CPU:8 Mem:8005716Ki | Taints:none
 - **nlk8s-node02** (worker) 10.0.X.X | CPU:8 Mem:8006756Ki | Taints:none
 - **nlk8s-node03** (worker) 10.0.X.X | CPU:8 Mem:8006732Ki | Taints:none
 - **nlk8s-node04** (worker) 10.0.X.X | CPU:8 Mem:8006740Ki | Taints:none
@@ -32,7 +32,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-ingress-nginx            ingress-nginx-controller-54679f6994-jkxnn                         0/1   ContainerStatusUnknown   1                  62d
+ingress-nginx            ingress-nginx-controller-54679f6994-jkxnn                         0/1   ContainerStatusUnknown   1                  63d
 ```
 
 ### High Restart Pods (>3)
@@ -74,6 +74,7 @@ monitoring/goldpinger-vtfpx: 10 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 4 restarts
 monitoring/thanos-compactor-0: 7 restarts
 nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956djmgb: 4 restarts
+seaweedfs/seaweedfs-filer-0: 4 restarts
 seaweedfs/seaweedfs-filer-1: 7 restarts
 seaweedfs/seaweedfs-volume-1: 14 restarts
 synology-csi/synology-csi-node-577mq: 4 restarts
@@ -84,9 +85,7 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   57m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   57m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Readiness probe failed: HTTP probe failed with statuscode: 500
+
 ```
 
 ## Key Resources
