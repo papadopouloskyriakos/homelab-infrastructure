@@ -312,7 +312,7 @@
         "orientation": "horizontal",
         "displayMode": "gradient",
         "showUnfilled": true,
-        "valueMode": "color",
+        "valueMode": "hidden",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -335,6 +335,57 @@
     },
     {
       "type": "stat",
+      "title": "\ud83d\udcb6 Spent so far this month  (\u20ac)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 13
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3F6196"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 30,
+          "titleSize": 12
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT CONCAT('\u20ac ', FORMAT(z.v,2,'de_DE')) AS v FROM (SELECT ROUND(-SUM(t.base_amount),2) AS v FROM transactions t JOIN categories c ON t.category=c.slug WHERE c.kind='expense' AND (t.account_id IN ('ing-checking','ing-card','paypal') OR (t.account_id LIKE 'ing-sav-%' AND t.account_id<>'ing-sav-k797')) AND NOT (t.account_id='ing-checking' AND t.payee_raw LIKE '%Incasso ING creditcard%') AND t.booked_date>=DATE_FORMAT(CURDATE(),'%Y-%m-01')) z"
+        }
+      ]
+    },
+    {
+      "type": "stat",
       "title": "\u2705 Spare each month if I follow the plan  (\u20ac)",
       "datasource": {
         "type": "mysql",
@@ -342,8 +393,8 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 6,
-        "x": 12,
+        "w": 4,
+        "x": 16,
         "y": 13
       },
       "fieldConfig": {
@@ -393,8 +444,8 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 6,
-        "x": 18,
+        "w": 4,
+        "x": 20,
         "y": 13
       },
       "fieldConfig": {
@@ -447,7 +498,7 @@
       ]
     },
     {
-      "type": "bargauge",
+      "type": "table",
       "title": "\ud83d\uded2 Biggest spending areas this month  (\u20ac)",
       "datasource": {
         "type": "mysql",
@@ -461,26 +512,78 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "locale",
-          "decimals": 0,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#6E8FB8"
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "bar"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "hidden"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#6E8FB8"
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "amt"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              },
+              {
+                "id": "custom.align",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Where it goes"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 230
+              }
+            ]
+          }
+        ]
       },
       "options": {
-        "orientation": "horizontal",
-        "displayMode": "basic",
-        "showUnfilled": true,
-        "valueMode": "text",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/^Spent$/",
-          "values": true
+        "showHeader": false,
+        "cellHeight": "md",
+        "sortBy": [],
+        "footer": {
+          "show": false
         }
       },
       "targets": [
@@ -491,7 +594,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT CASE t.category WHEN 'online-shopping' THEN 'Online shopping' WHEN 'card-spending' THEN 'Card bill' WHEN 'groceries' THEN 'Food (groceries)' WHEN 'mortgage' THEN 'Home (mortgage)' WHEN 'REDACTED_358be28b' THEN 'Apps & subscriptions' WHEN 'electronics-homelab' THEN 'Gear / electronics' WHEN 'takeaway-delivery' THEN 'Takeaway' WHEN 'loans' THEN 'Loan payments' WHEN 'electric-gas' THEN 'Electric & gas' WHEN 'greece-family' THEN 'Family (Greece)' WHEN 'internet-mobile' THEN 'Internet / mobile' WHEN 'supplements-fitness' THEN 'Supplements' WHEN 'health-insurance-nn' THEN 'Health insurance' WHEN 'water-dunea' THEN 'Water' ELSE t.category END AS `Where it goes`, ROUND(-SUM(t.base_amount),2) AS `Spent` FROM transactions t JOIN categories c ON t.category=c.slug WHERE c.kind='expense' AND (t.account_id IN ('ing-checking','ing-card','paypal') OR (t.account_id LIKE 'ing-sav-%' AND t.account_id<>'ing-sav-k797')) AND NOT (t.account_id='ing-checking' AND t.payee_raw LIKE '%Incasso ING creditcard%') AND t.booked_date>=DATE_FORMAT(CURDATE(),'%Y-%m-01') GROUP BY 1 ORDER BY 2 DESC LIMIT 5"
+          "rawSql": "SELECT s.`Where it goes`, s.`Spent` AS `bar`, CONCAT('\u20ac ', FORMAT(s.`Spent`,2,'de_DE')) AS `amt` FROM (SELECT CASE t.category WHEN 'online-shopping' THEN 'Online shopping' WHEN 'card-spending' THEN 'Card bill' WHEN 'groceries' THEN 'Food (groceries)' WHEN 'mortgage' THEN 'Home (mortgage)' WHEN 'REDACTED_358be28b' THEN 'Apps & subscriptions' WHEN 'electronics-homelab' THEN 'Gear / electronics' WHEN 'takeaway-delivery' THEN 'Takeaway' WHEN 'loans' THEN 'Loan payments' WHEN 'electric-gas' THEN 'Electric & gas' WHEN 'greece-family' THEN 'Family (Greece)' WHEN 'internet-mobile' THEN 'Internet / mobile' WHEN 'supplements-fitness' THEN 'Supplements' WHEN 'health-insurance-nn' THEN 'Health insurance' WHEN 'water-dunea' THEN 'Water' ELSE t.category END AS `Where it goes`, ROUND(-SUM(t.base_amount),2) AS `Spent` FROM transactions t JOIN categories c ON t.category=c.slug WHERE c.kind='expense' AND (t.account_id IN ('ing-checking','ing-card','paypal') OR (t.account_id LIKE 'ing-sav-%' AND t.account_id<>'ing-sav-k797')) AND NOT (t.account_id='ing-checking' AND t.payee_raw LIKE '%Incasso ING creditcard%') AND t.booked_date>=DATE_FORMAT(CURDATE(),'%Y-%m-01') GROUP BY 1 ORDER BY 2 DESC LIMIT 5) s ORDER BY s.`Spent` DESC"
         }
       ]
     },
@@ -569,7 +672,7 @@
       }
     },
     {
-      "type": "bargauge",
+      "type": "table",
       "title": "\ud83d\uded2 Where my money goes \u2014 average per month, last 6 months  (\u20ac)",
       "datasource": {
         "type": "mysql",
@@ -583,26 +686,78 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "locale",
-          "decimals": 0,
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#6E8FB8"
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "bar"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "hidden"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#6E8FB8"
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "amt"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              },
+              {
+                "id": "custom.align",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Where it goes"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 230
+              }
+            ]
+          }
+        ]
       },
       "options": {
-        "orientation": "horizontal",
-        "displayMode": "basic",
-        "showUnfilled": true,
-        "valueMode": "text",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/^Per month$/",
-          "values": true
+        "showHeader": false,
+        "cellHeight": "md",
+        "sortBy": [],
+        "footer": {
+          "show": false
         }
       },
       "targets": [
@@ -613,7 +768,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT CASE t.category WHEN 'online-shopping' THEN 'Online shopping' WHEN 'card-spending' THEN 'Paying credit card' WHEN 'groceries' THEN 'Food (groceries)' WHEN 'mortgage' THEN 'Home (mortgage)' WHEN 'REDACTED_358be28b' THEN 'Apps & subscriptions' WHEN 'electronics-homelab' THEN 'Gear / electronics' WHEN 'takeaway-delivery' THEN 'Takeaway' WHEN 'loans' THEN 'Loan payments' WHEN 'electric-gas' THEN 'Electric & gas' WHEN 'greece-family' THEN 'Family (Greece)' WHEN 'supplements-fitness' THEN 'Supplements' WHEN 'health-insurance-nn' THEN 'Health insurance' ELSE t.category END AS `Where it goes`, ROUND(-SUM(t.base_amount)/6,0) AS `Per month` FROM transactions t JOIN categories c ON t.category=c.slug WHERE c.kind='expense' AND (t.account_id IN ('ing-checking','ing-card','paypal') OR (t.account_id LIKE 'ing-sav-%' AND t.account_id<>'ing-sav-k797')) AND NOT (t.account_id='ing-checking' AND t.payee_raw LIKE '%Incasso ING creditcard%') AND t.booked_date>=DATE_SUB(CURDATE(),INTERVAL 6 MONTH) GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
+          "rawSql": "SELECT s.`Where it goes`, s.`Per month` AS `bar`, CONCAT('\u20ac ', FORMAT(s.`Per month`,2,'de_DE')) AS `amt` FROM (SELECT CASE t.category WHEN 'online-shopping' THEN 'Online shopping' WHEN 'card-spending' THEN 'Paying credit card' WHEN 'groceries' THEN 'Food (groceries)' WHEN 'mortgage' THEN 'Home (mortgage)' WHEN 'REDACTED_358be28b' THEN 'Apps & subscriptions' WHEN 'electronics-homelab' THEN 'Gear / electronics' WHEN 'takeaway-delivery' THEN 'Takeaway' WHEN 'loans' THEN 'Loan payments' WHEN 'electric-gas' THEN 'Electric & gas' WHEN 'greece-family' THEN 'Family (Greece)' WHEN 'supplements-fitness' THEN 'Supplements' WHEN 'health-insurance-nn' THEN 'Health insurance' ELSE t.category END AS `Where it goes`, ROUND(-SUM(t.base_amount)/6,0) AS `Per month` FROM transactions t JOIN categories c ON t.category=c.slug WHERE c.kind='expense' AND (t.account_id IN ('ing-checking','ing-card','paypal') OR (t.account_id LIKE 'ing-sav-%' AND t.account_id<>'ing-sav-k797')) AND NOT (t.account_id='ing-checking' AND t.payee_raw LIKE '%Incasso ING creditcard%') AND t.booked_date>=DATE_SUB(CURDATE(),INTERVAL 6 MONTH) GROUP BY 1 ORDER BY 2 DESC LIMIT 10) s ORDER BY s.`Per month` DESC"
         }
       ]
     },
