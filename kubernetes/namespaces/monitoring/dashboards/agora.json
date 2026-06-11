@@ -1,0 +1,658 @@
+{
+  "uid": "agora",
+  "title": "Agora \u2014 paper trading",
+  "tags": [
+    "agora",
+    "finops"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30m",
+  "style": "dark",
+  "time": {
+    "from": "now-90d",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "type": "text",
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## Agora \u2014 paper trading\n**Virtual money only** (eToro demo, write-locked to demo by schema + credentials). Every bet is a committed prediction, graded mechanically at its horizon. The index line is the bar to beat \u2014 amounts in $ (1.234,56). Updates nightly at 22:37."
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "\ud83c\udfc1 The race \u2014 Agora NAV vs the index  ($)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 0,
+        "y": 3
+      },
+      "description": "Benchmark: VWRD.L (USD class of the VWRL all-world fund), normalized to the same start. Distributing class understates the index by ~2%/yr of dividends \u2014 a bias IN THE AGENT'S FAVOR until the total-return adjustment lands.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "locale",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "showPoints": "auto",
+            "pointSize": 5
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Agora NAV"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#3F6196"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Index (VWRD)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#9DB8D8"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    6,
+                    4
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT nav_date AS time, nav_usd AS 'Agora NAV', benchmark_nav AS 'Index (VWRD)' FROM finops_agora.nav_daily WHERE $__timeFilter(nav_date) ORDER BY nav_date"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "\ud83c\udfc1 Agent vs index \u2014 today  ($)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 8,
+        "x": 16,
+        "y": 3
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3F6196"
+          },
+          "noValue": "\u2014"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 12
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT CONCAT('$ ', FORMAT(nav_usd - benchmark_nav, 2, 'de_DE')) AS v FROM finops_agora.nav_daily ORDER BY nav_date DESC LIMIT 1"
+        }
+      ],
+      "description": "Positive = the agent is ahead of just-buying-the-index. The only score that matters."
+    },
+    {
+      "type": "stat",
+      "title": "\ud83d\udcbc NAV  ($)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3F6196"
+          },
+          "noValue": "\u2014"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 12
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT CONCAT('$ ', FORMAT(nav_usd, 2, 'de_DE')) AS v FROM finops_agora.nav_daily ORDER BY nav_date DESC LIMIT 1"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "\ud83d\udcb5 Cash  ($)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#6E8FB8"
+          },
+          "noValue": "\u2014"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 12
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT CONCAT('$ ', FORMAT(cash_usd, 2, 'de_DE')) AS v FROM finops_agora.nav_daily ORDER BY nav_date DESC LIMIT 1"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "\ud83c\udfaf Open bets \u2014 committed predictions awaiting their verdict",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 11
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          },
+          "noValue": "no data yet"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Methodology"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Symbol"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Direction"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Verdict due"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Target return"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Dead beyond"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Confidence"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "sortBy": [],
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT p.strategy_family AS `Methodology`, i.symbol AS `Symbol`, p.direction AS `Direction`, DATE_FORMAT(DATE_ADD(p.created_at, INTERVAL p.horizon_days DAY), '%d-%m-%Y') AS `Verdict due`, CONCAT(FORMAT(p.target_low_pct,1,'de_DE'), '% \u2013 ', FORMAT(p.target_high_pct,1,'de_DE'), '%') AS `Target return`, CONCAT(FORMAT(p.max_adverse_pct,1,'de_DE'), '%') AS `Dead beyond`, FORMAT(p.confidence,2,'de_DE') AS `Confidence`, p.catalyst AS `Catalyst` FROM finops_agora.predictions p JOIN finops_agora.instruments i ON i.id = p.instrument_id LEFT JOIN finops_agora.verdicts v ON v.plan_hash = p.plan_hash WHERE v.plan_hash IS NULL ORDER BY DATE_ADD(p.created_at, INTERVAL p.horizon_days DAY), p.strategy_family LIMIT 40"
+        }
+      ],
+      "description": "Every row is a falsifiable promise with a hash. Nothing here is tradeable advice; shorts/longs are shadow bets graded against real prices."
+    },
+    {
+      "type": "table",
+      "title": "\ud83c\udfc6 Methodology scoreboard \u2014 who earns their keep (latest scoring)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          },
+          "noValue": "Awaiting first verdicts \u2014 due from 16-06-2026"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "sortBy": [],
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT ss.family AS `Methodology`, COALESCE(st.status,'\u26a0 undeclared') AS `Status`, ss.n_verdicted AS `Graded`, CONCAT(ss.n_match,' / ',ss.n_partial,' / ',ss.n_deviation) AS `match / partial / deviation`, CONCAT(FORMAT(ss.win_rate*100,1,'de_DE'),'%') AS `Win rate`, CONCAT(FORMAT(ss.avg_excess_pct,2,'de_DE'),' pp') AS `Excess vs index`, FORMAT(ss.avg_brier,3,'de_DE') AS `Brier`, FORMAT(ss.calibration_gap,3,'de_DE') AS `Overconfidence` FROM finops_agora.strategy_scores ss JOIN (SELECT family, MAX(score_date) d FROM finops_agora.strategy_scores GROUP BY family) m   ON m.family = ss.family AND m.d = ss.score_date LEFT JOIN finops_agora.strategies st ON st.family = ss.family ORDER BY ss.avg_excess_pct DESC"
+        }
+      ],
+      "description": "Win rate and excess-vs-index are NEVER collapsed into one number (omoikane Article LXXV pattern). Overconfidence = avg confidence minus win rate; positive means the methodology promises more than it delivers. Graduation gates read THIS table (DESIGN.md \u00a79)."
+    },
+    {
+      "type": "barchart",
+      "title": "\ud83d\udcca Verdicts over time  (match / partial / deviation per day)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "no verdicts yet",
+          "custom": {
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "match"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#3F6196"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "partial"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#6E8FB8"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "deviation"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#9DB8D8"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "auto",
+        "showValue": "never",
+        "stacking": "normal",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT DATE(evaluated_at) AS time, outcome AS metric, COUNT(*) AS value FROM finops_agora.verdicts WHERE $__timeFilter(evaluated_at) GROUP BY 1,2 ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "\ud83d\udd04 Pipeline health \u2014 nightly chain (22:37: sync \u2192 graph \u2192 verdict \u2192 forecasts \u2192 scores)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 12,
+        "y": 26
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          },
+          "noValue": "no sync yet"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "sortBy": [],
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT source AS `Stage`, DATE_FORMAT(last_synced_at, '%d-%m %H:%i') AS `Last run`, CONCAT(TIMESTAMPDIFF(HOUR, last_synced_at, NOW()), ' h ago') AS `Age` FROM finops_agora.sync_state ORDER BY source"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "\ud83c\udfaf Open bets",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 20,
+        "y": 26
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#6E8FB8"
+          },
+          "noValue": "\u2014"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28,
+          "titleSize": 12
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT CONCAT(COUNT(*), '') AS v FROM finops_agora.predictions p LEFT JOIN finops_agora.verdicts v2 ON v2.plan_hash = p.plan_hash WHERE v2.plan_hash IS NULL"
+        }
+      ]
+    }
+  ]
+}
