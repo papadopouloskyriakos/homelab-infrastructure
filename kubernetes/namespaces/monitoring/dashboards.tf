@@ -191,3 +191,4 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a" {
 # finops-simple: real subscriptions (Wallos snapshot wallos_subs) + "what changed" YoY panel — 2026-06-08
 # finops: food-targets panel + deterministic Dutch number format (de_DE in SQL) — 2026-06-11
 # finops: stat panels with string values need reduceOptions.fields=/.*/ — 2026-06-11
+# finops: bargauges -> hidden-value bars + Dutch string amounts (audit iteration 3) — 2026-06-11
