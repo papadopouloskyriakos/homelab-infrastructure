@@ -192,3 +192,19 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a" {
 # finops: food-targets panel + deterministic Dutch number format (de_DE in SQL) — 2026-06-11
 # finops: stat panels with string values need reduceOptions.fields=/.*/ — 2026-06-11
 # finops: bargauges -> hidden-value bars + Dutch string amounts (audit iteration 3) — 2026-06-11
+
+# Agora — finops-agora paper-trading cockpit (uid agora). NAV-vs-index race, open
+# prediction ledger, methodology scoreboard, verdict history, pipeline health.
+# Reads finops_agora.* via the finops-ledger datasource (grafana_ro granted 2026-06-11).
+resource "REDACTED_a9df2e77" "grafana_dashboard_agora" {
+  metadata {
+    name      = "grafana-dashboard-agora"
+    namespace = "monitoring"
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+  data = {
+    "agora.json" = file("${path.module}/dashboards/agora.json")
+  }
+}
