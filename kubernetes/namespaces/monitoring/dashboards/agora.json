@@ -1,13 +1,13 @@
 {
   "uid": "agora",
-  "title": "Agora \u2014 paper trading",
+  "title": "Agora — paper trading",
   "tags": [
     "agora",
     "finops"
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "30m",
   "style": "dark",
   "time": {
@@ -31,12 +31,12 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## Agora \u2014 paper trading\n**Virtual money only** (eToro demo, write-locked to demo by schema + credentials). Every bet is a committed prediction, graded mechanically at its horizon. The index line is the bar to beat \u2014 amounts in $ (1.234,56). Updates nightly at 22:37."
+        "content": "## Agora — paper trading\n**Virtual money only** (eToro demo, write-locked to demo by schema + credentials). Every bet is a committed prediction, graded mechanically at its horizon. The index line is the bar to beat — amounts in $ (1.234,56). Updates nightly at 22:37."
       }
     },
     {
       "type": "timeseries",
-      "title": "\ud83c\udfc1 The race \u2014 Agora NAV vs the index  ($)",
+      "title": "🏁 The race — Agora NAV vs the index  ($)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -47,7 +47,7 @@
         "x": 0,
         "y": 3
       },
-      "description": "Benchmark: VWRD.L (USD class of the VWRL all-world fund), normalized to the same start. Distributing class understates the index by ~2%/yr of dividends \u2014 a bias IN THE AGENT'S FAVOR until the total-return adjustment lands.",
+      "description": "Benchmark: VWRD.L (USD class of the VWRL all-world fund), normalized to the same start. Distributing class understates the index by ~2%/yr of dividends — a bias IN THE AGENT'S FAVOR until the total-return adjustment lands.",
       "fieldConfig": {
         "defaults": {
           "unit": "locale",
@@ -126,7 +126,7 @@
     },
     {
       "type": "stat",
-      "title": "\ud83c\udfc1 Agent vs index \u2014 today  ($)",
+      "title": "🏁 Agent vs index — today  ($)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -143,7 +143,7 @@
             "mode": "fixed",
             "fixedColor": "#3F6196"
           },
-          "noValue": "\u2014"
+          "noValue": "—"
         },
         "overrides": []
       },
@@ -179,7 +179,7 @@
     },
     {
       "type": "stat",
-      "title": "\ud83d\udcbc NAV  ($)",
+      "title": "💼 NAV  ($)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -196,7 +196,7 @@
             "mode": "fixed",
             "fixedColor": "#3F6196"
           },
-          "noValue": "\u2014"
+          "noValue": "—"
         },
         "overrides": []
       },
@@ -231,7 +231,7 @@
     },
     {
       "type": "stat",
-      "title": "\ud83d\udcb5 Cash  ($)",
+      "title": "💵 Cash  ($)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -248,7 +248,7 @@
             "mode": "fixed",
             "fixedColor": "#6E8FB8"
           },
-          "noValue": "\u2014"
+          "noValue": "—"
         },
         "overrides": []
       },
@@ -283,7 +283,7 @@
     },
     {
       "type": "table",
-      "title": "\ud83c\udfaf Open bets \u2014 committed predictions awaiting their verdict",
+      "title": "🎯 Open bets — committed predictions awaiting their verdict",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -408,14 +408,14 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT p.strategy_family AS `Methodology`, i.symbol AS `Symbol`, p.direction AS `Direction`, DATE_FORMAT(DATE_ADD(p.created_at, INTERVAL p.horizon_days DAY), '%d-%m-%Y') AS `Verdict due`, CONCAT(FORMAT(p.target_low_pct,1,'de_DE'), '% \u2013 ', FORMAT(p.target_high_pct,1,'de_DE'), '%') AS `Target return`, CONCAT(FORMAT(p.max_adverse_pct,1,'de_DE'), '%') AS `Dead beyond`, FORMAT(p.confidence,2,'de_DE') AS `Confidence`, p.catalyst AS `Catalyst` FROM finops_agora.predictions p JOIN finops_agora.instruments i ON i.id = p.instrument_id LEFT JOIN finops_agora.verdicts v ON v.plan_hash = p.plan_hash WHERE v.plan_hash IS NULL ORDER BY DATE_ADD(p.created_at, INTERVAL p.horizon_days DAY), p.strategy_family LIMIT 40"
+          "rawSql": "SELECT p.strategy_family AS `Methodology`, i.symbol AS `Symbol`, p.direction AS `Direction`, DATE_FORMAT(DATE_ADD(p.created_at, INTERVAL p.horizon_days DAY), '%d-%m-%Y') AS `Verdict due`, CONCAT(FORMAT(p.target_low_pct,1,'de_DE'), '% – ', FORMAT(p.target_high_pct,1,'de_DE'), '%') AS `Target return`, CONCAT(FORMAT(p.max_adverse_pct,1,'de_DE'), '%') AS `Dead beyond`, FORMAT(p.confidence,2,'de_DE') AS `Confidence`, p.catalyst AS `Catalyst` FROM finops_agora.predictions p JOIN finops_agora.instruments i ON i.id = p.instrument_id LEFT JOIN finops_agora.verdicts v ON v.plan_hash = p.plan_hash WHERE v.plan_hash IS NULL ORDER BY DATE_ADD(p.created_at, INTERVAL p.horizon_days DAY), p.strategy_family LIMIT 40"
         }
       ],
       "description": "Every row is a falsifiable promise with a hash. Nothing here is tradeable advice; shorts/longs are shadow bets graded against real prices."
     },
     {
       "type": "table",
-      "title": "\ud83c\udfc6 Methodology scoreboard \u2014 who earns their keep (latest scoring)",
+      "title": "🏆 Methodology scoreboard — who earns their keep (latest scoring)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -435,7 +435,7 @@
             },
             "filterable": false
           },
-          "noValue": "Awaiting first verdicts \u2014 due from 16-06-2026"
+          "noValue": "Awaiting first verdicts — due from 16-06-2026"
         },
         "overrides": []
       },
@@ -455,14 +455,14 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT ss.family AS `Methodology`, COALESCE(st.status,'\u26a0 undeclared') AS `Status`, ss.n_verdicted AS `Graded`, CONCAT(ss.n_match,' / ',ss.n_partial,' / ',ss.n_deviation) AS `match / partial / deviation`, CONCAT(FORMAT(ss.win_rate*100,1,'de_DE'),'%') AS `Win rate`, CONCAT(FORMAT(ss.avg_excess_pct,2,'de_DE'),' pp') AS `Excess vs index`, FORMAT(ss.avg_brier,3,'de_DE') AS `Brier`, FORMAT(ss.calibration_gap,3,'de_DE') AS `Overconfidence` FROM finops_agora.strategy_scores ss JOIN (SELECT family, MAX(score_date) d FROM finops_agora.strategy_scores GROUP BY family) m   ON m.family = ss.family AND m.d = ss.score_date LEFT JOIN finops_agora.strategies st ON st.family = ss.family ORDER BY ss.avg_excess_pct DESC"
+          "rawSql": "SELECT ss.family AS `Methodology`, COALESCE(st.status,'⚠ undeclared') AS `Status`, ss.n_verdicted AS `Graded`, CONCAT(ss.n_match,' / ',ss.n_partial,' / ',ss.n_deviation) AS `match / partial / deviation`, CONCAT(FORMAT(ss.win_rate*100,1,'de_DE'),'%') AS `Win rate`, CONCAT(FORMAT(ss.avg_excess_pct,2,'de_DE'),' pp') AS `Excess vs index`, FORMAT(ss.avg_brier,3,'de_DE') AS `Brier`, FORMAT(ss.calibration_gap,3,'de_DE') AS `Overconfidence` FROM finops_agora.strategy_scores ss JOIN (SELECT family, MAX(score_date) d FROM finops_agora.strategy_scores GROUP BY family) m   ON m.family = ss.family AND m.d = ss.score_date LEFT JOIN finops_agora.strategies st ON st.family = ss.family ORDER BY ss.avg_excess_pct DESC"
         }
       ],
-      "description": "Win rate and excess-vs-index are NEVER collapsed into one number (omoikane Article LXXV pattern). Overconfidence = avg confidence minus win rate; positive means the methodology promises more than it delivers. Graduation gates read THIS table (DESIGN.md \u00a79)."
+      "description": "Win rate and excess-vs-index are NEVER collapsed into one number (omoikane Article LXXV pattern). Overconfidence = avg confidence minus win rate; positive means the methodology promises more than it delivers. Graduation gates read THIS table (DESIGN.md §9)."
     },
     {
       "type": "barchart",
-      "title": "\ud83d\udcca Verdicts over time  (match / partial / deviation per day)",
+      "title": "📊 Verdicts over time  (match / partial / deviation per day)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -558,7 +558,7 @@
     },
     {
       "type": "table",
-      "title": "\ud83d\udd04 Pipeline health \u2014 nightly chain (22:37: sync \u2192 graph \u2192 verdict \u2192 forecasts \u2192 scores)",
+      "title": "🔄 Pipeline health — nightly chain (22:37: sync → graph → verdict → forecasts → scores)",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -604,7 +604,7 @@
     },
     {
       "type": "stat",
-      "title": "\ud83c\udfaf Open bets",
+      "title": "🎯 Open bets",
       "datasource": {
         "type": "mysql",
         "uid": "finops-ledger"
@@ -621,7 +621,7 @@
             "mode": "fixed",
             "fixedColor": "#6E8FB8"
           },
-          "noValue": "\u2014"
+          "noValue": "—"
         },
         "overrides": []
       },
@@ -651,6 +651,301 @@
           },
           "format": "table",
           "rawSql": "SELECT CONCAT(COUNT(*), '') AS v FROM finops_agora.predictions p LEFT JOIN finops_agora.verdicts v2 ON v2.plan_hash = p.plan_hash WHERE v2.plan_hash IS NULL"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "### 🧪 Research integrity & risk — the honesty layer\nThe statistical guards that make a *yes* trustworthy: deflated for luck, tested for overfitting, sized for risk. Full detail in the cockpit → [agora.example.net](https://agora.example.net). These activate as graded verdicts accrue from 16-06-2026 (dashes until then are expected, not failure)."
+      }
+    },
+    {
+      "type": "table",
+      "title": "🎯 Road to real money — gate · DSR (luck guard) · fragility (strategy risk)",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 35
+      },
+      "description": "Per-family distance to real money. DSR = probability the family's Sharpe is real GIVEN how many were tried (G2 needs ≥0,95). Fragility = probability it misses its target Sharpe — strategy risk, not portfolio risk. Mirrors the cockpit Road tracker.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          },
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "sortBy": [],
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT s.family AS `Methodology`, COALESCE(gs.gate,'G0') AS `Gate`, CONCAT(COALESCE(ss.n_verdicted,0),' / 100') AS `Verdicts → G2`, IFNULL(CONCAT(FORMAT(ss.avg_excess_pct,2,'de_DE'),' pp'),'—') AS `Excess vs index`, IFNULL(FORMAT(ss.dsr,3,'de_DE'),'—') AS `DSR (real?)`, IFNULL(CONCAT(FORMAT(ss.prob_failure*100,0,'de_DE'),'%'),'—') AS `Fragility (P-fail)` FROM finops_agora.strategies s LEFT JOIN finops_agora.graduation_state gs ON gs.family=s.family LEFT JOIN finops_agora.strategy_scores ss ON ss.family=s.family AND ss.score_date=(SELECT MAX(score_date) FROM finops_agora.strategy_scores WHERE family=s.family) WHERE s.status<>'retired' ORDER BY COALESCE(ss.n_verdicted,0) DESC, s.family"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "🛡 Portfolio risk budget + circuit breaker — the whole-book guard",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
+      "description": "Historical VaR/ES + drawdown over the open book. The breaker halts all actors (maintenance file) on a drawdown or VaR breach.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          },
+          "noValue": "awaiting first risk run"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "sortBy": [],
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT CONCAT(FORMAT(gross_pct,1,'de_DE'),' %') AS `Gross`, CONCAT(FORMAT(net_pct,1,'de_DE'),' %') AS `Net`, CONCAT(FORMAT(var95_pct,2,'de_DE'),' %') AS `1-day VaR 95%`, CONCAT(FORMAT(es95_pct,2,'de_DE'),' %') AS `Expected shortfall`, CONCAT(FORMAT(drawdown_pct,2,'de_DE'),' %') AS `Drawdown`, IF(breaker_armed=1,'🛑 ARMED','✓ disarmed') AS `Circuit breaker` FROM finops_agora.portfolio_risk ORDER BY as_of DESC LIMIT 1"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "🔬 Overfitting guard — purged CV + synthetic backtests",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 48
+      },
+      "description": "IS→OOS Sharpe degradation + PBO (probability of backtest overfitting). PBO>0,50 or OOS≪IS ⇒ the rule was curve-fit, not edge.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          },
+          "noValue": "awaiting first CV run"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "sortBy": [],
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT CASE kind WHEN 'cv' THEN 'purged-CV' WHEN 'synth' THEN 'synthetic' ELSE kind END AS `Test`, REPLACE(REPLACE(scenario,'cv:',''),'synth:','') AS `Symbol`, IFNULL(FORMAT(JSON_VALUE(outcome,'$.is_sharpe'),2,'de_DE'),'—') AS `IS Sharpe`, IFNULL(FORMAT(JSON_VALUE(outcome,'$.oos_sharpe'),2,'de_DE'),'—') AS `OOS Sharpe`, IFNULL(FORMAT(JSON_VALUE(outcome,'$.cpcv.median'),2,'de_DE'),'—') AS `CPCV median`, IFNULL(FORMAT(JSON_VALUE(outcome,'$.pbo'),2,'de_DE'),'—') AS `PBO` FROM finops_agora.sim_runs WHERE kind IN ('cv','synth') ORDER BY ts DESC LIMIT 12"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "🎚 Optimal trading rules — barriers derived from the process, not curve-fit",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 48
+      },
+      "description": "For mean-reverting names, the Monte-Carlo-optimal (profit-take, stop-loss) in σ-units — derived from a fitted O-U process (López de Prado ch13). Short half-life → small target / wide stop / high Sharpe.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          },
+          "noValue": "awaiting first OTR scan"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "sortBy": [],
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT symbol AS `Name`, FORMAT(half_life,1,'de_DE') AS `Half-life`, FORMAT(r2,2,'de_DE') AS `R²`, CONCAT(FORMAT(best_pt_sigma,2,'de_DE'),'σ / ',FORMAT(best_sl_sigma,2,'de_DE'),'σ') AS `Target / stop`, FORMAT(best_sharpe,2,'de_DE') AS `MC Sharpe`, CONCAT(FORMAT(pct_pt*100,0,'de_DE'),'%') AS `Take %` FROM finops_agora.otr_grid WHERE eligible=1 ORDER BY best_sharpe DESC LIMIT 12"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "🧮 Capital allocation across families — the meta-allocator",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 57
+      },
+      "description": "Advisory capital weight per family (softmax of Sharpe×DSR → hierarchical risk parity once return history exists). Equal-weight at cold start. Tilts position sizing; never auto-executes.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          },
+          "noValue": "awaiting track records"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "sortBy": [],
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT family AS `Methodology`, CONCAT(FORMAT(weight*100,1,'de_DE'),' %') AS `Capital weight` FROM finops_agora.family_weights WHERE as_of=(SELECT MAX(as_of) FROM finops_agora.family_weights) ORDER BY weight DESC"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "🏷 Meta-labeling — the secondary filter model",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 57
+      },
+      "description": "A secondary model that learns P(bet pays off) from commit-time features and shrinks doomed bets. Lift>1 ⇒ filtering beats taking every bet. Dormant until ~30 verdicts.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          },
+          "noValue": "dormant — awaiting verdicts"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "sortBy": [],
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT n_train AS `Training labels`, n_eval AS `OOS graded`, IFNULL(FORMAT(f1,2,'de_DE'),'—') AS `OOS F1`, IFNULL(CONCAT(FORMAT(lift,2,'de_DE'),'×'),'—') AS `Lift vs no-filter`, note AS `Status` FROM finops_agora.meta_label_perf ORDER BY as_of DESC LIMIT 1"
         }
       ]
     }
