@@ -194,8 +194,10 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a" {
 # finops: bargauges -> hidden-value bars + Dutch string amounts (audit iteration 3) — 2026-06-11
 
 # Agora — finops-agora paper-trading cockpit (uid agora). NAV-vs-index race, open
-# prediction ledger, methodology scoreboard, verdict history, pipeline health.
-# Reads finops_agora.* via the finops-ledger datasource (grafana_ro granted 2026-06-11).
+# prediction ledger, methodology scoreboard, verdict history, pipeline health, and (2026-06-12)
+# the research-integrity layer: Road-to-real-money (gate/DSR/fragility), portfolio risk + breaker,
+# overfitting guard (purged CV + PBO + synthetic backtests), optimal trading rules, meta-allocator,
+# meta-labeling. 17 panels. Reads finops_agora.* via the finops-ledger datasource (grafana_ro).
 resource "REDACTED_a9df2e77" "grafana_dashboard_agora" {
   metadata {
     name      = "grafana-dashboard-agora"
