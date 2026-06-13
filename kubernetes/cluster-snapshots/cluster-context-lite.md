@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-06-12 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-06-13 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: DEGRADED ⚠️
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 1 |
 | Pending PVCs | 0 |
-| Total Restarts | 2796 |
+| Total Restarts | 2813 |
 
 ## Topology
 
@@ -32,11 +32,11 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-ingress-nginx            ingress-nginx-controller-54679f6994-jkxnn                         0/1   ContainerStatusUnknown   1                  65d
+ingress-nginx            ingress-nginx-controller-54679f6994-jkxnn                         0/1   ContainerStatusUnknown   1                  66d
 ```
 
 ### High Restart Pods (>3)
-awx/awx-operator-controller-manager-f84fc744-drg2t: 14 restarts
+awx/awx-operator-controller-manager-f84fc744-drg2t: 17 restarts
 cert-manager/cert-manager-75944f484-9dl7j: 5 restarts
 cilium-spire/spire-agent-26mm7: 5 restarts
 cilium-spire/spire-agent-jn2zt: 5 restarts
@@ -69,13 +69,14 @@ monitoring/goldpinger-4fvxd: 10 restarts
 monitoring/goldpinger-b44g9: 6 restarts
 monitoring/goldpinger-cjzc4: 5 restarts
 monitoring/goldpinger-f72lw: 8 restarts
-monitoring/goldpinger-qs5xt: 8 restarts
+monitoring/goldpinger-qs5xt: 10 restarts
 monitoring/goldpinger-vtfpx: 10 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 4 restarts
+monitoring/monitoring-prometheus-node-exporter-wmcb8: 4 restarts
 monitoring/thanos-compactor-0: 7 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956djmgb: 7 restarts
-seaweedfs/seaweedfs-filer-0: 4 restarts
-seaweedfs/seaweedfs-filer-1: 9 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956djmgb: 9 restarts
+seaweedfs/seaweedfs-filer-0: 5 restarts
+seaweedfs/seaweedfs-filer-1: 10 restarts
 seaweedfs/seaweedfs-volume-1: 14 restarts
 synology-csi/synology-csi-node-577mq: 4 restarts
 synology-csi/synology-csi-node-kxrjb: 14 restarts
