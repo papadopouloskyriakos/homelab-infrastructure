@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-06-16 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-06-17 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: DEGRADED ⚠️
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 1 |
 | Pending PVCs | 0 |
-| Total Restarts | 2837 |
+| Total Restarts | 2761 |
 
 ## Topology
 
@@ -32,13 +32,10 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-ingress-nginx            ingress-nginx-controller-54679f6994-jkxnn                         0/1   ContainerStatusUnknown   1                69d
+ingress-nginx            ingress-nginx-controller-54679f6994-jkxnn                         0/1   ContainerStatusUnknown   1                70d
 ```
 
 ### High Restart Pods (>3)
-argocd/argocd-server-64dd47d8bf-5ksz6: 5 restarts
-awx/awx-operator-controller-manager-f84fc744-drg2t: 20 restarts
-cert-manager/cert-manager-75944f484-9dl7j: 5 restarts
 cilium-spire/spire-agent-26mm7: 5 restarts
 cilium-spire/spire-agent-9whrn: 5 restarts
 cilium-spire/spire-agent-jn2zt: 5 restarts
@@ -76,10 +73,7 @@ monitoring/goldpinger-vtfpx: 10 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 4 restarts
 monitoring/monitoring-prometheus-node-exporter-wmcb8: 6 restarts
 monitoring/thanos-compactor-0: 7 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956djmgb: 14 restarts
 seaweedfs/seaweedfs-filer-0: 5 restarts
-seaweedfs/seaweedfs-filer-1: 14 restarts
-seaweedfs/seaweedfs-volume-1: 14 restarts
 synology-csi/synology-csi-node-577mq: 4 restarts
 synology-csi/synology-csi-node-kxrjb: 14 restarts
 synology-csi/synology-csi-node-l72f8: 4 restarts
@@ -89,9 +83,9 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 ### Recent Warnings (5)
 ```
 NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   56m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl02             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   44m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   44m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   32m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   28m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Readiness probe failed: HTTP probe failed with statuscode: 500
+logging       105s        Warning   Unhealthy   pod/loki-0                              Readiness probe failed: Get "http://10.0.0.101:3100/ready": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
 ```
 
 ## Key Resources
