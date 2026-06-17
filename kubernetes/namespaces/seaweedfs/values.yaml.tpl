@@ -108,7 +108,8 @@ filer:
       memory: 512Mi
     limits:
       cpu: "1"
-      memory: 2Gi
+      # 2Gi -> 4Gi: filer-0 OOMKilled x5 under sync/compaction spikes (IFRNLLEI01PRD-1113, 2026-06-17)
+      memory: 4Gi
   # Affinity as STRING
   affinity: |
     nodeAffinity:
