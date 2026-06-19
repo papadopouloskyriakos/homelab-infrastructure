@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-06-18 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-06-19 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: DEGRADED ⚠️
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 1 |
 | Pending PVCs | 0 |
-| Total Restarts | 2757 |
+| Total Restarts | 2758 |
 
 ## Topology
 
@@ -32,7 +32,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-ingress-nginx            ingress-nginx-controller-54679f6994-jkxnn                         0/1   ContainerStatusUnknown   1                71d
+ingress-nginx            ingress-nginx-controller-54679f6994-jkxnn                         0/1   ContainerStatusUnknown   1                72d
 ```
 
 ### High Restart Pods (>3)
@@ -45,7 +45,7 @@ kube-system/cilium-22zgh: 9 restarts
 kube-system/cilium-envoy-cfv8x: 7 restarts
 kube-system/cilium-envoy-mmfnj: 9 restarts
 kube-system/cilium-gz5mp: 7 restarts
-kube-system/cilium-operator-6b94496fcd-qwll4: 36 restarts
+kube-system/cilium-operator-6b94496fcd-qwll4: 37 restarts
 kube-system/etcd-nlk8s-ctrl01: 64 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 1991 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 58 restarts
