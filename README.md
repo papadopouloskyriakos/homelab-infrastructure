@@ -480,15 +480,15 @@ AS214304 (public ASN, RIPE NCC assigned December 2025) with a three-tier design:
 
 | Provider | Interface | Type |
 |----------|-----------|------|
-| XS4ALL | ASA Port-channel1.2 (VLAN 2) | PPPoE |
-| Freedom Internet | ASA Port-channel1.6 (VLAN 6) | PPPoE, public IPs 45.138.52-55.x |
+| Freedom Internet | ASA Port-channel1.6 (VLAN 6, `outside_freedom`) | PPPoE, public 45.138.52-55.x — **primary** |
+| Budget Internet (ex-XS4ALL) | ASA Port-channel1.2 (VLAN 2, `outside_budget`) → nlrtr01 | routed /30 10.0.X.X/30 — rtr01 terminates the Budget PPPoE on Dialer1 (145.53.163.13) — **backup** |
 | LTE Failover | Cellular0 on nl-lte01 | NAT to 10.0.X.X/30 |
 
 ### VLANs
 
 | VLAN | Name | Subnet | Security Level | Purpose |
 |------|------|--------|----------------|---------|
-| 2 | outside_xs4all | PPPoE | 0 | WAN uplink |
+| 2 | outside_budget | 10.0.X.X/30 | 0 | Budget Internet via nlrtr01 (routed /30; ex-`outside_xs4all` PPPoE) |
 | 3 | outside_lte | 10.0.X.X/30 | 0 | LTE failover |
 | 5 | inside_iot | 10.0.X.X/26 | 30 | IoT devices |
 | 6 | outside_freedom | PPPoE | 0 | WAN uplink |
