@@ -192,6 +192,7 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a" {
 # finops: food-targets panel + deterministic Dutch number format (de_DE in SQL) — 2026-06-11
 # finops: stat panels with string values need reduceOptions.fields=/.*/ — 2026-06-11
 # finops: bargauges -> hidden-value bars + Dutch string amounts (audit iteration 3) — 2026-06-11
+# finops: 🛒 most-bought groceries panel (ah_invoice_items + flink_order_items, receipt-level) — 2026-06-21
 
 # Agora — finops-agora paper-trading cockpit (uid agora). NAV-vs-index race, open
 # prediction ledger, methodology scoreboard, verdict history, pipeline health, and (2026-06-12)
