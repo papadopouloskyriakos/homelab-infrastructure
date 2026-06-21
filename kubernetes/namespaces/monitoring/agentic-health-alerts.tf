@@ -198,6 +198,63 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
                 description = "gateway-watchdog.sh found this workflow inactive and tried to reactivate it, but it is still inactive 15 min later — reactivation is failing (deleted, errored on activate, or n8n rejecting it). A dead receiver/runner means alerts silently stop being dispatched. Triage: ssh nlclaude01; tail ~/scripts/watchdog-state/watchdog.log; check the workflow in the n8n UI. Runbook: claude-gateway docs/runbooks/gateway-watchdog-deadman.md."
               }
             },
+            {
+              # IFRNLLEI01PRD-1154 — synthetic-incident canary (classify->predict spine).
+              # tier=1 SMS ONLY for a live-db LEAK (the isolation safety invariant);
+              # spine-degraded / stale are warnings (daily probe, not an outage).
+              alert = "SyntheticCanaryLeak"
+              expr  = "synthetic_incident_canary_live_db_leak > 0"
+              for   = "0m"
+              labels = {
+                severity = "critical"
+                tier     = "1"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "synthetic canary leaked {{ $value }} rows into the LIVE gateway.db — isolation broke"
+                description = "synthetic-incident-canary.sh must run the classify->predict spine against an isolated temp DB. A non-zero leak means a canary row reached the live session_risk_audit/infragraph_predictions, which can skew metrics or collide a real fail-closed gate. Disable the cron (crontab -e) and fix before re-enabling. Runbook: claude-gateway docs/runbooks/synthetic-incident-canary.md."
+              }
+            },
+            {
+              alert = "REDACTED_d0d0a5b0"
+              expr  = "synthetic_incident_canary_stages_passed < 3"
+              for   = "6h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "synthetic canary passing only {{ $value }}/3 spine stages"
+                description = "The classify->predict spine is degraded (empty plan, missing band, or broken gate logic) — the months-long-silent-dark class. Inspect ~/logs/claude-gateway/synthetic-canary.log; run scripts/synthetic-incident-canary.sh --verbose. Runbook: claude-gateway docs/runbooks/synthetic-incident-canary.md."
+              }
+            },
+            {
+              alert = "SyntheticCanaryStale"
+              expr  = "(time() - synthetic_incident_canary_last_run_timestamp > 172800) or absent(synthetic_incident_canary_last_run_timestamp)"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "synthetic canary has not run in 48h+ (or metric absent)"
+                description = "The daily 02:37 synthetic-incident-canary cron on nlclaude01 is not firing — the autonomy spine is no longer being probed. Runbook: claude-gateway docs/runbooks/synthetic-incident-canary.md."
+              }
+            },
+            {
+              # IFRNLLEI01PRD-1153 — governance metrics freshness.
+              alert = "REDACTED_18cc530f"
+              expr  = "(time() - chatops_governance_metrics_last_run_timestamp > 3600) or absent(chatops_governance_metrics_last_run_timestamp)"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "governance metrics (false-auto-resolve / repeat-incident) stale 1h+"
+                description = "scripts/write-governance-metrics.py (cron */17 on nlclaude01) is wedged — the auto-resolve safety KPIs (false-auto-resolve, repeat-incident) are no longer computed. Run by hand and read stderr."
+              }
+            },
           ]
         },
         {
