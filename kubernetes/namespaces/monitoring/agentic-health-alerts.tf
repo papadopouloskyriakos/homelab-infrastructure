@@ -160,6 +160,101 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
                 description = "Phase B shadow predictions are scoring below 0.80 precision over 30 days (with a meaningful sample). The cascade model is drifting from reality — topology changed without a reseed, or learned dynamics went stale. Phase C suppression eligibility requires >= 0.95 on the conf>=0.8 subset, so investigate BEFORE the IFRNLLEI01PRD-1040 gate review. Scorecard: test-results/infragraph-scorecard.json on nlclaude01. Runbook: claude-gateway docs/runbooks/infragraph.md."
               }
             },
+            {
+              # IFRNLLEI01PRD-1152 — control-plane dead-man's-switch. The
+              # gateway-watchdog.sh cron (*/5 on nlclaude01) already watches
+              # the 9 receivers + runner and auto-heals; this watches the WATCHDOG.
+              # tier=1+critical => twilio-tier1 SMS (the Matrix alerts the watchdog
+              # itself posts are muted by the operator — feedback_operator_does_not_watch_matrix_polls).
+              # The absent() clause is the crux: a plain staleness expr returns NO
+              # series when node_exporter/claude01 is down ("no data = no alert"),
+              # which is exactly the silent-dark failure this issue exists to kill.
+              # NOTE: must NOT be named "Watchdog" — that alertname is black-holed
+              # to receiver=null in main.tf (the Prometheus stock heartbeat).
+              alert = "REDACTED_143a0947"
+              expr  = "(time() - max by (host) (gateway_watchdog_heartbeat_timestamp_seconds) > 900) or absent(gateway_watchdog_heartbeat_timestamp_seconds)"
+              for   = "5m"
+              labels = {
+                severity = "critical"
+                tier     = "1"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "gateway-watchdog has not run in 15+ min (or its metric is absent) — the autonomy control plane is unmonitored"
+                description = "scripts/gateway-watchdog.sh (cron */5 on nlclaude01) emits gateway_watchdog_heartbeat_timestamp_seconds on every run via a trap. Staleness means the cron, the host, node_exporter, or the script itself is dead — i.e. NOTHING is watching/auto-healing the 9 receivers + runner. This is the months-long-silent-dark failure class (memory/pipeline_autoresolve_repair_20260617.md). Triage: ssh nlclaude01; crontab -l | grep gateway-watchdog; tail ~/scripts/watchdog-state/watchdog.log; cat /var/lib/node_exporter/textfile_collector/gateway_watchdog.prom. Runbook: claude-gateway docs/runbooks/gateway-watchdog-deadman.md."
+              }
+            },
+            {
+              alert = "REDACTED_8744b7c1"
+              expr  = "min by (workflow) (gateway_workflow_active) == 0"
+              for   = "15m"
+              labels = {
+                severity = "critical"
+                tier     = "1"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "n8n workflow {{ $labels.workflow }} found inactive across 3+ watchdog runs (auto-reactivation not holding)"
+                description = "gateway-watchdog.sh found this workflow inactive and tried to reactivate it, but it is still inactive 15 min later — reactivation is failing (deleted, errored on activate, or n8n rejecting it). A dead receiver/runner means alerts silently stop being dispatched. Triage: ssh nlclaude01; tail ~/scripts/watchdog-state/watchdog.log; check the workflow in the n8n UI. Runbook: claude-gateway docs/runbooks/gateway-watchdog-deadman.md."
+              }
+            },
+            {
+              # IFRNLLEI01PRD-1154 — synthetic-incident canary (classify->predict spine).
+              # tier=1 SMS ONLY for a live-db LEAK (the isolation safety invariant);
+              # spine-degraded / stale are warnings (daily probe, not an outage).
+              alert = "SyntheticCanaryLeak"
+              expr  = "synthetic_incident_canary_live_db_leak > 0"
+              for   = "0m"
+              labels = {
+                severity = "critical"
+                tier     = "1"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "synthetic canary leaked {{ $value }} rows into the LIVE gateway.db — isolation broke"
+                description = "synthetic-incident-canary.sh must run the classify->predict spine against an isolated temp DB. A non-zero leak means a canary row reached the live session_risk_audit/infragraph_predictions, which can skew metrics or collide a real fail-closed gate. Disable the cron (crontab -e) and fix before re-enabling. Runbook: claude-gateway docs/runbooks/synthetic-incident-canary.md."
+              }
+            },
+            {
+              alert = "REDACTED_d0d0a5b0"
+              expr  = "synthetic_incident_canary_stages_passed < 3"
+              for   = "6h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "synthetic canary passing only {{ $value }}/3 spine stages"
+                description = "The classify->predict spine is degraded (empty plan, missing band, or broken gate logic) — the months-long-silent-dark class. Inspect ~/logs/claude-gateway/synthetic-canary.log; run scripts/synthetic-incident-canary.sh --verbose. Runbook: claude-gateway docs/runbooks/synthetic-incident-canary.md."
+              }
+            },
+            {
+              alert = "SyntheticCanaryStale"
+              expr  = "(time() - synthetic_incident_canary_last_run_timestamp > 172800) or absent(synthetic_incident_canary_last_run_timestamp)"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "synthetic canary has not run in 48h+ (or metric absent)"
+                description = "The daily 02:37 synthetic-incident-canary cron on nlclaude01 is not firing — the autonomy spine is no longer being probed. Runbook: claude-gateway docs/runbooks/synthetic-incident-canary.md."
+              }
+            },
+            {
+              # IFRNLLEI01PRD-1153 — governance metrics freshness.
+              alert = "REDACTED_18cc530f"
+              expr  = "(time() - chatops_governance_metrics_last_run_timestamp > 3600) or absent(chatops_governance_metrics_last_run_timestamp)"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "governance metrics (false-auto-resolve / repeat-incident) stale 1h+"
+                description = "scripts/write-governance-metrics.py (cron */17 on nlclaude01) is wedged — the auto-resolve safety KPIs (false-auto-resolve, repeat-incident) are no longer computed. Run by hand and read stderr."
+              }
+            },
           ]
         },
         {
