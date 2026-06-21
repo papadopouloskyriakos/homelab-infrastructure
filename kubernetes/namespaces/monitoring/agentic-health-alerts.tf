@@ -160,6 +160,44 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
                 description = "Phase B shadow predictions are scoring below 0.80 precision over 30 days (with a meaningful sample). The cascade model is drifting from reality — topology changed without a reseed, or learned dynamics went stale. Phase C suppression eligibility requires >= 0.95 on the conf>=0.8 subset, so investigate BEFORE the IFRNLLEI01PRD-1040 gate review. Scorecard: test-results/infragraph-scorecard.json on nlclaude01. Runbook: claude-gateway docs/runbooks/infragraph.md."
               }
             },
+            {
+              # IFRNLLEI01PRD-1152 — control-plane dead-man's-switch. The
+              # gateway-watchdog.sh cron (*/5 on nlclaude01) already watches
+              # the 9 receivers + runner and auto-heals; this watches the WATCHDOG.
+              # tier=1+critical => twilio-tier1 SMS (the Matrix alerts the watchdog
+              # itself posts are muted by the operator — feedback_operator_does_not_watch_matrix_polls).
+              # The absent() clause is the crux: a plain staleness expr returns NO
+              # series when node_exporter/claude01 is down ("no data = no alert"),
+              # which is exactly the silent-dark failure this issue exists to kill.
+              # NOTE: must NOT be named "Watchdog" — that alertname is black-holed
+              # to receiver=null in main.tf (the Prometheus stock heartbeat).
+              alert = "REDACTED_143a0947"
+              expr  = "(time() - max by (host) (gateway_watchdog_heartbeat_timestamp_seconds) > 900) or absent(gateway_watchdog_heartbeat_timestamp_seconds)"
+              for   = "5m"
+              labels = {
+                severity = "critical"
+                tier     = "1"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "gateway-watchdog has not run in 15+ min (or its metric is absent) — the autonomy control plane is unmonitored"
+                description = "scripts/gateway-watchdog.sh (cron */5 on nlclaude01) emits gateway_watchdog_heartbeat_timestamp_seconds on every run via a trap. Staleness means the cron, the host, node_exporter, or the script itself is dead — i.e. NOTHING is watching/auto-healing the 9 receivers + runner. This is the months-long-silent-dark failure class (memory/pipeline_autoresolve_repair_20260617.md). Triage: ssh nlclaude01; crontab -l | grep gateway-watchdog; tail ~/scripts/watchdog-state/watchdog.log; cat /var/lib/node_exporter/textfile_collector/gateway_watchdog.prom. Runbook: claude-gateway docs/runbooks/gateway-watchdog-deadman.md."
+              }
+            },
+            {
+              alert = "REDACTED_8744b7c1"
+              expr  = "min by (workflow) (gateway_workflow_active) == 0"
+              for   = "15m"
+              labels = {
+                severity = "critical"
+                tier     = "1"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "n8n workflow {{ $labels.workflow }} found inactive across 3+ watchdog runs (auto-reactivation not holding)"
+                description = "gateway-watchdog.sh found this workflow inactive and tried to reactivate it, but it is still inactive 15 min later — reactivation is failing (deleted, errored on activate, or n8n rejecting it). A dead receiver/runner means alerts silently stop being dispatched. Triage: ssh nlclaude01; tail ~/scripts/watchdog-state/watchdog.log; check the workflow in the n8n UI. Runbook: claude-gateway docs/runbooks/gateway-watchdog-deadman.md."
+              }
+            },
           ]
         },
         {
