@@ -658,13 +658,96 @@
       ]
     },
     {
+      "type": "table",
+      "title": "\ud83d\uded2 My most-bought groceries \u2014 Albert Heijn + Flink receipts  (\u20ac)",
+      "description": "Top products by total spend, from itemised AH invoices + Flink receipts stored in MariaDB (ah_invoice_items + flink_order_items). All-time from receipts: AH covers Apr 2025 onward; Flink only the itemised Dutch receipts (Aug 2024 onward), so Flink products are a floor. Deposits/packaging excluded; the same coffee can appear as several SKUs.",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 31
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Product"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 360
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Totaal"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Keer gekocht"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [],
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "mysql",
+            "uid": "finops-ledger"
+          },
+          "format": "table",
+          "rawSql": "SELECT description AS `Product`, CONCAT('\u20ac ', FORMAT(SUM(eur),2,'de_DE')) AS `Totaal`, SUM(qty) AS `Keer gekocht`, GROUP_CONCAT(DISTINCT winkel ORDER BY winkel SEPARATOR ' + ') AS `Winkel` FROM (SELECT description, incl_btw AS eur, quantity AS qty, 'AH' AS winkel FROM ah_invoice_items WHERE is_deposit=0 AND incl_btw>0 UNION ALL SELECT description, line_total, quantity, 'Flink' FROM flink_order_items) z WHERE description NOT LIKE '%Bezorgbundel%' AND description NOT LIKE '%Premium Abonnement%' GROUP BY description ORDER BY SUM(eur) DESC LIMIT 15"
+        }
+      ]
+    },
+    {
       "type": "text",
       "title": "",
       "gridPos": {
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 31
+        "y": 39
       },
       "options": {
         "mode": "markdown",
@@ -682,7 +765,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 33
+        "y": 41
       },
       "fieldConfig": {
         "defaults": {
@@ -783,7 +866,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 33
+        "y": 41
       },
       "fieldConfig": {
         "defaults": {},
@@ -812,7 +895,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 42
+        "y": 50
       },
       "fieldConfig": {
         "defaults": {},
@@ -841,7 +924,7 @@
         "h": 4,
         "w": 12,
         "x": 12,
-        "y": 42
+        "y": 50
       },
       "fieldConfig": {
         "defaults": {
@@ -910,7 +993,7 @@
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 46
+        "y": 54
       },
       "fieldConfig": {
         "defaults": {
@@ -961,7 +1044,7 @@
         "h": 4,
         "w": 6,
         "x": 18,
-        "y": 46
+        "y": 54
       },
       "fieldConfig": {
         "defaults": {
@@ -1008,7 +1091,7 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 50
+        "y": 58
       },
       "options": {
         "mode": "markdown",
@@ -1026,7 +1109,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 52
+        "y": 60
       },
       "fieldConfig": {
         "defaults": {
@@ -1068,7 +1151,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 52
+        "y": 60
       },
       "fieldConfig": {
         "defaults": {
@@ -1113,7 +1196,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 60
+        "y": 68
       },
       "fieldConfig": {
         "defaults": {
@@ -1158,7 +1241,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 60
+        "y": 68
       },
       "fieldConfig": {
         "defaults": {
@@ -1203,7 +1286,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 68
+        "y": 76
       },
       "fieldConfig": {
         "defaults": {
@@ -1253,7 +1336,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 77
+        "y": 85
       },
       "fieldConfig": {
         "defaults": {},
@@ -1278,7 +1361,7 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 86
+        "y": 94
       },
       "options": {
         "mode": "markdown",
@@ -1296,7 +1379,7 @@
         "h": 3,
         "w": 12,
         "x": 0,
-        "y": 88
+        "y": 96
       },
       "fieldConfig": {
         "defaults": {
@@ -1384,7 +1467,7 @@
         "h": 3,
         "w": 12,
         "x": 12,
-        "y": 88
+        "y": 96
       },
       "fieldConfig": {
         "defaults": {
