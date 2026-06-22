@@ -1533,6 +1533,417 @@
           "rawSql": "SELECT DATEDIFF(MIN(access_expires_at), NOW()) v FROM sync_state WHERE access_expires_at IS NOT NULL"
         }
       ]
+    },
+    {
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 99
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## \ud83d\udecd\ufe0f Online orders \u2014 pulled from my email receipts\nEvery order from Amazon, Thuisbezorgd, eBay, bol.com, Albert Heijn, AliExpress & Flink. **Spend** = what the receipt actually stated (not every email carries a total \u2014 see the \u20ac-coverage column)."
+      }
+    },
+    {
+      "type": "stat",
+      "title": "\ud83d\udecd\ufe0f Spent on online orders \u2014 all time  (\u20ac)",
+      "description": "",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 101
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3F6196"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 36,
+          "titleSize": 12
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT CONCAT('\u20ac ', FORMAT(SUM(spend_eur),2,'de_DE')) AS v FROM v_orders",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "\ud83d\udce6 Orders placed \u2014 all time",
+      "description": "",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 101
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3F6196"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 36,
+          "titleSize": 12
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS v FROM v_orders",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "\ud83d\udeab Cancelled or refunded",
+      "description": "",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 101
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3F6196"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 36,
+          "titleSize": 12
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT SUM(is_cancelled) AS v FROM v_orders",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "\ud83d\uded2 Orders by shop \u2014 all time",
+      "description": "Order counts are complete; 'Spend' only sums orders whose email stated a total (\u20ac-coverage). Albert Heijn spend comes from the PDF invoices, hence its low coverage.",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 105
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Shop"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Spend (from receipts)"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "right"
+              },
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Orders"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "right"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cancelled"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "right"
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "\u20ac-coverage"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "right"
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT merchant AS `Shop`, COUNT(*) AS `Orders`, SUM(is_cancelled) AS `Cancelled`, CONCAT('\u20ac ', FORMAT(SUM(spend_eur),2,'de_DE')) AS `Spend (from receipts)`, CONCAT(ROUND(100*SUM(total IS NOT NULL)/COUNT(*)),'%') AS `\u20ac-coverage`, CONCAT(YEAR(MIN(ordered_at)),'\u2013',YEAR(MAX(ordered_at))) AS `History` FROM v_orders GROUP BY merchant ORDER BY SUM(spend_eur) DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "\ud83d\udcc8 Online orders per month \u2014 last 24 months",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 113
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "lineWidth": 1
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#6E8FB8"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT STR_TO_DATE(CONCAT(DATE_FORMAT(ordered_at,'%Y-%m'),'-01'),'%Y-%m-%d') AS time, COUNT(*) AS `Orders` FROM v_orders WHERE ordered_at >= NOW() - INTERVAL 24 MONTH AND ordered_at <= NOW() GROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "\ud83e\uddfe Recent orders",
+      "description": "",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 113
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Amount"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "right"
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "cancelled": {
+                        "color": "#B86E6E",
+                        "index": 0
+                      },
+                      "refunded": {
+                        "color": "#B86E6E",
+                        "index": 1
+                      },
+                      "returned": {
+                        "color": "#B86E6E",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT DATE(ordered_at) AS `Date`, merchant AS `Shop`, CASE WHEN spend_eur IS NULL THEN '\u2014' ELSE CONCAT('\u20ac ', FORMAT(spend_eur,2,'de_DE')) END AS `Amount`, status AS `Status` FROM v_orders WHERE ordered_at <= NOW() ORDER BY ordered_at DESC LIMIT 15",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
     }
   ]
 }
