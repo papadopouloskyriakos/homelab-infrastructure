@@ -1753,7 +1753,7 @@ dhcpd dns 1.1.1.1 8.8.8.8 interface inside_room_d
 dhcpd enable inside_room_d
 !
 dhcpd address 10.0.X.X-10.0.X.X inside_mgmt
-dhcpd dns 10.0.X.X interface inside_mgmt
+dhcpd dns 10.0.X.X 10.0.X.X interface inside_mgmt
 dhcpd domain example.net interface inside_mgmt
 dhcpd enable inside_mgmt
 dhcpd reserve-address 10.0.X.X 2ccf.677b.9682 inside_mgmt
@@ -1956,5 +1956,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:5966e4b71e931e6caebad9470304a462
+Cryptochecksum:d71883c7154669159b0f1c08a159397d
 : end
