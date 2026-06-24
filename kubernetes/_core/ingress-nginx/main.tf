@@ -109,7 +109,10 @@ resource "helm_release" "ingress_nginx" {
           # Change to "SecRuleEngine On" after tuning (1-2 weeks monitoring)
           enable-modsecurity           = "true"
           enable-owasp-modsecurity-crs = "true"
-          modsecurity-snippet          = "SecRuleEngine DetectionOnly\nSecAuditLog /var/log/modsec_audit.log\nSecAuditLogFormat JSON\nSecAuditEngine RelevantOnly"
+          # SecAuditLog -> /dev/stdout (was /var/log/modsec_audit.log): the serial audit file
+          # had NO rotation and grew unbounded (33.6G on one controller, 2026-06-24 -> node02
+          # ephemeral-storage eviction). stdout is kubelet-rotated (~50Mi cap) + flows to Loki.
+          modsecurity-snippet = "SecRuleEngine DetectionOnly\nSecAuditLog /dev/stdout\nSecAuditLogFormat JSON\nSecAuditEngine RelevantOnly"
 
           # === JSON STRUCTURED LOGGING ===
           # Better for SIEM integration and log analysis
