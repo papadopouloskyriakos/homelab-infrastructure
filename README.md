@@ -203,7 +203,7 @@ production/
 └── renovate.json                 # Automated dependency updates
 ```
 
-**Note:** `native/` configs are **read-only snapshots** — there is no CI/CD pipeline for native services. To update: SSH to the VM, make changes, copy the updated config back, commit with `chore(native): sync <service> config from <host>`. Both NCHA and HAHA share the DRBD+OCFS2+NFS storage cluster (file01/file02/filearb01).
+**Note:** `native/` configs are **read-only snapshots** — there is no CI/CD pipeline for native services. To update: SSH to the VM, make changes, copy the updated config back, commit with `chore(native): sync <service> config from <host>`. Both NCHA and HAHA share the DRBD+OCFS2+NFS storage cluster (nlcl01file01/nlcl01file02/filearb01).
 
 ---
 
@@ -311,9 +311,9 @@ Build contexts live in `images/<name>/`. Built via `ci/images.yml` (manual trigg
 
 - **API**: api-k8s.example.net:6443
 - **Nodes**: 3 control-plane + 4 workers, all Ubuntu 24.04
-  - ctrl01 (pve01): 4 CPU, 8GB RAM
-  - ctrl02 (pve02): 4 CPU, 4GB RAM
-  - ctrl03 (pve03): 4 CPU, 8GB RAM
+  - nlk8s-ctrl01 (nl-pve01): 4 CPU, 8GB RAM
+  - nlk8s-ctrl02 (nl-pve02): 4 CPU, 4GB RAM
+  - nlk8s-ctrl03 (nl-pve03): 4 CPU, 8GB RAM
   - worker01-04: 4-8 CPU, 8GB RAM each. IPs 10.0.X.X-23
 - **CNI**: Cilium v1.18.4 (eBPF, REDACTED_fd61d0fe, VXLAN tunneling, MTU 1350)
 - **Pod CIDR**: 10.0.0.0/16 (NL), 10.1.0.0/16 (GR) — must not overlap for ClusterMesh
@@ -405,7 +405,7 @@ ContainerOOMKilled, REDACTED_879bd353, REDACTED_02123891, REDACTED_a8a7eee8, RED
 
 ### Known Issues
 
-- **kube-apiserver on ctrl01**: Intermittent HTTP 500 probe failures, 370+ restarts — present for entire cluster lifetime, does not impact stability
+- **kube-apiserver on nlk8s-ctrl01**: Intermittent HTTP 500 probe failures, 370+ restarts — present for entire cluster lifetime, does not impact stability
 - **cilium-operator**: 90+ restarts accumulated — not a recent regression
 - **SeaweedFS filer**: Multipath/iSCSI conflict fixed via Synology multipath blacklist on all 7 K8s nodes
 
@@ -560,7 +560,7 @@ VMIDs follow a hierarchical 9-digit scheme: `XYZABCDEF`
 
 | Segment | Digits | Meaning |
 |---------|--------|---------|
-| XYZ | 1-3 | Host/cluster (101=pve01, 102=pve02, 103=pve03) |
+| XYZ | 1-3 | Host/cluster (101=nl-pve01, 102=nl-pve02, 103=nl-pve03) |
 | ABC | 4-6 | Functional group (100=infra, 101=apps) |
 | DEF | 7-9 | Instance number |
 
@@ -605,11 +605,11 @@ Exceptions: `666`, `777` are IoT cluster nodes (special-purpose IDs).
 
 | Name | VMID | Type | Host | CPU/RAM | Purpose |
 |------|------|------|------|---------|---------|
-| nlk8s-ctrl01-03 | 1011006xx | QEMU | pve01+03 | 4C/4-8G | K8s control plane |
-| nlk8s-node01-04 | 1011006xx, 1031006xx | QEMU | pve01+03 | 4-8C/8G | K8s workers |
-| nlpihole01 | 101100201 | LXC | pve01 | 8C/4G | DNS/DHCP |
-| nlnpm01 | 101100401 | LXC | pve01 | 4C/4G | Reverse proxy (NPM) |
-| nlpbs01 | 101100802 | LXC | pve01 | 4C/8G | Proxmox Backup Server |
+| nlk8s-ctrl01-03 | 1011006xx | QEMU | nl-pve01+03 | 4C/4-8G | K8s control plane |
+| nlk8s-node01-04 | 1011006xx, 1031006xx | QEMU | nl-pve01+03 | 4-8C/8G | K8s workers |
+| nlpihole01 | 101100201 | LXC | nl-pve01 | 8C/4G | DNS/DHCP |
+| nlnpm01 | 101100401 | LXC | nl-pve01 | 4C/4G | Reverse proxy (NPM) |
+| nlpbs01 | 101100802 | LXC | nl-pve01 | 4C/8G | Proxmox Backup Server |
 
 ---
 
@@ -617,11 +617,11 @@ Exceptions: `666`, `777` are IoT cluster nodes (special-purpose IDs).
 
 ### Service Categories (51 hosts, 80+ services)
 
-**Communication:** matrix01 (Synapse + 8 bridges), mattermost01, librechat01, openwebui01
-**Media:** gpu01/jellyfin, navidrome01, lyrion01, feishin01, frigate01, pinchflat01, tautulli01
-**AI/GPU** (all on gpu01, 21 services): Ollama, Stable Diffusion, Immich ML, Whisper, Piper, Milvus, LibreTranslate, Audiomuse, Viseron, Beszel, GPU-Hot, Onlogs
-**Productivity:** nc01/nc02 (Nextcloud), mealie01, docuseal01, excalidraw01, calibre01, audiobookshelf01, bookwyrm01, linkwarden02
-**Infrastructure:** haproxy01/02, npm01, redis01/02/03, influxdb01, proxysql01/02, atlantis01, sftpgo01
+**Communication:** nl-matrix01 (Synapse + 8 bridges), nlmattermost01, librechat01, openwebui01
+**Media:** nlgpu01/jellyfin, navidrome01, lyrion01, feishin01, frigate01, pinchflat01, tautulli01
+**AI/GPU** (all on nlgpu01, 21 services): Ollama, Stable Diffusion, Immich ML, Whisper, Piper, Milvus, LibreTranslate, Audiomuse, Viseron, Beszel, GPU-Hot, Onlogs
+**Productivity:** nlnc01/nlnc02 (Nextcloud), mealie01, docuseal01, excalidraw01, calibre01, audiobookshelf01, bookwyrm01, linkwarden02
+**Infrastructure:** nlhaproxy01/02, nlnpm01, redis01/02/03, influxdb01, proxysql01/02, atlantis01, sftpgo01
 **Monitoring:** netalertx01, netvisor01
 **Finance:** actualbudget01, ghostfolio01, wallos01
 
@@ -796,22 +796,22 @@ Nextcloud Frontends (Apache 2.4.58 + PHP 8.4.18 + PHP-FPM)
 
 | Host | VMID | PVE | IP | Role |
 |------|------|-----|-----|------|
-| nlnpm01 | 101100401 | pve01 | 10.0.X.X | OpenResty 1.27.1, ~98 proxy configs |
+| nlnpm01 | 101100401 | nl-pve01 | 10.0.X.X | OpenResty 1.27.1, ~98 proxy configs |
 | grnpm01 | — | gr-pve01 | 10.0.X.X | GR site entry point (DNS RR partner) |
 
 **Layer 2 — Load Balancer (HAProxy, Docker):**
 
 | Host | VMID | PVE | IP | Config |
 |------|------|-----|-----|--------|
-| nlhaproxy01 | 101100402 | pve01 | 10.0.X.X | HAProxy 3.3.5, nc01 PRIMARY |
-| nlhaproxy02 | 103101007 | pve03 | 10.0.X.X | HAProxy 3.3.5, nc02 PRIMARY (cross-site) |
+| nlhaproxy01 | 101100402 | nl-pve01 | 10.0.X.X | HAProxy 3.3.5, nlnc01 PRIMARY |
+| nlhaproxy02 | 103101007 | nl-pve03 | 10.0.X.X | HAProxy 3.3.5, nlnc02 PRIMARY (cross-site) |
 
 **Layer 3 — Nextcloud Application (Native Apache + PHP):**
 
 | Host | VMID | PVE | IPs | Version |
 |------|------|-----|-----|---------|
-| nlnc01 | 101101206 | pve01 | 10.0.X.X, 10.0.X.X | Nextcloud 32.0.6, PHP 8.4.18 |
-| nlnc02 | 103101201 | pve03 | 10.0.X.X, 10.0.X.X | Nextcloud 32.0.6, PHP 8.4.18 |
+| nlnc01 | 101101206 | nl-pve01 | 10.0.X.X, 10.0.X.X | Nextcloud 32.0.6, PHP 8.4.18 |
+| nlnc02 | 103101201 | nl-pve03 | 10.0.X.X, 10.0.X.X | Nextcloud 32.0.6, PHP 8.4.18 |
 
 NFS mounts (both nodes, VLAN 88): `10.0.X.X:/mnt/ocfs2/nextcloud/nextcloud-app` → `/var/www/nextcloud`, `10.0.X.X:/mnt/ocfs2/nextcloud/nextcloud-data` → `/mnt/nextcloud-data` (NFSv4.2, nconnect=8)
 
@@ -819,11 +819,11 @@ NFS mounts (both nodes, VLAN 88): `10.0.X.X:/mnt/ocfs2/nextcloud/nextcloud-app` 
 
 | Host | VMID | PVE | IP | Role |
 |------|------|-----|-----|------|
-| nlproxysql01 | 101101004 | pve01 | 10.0.X.X | ProxySQL 2.7.2, port 6033 |
-| nlproxysql02 | 101101008 | pve03 | 10.0.X.X | ProxySQL 2.7.2, identical config |
-| nlcl01mariadb01 | 101101002 | pve01 | 10.0.X.X | MariaDB 11.6.2 Galera, Primary |
-| nlcl01mariadb02 | 101101006 | pve03 | 10.0.X.X | MariaDB 11.6.2 Galera, Primary |
-| nlcl01garbd01 | 101101007 | pve02 | 10.0.X.X | Galera Arbitrator (quorum voter, no data) |
+| nlproxysql01 | 101101004 | nl-pve01 | 10.0.X.X | ProxySQL 2.7.2, port 6033 |
+| nlproxysql02 | 101101008 | nl-pve03 | 10.0.X.X | ProxySQL 2.7.2, identical config |
+| nlcl01mariadb01 | 101101002 | nl-pve01 | 10.0.X.X | MariaDB 11.6.2 Galera, Primary |
+| nlcl01mariadb02 | 101101006 | nl-pve03 | 10.0.X.X | MariaDB 11.6.2 Galera, Primary |
+| nlcl01garbd01 | 101101007 | nl-pve02 | 10.0.X.X | Galera Arbitrator (quorum voter, no data) |
 
 DNS: `proxysql.example.net` → RR .152 + .154 (Nextcloud connects directly, NOT via HAProxy)
 
@@ -831,9 +831,9 @@ DNS: `proxysql.example.net` → RR .152 + .154 (Nextcloud connects directly, NOT
 
 | Host | VMID | PVE | IP | Role |
 |------|------|-----|-----|------|
-| nlredis01 | 102100402 | pve01 | 10.0.X.X | Redis 8.6.1, Slave |
-| nlredis02 | 102100403 | pve02 | 10.0.X.X | Redis 8.6.1, **Master** |
-| nlredis03 | 102100404 | pve03 | 10.0.X.X | Redis 8.6.1, Slave |
+| nlredis01 | 102100402 | nl-pve01 | 10.0.X.X | Redis 8.6.1, Slave |
+| nlredis02 | 102100403 | nl-pve02 | 10.0.X.X | Redis 8.6.1, **Master** |
+| nlredis03 | 102100404 | nl-pve03 | 10.0.X.X | Redis 8.6.1, Slave |
 
 DNS: `redis.example.net` → RR .140 + .158 (HAProxy TCP proxy :6380→6379). Sentinel master: `mymaster`, quorum=2. **Known issue:** HAProxy uses PING health check only — can't detect Redis master. HAProxy has redis03 as PRIMARY but actual master is redis02.
 
@@ -841,9 +841,9 @@ DNS: `redis.example.net` → RR .140 + .158 (HAProxy TCP proxy :6380→6379). Se
 
 | Host | VMID | PVE | IPs | Role |
 |------|------|-----|-----|------|
-| nlcl01file01 | VM | pve01 | 10.0.X.X, 10.0.X.X, **VIP 10.0.X.X** | DRBD Primary + OCFS2 + active NFS (Pacemaker-managed), 3.7TB |
-| nlcl01file02 | VM | pve03 | 10.0.X.X, 10.0.X.X | DRBD Primary + OCFS2, NFS passive (failover target) |
-| nlcl01filearb01 | VM | syno01 | 10.0.X.X, 10.0.X.X | Corosync/Pacemaker quorum voter only |
+| nlcl01file01 | VM | nl-pve01 | 10.0.X.X, 10.0.X.X, **VIP 10.0.X.X** | DRBD Primary + OCFS2 + active NFS (Pacemaker-managed), 3.7TB |
+| nlcl01file02 | VM | nl-pve03 | 10.0.X.X, 10.0.X.X | DRBD Primary + OCFS2, NFS passive (failover target) |
+| nlcl01filearb01 | VM | nl-nas01 | 10.0.X.X, 10.0.X.X | Corosync/Pacemaker quorum voter only |
 
 Pacemaker: 3 nodes, 7 resources. DRBD dual-Primary mode with OCFS2 (cluster filesystem). NFS floating IP 10.0.X.X. Export: `/mnt/ocfs2` to `*(rw,no_root_squash)`. This storage cluster is shared with HAHA — HAHA mounts `/mnt/ocfs2/iot/`.
 
@@ -883,11 +883,11 @@ Pacemaker: 3 nodes, 7 resources. DRBD dual-Primary mode with OCFS2 (cluster file
 
 ### PVE Failure Domains
 
-- **pve01**: npm01, haproxy01, nc01, proxysql01, mariadb01, redis01, file01, code01, freeipa01
-- **pve02**: garbd01, redis02 — arbitrators only
-- **pve03**: haproxy02, nc02, proxysql02, mariadb02, redis03, file02, code02, imaginary01, whiteboard01, hpb01, gpu01
+- **nl-pve01**: nlnpm01, nlhaproxy01, nlnc01, proxysql01, mariadb01, redis01, nlcl01file01, code01, nlfreeipa01
+- **nl-pve02**: garbd01, redis02 — arbitrators only
+- **nl-pve03**: nlhaproxy02, nlnc02, proxysql02, mariadb02, redis03, nlcl01file02, code02, imaginary01, whiteboard01, hpb01, nlgpu01
 
-**Key risk:** pve03 failure takes out half the HA cluster + ALL backend services. pve01 failure takes out primary frontends + NFS server. pve02 only has arbitrators — losing it doesn't cause outage but reduces quorum safety.
+**Key risk:** nl-pve03 failure takes out half the HA cluster + ALL backend services. nl-pve01 failure takes out primary frontends + NFS server. nl-pve02 only has arbitrators — losing it doesn't cause outage but reduces quorum safety.
 
 ---
 
@@ -924,9 +924,9 @@ VIP: 10.0.X.X (Pacemaker-managed, floats between iot01/iot02)
 
 | Host | VMID | PVE | IPs | Role |
 |------|------|-----|-----|------|
-| nlcl01iot01 | 666 | pve01 | 10.0.X.X, 10.0.X.X | QEMU, 2C/2S, 4GB. Currently standby. |
-| nlcl01iot02 | 777 | pve03 | 10.0.X.X, 10.0.X.X | QEMU, 2C/2S, 4GB. Currently **active**. |
-| nlcl01iotarb01 | — | syno01 | 10.0.X.X | Synology VMM. Quorum voter + SBD + DC. |
+| nlcl01iot01 | 666 | nl-pve01 | 10.0.X.X, 10.0.X.X | QEMU, 2C/2S, 4GB. Currently standby. |
+| nlcl01iot02 | 777 | nl-pve03 | 10.0.X.X, 10.0.X.X | QEMU, 2C/2S, 4GB. Currently **active**. |
+| nlcl01iotarb01 | — | nl-nas01 | 10.0.X.X | Synology VMM. Quorum voter + SBD + DC. |
 
 ### Pacemaker Configuration
 
@@ -941,20 +941,20 @@ VIP: 10.0.X.X (Pacemaker-managed, floats between iot01/iot02)
 
 | Resource | Type | Target |
 |----------|------|--------|
-| `fence_iot01` | `fence_pve` | VMID 666 on pve01, runs on iot02 |
-| `fence_iot02` | `fence_pve` | VMID 777 on pve03, runs on iotarb01 |
-| `sbd_stonith` | `external/sbd` | `/dev/sdb` (all 3 nodes), pinned to iotarb01 |
+| `fence_iot01` | `fence_pve` | VMID 666 on nl-pve01, runs on iot02 |
+| `fence_iot02` | `fence_pve` | VMID 777 on nl-pve03, runs on nlcl01iotarb01 |
+| `sbd_stonith` | `external/sbd` | `/dev/sdb` (all 3 nodes), pinned to nlcl01iotarb01 |
 
 ### Resource Group: `g_iot_stack`
 
-Resources start in order, stop in reverse. All colocated on same node. Never runs on iotarb01.
+Resources start in order, stop in reverse. All colocated on same node. Never runs on nlcl01iotarb01.
 
 | # | Resource | Type | Config |
 |---|----------|------|--------|
 | 1 | `p_fs_iot` | Filesystem | NFS 10.0.X.X:/mnt/ocfs2/iot → /mnt/iot |
 | 2 | `p_vip_iot` | IPaddr2 | 10.0.X.X/24 |
-| 3 | `p_fs_media` | Filesystem | NFS syno01 Media → /mnt/iot/homeassistant/ha_nl-nas01 |
-| 4 | `p_fs_backup` | Filesystem | NFS syno01 Backup → backups/ |
+| 3 | `p_fs_media` | Filesystem | NFS nl-nas01 Media → /mnt/iot/homeassistant/ha_nl-nas01 |
+| 4 | `p_fs_backup` | Filesystem | NFS nl-nas01 Backup → backups/ |
 | 5 | `p_docker_home-assistant` | docker | ghcr.io/home-assistant/home-assistant:stable, privileged, host network |
 | 6 | `p_docker_mosquitto` | docker | eclipse-mosquitto:latest |
 | 7 | `REDACTED_9d35477e` | docker | koenkk/zigbee2mqtt:latest |
@@ -983,7 +983,7 @@ Zigbee2MQTT (50+ devices), ESPHome (7 devices), Evohome/Lyric (Honeywell heating
 
 1. Wake word detection → M5Stack Atom Echo / HA Voice PE (ESPHome)
 2. Speech-to-text → HA built-in STT
-3. Intent processing → Ollama `llama3.2:1b` on gpu01
+3. Intent processing → Ollama `llama3.2:1b` on nlgpu01
 4. Text-to-speech → Piper TTS (local)
 5. Audio output → Sonos Symfonisk or LMS
 
