@@ -190,12 +190,16 @@ resource "helm_release" "ingress_nginx" {
         # =====================================================================
         resources = {
           requests = {
-            cpu    = "500m"
-            memory = "512Mi"
+            cpu                 = "500m"
+            memory              = "512Mi"
+            "ephemeral-storage" = "1Gi"
           }
           limits = {
             cpu    = "2000m"
             memory = "1Gi"
+            # Bounds runaway disk (modsec audit regrowth / client-body temp leak) so the kubelet
+            # evicts this pod BEFORE the node fills (2 replicas + PDB minAvailable=1 cover the roll).
+            "ephemeral-storage" = "4Gi"
           }
         }
 
