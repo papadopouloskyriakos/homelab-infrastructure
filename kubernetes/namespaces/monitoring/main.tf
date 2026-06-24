@@ -804,6 +804,19 @@ resource "helm_release" "monitoring" {
           datasources = {
             defaultDatasourceEnabled = false
           }
+          # Requests+limits so the dashboard/datasource sidecars aren't BestEffort QoS
+          # (BestEffort = first victims on node OOM — caused ContainerOOMKilled on
+          # monitoring-grafana 2026-06-24 04:40 during an NL node memory spike).
+          # Burstable QoS + bounded; no CPU limit to avoid throttling. k8s-sidecar is light.
+          resources = {
+            requests = {
+              cpu    = "10m"
+              memory = "64Mi"
+            }
+            limits = {
+              memory = "192Mi"
+            }
+          }
         }
 
         additionalDataSources = [
