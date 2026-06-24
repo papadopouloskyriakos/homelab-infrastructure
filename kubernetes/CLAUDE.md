@@ -3,7 +3,7 @@
 ## Architecture
 
 - **Cluster**: `nlcl01k8s` (ID: 1), K8s v1.34.2, API at `api-k8s.example.net:6443`
-- **Nodes**: 3 control-plane (4 CPU, 8GB — ctrl02 4GB on pve02, ctrl01+ctrl03 upgraded 4→8GB on 2026-03-15) + 4 workers (8 CPU, 8GB), all Ubuntu 24.04, IPs 10.0.X.X-12 (CP), .20-23 (workers)
+- **Nodes**: 3 control-plane (4 CPU, 8GB — nlk8s-ctrl02 4GB on nl-pve02, nlk8s-ctrl01+nlk8s-ctrl03 upgraded 4→8GB on 2026-03-15) + 4 workers (8 CPU, 8GB), all Ubuntu 24.04, IPs 10.0.X.X-12 (CP), .20-23 (workers)
 - **CNI**: Cilium v1.18.4, eBPF, REDACTED_fd61d0fe, VXLAN tunneling, MTU 1350
 - **Pod CIDR**: 10.0.0.0/16 (NL), 10.1.0.0/16 (GR) — must not overlap for ClusterMesh
 - **ClusterMesh**: Connected to GR cluster `grcl01k8s` at 10.0.X.X:2379, mTLS via ExternalSecret from OpenBao
@@ -165,7 +165,7 @@ Claude Code L3 (reads YT comments, plans fix, waits for human approval)
 
 ## Known Issues
 
-- **kube-apiserver on ctrl01**: 754 restarts (exit code 137/SIGKILL) caused by etcd I/O starvation from PVE host memory pressure. Root cause: nl-pve01 ran 53 guests at 2.5x overcommit with zero swap, leaving only 1.9 GB free. etcd raft consensus latency 100-433ms (should be <10ms) causes apiserver readiness probe HTTP 500s (21,636 failures), then liveness probe kills it. Mitigated 2026-04-15: shut down nlandroidsdk01 (freed ~9.7 GB, host free 1.9->10 GB). Monitor: if restarts resume, further VM migration or swap addition needed.
+- **kube-apiserver on nlk8s-ctrl01**: 754 restarts (exit code 137/SIGKILL) caused by etcd I/O starvation from PVE host memory pressure. Root cause: nl-pve01 ran 53 guests at 2.5x overcommit with zero swap, leaving only 1.9 GB free. etcd raft consensus latency 100-433ms (should be <10ms) causes apiserver readiness probe HTTP 500s (21,636 failures), then liveness probe kills it. Mitigated 2026-04-15: shut down nlandroidsdk01 (freed ~9.7 GB, host free 1.9->10 GB). Monitor: if restarts resume, further VM migration or swap addition needed.
 - **SeaweedFS filer**: Helm cleanup + filer memory re-applied at 2Gi (MR !229, 2026-03-15). Multipath/iSCSI conflict fixed via Synology multipath blacklist on all 7 K8s nodes.
 - **SeaweedFS cross-site replication — stale-checkpoint recovery (MR !290, 2026-05-05)**: Two independent failure modes, same shape (persisted offset → GC'd change-log volume → permanent retry-loop). Symptom: PUT to one site doesn't appear on the other; or appears intermittently because the GR cluster-service round-robins between filers and only one has the data. (1) **Cross-site `filer.sync`** — recover by setting `filer_sync_{a,b}_from_ts_ms` in `main.tf`'s `module "seaweedfs"` block to a recent ms timestamp; **upstream's `-{a,b}.fromTsMs` flags are inverted** (`-a.fromTsMs` controls direction `b→a`, REMOTE→LOCAL — the variable's description block has full notes). MR + `atlantis apply`; pod rolling-restart picks it up. (2) **GR intra-cluster `meta_aggregator`** between `seaweedfs-filer-0` ↔ `seaweedfs-filer-1` — recover via gRPC `KvPut` on each filer's `Meta`+peer-signature key with a recent ns. Tool + step-by-step in claude-gateway: `scripts/seaweedfs/fix_meta_offset.py`, `docs/runbooks/seaweedfs-cross-site-replication.md`. **Diagnostic gotcha**: read state per-pod (port-forward each `seaweedfs-filer-N` directly), not via the cluster-service — round-robin hides per-pod metadata divergence.
 - **cilium-operator**: 90+ restarts accumulated — not a recent regression
