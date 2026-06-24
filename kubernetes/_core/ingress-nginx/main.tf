@@ -109,7 +109,10 @@ resource "helm_release" "ingress_nginx" {
           # Change to "SecRuleEngine On" after tuning (1-2 weeks monitoring)
           enable-modsecurity           = "true"
           enable-owasp-modsecurity-crs = "true"
-          modsecurity-snippet          = "SecRuleEngine DetectionOnly\nSecAuditLog /var/log/modsec_audit.log\nSecAuditLogFormat JSON\nSecAuditEngine RelevantOnly"
+          # SecAuditLog -> /dev/stdout (was /var/log/modsec_audit.log): the serial audit file
+          # had NO rotation and grew unbounded (33.6G on one controller, 2026-06-24 -> node02
+          # ephemeral-storage eviction). stdout is kubelet-rotated (~50Mi cap) + flows to Loki.
+          modsecurity-snippet = "SecRuleEngine DetectionOnly\nSecAuditLog /dev/stdout\nSecAuditLogFormat JSON\nSecAuditEngine RelevantOnly"
 
           # === JSON STRUCTURED LOGGING ===
           # Better for SIEM integration and log analysis
@@ -187,12 +190,16 @@ resource "helm_release" "ingress_nginx" {
         # =====================================================================
         resources = {
           requests = {
-            cpu    = "500m"
-            memory = "512Mi"
+            cpu                 = "500m"
+            memory              = "512Mi"
+            "ephemeral-storage" = "1Gi"
           }
           limits = {
             cpu    = "2000m"
             memory = "1Gi"
+            # Bounds runaway disk (modsec audit regrowth / client-body temp leak) so the kubelet
+            # evicts this pod BEFORE the node fills (2 replicas + PDB minAvailable=1 cover the roll).
+            "ephemeral-storage" = "4Gi"
           }
         }
 
