@@ -106,10 +106,13 @@ resource "helm_release" "monitoring" {
   namespace        = "monitoring"
   create_namespace = true
   version          = "79.10.0"
-  timeout          = 300
-  wait             = true
-  atomic           = true
-  cleanup_on_fail  = true
+  # 300s is too tight: a values change that rolls grafana's 2 replicas + the full-release
+  # `wait` re-check exceeds 300s → atomic rollback (observed 2026-06-24, rev 9 failed/rev 10
+  # rollback). 600s gives the readiness wait headroom for any monitoring-stack upgrade.
+  timeout         = 600
+  wait            = true
+  atomic          = true
+  cleanup_on_fail = true
 
   # Ensure ExternalSecret creates the secret first
   depends_on = [kubernetes_manifest.REDACTED_9675462a, kubernetes_manifest.grafana_finops_db_ro]
