@@ -966,6 +966,31 @@ object-group network NET_gr_private
  network-object 10.0.X.X 255.255.255.224
  network-object 10.0.X.X 255.255.255.0
  network-object 10.0.X.X 255.255.255.0
+object-group network META_AS32934
+ network-object 31.13.24.0 255.255.248.0
+ network-object 31.13.64.0 255.255.192.0
+ network-object 45.64.40.0 255.255.252.0
+ network-object 57.141.0.0 255.255.240.0
+ network-object 57.141.16.0 255.255.248.0
+ network-object 57.141.24.0 255.255.254.0
+ network-object 57.144.0.0 255.252.0.0
+ network-object 66.220.144.0 255.255.240.0
+ network-object 69.63.176.0 255.255.240.0
+ network-object 69.171.224.0 255.255.224.0
+ network-object 74.119.76.0 255.255.252.0
+ network-object 102.132.96.0 255.255.240.0
+ network-object 103.4.96.0 255.255.252.0
+ network-object 129.134.0.0 255.255.0.0
+ network-object 147.75.208.0 255.255.240.0
+ network-object 157.240.0.0 255.255.0.0
+ network-object 163.70.128.0 255.255.128.0
+ network-object 163.77.128.0 255.255.128.0
+ network-object 173.252.64.0 255.255.192.0
+ network-object 179.60.192.0 255.255.252.0
+ network-object 185.60.216.0 255.255.252.0
+ network-object 185.89.216.0 255.255.252.0
+ network-object 189.247.71.0 255.255.255.0
+ network-object 204.15.20.0 255.255.252.0
 access-list inside_cctv_access_in extended permit tcp object nlunify01 object nln8n01 eq 5678 
 access-list inside_cctv_access_in extended permit tcp object nlunify01 object nlsmtp-gpg01 eq smtp 
 access-list inside_cctv_access_in extended permit object-group TCPUDP object nlunify01 object-group eu-nlgr-freeipa01 eq domain 
@@ -1156,6 +1181,8 @@ access-list outside_freedom_access_in remark [Nginx Proxy Manager]
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlnpm01-80-tcp eq www 
 access-list outside_freedom_access_in remark [Nginx Proxy Manager]
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlnpm01-443-tcp eq https 
+access-list outside_freedom_access_in remark [Postiz - Meta AS32934 media-fetch via NPM:443]
+access-list outside_freedom_access_in extended permit tcp object-group META_AS32934 object nlnpm01-443-tcp eq https 
 access-list outside_freedom_access_in extended permit udp object-group WHITELIST_OAS object nlstrongswan01 eq 4500 
 access-list outside_freedom_access_in extended permit udp object-group WHITELIST_OAS object nlstrongswan01 eq isakmp 
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_OAS object nloas01-443-tcp eq https 
@@ -1956,5 +1983,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:d71883c7154669159b0f1c08a159397d
+Cryptochecksum:65b270020a449397cdf4197bede41966
 : end
