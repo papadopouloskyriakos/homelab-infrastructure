@@ -51,18 +51,18 @@ ssh -i ~/.ssh/one_key root@nlnc02
 
 | Host | VMID | PVE | IP | Role |
 |------|------|-----|-----|------|
-| nlnpm01 | 101100401 | pve01 | 10.0.X.X | OpenResty 1.27.1. Proxies nextcloud.example.net to HAProxy. ~98 proxy configs total. |
+| nlnpm01 | 101100401 | nl-pve01 | 10.0.X.X | OpenResty 1.27.1. Proxies nextcloud.example.net to HAProxy. ~98 proxy configs total. |
 | grnpm01 | — | gr-pve01 | 10.0.X.X | GR site entry point (DNS RR partner) |
 
 ### Layer 2: Load Balancer (HAProxy, Docker)
 
 | Host | VMID | PVE | IP | Role |
 |------|------|-----|-----|------|
-| nlhaproxy01 | 101100402 | pve01 | 10.0.X.X | HAProxy 3.3.5. Frontends: HTTPS(:443), Redis(:6380), ProxySQL(:6034), Collabora(:9980), Stats(:8404). nc01=PRIMARY. |
-| nlhaproxy02 | 103101007 | pve03 | 10.0.X.X | HAProxy 3.3.5. Same frontends, nc02=PRIMARY (cross-site failover). |
+| nlhaproxy01 | 101100402 | nl-pve01 | 10.0.X.X | HAProxy 3.3.5. Frontends: HTTPS(:443), Redis(:6380), ProxySQL(:6034), Collabora(:9980), Stats(:8404). nlnc01=PRIMARY. |
+| nlhaproxy02 | 103101007 | nl-pve03 | 10.0.X.X | HAProxy 3.3.5. Same frontends, nlnc02=PRIMARY (cross-site failover). |
 
 **HAProxy backends:**
-- `nextcloud_servers` — nc01(.148) PRIMARY, nc02(.149) BACKUP. Old nextcloud01(.20)/nextcloud02(.120) still listed but STOPPED — should be removed.
+- `nextcloud_servers` — nlnc01(.148) PRIMARY, nlnc02(.149) BACKUP. Old nextcloud01(.20)/nextcloud02(.120) still listed but STOPPED — should be removed.
 - `proxysql_servers` — proxysql01(.152) PRIMARY, proxysql02(.154) BACKUP
 - `redis_servers` — redis03(.125) PRIMARY, redis01(.123)+redis02(.124) BACKUP. **Note:** HAProxy uses TCP PING, can't detect Redis master. Actual master is redis02.
 - `collabora_backend` — code01(.126) only
@@ -71,23 +71,23 @@ ssh -i ~/.ssh/one_key root@nlnc02
 
 | Host | VMID | PVE | IPs | Version |
 |------|------|-----|-----|---------|
-| nlnc01 | 101101206 | pve01 | 10.0.X.X, 10.0.X.X | Nextcloud 32.0.6, PHP 8.4.18, Apache 2.4.58 |
-| nlnc02 | 103101201 | pve03 | 10.0.X.X, 10.0.X.X | Nextcloud 32.0.6, PHP 8.4.18, Apache 2.4.58 |
+| nlnc01 | 101101206 | nl-pve01 | 10.0.X.X, 10.0.X.X | Nextcloud 32.0.6, PHP 8.4.18, Apache 2.4.58 |
+| nlnc02 | 103101201 | nl-pve03 | 10.0.X.X, 10.0.X.X | Nextcloud 32.0.6, PHP 8.4.18, Apache 2.4.58 |
 
 **Key config (config.php):**
-- `datadirectory` → `/mnt/nextcloud-data` (NFS from file01)
+- `datadirectory` → `/mnt/nextcloud-data` (NFS from nlcl01file01)
 - `dbhost` → `proxysql.example.net:6033`
 - `dbname` → `nextcloud`, `dbuser` → `nextcloud`
 - `redis.host` → `redis.example.net`, `redis.port` → `6380`
 - `memcache.local` → APCu, `memcache.distributed` + `memcache.locking` → Redis
 - `REDACTED_08e8170a` → `http://nlimaginary01.example.net:9000`
-- `facerecognition.external_model_url` → `10.0.X.X:5000` (gpu01)
-- `trusted_proxies` → haproxy01(.140), haproxy02(.158), npm01(.43), grnpm01(10.0.X.X)
+- `facerecognition.external_model_url` → `10.0.X.X:5000` (nlgpu01)
+- `trusted_proxies` → nlhaproxy01(.140), nlhaproxy02(.158), nlnpm01(.43), grnpm01(10.0.X.X)
 - `ldapProviderFactory` → `OCA\User_LDAP\LDAPProviderFactory`
-- Apache ProxyPass: `/exapps/context_chat_backend/` → gpu01:24002, `/exapps/llm2/` → gpu01:24003, `/exapps/text2image_stablediffusion2/` → gpu01:24004
+- Apache ProxyPass: `/exapps/context_chat_backend/` → nlgpu01:24002, `/exapps/llm2/` → nlgpu01:24003, `/exapps/text2image_stablediffusion2/` → nlgpu01:24004
 - PHP-FPM on 127.0.0.1:9000
 
-**NFS mounts (both nc01 and nc02, VLAN 88):**
+**NFS mounts (both nlnc01 and nlnc02, VLAN 88):**
 - `10.0.X.X:/mnt/ocfs2/nextcloud/nextcloud-app` → `/var/www/nextcloud` (NFSv4.2, nconnect=8)
 - `10.0.X.X:/mnt/ocfs2/nextcloud/nextcloud-data` → `/mnt/nextcloud-data` (NFSv4.2, nconnect=8)
 - `10.0.X.X:/volume1/homes` → `/mnt/homes` (NFSv4.1, nconnect=8)
@@ -97,11 +97,11 @@ ssh -i ~/.ssh/one_key root@nlnc02
 
 | Host | VMID | PVE | IP | Role |
 |------|------|-----|-----|------|
-| nlproxysql01 | 101101004 | pve01 | 10.0.X.X | ProxySQL 2.7.2. Port 6033. Docker. Monitor user: `monitor`. 64MB query cache. |
-| nlproxysql02 | 101101008 | pve03 | 10.0.X.X | ProxySQL 2.7.2. Identical config. |
-| nlcl01mariadb01 | 101101002 | pve01 | 10.0.X.X | MariaDB 11.6.2 Galera. Synced, Primary. InnoDB buffer pool 128MB. |
-| nlcl01mariadb02 | 101101006 | pve03 | 10.0.X.X | MariaDB 11.6.2 Galera. Synced, Primary. |
-| nlcl01garbd01 | 101101007 | pve02 | 10.0.X.X | Galera Arbitrator (quorum voter, no data). |
+| nlproxysql01 | 101101004 | nl-pve01 | 10.0.X.X | ProxySQL 2.7.2. Port 6033. Docker. Monitor user: `monitor`. 64MB query cache. |
+| nlproxysql02 | 101101008 | nl-pve03 | 10.0.X.X | ProxySQL 2.7.2. Identical config. |
+| nlcl01mariadb01 | 101101002 | nl-pve01 | 10.0.X.X | MariaDB 11.6.2 Galera. Synced, Primary. InnoDB buffer pool 128MB. |
+| nlcl01mariadb02 | 101101006 | nl-pve03 | 10.0.X.X | MariaDB 11.6.2 Galera. Synced, Primary. |
+| nlcl01garbd01 | 101101007 | nl-pve02 | 10.0.X.X | Galera Arbitrator (quorum voter, no data). |
 
 **DNS:** `proxysql.example.net` → RR 10.0.X.X + .154 (Nextcloud connects here directly, NOT via HAProxy)
 **Galera cluster:** `eu-nl-mariadb01`, `gcomm://10.0.X.X,10.0.X.X,10.0.X.X`, SST method: rsync
@@ -110,9 +110,9 @@ ssh -i ~/.ssh/one_key root@nlnc02
 
 | Host | VMID | PVE | IP | Role |
 |------|------|-----|-----|------|
-| nlredis01 | 102100402 | pve01 | 10.0.X.X | Redis 8.6.1. Slave. Docker. |
-| nlredis02 | 102100403 | pve02 | 10.0.X.X | Redis 8.6.1. **Master**. Docker. |
-| nlredis03 | 102100404 | pve03 | 10.0.X.X | Redis 8.6.1. Slave. Docker. |
+| nlredis01 | 102100402 | nl-pve01 | 10.0.X.X | Redis 8.6.1. Slave. Docker. |
+| nlredis02 | 102100403 | nl-pve02 | 10.0.X.X | Redis 8.6.1. **Master**. Docker. |
+| nlredis03 | 102100404 | nl-pve03 | 10.0.X.X | Redis 8.6.1. Slave. Docker. |
 
 **DNS:** `redis.example.net` → RR 10.0.X.X + .158 (HAProxy, ports 6380→6379)
 **Sentinel master:** `mymaster` at redis02 (10.0.X.X:6379). 3 sentinels, quorum=2.
@@ -122,12 +122,12 @@ ssh -i ~/.ssh/one_key root@nlnc02
 
 | Host | VMID | PVE | IPs | Role |
 |------|------|-----|-----|------|
-| nlcl01file01 | VM | pve01 | 10.0.X.X, 10.0.X.X, **VIP 10.0.X.X** | DRBD Primary + OCFS2 + **Active NFS server** (Pacemaker-managed). 3.7TB, 77GB used (3%). |
-| nlcl01file02 | VM | pve03 | 10.0.X.X, 10.0.X.X | DRBD Primary + OCFS2 mounted. NFS passive (Pacemaker failover target). |
-| nlcl01filearb01 | VM | syno01 | 10.0.X.X, 10.0.X.X | Corosync/Pacemaker quorum voter only. No DRBD disk. |
+| nlcl01file01 | VM | nl-pve01 | 10.0.X.X, 10.0.X.X, **VIP 10.0.X.X** | DRBD Primary + OCFS2 + **Active NFS server** (Pacemaker-managed). 3.7TB, 77GB used (3%). |
+| nlcl01file02 | VM | nl-pve03 | 10.0.X.X, 10.0.X.X | DRBD Primary + OCFS2 mounted. NFS passive (Pacemaker failover target). |
+| nlcl01filearb01 | VM | nl-nas01 | 10.0.X.X, 10.0.X.X | Corosync/Pacemaker quorum voter only. No DRBD disk. |
 
 **Pacemaker cluster:** 3 nodes online, 7 resources. DRBD dual-Primary mode with OCFS2 (cluster filesystem).
-**NFS floating IP:** 10.0.X.X (Pacemaker-managed, currently on file01). Both nc01 and nc02 mount from this IP.
+**NFS floating IP:** 10.0.X.X (Pacemaker-managed, currently on nlcl01file01). Both nlnc01 and nlnc02 mount from this IP.
 **NFS export:** `/mnt/ocfs2` to `*(rw,no_root_squash)`
 
 **Note:** This storage cluster is shared with HAHA — see [`../haha/CLAUDE.md`](../haha/CLAUDE.md). HAHA mounts `/mnt/ocfs2/iot/`.
@@ -136,18 +136,18 @@ ssh -i ~/.ssh/one_key root@nlnc02
 
 | Host | VMID | PVE | IP | Service | Port |
 |------|------|-----|-----|---------|------|
-| nlcode01 | 101101205 | pve01 | 10.0.X.X | Collabora CODE (Docker) | 9980 |
-| nlcode02 | 103101008 | pve03 | 10.0.X.X | Collabora CODE (Docker, backup) | 9980 |
-| nlimaginary01 | 103101203 | pve03 | 10.0.X.X | Imaginary image processing (Docker) | 9000 |
-| nlwhiteboard01 | 103101202 | pve03 | 10.0.X.X | Nextcloud Whiteboard (Docker) | — |
-| nlhpb01 | 103101205 | pve03 | 10.0.X.X | Talk HPB signaling (Docker) | 3478 (TURN), 8181 (signaling) |
-| nlgpu01 | VM | pve03 | 10.0.X.X | AI backends (Docker) | 5000 (facerecog), 24002 (chat), 24003 (LLM), 24004 (text2image) |
+| nlcode01 | 101101205 | nl-pve01 | 10.0.X.X | Collabora CODE (Docker) | 9980 |
+| nlcode02 | 103101008 | nl-pve03 | 10.0.X.X | Collabora CODE (Docker, backup) | 9980 |
+| nlimaginary01 | 103101203 | nl-pve03 | 10.0.X.X | Imaginary image processing (Docker) | 9000 |
+| nlwhiteboard01 | 103101202 | nl-pve03 | 10.0.X.X | Nextcloud Whiteboard (Docker) | — |
+| nlhpb01 | 103101205 | nl-pve03 | 10.0.X.X | Talk HPB signaling (Docker) | 3478 (TURN), 8181 (signaling) |
+| nlgpu01 | VM | nl-pve03 | 10.0.X.X | AI backends (Docker) | 5000 (facerecog), 24002 (chat), 24003 (LLM), 24004 (text2image) |
 
 ### Layer 8: Identity & DNS (FreeIPA)
 
 | Host | VMID | PVE | IP | Role |
 |------|------|-----|-----|------|
-| nlfreeipa01 | 101100301 | pve01 | 10.0.X.X | IPA 4.12.2. LDAP + Kerberos + DNS. Realm: `SEC.NUCLEARLIGHTERS.NET`. All 9 services running. |
+| nlfreeipa01 | 101100301 | nl-pve01 | 10.0.X.X | IPA 4.12.2. LDAP + Kerberos + DNS. Realm: `SEC.NUCLEARLIGHTERS.NET`. All 9 services running. |
 | grfreeipa01 | — | gr-pve01 | — | GR site replica. DNS RR partner + LDAP replication. |
 
 **FreeIPA manages:** DNS records (nextcloud, redis, proxysql, smtp RR entries), LDAP auth for Nextcloud, Kerberos.
@@ -164,37 +164,37 @@ ssh -i ~/.ssh/one_key root@nlnc02
 | VLAN | Subnet | Purpose |
 |------|--------|---------|
 | 10 | 10.0.X.X/24 | Management + service traffic (all hosts) |
-| 88 | 10.0.X.X/24 | NFS storage traffic (dedicated, high throughput). nc01↔file01, nc02↔file01, syno01. |
+| 88 | 10.0.X.X/24 | NFS storage traffic (dedicated, high throughput). nlnc01↔nlcl01file01, nlnc02↔nlcl01file01, nl-nas01. |
 
 ## DNS Records (FreeIPA-managed, critical for Nextcloud)
 
 | Record | Resolves To | Purpose |
 |--------|-------------|---------|
 | `nextcloud.example.net` | .43 (npm01-NL) + 10.0.X.X (npm01-GR) | User entry point (RR) |
-| `redis.example.net` | .140 (haproxy01) + .158 (haproxy02) | Redis via HAProxy:6380 (RR) |
+| `redis.example.net` | .140 (nlhaproxy01) + .158 (nlhaproxy02) | Redis via HAProxy:6380 (RR) |
 | `proxysql.example.net` | .152 (proxysql01) + .154 (proxysql02) | DB via ProxySQL:6033 direct (RR) |
 | `smtp.example.net` | .71 (NL) + 10.0.X.X (GR) | Outbound email (RR) |
 
 ## PVE Host Distribution (Failure Domains)
 
-**pve01 (10.0.X.X):** npm01, haproxy01, nc01, proxysql01, mariadb01, redis01, file01, code01, freeipa01
-**pve02 (10.0.X.X):** garbd01, redis02 — arbitrators only
-**pve03 (10.0.X.X):** haproxy02, nc02, proxysql02, mariadb02, redis03, file02, code02, imaginary01, whiteboard01, hpb01, gpu01
+**nl-pve01 (10.0.X.X):** nlnpm01, nlhaproxy01, nlnc01, proxysql01, mariadb01, redis01, nlcl01file01, code01, nlfreeipa01
+**nl-pve02 (10.0.X.X):** garbd01, redis02 — arbitrators only
+**nl-pve03 (10.0.X.X):** nlhaproxy02, nlnc02, proxysql02, mariadb02, redis03, nlcl01file02, code02, imaginary01, whiteboard01, hpb01, nlgpu01
 
-**Key risk:** pve03 failure takes out half the HA cluster + ALL backend services (imaginary, whiteboard, hpb, gpu). pve01 failure takes out the primary frontends + NFS server. pve02 only has arbitrators — losing it doesn't cause outage but reduces quorum safety.
+**Key risk:** nl-pve03 failure takes out half the HA cluster + ALL backend services (imaginary, whiteboard, hpb, gpu). nl-pve01 failure takes out the primary frontends + NFS server. nl-pve02 only has arbitrators — losing it doesn't cause outage but reduces quorum safety.
 
 ## Config Snapshots in This Directory
 
 | Host | Service | Configs Tracked |
 |------|---------|-----------------|
 | nlnc01 | Nextcloud | apache/nextcloud.conf, apache/adminer.conf, php/php.ini, php/www.conf, nextcloud-config/config.php, nextcloud-config/redis_sentinel.config.php, fstab, crontabs |
-| nlnc02 | Nextcloud | Same as nc01 (shared OCFS2 storage, identical app) |
+| nlnc02 | Nextcloud | Same as nlnc01 (shared OCFS2 storage, identical app) |
 
 ## Troubleshooting Quick Reference
 
 ### Nextcloud shows Apache default page
-**Cause:** NFS mounts not mounted. Check: `mount | grep nextcloud`. Fix: `mount -a` on the affected nc01/nc02.
-**Known issue:** NFS mounts don't auto-recover after PVE host reboot if NFS server (file01) isn't ready. Consider adding `_netdev,x-systemd.automount` to fstab.
+**Cause:** NFS mounts not mounted. Check: `mount | grep nextcloud`. Fix: `mount -a` on the affected nlnc01/nlnc02.
+**Known issue:** NFS mounts don't auto-recover after PVE host reboot if NFS server (nlcl01file01) isn't ready. Consider adding `_netdev,x-systemd.automount` to fstab.
 
 ### Nextcloud maintenance mode
 **Check:** `sudo -u www-data php /var/www/nextcloud/occ maintenance:mode`
@@ -216,10 +216,10 @@ ssh -i ~/.ssh/one_key root@nlnc02
 **Check OCFS2:** `ssh -i ~/.ssh/one_key root@nlcl01file01 "mount | grep ocfs2"`
 **Check NFS exports:** `ssh -i ~/.ssh/one_key root@nlcl01file01 "exportfs -v"`
 **Check Pacemaker:** `ssh -i ~/.ssh/one_key root@nlcl01file01 "crm status"`
-**NFS VIP:** 10.0.X.X should be on file01. If file01 is down, Pacemaker should failover to file02.
+**NFS VIP:** 10.0.X.X should be on nlcl01file01. If nlcl01file01 is down, Pacemaker should failover to nlcl01file02.
 
 ### Collabora not loading documents
-**Check:** `docker logs collabora` on code01 (pve01, VMID 101101205)
+**Check:** `docker logs collabora` on code01 (nl-pve01, VMID 101101205)
 **HAProxy:** only code01 in backend — no failover to code02 configured
 
 ### FreeIPA/LDAP auth failures
@@ -227,6 +227,6 @@ ssh -i ~/.ssh/one_key root@nlnc02
 **Realm:** `SEC.NUCLEARLIGHTERS.NET`, Base DN: `dc=sec,dc=nuclearlighters,dc=net`
 
 ### Old/decommissioned Nextcloud instances (DO NOT USE)
-- nlnextcloud01 (LXC 101101203, pve01, .20) — **STOPPED**
-- nlnextcloud02 (LXC 101101204, pve03, .120) — **STOPPED**
+- nlnextcloud01 (LXC 101101203, nl-pve01, .20) — **STOPPED**
+- nlnextcloud02 (LXC 101101204, nl-pve03, .120) — **STOPPED**
 Still referenced in HAProxy backends. Should be removed from HAProxy config.
