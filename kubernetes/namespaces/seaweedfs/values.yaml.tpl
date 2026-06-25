@@ -111,6 +111,13 @@ filer:
       # 2Gi -> 4Gi: filer-0 OOMKilled x5 under sync/compaction spikes (IFRNLLEI01PRD-1113, 2026-06-17)
       # 4Gi -> 4.5Gi 2026-06-24: filer-0 OOMKilled again at 04:40 (node pressure + sync spike), small headroom
       memory: 4.5Gi
+  # GOMEMLIMIT: soft Go heap ceiling (~0.8x the 4.5Gi hard limit) so the runtime GC reclaims
+  # BEFORE the cgroup OOM-kills the filer. Root fix for the recurring OOM (filer-0 restartCount=12,
+  # 2026-06-25): spiky Go heap at the hard cap under the reactive-resume delete storm + thanos
+  # multipart uploads + cross-site filer.sync. Raising the HARD limit alone never bounded heap
+  # GROWTH (whack-a-mole 2Gi->4Gi->4.5Gi); the 4.5Gi limit stays as the true safety ceiling.
+  extraEnvironmentVars:
+    GOMEMLIMIT: "3686MiB"
   # Affinity as STRING
   affinity: |
     nodeAffinity:
