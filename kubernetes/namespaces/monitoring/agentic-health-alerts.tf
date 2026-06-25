@@ -255,6 +255,36 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
                 description = "scripts/write-governance-metrics.py (cron */17 on nlclaude01) is wedged — the auto-resolve safety KPIs (false-auto-resolve, repeat-incident) are no longer computed. Run by hand and read stderr."
               }
             },
+            {
+              # IFRNLLEI01PRD-1408 — territory-gate wiring watchdog. The PreToolUse gate only
+              # enforces if wired into the session settings; the hook fails CLOSED when it
+              # RUNS-but-errors but cannot detect being UNWIRED. tier=1 critical -> Twilio SMS.
+              alert = "TerritoryGateUnwired"
+              expr  = "gateway_territory_gate_wiring_violation == 1"
+              for   = "15m"
+              labels = {
+                severity = "critical"
+                tier     = "1"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "territory gate ON but its PreToolUse hook is UNWIRED — enforcement silently off"
+                description = "~/gateway.territory_gate exists but scripts/hooks/territory-gate.py is no longer referenced in a session-settings surface (interactive and/or dispatched) or fails to parse, so high-stakes network/k8s/pve writes can run WITHOUT loading the territory CLAUDE.md. Re-wire it in ~/.claude/settings.json + config/dispatched-session-settings.json, or rm ~/gateway.territory_gate to intentionally disable the gate. Check: scripts/check-territory-gate-wiring.sh."
+              }
+            },
+            {
+              alert = "REDACTED_cae38a42"
+              expr  = "(time() - gateway_territory_gate_wiring_last_run_timestamp > 3600) or absent(gateway_territory_gate_wiring_last_run_timestamp)"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "territory-gate wiring check stale 1h+ (or metric absent)"
+                description = "The */15 scripts/check-territory-gate-wiring.sh cron is not firing on nlclaude01, so an unwiring would go undetected. Run it by hand."
+              }
+            },
           ]
         },
         {
