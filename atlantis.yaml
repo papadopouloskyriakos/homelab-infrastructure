@@ -11,6 +11,10 @@ projects:
       when_modified:
         - "**/*.tf"
         - "*.tfvars"
+        # Helm values are templated from *.tpl (e.g. seaweedfs/values.yaml.tpl) and feed
+        # helm_release via templatefile() — a values-only change MUST trigger a plan, else
+        # Atlantis reports "Ran Plan for 0 projects" and the change silently never applies.
+        - "**/*.tpl"
     workflow: opentofu-k8s
 workflows:
   opentofu-k8s:
