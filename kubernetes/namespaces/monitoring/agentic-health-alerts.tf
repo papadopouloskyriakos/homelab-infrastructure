@@ -149,15 +149,19 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
             },
             {
               alert = "REDACTED_74c7322d"
-              expr  = "infragraph_precision_30d < 0.80 and infragraph_predictions_evaluated_total > 20"
-              for   = "6h"
+              # Recalibrated 2026-06-25: old `< 0.80` was a structural false-positive (exact cascade-match
+              # precision is chronically ~0.03-0.16, never 0.80 — fired daily since 06-09; the
+              # 0.95 Phase-C bar is on the conf>=0.8 SUBSET, not this overall metric). Re-point to
+              # the family-match metric, alert on a genuine ~50% collapse below the ~0.1 baseline.
+              expr = "infragraph_precision_family_30d < 0.05 and infragraph_predictions_evaluated_total > 20"
+              for  = "6h"
               labels = {
                 severity = "warning"
                 category = "agentic-platform"
               }
               annotations = {
-                summary     = "infragraph 30d shadow-prediction precision below 0.80"
-                description = "Phase B shadow predictions are scoring below 0.80 precision over 30 days (with a meaningful sample). The cascade model is drifting from reality — topology changed without a reseed, or learned dynamics went stale. Phase C suppression eligibility requires >= 0.95 on the conf>=0.8 subset, so investigate BEFORE the IFRNLLEI01PRD-1040 gate review. Scorecard: test-results/infragraph-scorecard.json on nlclaude01. Runbook: claude-gateway docs/runbooks/infragraph.md."
+                summary     = "infragraph 30d family-match precision collapsed below 0.05"
+                description = "Phase B shadow-prediction FAMILY-match precision (infragraph_precision_family_30d) fell below 0.05 over 30 days with a meaningful sample — a genuine ~50%+ collapse from the structural ~0.1 baseline (NOT the old unreachable 0.80 aspiration). Likely topology changed without a reseed or learned dynamics went stale. Durable follow-up: export a band-filtered (conf>=0.8) family-precision metric. Scorecard: test-results/infragraph-scorecard.json on nlclaude01. Runbook: claude-gateway docs/runbooks/infragraph.md."
               }
             },
             {
