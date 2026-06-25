@@ -289,6 +289,63 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
                 description = "The */15 scripts/check-territory-gate-wiring.sh cron is not firing on nlclaude01, so an unwiring would go undetected. Run it by hand."
               }
             },
+            {
+              # Dark-component audit 2026-06-25 (IFRNLLEI01PRD-1421): the self-audit tier
+              # was itself dark — holistic-agentic-health.sh was never cronned and the
+              # band-aware auto-resolve SAFETY invariant only ran from inside it.
+              alert = "HolisticHealthStale"
+              expr  = "(time() - holistic_health_last_run_timestamp_seconds > 90000) or absent(holistic_health_last_run_timestamp_seconds)"
+              for   = "1h"
+              labels = {
+                severity = "critical"
+                tier     = "1"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "holistic-agentic-health.sh has not run in 25h+ (or metric absent) — the 138-check master watchdog is dark"
+                description = "scripts/holistic-agentic-health.sh (daily 05:00 on nlclaude01) is the ONLY caller of many unique structural + safety checks (band-aware risk-audit invariant, per-table staleness, schema integrity). Staleness/absence = the catch-all watchdog is itself unwatched — the months-dark failure class. Triage: crontab -l | grep holistic; tail ~/logs/claude-gateway/holistic-health.log."
+              }
+            },
+            {
+              alert = "HolisticHealthFailing"
+              expr  = "holistic_health_fail > 0"
+              for   = "2h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "holistic-agentic-health.sh reports failing check(s)"
+                description = "One or more structural/safety checks is FAILING. Read the [FAIL] lines in ~/logs/claude-gateway/holistic-health.log. Dormant-by-design checks (retired OpenClaw) are WARN not FAIL, so a FAIL is a real regression."
+              }
+            },
+            {
+              alert = "REDACTED_77590e08"
+              expr  = "risk_audit_fail == 1"
+              for   = "5m"
+              labels = {
+                severity = "critical"
+                tier     = "1"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "auto-resolve SAFETY invariant VIOLATED — an auto-approval is outside AUTO/AUTO_NOTICE or carries a floor signal"
+                description = "scripts/audit-risk-decisions.sh (band-aware, emitted by write-audit-metrics.sh daily) found an auto_approved session outside AUTO/AUTO_NOTICE or carrying an irreversible:* / critical:p0-reboot / deviation floor signal — the autonomy-forward never-auto floor was breached. Inspect session_risk_audit now. Runbook: docs/runbooks/risk-based-auto-approval.md."
+              }
+            },
+            {
+              alert = "RiskAuditStale"
+              expr  = "(time() - risk_audit_last_run_timestamp_seconds > 90000) or absent(risk_audit_last_run_timestamp_seconds)"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "the auto-resolve safety audit has not run in 25h+ (or metric absent)"
+                description = "scripts/write-audit-metrics.sh (daily 05:15) is not running — the band-aware auto-resolve safety invariant is no longer checked automatically. Run it by hand."
+              }
+            },
           ]
         },
         {
