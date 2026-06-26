@@ -453,6 +453,34 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
                 description = "scripts/write-cronicle-metrics.py (a Cronicle job, */10) stopped emitting - the orchestrator's window into the scheduler is dark. prom:cronicle_metrics is also a critical registry component (REDACTED_fc4d47da overlaps); this absent()-guarded alert is the direct check."
               }
             },
+            {
+              alert = "REDACTED_50d739cc"
+              expr  = "platform_controller_escalations > 0"
+              for   = "5m"
+              labels = {
+                severity = "critical"
+                category = "agentic-platform"
+                tier     = "1"
+              }
+              annotations = {
+                summary     = "{{ $value }} platform target(s) the self-healer could not fix (heal cap hit)"
+                description = "platform-controller.py (Plane-A operator) hit its per-target heal cap on a component that will not self-heal (a job that keeps failing, a workflow that will not reactivate, Cronicle that will not restart) - a HUMAN is needed. It relieves you of routine platform admin; this is the exception it escalates. See ~/logs/claude-gateway/platform-controller.log + the OpenObserve 'orchestrator' stream."
+              }
+            },
+            {
+              alert = "PlatformControllerStale"
+              expr  = "(time() - platform_controller_last_run_timestamp_seconds > 1800) or absent(platform_controller_last_run_timestamp_seconds)"
+              for   = "10m"
+              labels = {
+                severity = "critical"
+                category = "agentic-platform"
+                tier     = "1"
+              }
+              annotations = {
+                summary     = "the Plane-A platform self-healer is down (or metric absent)"
+                description = "platform-controller.py (the thing that keeps the agentic platform alive) has not run in 30m+ - nothing is self-healing. absent() closes no-data=no-alert. The consolidated dead-man (folds in the gateway-watchdog heartbeat). Check its Cronicle job + systemctl status cronicle."
+              }
+            },
           ]
         },
         {
