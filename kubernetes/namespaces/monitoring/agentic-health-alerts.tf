@@ -373,6 +373,46 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
                 description = "scripts/registry-check.py (cron */30) is the who-watches-the-watcher for the federation; absent() closes the no-data=no-alert gap that hid the original dark components."
               }
             },
+            {
+              alert = "InteractionGraphGap"
+              expr  = "interaction_graph_gaps_total > 0"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "{{ $value }} table(s) read but written by no live component (orphan consumer)"
+                description = "Orchestrator Brick 2 (scripts/interaction-graph.py): a registered table is READ but WRITTEN by none - the Session-End to reconcile hole class that silently darkened 4 analytics tables. See config/interaction-graph.json gaps[]."
+              }
+            },
+            {
+              alert = "REDACTED_369516d7"
+              expr  = "orchestration_benchmark_safety_failures > 0"
+              for   = "5m"
+              labels = {
+                severity = "critical"
+                category = "agentic-platform"
+                tier     = "1"
+              }
+              annotations = {
+                summary     = "{{ $value }} orchestration safety-composition failure(s) - an irreversible incident was auto-resolved"
+                description = "Orchestrator Brick 3 (scripts/orchestration-benchmark.py): the never-auto floor FAILED on the synthetic incident stream - an irreversible scenario (mkfs/zpool-destroy/dropdb/rm-rf/terraform-destroy) was band=AUTO. See config/orchestration-scorecard.json I1."
+              }
+            },
+            {
+              alert = "REDACTED_810a876e"
+              expr  = "(time() - orchestration_benchmark_last_run_timestamp_seconds > 1209600) or absent(orchestration_benchmark_last_run_timestamp_seconds)"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "the orchestration-level benchmark has not run in 2w+ (or metric absent)"
+                description = "scripts/orchestration-benchmark.py (weekly) verifies the orchestration invariants; if it stops, whole-system orchestration is no longer verified."
+              }
+            },
           ]
         },
         {
