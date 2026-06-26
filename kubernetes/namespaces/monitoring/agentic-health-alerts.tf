@@ -413,6 +413,46 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
                 description = "scripts/orchestration-benchmark.py (weekly) verifies the orchestration invariants; if it stops, whole-system orchestration is no longer verified."
               }
             },
+            {
+              alert = "REDACTED_867183cd"
+              expr  = "cronicle_scheduler_up == 0 or absent(cronicle_scheduler_up)"
+              for   = "10m"
+              labels = {
+                severity = "critical"
+                category = "agentic-platform"
+                tier     = "1"
+              }
+              annotations = {
+                summary     = "the Cronicle job scheduler is DOWN - the platform's cron scheduling has stopped"
+                description = "Cronicle (native on nlclaude01, systemd cronicle.service) runs ALL 172 migrated cron jobs across both agentic systems (gateway + agora) since 2026-06-26; if it is down, nothing is scheduled. The absent() clause closes no-data=no-alert (the exporter is itself a Cronicle job, so scheduler-death also stops the metric). Check: systemctl status cronicle; curl http://10.0.X.X:3012. Rollback: crontab /home/claude-runner/crontab.full-snapshot-pre-cronicle."
+              }
+            },
+            {
+              alert = "CronicleJobsFailing"
+              expr  = "cronicle_jobs_failed_recently > 0"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "{{ $value }} Cronicle job(s) have a recent failed run"
+                description = "scripts/write-cronicle-metrics.py: one or more scheduled jobs exited non-zero in the recent history window - the per-job-death signal raw cron could never surface (only the 11 critical metric-writers were liveness-tracked before). See the Cronicle UI http://10.0.X.X:3012 job history for which job + its log."
+              }
+            },
+            {
+              alert = "REDACTED_976fed20"
+              expr  = "(time() - cronicle_metrics_last_run_timestamp_seconds > 2400) or absent(cronicle_metrics_last_run_timestamp_seconds)"
+              for   = "15m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "the Cronicle health exporter has not run in 40m+ (or metric absent)"
+                description = "scripts/write-cronicle-metrics.py (a Cronicle job, */10) stopped emitting - the orchestrator's window into the scheduler is dark. prom:cronicle_metrics is also a critical registry component (REDACTED_fc4d47da overlaps); this absent()-guarded alert is the direct check."
+              }
+            },
           ]
         },
         {
