@@ -126,6 +126,10 @@ resource "helm_release" "monitoring" {
         prometheusSpec = {
           replicas = 2
 
+          # etcd scrape cert mounted at /etc/prometheus/secrets/<name>/ for the kubeEtcd
+          # serviceMonitor (mTLS to node-IP:2379). Secret created out-of-band (not in git).
+          secrets = ["REDACTED_d8074874-etcd-client-cert"]
+
           # Scrape all ServiceMonitors and PodMonitors (not just release=monitoring)
           serviceMonitorSelector                  = {}
           serviceMonitorSelectorNilUsesHelmValues = false
@@ -948,12 +952,31 @@ resource "helm_release" "monitoring" {
       # =========================================================================
       # Disable monitoring for components that can't be scraped:
       # - kubeProxy: Cilium replaces kube-proxy (no pods exist)
-      # - kubeEtcd: metrics endpoint binds to 127.0.0.1:2379 with mTLS, not scrapable from Prometheus pods
       # - kubeControllerManager: binds to 127.0.0.1:10257, not reachable from Prometheus
       # - kubeScheduler: binds to 127.0.0.1:10259, not reachable from Prometheus
       # These components are healthy but their metrics are not exposed to the pod network.
+      #
+      # kubeEtcd ENABLED 2026-06-26: NL etcd's dedicated metrics port (:2381) is loopback-only,
+      # but the client port (:2379) serves /metrics over mTLS and binds the node IP, so we scrape
+      # node-IP:2379 with the etcd healthcheck-client cert (secret REDACTED_d8074874-etcd-client-cert,
+      # created out-of-band, mounted via prometheusSpec.secrets). Closes the NL etcd monitoring gap
+      # (the -863 apiserver/etcd crash-loop was caught by hand because nothing alerted). Enabling
+      # kubeEtcd also pulls in the upstream etcd alert rules.
       kubeEtcd = {
-        enabled = false
+        enabled   = true
+        endpoints = ["10.0.X.X", "10.0.X.X", "10.0.X.X"]
+        service = {
+          enabled    = true
+          port       = 2379
+          targetPort = 2379
+        }
+        serviceMonitor = {
+          scheme             = "https"
+          insecureSkipVerify = true
+          caFile             = "/etc/prometheus/secrets/REDACTED_d8074874-etcd-client-cert/ca.crt"
+          certFile           = "/etc/prometheus/secrets/REDACTED_d8074874-etcd-client-cert/healthcheck-client.crt"
+          keyFile            = "/etc/prometheus/secrets/REDACTED_d8074874-etcd-client-cert/healthcheck-client.key"
+        }
       }
 
       kubeControllerManager = {
