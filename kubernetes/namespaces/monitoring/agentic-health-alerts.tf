@@ -522,6 +522,34 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
                 description = "The weekly fstrim.timer on nlgpu01 is reported inactive. Without it, deleted Docker layers won't release qcow2 clusters back to the underlying ZFS, and disk-1 (scsi0) will refill toward the 99.56% cluster-allocation level that caused the 2026-05-12 freezes. Re-enable with: `ssh nlgpu01 sudo systemctl enable --now fstrim.timer && systemctl status fstrim.timer`. Runbook: claude-gateway memory/gpu01_freeze_qcow2_io_error_20260512.md."
               }
             },
+            {
+              alert = "GovernanceChainBroken"
+              expr  = "governance_chain_intact == 0"
+              for   = "5m"
+              labels = {
+                severity = "critical"
+                category = "agentic-platform"
+                tier     = "1"
+              }
+              annotations = {
+                summary     = "the autonomy-forward decision log hash-chain is BROKEN (first break id {{ with query \"governance_chain_first_break_id\" }}{{ . | first | value }}{{ end }})"
+                description = "session_risk_audit (every AUTO-RESOLVE / POLL_PAUSE decision) was altered, deleted, or reordered out-of-band - the SHA-256 hash-chain no longer verifies. This is an integrity event on the governance log. Run scripts/verify-governance-chain.py --verify-only to locate the break."
+              }
+            },
+            {
+              alert = "REDACTED_e679bb00"
+              expr  = "(time() - governance_chain_last_run_timestamp_seconds > 7200) or absent(governance_chain_last_run_timestamp_seconds)"
+              for   = "30m"
+              labels = {
+                severity = "critical"
+                category = "agentic-platform"
+                tier     = "1"
+              }
+              annotations = {
+                summary     = "the governance-chain tamper-evidence check is not running (or metric absent)"
+                description = "scripts/verify-governance-chain.py (hourly) stopped emitting - the decision-log tamper-evidence is dark and a break would go undetected. absent() closes no-data=no-alert. Check its Cronicle job."
+              }
+            },
           ]
         },
       ]
