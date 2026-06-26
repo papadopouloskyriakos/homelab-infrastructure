@@ -346,6 +346,33 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
                 description = "scripts/write-audit-metrics.sh (daily 05:15) is not running — the band-aware auto-resolve safety invariant is no longer checked automatically. Run it by hand."
               }
             },
+            {
+              alert = "REDACTED_fc4d47da"
+              expr  = "registry_critical_dark_total > 0"
+              for   = "15m"
+              labels = {
+                severity = "critical"
+                category = "agentic-platform"
+                tier     = "1"
+              }
+              annotations = {
+                summary     = "{{ $value }} CRITICAL registered component(s) went dark"
+                description = "Orchestrator Brick 1 (IFRNLLEI01PRD-1421): a component marked critical in config/component-registry.json failed liveness via scripts/registry-check.py - a self-audit / dead-man watchdog / Runner+Poller / analytics writer stopped producing. registry_component_dark{name} shows which."
+              }
+            },
+            {
+              alert = "RegistryCheckStale"
+              expr  = "(time() - registry_check_last_run_timestamp_seconds > 5400) or absent(registry_check_last_run_timestamp_seconds)"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "the component registry liveness check has not run in 90m+ (or metric absent)"
+                description = "scripts/registry-check.py (cron */30) is the who-watches-the-watcher for the federation; absent() closes the no-data=no-alert gap that hid the original dark components."
+              }
+            },
           ]
         },
         {
