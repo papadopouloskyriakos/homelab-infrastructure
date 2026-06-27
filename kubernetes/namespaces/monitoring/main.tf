@@ -175,14 +175,18 @@ resource "helm_release" "monitoring" {
 
           replicaExternalLabelName = "prometheus_replica"
 
+          # Right-sized 4Gi->6Gi limit / 2Gi->3Gi request 2026-06-27: replica -1 crash-looped on
+          # transient ~2.7x memory spikes past the 4Gi ceiling (8x exit-137 OOMKilled, ~9-min loop);
+          # steady working set ~1.6 GiB, head series flat ~310k (no cardinality leak — the identical
+          # twin replica -0 held at 0 restarts). The 2026-06-26 NL etcd scrape is a plausible driver.
           resources = {
             requests = {
               cpu    = "500m"
-              memory = "2Gi"
+              memory = "3Gi"
             }
             limits = {
               cpu    = "2"
-              memory = "4Gi"
+              memory = "6Gi"
             }
           }
 
