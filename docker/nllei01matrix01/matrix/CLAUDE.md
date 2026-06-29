@@ -41,8 +41,8 @@ Internet → HAProxy (2 VPSes, BGP anycast) → nginx:443/6666 (TLS re-encryptio
 | matrix-hookshot | matrix-hookshot:7.3.2 | 9993, 9000 | active |
 | hookshot-redis | redis:8.6.1-alpine | 6379 | active |
 | ntfy | ntfy:v2.18.0 | 8880 | active |
-| mautrix-signal | mautrix/signal:v0.2602.2 | 29328 | active |
-| mautrix-whatsapp | mautrix/whatsapp:v0.2602.0 | 29329 | active |
+| mautrix-signal | mautrix/signal:v0.2602.2 | 29328 | DISABLED 2026-06-29 |
+| mautrix-whatsapp | mautrix/whatsapp:v0.2602.0 | 29329 | DISABLED 2026-06-29 |
 | matrix-commander | matrix-commander | — | tools profile only |
 | matrix-bridge (MM) | custom Dockerfile | 9995 | DISABLED |
 | crowdsec | native (not Docker) v1.7.6 | — | active on host |
@@ -72,7 +72,9 @@ Internet → HAProxy (2 VPSes, BGP anycast) → nginx:443/6666 (TLS re-encryptio
 
 ## Bridges
 
-Both bridges use the **megabridge v0.26+ config format** and require:
+> ⚠️ **Both bridges are currently DISABLED (2026-06-29).** Deregistered (`@dominicus` accounts) and commented out in `docker-compose.yml` (commit `c99affb`) due to suspected WhatsApp phone-sync issues. Containers removed by the pipeline; **DBs, configs and registration files are preserved on disk** (`/srv/matrix/mautrix-{signal,whatsapp}/`, still mounted into synapse). To re-enable: uncomment both service blocks in `docker-compose.yml`, push to `main`, then re-link via `!signal login` / `!wa login` in the DM with the bot.
+
+The config below is retained for reference (re-enable / future use). Both bridges use the **megabridge v0.26+ config format** and require:
 - `encryption.appservice: true` + `encryption.msc4190: true` for MAS compatibility
 - `org.matrix.msc3202: true` + `org.matrix.msc4190: true` in registration files
 - Commands: `!signal <cmd>` / `!wa <cmd>` (prefix required, not management rooms)
@@ -104,7 +106,7 @@ Both bridges use the **megabridge v0.26+ config format** and require:
 ```
 matrix/
 ├── .env                          # Pinned service versions
-├── docker-compose.yml            # Stack definition (11 active + disabled services)
+├── docker-compose.yml            # Stack definition (9 active + disabled services)
 ├── element-app/
 │   ├── config.json               # Element Web config (Jitsi, sliding sync, branding)
 │   ├── config.matrix.example.net.json  # Server-specific overrides
