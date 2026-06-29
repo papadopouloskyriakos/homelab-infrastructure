@@ -308,59 +308,66 @@ services:
         syslog-address: "udp://127.0.0.1:514"
         tag: "{{.Name}}"
 
-  mautrix-signal:
-    image: dock.mau.dev/mautrix/signal:${MAUTRIX_SIGNAL_VERSION}
-    container_name: mautrix-signal
-    restart: unless-stopped
-    network_mode: "host"
-    security_opt: [no-new-privileges:true]
-    deploy:
-      resources:
-        limits:
-          memory: 256m
-    volumes:
-      - /srv/matrix/mautrix-signal:/data
-    depends_on:
-      - synapse
-      - postgres
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fSs http://localhost:29328/_matrix/mau/live || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
-    logging:
-      driver: "syslog"
-      options:
-        syslog-address: "udp://127.0.0.1:514"
-        tag: "{{.Name}}"
+  # --- DISABLED 2026-06-29: mautrix bridges deregistered & taken offline
+  #     (WhatsApp phone sync issues; @dominicus accounts logged out / linked
+  #      devices removed on phone). To re-enable: uncomment this block, push to
+  #      main, and re-link via `!signal login` in the DM with @signalbot.
+  #      Bridge DBs & configs are preserved on disk (/srv/matrix/mautrix-signal).
+  # mautrix-signal:
+  #   image: dock.mau.dev/mautrix/signal:${MAUTRIX_SIGNAL_VERSION}
+  #   container_name: mautrix-signal
+  #   restart: unless-stopped
+  #   network_mode: "host"
+  #   security_opt: [no-new-privileges:true]
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 256m
+  #   volumes:
+  #     - /srv/matrix/mautrix-signal:/data
+  #   depends_on:
+  #     - synapse
+  #     - postgres
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -fSs http://localhost:29328/_matrix/mau/live || exit 1"]
+  #     interval: 30s
+  #     timeout: 5s
+  #     retries: 3
+  #     start_period: 15s
+  #   logging:
+  #     driver: "syslog"
+  #     options:
+  #       syslog-address: "udp://127.0.0.1:514"
+  #       tag: "{{.Name}}"
 
-  mautrix-whatsapp:
-    image: dock.mau.dev/mautrix/whatsapp:${MAUTRIX_WHATSAPP_VERSION}
-    container_name: mautrix-whatsapp
-    restart: unless-stopped
-    network_mode: "host"
-    security_opt: [no-new-privileges:true]
-    deploy:
-      resources:
-        limits:
-          memory: 256m
-    volumes:
-      - /srv/matrix/mautrix-whatsapp:/data
-    depends_on:
-      - synapse
-      - postgres
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fSs http://localhost:29329/_matrix/mau/live || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
-    logging:
-      driver: "syslog"
-      options:
-        syslog-address: "udp://127.0.0.1:514"
-        tag: "{{.Name}}"
+  # --- DISABLED 2026-06-29 (see mautrix-signal note above).
+  #     To re-enable: uncomment, push to main, re-link via `!wa login`.
+  # mautrix-whatsapp:
+  #   image: dock.mau.dev/mautrix/whatsapp:${MAUTRIX_WHATSAPP_VERSION}
+  #   container_name: mautrix-whatsapp
+  #   restart: unless-stopped
+  #   network_mode: "host"
+  #   security_opt: [no-new-privileges:true]
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 256m
+  #   volumes:
+  #     - /srv/matrix/mautrix-whatsapp:/data
+  #   depends_on:
+  #     - synapse
+  #     - postgres
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -fSs http://localhost:29329/_matrix/mau/live || exit 1"]
+  #     interval: 30s
+  #     timeout: 5s
+  #     retries: 3
+  #     start_period: 15s
+  #   logging:
+  #     driver: "syslog"
+  #     options:
+  #       syslog-address: "udp://127.0.0.1:514"
+  #       tag: "{{.Name}}"
 
   postgres:
     image: postgres:${POSTGRES_VERSION}
