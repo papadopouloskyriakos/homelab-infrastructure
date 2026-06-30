@@ -93,6 +93,80 @@ resource "kubernetes_manifest" "host_pressure_alert_rules" {
             },
           ]
         },
+        # =====================================================================
+        # pmxcfs-wedge signature (IFRNLLEI01PRD-1501)
+        #
+        # nl-pve01 has wedged its pmxcfs (/etc/pve FUSE fs) 3x
+        # (2026-06-23/-27/-30; the -30 wedge took matrix LXC 101201202 down).
+        # The signature is load-avg 100+ while CPU is ~IDLE: dozens of
+        # pvesh/qm/pvestatd stuck D-state on /etc/pve. The PVELoadHigh rule
+        # above CANNOT see it — pve01 is NOT a node_exporter/snmp target, so
+        # `node_load5{instance="nl-pve01"}` returns no data and those rules
+        # are silently inert for pve01. (Known gap; tracked in -1501.)
+        #
+        # These rules instead consume pve_wedge_* metrics emitted by
+        # scripts/write-pve-wedge-metrics.sh on nlclaude01 (Cronicle */2),
+        # which SSHes the PVE host and reports the wedge canary. Metrics are
+        # labeled by `host=`, NOT `instance=` (the series lives on the
+        # claude01 collector instance). No-install-on-PVE rule honored.
+        # =====================================================================
+        {
+          name     = "pve-pmxcfs-wedge"
+          interval = "30s"
+          rules = [
+            {
+              # Early warning: D-state mgmt procs piling up OR pmxcfs probe
+              # getting slow. Catches the wedge while CPU still looks idle —
+              # the exact blind spot of the generic NodeSaturation alert.
+              alert = "REDACTED_5cfc0fe8"
+              expr  = "pve_wedge_dstate_procs > 25 or pve_wedge_pmxcfs_probe_seconds > 6"
+              for   = "3m"
+              labels = {
+                severity = "warning"
+                tier     = "2"
+                service  = "pve-host"
+              }
+              annotations = {
+                summary     = "{{ $labels.host }} pmxcfs wedge forming — D-state mgmt procs / slow pmxcfs (NOT CPU)"
+                description = "{{ $labels.host }}: D-state pvesh/qm/pvestatd procs > 25 OR pmxcfs probe > 6s. This is the pmxcfs-wedge signature (/etc/pve FUSE hung), NOT CPU saturation — the generic NodeSaturation alert mis-reads it. Likely a runaway pvesh/qm caller stranding D-state orphans. NO-REBOOT FIX: `systemctl restart pve-cluster` (FUSE teardown releases D-states) THEN `systemctl reset-failed pvestatd && systemctl restart pvestatd`. Inspect: pve_wedge_dstate_procs / pve_wedge_pmxcfs_probe_seconds in Grafana. Ref IFRNLLEI01PRD-1501, MR claude-gateway!130 (lab-stats amplifier fix)."
+              }
+            },
+            {
+              # Confirmed wedge: pmxcfs probe failing OR pvestatd blind to guests
+              # OR the collector can't even SSH in (host down / sshd can't fork).
+              alert = "PVEPmxcfsWedged"
+              expr  = "pve_wedge_pmxcfs_probe_ok == 0 or pve_wedge_guests_status_unknown > 0 or pve_wedge_collector_up == 0"
+              for   = "3m"
+              labels = {
+                severity = "critical"
+                tier     = "1"
+                service  = "pve-host"
+              }
+              annotations = {
+                summary     = "{{ $labels.host }} pmxcfs WEDGED / unreachable — guests at risk (e.g. matrix CT 101201202)"
+                description = "pmxcfs probe rc!=0, pvestatd reporting guest status=unknown, OR the collector cannot SSH in. This is the 3x-recurring wedge that takes guests on {{ $labels.host }} down (matrix, NPM, FreeIPA, Pi-hole, NetBox, NFS file01). NO-REBOOT FIX (proven 2026-06-27): `systemctl restart pve-cluster` FIRST (releases D-states) THEN `systemctl reset-failed pvestatd && systemctl restart pvestatd`. If SSH itself is dead, the host may need a PDU power-cycle. Ref IFRNLLEI01PRD-1501."
+                impact      = "Guests on the wedged PVE host become unmanageable and may go unreachable. Generic NodeSaturation mis-attributes this to CPU — trust THIS alert."
+              }
+            },
+            {
+              # Dead-man: the collector itself stopped writing (cron dead /
+              # claude01 down / textfile stale). Without this, a silent collector
+              # looks identical to "all healthy".
+              alert = "REDACTED_0356a081"
+              expr  = "time() - pve_wedge_collector_last_run_timestamp_seconds > 900"
+              for   = "5m"
+              labels = {
+                severity = "warning"
+                tier     = "2"
+                service  = "pve-host"
+              }
+              annotations = {
+                summary     = "pmxcfs-wedge collector stale >15min — wedge detection is BLIND"
+                description = "scripts/write-pve-wedge-metrics.sh on nlclaude01 (Cronicle */2) has not refreshed pve_wedge_* in >15min. The pmxcfs-wedge alerts are now blind. Check the Cronicle job + /home/claude-runner/logs/claude-gateway/pve-wedge-metrics.log. Ref IFRNLLEI01PRD-1501."
+              }
+            },
+          ]
+        },
       ]
     }
   }
