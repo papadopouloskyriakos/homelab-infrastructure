@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-06-30 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-07-01 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 2947 |
+| Total Restarts | 3031 |
 
 ## Topology
 
@@ -34,23 +34,23 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 _None_
 
 ### High Restart Pods (>3)
-argocd/argocd-server-64dd47d8bf-mcx86: 20 restarts
-awx/awx-operator-controller-manager-f84fc744-czzgj: 31 restarts
-cert-manager/cert-manager-75944f484-htnps: 6 restarts
-cilium-spire/spire-agent-26mm7: 9 restarts
+argocd/argocd-server-64dd47d8bf-mcx86: 28 restarts
+awx/awx-operator-controller-manager-f84fc744-czzgj: 39 restarts
+cert-manager/cert-manager-75944f484-htnps: 9 restarts
+cilium-spire/spire-agent-26mm7: 12 restarts
 cilium-spire/spire-agent-9whrn: 5 restarts
 cilium-spire/spire-agent-jn2zt: 5 restarts
 cilium-spire/spire-agent-lvrj5: 7 restarts
 cilium-spire/spire-agent-xwbn2: 9 restarts
-REDACTED_01b50c5d/k8s-agent-gitlabREDACTED_be72e5155ntt6: 13 restarts
+REDACTED_01b50c5d/k8s-agent-gitlabREDACTED_be72e5155ntt6: 20 restarts
 kube-system/cilium-22zgh: 9 restarts
 kube-system/cilium-envoy-cfv8x: 7 restarts
 kube-system/cilium-envoy-mmfnj: 9 restarts
 kube-system/cilium-gz5mp: 7 restarts
 kube-system/cilium-operator-6b94496fcd-qwll4: 43 restarts
-kube-system/clustermesh-apiserver-55b4c7cf6d-ltjjr: 12 restarts
+kube-system/clustermesh-apiserver-55b4c7cf6d-ltjjr: 28 restarts
 kube-system/etcd-nlk8s-ctrl01: 64 restarts
-kube-system/hubble-relay-8577574994-88mcm: 6 restarts
+kube-system/hubble-relay-8577574994-88mcm: 7 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 1991 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 58 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
@@ -65,7 +65,7 @@ kube-system/tetragon-878gv: 4 restarts
 kube-system/tetragon-mdsn9: 18 restarts
 kube-system/tetragon-tbcc7: 4 restarts
 kube-system/tetragon-vbs6v: 14 restarts
-REDACTED_d97cef76/REDACTED_d97cef76-kong-5c7f96dd9b-p5nq5: 19 restarts
+REDACTED_d97cef76/REDACTED_d97cef76-kong-5c7f96dd9b-p5nq5: 32 restarts
 logging/loki-0: 75 restarts
 logging/loki-canary-7shdd: 5 restarts
 logging/promtail-hp5sc: 7 restarts
@@ -73,13 +73,13 @@ monitoring/bgpalerter-596d7b756b-kngvb: 17 restarts
 monitoring/goldpinger-4fvxd: 10 restarts
 monitoring/goldpinger-b44g9: 6 restarts
 monitoring/goldpinger-cjzc4: 5 restarts
-monitoring/goldpinger-f72lw: 42 restarts
+monitoring/goldpinger-f72lw: 57 restarts
 monitoring/goldpinger-qs5xt: 14 restarts
 monitoring/goldpinger-vtfpx: 10 restarts
-monitoring/monitoring-prometheus-node-exporter-6dl8r: 27 restarts
+monitoring/monitoring-prometheus-node-exporter-6dl8r: 38 restarts
 monitoring/monitoring-prometheus-node-exporter-wmcb8: 6 restarts
 monitoring/thanos-compactor-0: 8 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b495697mkm: 5 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b495697mkm: 17 restarts
 synology-csi/synology-csi-node-577mq: 8 restarts
 synology-csi/synology-csi-node-kxrjb: 14 restarts
 synology-csi/synology-csi-node-l72f8: 4 restarts
@@ -88,11 +88,11 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-argocd                   13m         Warning   Unhealthy           pod/argocd-server-64dd47d8bf-mcx86                   Readiness probe failed: Get "http://10.0.2.219:8080/healthz": dial tcp 10.0.2.219:8080: connect: connection refused
-monitoring               13m         Warning   Unhealthy           pod/goldpinger-f72lw                                 Readiness probe failed: Get "http://10.0.2.38:8080/healthz": dial tcp 10.0.2.38:8080: connect: connection refused
-logging                  13m         Warning   Unhealthy           pod/promtail-ng69s                                   Readiness probe failed: Get "http://10.0.2.77:3101/ready": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-REDACTED_d97cef76     13m         Warning   FailedPreStopHook   pod/REDACTED_d97cef76-kong-5c7f96dd9b-p5nq5       PreStopHook failed
-REDACTED_d97cef76     13m         Warning   Unhealthy           pod/REDACTED_d97cef76-kong-5c7f96dd9b-p5nq5       Readiness probe failed: Get "http://10.0.2.165:8100/status/ready": dial tcp 10.0.2.165:8100: connect: connection refused
+nfs-provisioner          15m         Warning   BackOff        pod/nfs-provisioner-REDACTED_5fef70be-84888b495697mkm   Back-off restarting failed container REDACTED_5fef70be in pod nfs-provisioner-REDACTED_5fef70be-84888b495697mkm_nfs-provisioner(aa3b3e0e-0140-4d45-92fe-42bcf6d325e9)
+logging                  15m         Warning   Unhealthy      pod/promtail-ng69s                                                    Readiness probe failed: Get "http://10.0.2.77:3101/ready": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+cilium-spire             15m         Warning   Unhealthy      pod/spire-agent-26mm7                                                 Readiness probe failed: Get "http://10.0.X.X:4251/ready": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system              15m         Warning   Unhealthy      pod/hubble-relay-8577574994-88mcm                                     Liveness probe failed: timeout: failed to connect service "10.0.2.249:4222" within 10s: context deadline exceeded
+awx                      15m         Warning   BackOff        pod/awx-operator-controller-manager-f84fc744-czzgj                    Back-off restarting failed container awx-manager in pod awx-operator-controller-manager-f84fc744-czzgj_awx(ddd1ab43-8f89-4686-83ca-8d612d2c6ad5)
 ```
 
 ## Key Resources
