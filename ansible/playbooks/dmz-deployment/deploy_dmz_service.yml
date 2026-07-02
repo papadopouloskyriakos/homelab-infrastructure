@@ -1,0 +1,332 @@
+---
+# deploy_dmz_service.yml
+# AWX Playbook for deploying docker-compose services to DMZ hosts
+#
+# Rolling deployment with local readiness checks + HAProxy convergence:
+#   serial: 1  — one backend updated at a time so HAProxy always has a
+#                healthy backend serving traffic
+#   Pre-pull   — images are fetched before any container disruption
+#   Readiness  — verify the container process is running and the
+#                published port accepts TCP connections
+#   Convergence— pause for the upstream VPS HAProxy backend health
+#                checks (which run against the public FQDN with proper
+#                SNI) to register the new container before the next
+#                host is disrupted
+#
+# Application-layer (HTTP) verification is intentionally NOT done here:
+# DMZ containers terminate TLS with service-specific certs and
+# strict server_name vhosts (papadopoulos.tech, cubeos.app, etc.), so
+# curl to 127.0.0.1 without SNI returns 000. The upstream HAProxy
+# already health-checks each backend with the correct FQDN/SNI — that
+# is the authoritative application-level signal.
+
+- name: Deploy Docker Compose Service to DMZ
+  hosts: "{{ target_hosts | default('dmz_docker') }}"
+  become: true
+  gather_facts: false
+  serial: 1
+  any_errors_fatal: true
+  pre_tasks:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - service_name is defined
+          - compose_dir is defined
+        fail_msg: "service_name and compose_dir must be provided"
+
+    - name: Block multi-service stacks that require dedicated playbooks
+      ansible.builtin.assert:
+        that:
+          - service_name != 'meshsat-hub'
+          - compose_dir != '/srv/meshsat-hub'
+        fail_msg: >-
+          BLOCKED: MeshSat Hub uses a Galera cluster — this generic playbook
+          recreates all containers which destroys MariaDB.
+          Use deploy_meshsat_hub.yml instead (AWX template 57).
+
+    # ----------------------------------------------------------------
+    # Optional sops-encrypted secrets sync (added 2026-05-22 / OMOIKANE-484).
+    #
+    # Some services (initially omoikane-daemon) read their env from a
+    # sops-encrypted file committed to a separate repo. Without an
+    # explicit sync step, secret-only commits never reach the running
+    # container — the post-merge AWX deploy just does
+    # `docker compose up -d --force-recreate` against an unchanged on-host
+    # shared.env file. Discovered during OMOIKANE-481 step 2: committed
+    # OMOIKANE_TURNSTILE_SECRET to secrets/shared.env.encrypted, merged,
+    # ran this playbook — daemon restarted with stale env. Required
+    # manual scp + sops + sudo install on both DMZ hosts to actually
+    # activate.
+    #
+    # When `sops_sync_enabled: true`, this block (in pre_tasks so it
+    # runs BEFORE any docker disruption — a failed fetch / decrypt
+    # leaves the running container alone):
+    #   1. Fetches `sops_file_path` from GitLab via the raw-file API
+    #   2. Decrypts as `sops_user` (default `claude-runner` — has read
+    #      on the age key at sops_age_key)
+    #   3. Installs plaintext at `sops_dest_plain` (mode 600 root) so
+    #      docker compose env_file: picks it up on recreate
+    #   4. Mirrors the encrypted blob at `sops_dest_encrypted` so the
+    #      host carries a source-of-truth snapshot for incident replay
+    #
+    # Required extra_vars when sops_sync_enabled is true:
+    #   sops_file_path      — repo-relative path to encrypted file
+    #                         (e.g. "secrets/shared.env.encrypted")
+    #   sops_dest_plain     — absolute host path for the decrypted file
+    #   sops_dest_encrypted — absolute host path for the encrypted mirror
+    #   sops_project_id     — GitLab numeric project ID hosting the file
+    #   gitlab_token        — token value sent in the GitLab raw-file header
+    # Optional with sensible defaults:
+    #   gitlab_token_header — header name (default PRIVATE-TOKEN). Set to
+    #                         JOB-TOKEN when passing $CI_JOB_TOKEN from CI.
+    #                         GitLab's PRIVATE-TOKEN header does NOT accept
+    #                         a CI_JOB_TOKEN value (OMOIKANE-959 incident
+    #                         2026-05-30: AWX job 24724 fetch task 401'd
+    #                         with 788-char CI_JOB_TOKEN). For headers
+    #                         comparison see:
+    #                         https://docs.gitlab.com/ci/jobs/ci_job_token/
+    #   gitlab_api_base — defaults to https://gitlab.example.net/api/v4
+    #   sops_user       — Unix user with the age key (default claude-runner)
+    #   sops_age_key    — age key file (default the omoikane key path)
+    # ----------------------------------------------------------------
+    - name: Sops-encrypted secrets sync
+      when: sops_sync_enabled | default(false) | bool
+      no_log: true
+      block:
+        - name: Validate required sops_* extra_vars
+          ansible.builtin.assert:
+            that:
+              - sops_file_path is defined
+              - sops_dest_plain is defined
+              - sops_dest_encrypted is defined
+              - sops_project_id is defined
+              - gitlab_token is defined
+            fail_msg: >-
+              sops_sync_enabled=true requires sops_file_path,
+              sops_dest_plain, sops_dest_encrypted, sops_project_id,
+              and gitlab_token to be set in extra_vars.
+
+        - name: Fetch encrypted file from GitLab raw-file API
+          ansible.builtin.uri:
+            url: "{{ gitlab_api_base | default('https://gitlab.example.net/api/v4') }}/projects/{{ sops_project_id }}/repository/files/{{ sops_file_path | replace('/', '%2F') }}/raw?ref=main"
+            headers: "{{ {(gitlab_token_header | default('PRIVATE-TOKEN')): gitlab_token} }}"
+            dest: /tmp/sops-deploy-fetch.encrypted
+            force: true
+            return_content: false
+            status_code: [200]
+
+        # OMOIKANE-959 — runs as root (the play's default become), NOT
+        # become_user: claude-runner. Ansible's root→unprivileged become
+        # flow needs allow_world_readable_tmpfiles=true in ansible.cfg
+        # to land its task temp file in a place the target user can read,
+        # and AWX doesn't set that. Bit 2026-05-30: same playbook works
+        # for daemon (inventory had the cfg knob) but failed for benchmark.
+        # Root can read the mode-600 age key regardless of owner — the
+        # sops_user variable is retained as the home owning the age key,
+        # but only as a path component, not as a become target.
+        - name: Decrypt with on-host sops + age key
+          ansible.builtin.command:
+            cmd: sops --decrypt --input-type dotenv --output-type dotenv /tmp/sops-deploy-fetch.encrypted
+          environment:
+            SOPS_AGE_KEY_FILE: "{{ sops_age_key | default('/home/' + (sops_user | default('claude-runner')) + '/.config/sops/age/omoikane.txt') }}"
+          register: sops_decrypted
+          changed_when: false
+
+        - name: Install decrypted plain file (mode 600 root)
+          ansible.builtin.copy:
+            content: "{{ sops_decrypted.stdout }}"
+            dest: "{{ sops_dest_plain }}"
+            owner: root
+            group: root
+            mode: "0600"
+
+        - name: Mirror encrypted source-of-truth on host (mode 644 root)
+          ansible.builtin.copy:
+            src: /tmp/sops-deploy-fetch.encrypted
+            dest: "{{ sops_dest_encrypted }}"
+            owner: root
+            group: root
+            mode: "0644"
+            remote_src: true
+
+        - name: Remove temp encrypted file
+          ansible.builtin.file:
+            path: /tmp/sops-deploy-fetch.encrypted
+            state: absent
+
+    # ----------------------------------------------------------------
+    # Optional compose.yml sync (added 2026-05-30 / OMOIKANE-959 follow-up).
+    #
+    # Problem this solves: AWX deploys only run `docker compose pull` +
+    # `up -d`, both rooted at `{{ compose_dir }}` on the deploy host.
+    # The host's compose.yml is whatever was provisioned the first
+    # time the service was set up. Repo-side `compose.yml` edits (e.g.
+    # adding a new env passthrough line, mounting a new volume, exposing
+    # a new port) land in git but never reach the host. Bit OMOIKANE-959
+    # MR !28: `OMOIKANE_BENCHMARK_API_TOKEN: ${...}` passthrough merged,
+    # the deploy "succeeded," but the container still didn't see the var
+    # because the host's compose.yml was a stale snapshot. Required
+    # manual scp+cp+`docker compose up -d --force-recreate` to fix.
+    #
+    # When `compose_sync_enabled: true`, this block fetches the compose
+    # file from GitLab via the raw-file API + installs it at
+    # `{{ compose_dir }}/compose.yml` (or `compose_dest_path` if set).
+    # Always backs up the prior file to `compose.yml.pre-<timestamp>.bak`
+    # so a bad sync can be rolled back manually. Sync runs BEFORE
+    # `docker compose pull` so the next pull sees the new file.
+    #
+    # Required extra_vars when compose_sync_enabled is true:
+    #   compose_file_path   — repo-relative path to compose.yml
+    #                         (e.g. "compose.yml")
+    #   compose_project_id  — GitLab numeric project ID hosting the file
+    #   gitlab_token        — token value (same as sops_*)
+    # Optional with sensible defaults:
+    #   compose_dest_path   — absolute host path (default
+    #                         "{{ compose_dir }}/compose.yml")
+    #   compose_token_header — header name (default PRIVATE-TOKEN;
+    #                         JOB-TOKEN for $CI_JOB_TOKEN). Falls back
+    #                         to gitlab_token_header.
+    #   gitlab_api_base     — defaults to gitlab.example.net
+    # ----------------------------------------------------------------
+    - name: Compose-file sync
+      when: compose_sync_enabled | default(false) | bool
+      block:
+        - name: Validate required compose_* extra_vars
+          ansible.builtin.assert:
+            that:
+              - compose_file_path is defined
+              - compose_project_id is defined
+              - gitlab_token is defined
+            fail_msg: >-
+              compose_sync_enabled=true requires compose_file_path,
+              compose_project_id, and gitlab_token to be set in extra_vars.
+
+        - name: Backup current compose.yml on host (if present)
+          ansible.builtin.copy:
+            src: "{{ compose_dest_path | default(compose_dir + '/compose.yml') }}"
+            dest: "{{ compose_dest_path | default(compose_dir + '/compose.yml') }}.pre-deploy.bak"
+            remote_src: true
+            owner: root
+            group: root
+            mode: "0644"
+          failed_when: false
+
+        - name: Fetch compose.yml from GitLab raw-file API
+          ansible.builtin.uri:
+            url: "{{ gitlab_api_base | default('https://gitlab.example.net/api/v4') }}/projects/{{ compose_project_id }}/repository/files/{{ compose_file_path | replace('/', '%2F') }}/raw?ref=main"
+            headers: "{{ {(compose_token_header | default(gitlab_token_header | default('PRIVATE-TOKEN'))): gitlab_token} }}"
+            dest: "{{ compose_dest_path | default(compose_dir + '/compose.yml') }}"
+            owner: root
+            group: root
+            mode: "0644"
+            force: true
+            return_content: false
+            status_code: [200]
+
+        - name: Validate fetched compose.yml is well-formed YAML
+          ansible.builtin.command:
+            cmd: "docker compose --file {{ compose_dest_path | default(compose_dir + '/compose.yml') }} config --quiet"
+            chdir: "{{ compose_dir }}"
+          changed_when: false
+  tasks:
+    # `compose_service` is the optional compose-file service name (NOT the
+    # container_name). When set, pull + up -d target ONLY that service —
+    # other services in the same compose project are left untouched and
+    # --remove-orphans is dropped (it would otherwise delete them).
+    #
+    # When unset (the default — existing behavior for single-service
+    # projects like daemon/app/, omoikane-www/, omoikane-beta/), pull +
+    # up -d operate on the full compose project as before.
+    #
+    # Why: multi-service compose projects (e.g. omoikane-daemon/
+    # utility-services — gotenberg + tika + browserless + searxng +
+    # scrapling + flaresolverr) would otherwise recreate every sidecar
+    # on every per-service deploy. OMOIKANE-382 surfaced this when the
+    # scrapling CI deploy job logged `successful` but the recreate
+    # included or would have removed all 5 sibling sidecars.
+    # IFRGRSKG01PRD-260 (2026-06-20): wrap the pull in a hard per-attempt
+    # `timeout` + an until/retries loop. A DMZ host whose registry egress
+    # rides the GR VPS-overlay mesh (e.g. grdmz01) can hit brief,
+    # external egress blips; without a timeout `docker compose pull` hangs
+    # for minutes, and (pre-fix, when the AWX template had timeout=0 +
+    # allow_simultaneous=false) one hung pull head-of-line-blocked the whole
+    # serialized deploy queue for ~18h. Now: each attempt is capped at
+    # pull_timeout_seconds; a transient blip self-heals on retry; a sustained
+    # outage fails fast and cleanly instead of hanging. Tunables overridable
+    # via extra_vars. Worst case 3*90 + 2*15 = 300s, under the 600s template cap.
+    - name: Pull latest images
+      ansible.builtin.command:
+        argv: "{{ ['timeout', (pull_timeout_seconds | default(90)) | string, 'docker', 'compose', 'pull', '--quiet'] + ([compose_service] if compose_service | default('') else []) }}"
+        chdir: "{{ compose_dir }}"
+      register: pull_result
+      changed_when: "'Pull complete' in pull_result.stderr or 'Downloaded' in pull_result.stderr"
+      until: pull_result.rc == 0
+      retries: "{{ pull_retries | default(3) }}"
+      delay: "{{ pull_retry_delay_seconds | default(15) }}"
+
+    # OMOIKANE-962 (2026-05-30): when scoped to a single service
+    # (compose_service is set), pre-emptively docker-rm any existing
+    # container whose name matches `service_name`. This handles the
+    # foreign-project-conflict case where the running container was
+    # created from a DIFFERENT compose project than the one this
+    # playbook invocation owns — eg. the scrapling pre-migration
+    # container was created from
+    # `/srv/.../utility-services/scrapling/compose.yml`
+    # (project=omoikane-scrapling, build:-based) while the current
+    # CI now uses `/srv/.../utility-services/compose.yml`
+    # (project=omoikane-utility, registry image:-based). Both
+    # compose files share `container_name: omoikane-scrapling`, so
+    # `docker compose up -d --force-recreate scrapling` cannot reap
+    # the foreign-project container (its project label doesn't match)
+    # → it tries to CREATE a new container with the conflicting name
+    # → the create fails with "container name already in use".
+    #
+    # This pre-step is idempotent (failed_when: false) — if the
+    # container doesn't exist (steady-state), `docker rm -f` returns
+    # non-zero and we move on. Only fires when compose_service is set
+    # so the broader stack-recreate path (no compose_service) keeps
+    # its existing `--remove-orphans` semantics.
+    - name: Force-remove conflicting container by name (scoped-service migrations)
+      ansible.builtin.command:
+        cmd: "docker rm -f {{ service_name }}"
+      register: rm_conflicting
+      failed_when: false
+      changed_when: rm_conflicting.rc == 0
+      when: compose_service | default('') | length > 0
+
+    - name: Recreate containers with updated images
+      ansible.builtin.command:
+        argv: "{{ ['docker', 'compose', 'up', '-d', '--force-recreate'] + (['--remove-orphans'] if not (compose_service | default('')) else []) + ([compose_service] if compose_service | default('') else []) }}"
+        chdir: "{{ compose_dir }}"
+
+    - name: Wait for container to be running
+      ansible.builtin.command:
+        cmd: "docker inspect --format '{{ '{{' }}.State.Running{{ '}}' }}' {{ service_name }}"
+      register: container_state
+      until: container_state.stdout == 'true'
+      retries: 12
+      delay: 5
+      changed_when: false
+
+    - name: Discover container published port
+      ansible.builtin.shell:
+        cmd: "docker port {{ service_name }} 2>/dev/null | head -1 | awk -F: '{print $NF}'"
+      register: published_port
+      changed_when: false
+      failed_when: false
+
+    - name: Wait for application to accept connections
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ published_port.stdout | int }}"
+        timeout: 60
+        state: started
+      when: published_port.stdout | default('') | regex_search('^\d+$')
+
+    - name: Allow HAProxy health checks to converge
+      ansible.builtin.pause:
+        seconds: "{{ haproxy_convergence_delay | default(15) }}"
+
+    - name: Done
+      ansible.builtin.debug:
+        msg: "{{ service_name }} deployed on {{ inventory_hostname }}"

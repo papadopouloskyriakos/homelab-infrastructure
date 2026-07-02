@@ -1,0 +1,171 @@
+---
+# Capture pre-maintenance cluster state snapshots for post-maintenance comparison.
+#
+# Required variables:
+#   site: "nl" or "gr"
+#   snapshot_dir: directory to store snapshot JSON (default: /tmp)
+#
+# Outputs:
+#   snapshot_file: path to the generated JSON file
+#
+# Captures (site-dependent):
+#   - K8s node status, PV status, etcd members
+#   - Pacemaker cluster states (NL only: FISHA + IoT)
+#   - Galera wsrep status (NL only)
+#   - Redis replication info (NL only)
+#
+# Runs from localhost (delegates all commands via SSH or kubectl).
+
+- name: "[SNAPSHOT] Set snapshot variables"
+  set_fact:
+    _snapshot_dir: "{{ snapshot_dir | default('/tmp') }}"
+    _snapshot_ts: "{{ now(utc=true, fmt='%Y%m%d-%H%M%S') }}"
+    _snapshot_data: {}
+
+- name: "[SNAPSHOT] Set snapshot filename"
+  set_fact:
+    snapshot_file: "{{ _snapshot_dir }}/maintenance-snapshot-{{ site }}-{{ _snapshot_ts }}.json"
+
+###############################################################################
+# K8s state (both sites)
+###############################################################################
+- name: "[SNAPSHOT] K8s node status"
+  command: kubectl --context {{ 'default' if site == 'nl' else 'gr' }} get nodes -o json
+  register: _snap_k8s_nodes
+  changed_when: false
+  failed_when: false
+
+- name: "[SNAPSHOT] K8s PV status"
+  command: kubectl --context {{ 'default' if site == 'nl' else 'gr' }} get pv -o json
+  register: _snap_k8s_pvs
+  changed_when: false
+  failed_when: false
+
+- name: "[SNAPSHOT] K8s PVC status"
+  command: kubectl --context {{ 'default' if site == 'nl' else 'gr' }} get pvc -A -o json
+  register: _snap_k8s_pvcs
+  changed_when: false
+  failed_when: false
+
+- name: "[SNAPSHOT] Store K8s snapshot data"
+  set_fact:
+    _snapshot_data: >-
+      {{ _snapshot_data | combine({
+        'k8s_nodes': (_snap_k8s_nodes.stdout | default('') | trim | default('{}', true)) | from_json,
+        'k8s_pvs': (_snap_k8s_pvs.stdout | default('') | trim | default('{}', true)) | from_json,
+        'k8s_pvcs': (_snap_k8s_pvcs.stdout | default('') | trim | default('{}', true)) | from_json
+      }) }}
+
+###############################################################################
+# NL-specific: Pacemaker clusters, Galera, Redis
+###############################################################################
+- name: "[SNAPSHOT] FISHA cluster status"
+  shell: ssh nlcl01file01 "crm status" 2>/dev/null || echo "FISHA_UNREACHABLE"
+  register: _snap_fisha
+  changed_when: false
+  failed_when: false
+  when: site == "nl"
+
+- name: "[SNAPSHOT] FISHA DRBD status"
+  shell: ssh nlcl01file01 "drbdadm status r0" 2>/dev/null || echo "DRBD_UNREACHABLE"
+  register: _snap_drbd
+  changed_when: false
+  failed_when: false
+  when: site == "nl"
+
+- name: "[SNAPSHOT] IoT cluster status"
+  shell: ssh -i ~/.ssh/one_key root@nlcl01iot02 "crm status" 2>/dev/null || echo "IOT_UNREACHABLE"
+  register: _snap_iot
+  changed_when: false
+  failed_when: false
+  when: site == "nl"
+
+- name: "[SNAPSHOT] IoT SBD slot states"
+  shell: ssh -i ~/.ssh/one_key root@nlcl01iot02 "sbd -d /dev/sdb list" 2>/dev/null || echo "SBD_UNREACHABLE"
+  register: _snap_sbd
+  changed_when: false
+  failed_when: false
+  when: site == "nl"
+
+- name: "[SNAPSHOT] Galera wsrep status"
+  shell: >-
+    ssh nlcl01mariadb01
+    "mysql -N -e \"SHOW STATUS WHERE Variable_name IN
+    ('wsrep_cluster_size','REDACTED_65519e19','REDACTED_9b24442e',
+    'wsrep_cluster_status')\"" 2>/dev/null || echo "GALERA_UNREACHABLE"
+  register: _snap_galera
+  changed_when: false
+  failed_when: false
+  when: site == "nl"
+
+- name: "[SNAPSHOT] Redis replication info"
+  shell: >-
+    redis-cli -h 10.0.X.X INFO replication 2>/dev/null | head -20
+    || echo "REDIS_UNREACHABLE"
+  register: _snap_redis
+  changed_when: false
+  failed_when: false
+  when: site == "nl"
+
+- name: "[SNAPSHOT] Store NL-specific snapshot data"
+  set_fact:
+    _snapshot_data: >-
+      {{ _snapshot_data | combine({
+        'fisha_crm': _snap_fisha.stdout | default(''),
+        'fisha_drbd': _snap_drbd.stdout | default(''),
+        'iot_crm': _snap_iot.stdout | default(''),
+        'iot_sbd': _snap_sbd.stdout | default(''),
+        'galera_wsrep': _snap_galera.stdout | default(''),
+        'redis_replication': _snap_redis.stdout | default('')
+      }) }}
+  when: site == "nl"
+
+###############################################################################
+# GR-specific: iSCSI targets, ZFS pool
+###############################################################################
+- name: "[SNAPSHOT] GR iSCSI targets on pve02"
+  shell: ssh -i ~/.ssh/one_key root@gr-pve02 "targetcli ls /iscsi 2>/dev/null | grep -c 'iqn'" 2>/dev/null || echo "0"
+  register: _snap_gr_iscsi
+  changed_when: false
+  failed_when: false
+  when: site == "gr"
+
+- name: "[SNAPSHOT] GR ZFS pool status"
+  shell: ssh -i ~/.ssh/one_key root@gr-pve02 "zpool status ssd-pool" 2>/dev/null || echo "ZFS_UNREACHABLE"
+  register: _snap_gr_zfs
+  changed_when: false
+  failed_when: false
+  when: site == "gr"
+
+- name: "[SNAPSHOT] Store GR-specific snapshot data"
+  set_fact:
+    _snapshot_data: >-
+      {{ _snapshot_data | combine({
+        'gr_iscsi_target_count': _snap_gr_iscsi.stdout | default('0'),
+        'gr_zfs_status': _snap_gr_zfs.stdout | default('')
+      }) }}
+  when: site == "gr"
+
+###############################################################################
+# Write snapshot file
+###############################################################################
+- name: "[SNAPSHOT] Add metadata"
+  set_fact:
+    _snapshot_data: >-
+      {{ _snapshot_data | combine({
+        '_meta': {
+          'site': site,
+          'timestamp': _snapshot_ts,
+          'captured_by': 'AWX pve-maintenance snapshot'
+        }
+      }) }}
+
+- name: "[SNAPSHOT] Write snapshot to file"
+  copy:
+    content: "{{ _snapshot_data | to_nice_json }}"
+    dest: "{{ snapshot_file }}"
+    mode: '0644'
+
+- name: "[SNAPSHOT] Snapshot saved"
+  debug:
+    msg: "[SNAPSHOT] Pre-maintenance state captured to {{ snapshot_file }}"

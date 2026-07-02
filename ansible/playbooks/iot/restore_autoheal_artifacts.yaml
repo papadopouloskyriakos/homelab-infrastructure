@@ -1,0 +1,141 @@
+---
+# IOT Auto-Heal Artifact Drift-Check & Self-Restore
+#
+# Ensures the Pacemaker self-heal artifacts are present and correct on all three
+# IoT/HAHA cluster nodes (nlcl01iot01, iot02, iotarb01):
+#
+#   /usr/local/sbin/zigbee_coordinator_alert.sh   } Zigbee coordinator auto-reset
+#   /usr/local/sbin/zigbee_coordinator_reset.sh   }  (alert_zigbee_reset)
+#   /usr/local/sbin/zigbee_soft_hang_watchdog.sh  } Proactive SOFT-hang detector ->
+#   /etc/systemd/system/zigbee-soft-hang-watchdog.{service,timer}  }  in-place heal (every 30s)
+#   /usr/local/sbin/clear_arp_nfs.sh              } NFS (p_fs_iot) auto-remediation
+#   /usr/local/sbin/clear_arp_nfs_action.sh       }  (alert_arp)
+#   /etc/sudoers.d/zigbee-autoheal                } let the hacluster alert user
+#   /etc/sudoers.d/clear-arp-nfs                  }  run the reset/helper as root
+#
+# Why this exists: these are node-LOCAL files, not cluster-managed resources, and
+# native/ has no deploy pipeline. They survive a Pacemaker failover (files stay on
+# disk), but a node rebuild/reimage would silently lose them and break self-healing
+# on whichever node becomes active/DC. Running this on an AWX schedule turns that
+# into self-restoring drift detection: `changed` => drift was found and corrected.
+#
+# Source of truth: native/haha/<host>/{scripts,sudoers.d}/ in
+# infrastructure/nl/production (per-host snapshots, identical content). The
+# copies under files/ here are kept in sync with those and are the deploy source.
+#
+# Safe to run anytime: it only writes files (no cluster/service restart), is fully
+# idempotent (copy changes only on checksum drift), validates each sudoers file
+# with visudo before installing, and (re)enables the watchdog timer (idempotent --
+# the timer runs a SILENT 30s check that acts only on a detected hang, so enabling
+# it never disrupts a healthy mesh). Run with --check for pure drift reporting.
+#
+# AWX: Project "IOT Operations" (48), Inventory "IOTCluster" (8), credential
+# "SSH Lab Common" (6). Schedule daily.
+#
+# Ref: project_haha_zigbee_coordinator_autoheal (2026-06-27 auto-heal work).
+
+- name: IOT auto-heal artifact drift-check and self-restore
+  hosts: iot_nodes:iot_arbiter
+  become: true
+  gather_facts: false
+
+  vars:
+    autoheal_scripts:
+      - zigbee_coordinator_alert.sh
+      - zigbee_coordinator_reset.sh
+      - zigbee_soft_hang_watchdog.sh        # proactive soft-hang detector -> in-place heal (2026-06-29)
+      - clear_arp_nfs.sh
+      - clear_arp_nfs_action.sh
+    autoheal_sudoers:
+      - zigbee-autoheal
+      - clear-arp-nfs
+    watchdog_units:
+      - zigbee-soft-hang-watchdog.service
+      - zigbee-soft-hang-watchdog.timer
+
+  tasks:
+    - name: Ensure sshpass is present (zigbee reset uses it to reach the switch)
+      ansible.builtin.package:
+        name: sshpass
+        state: present
+      register: pkg_sshpass
+
+    - name: Deploy/repair auto-heal scripts in /usr/local/sbin
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/files/{{ item }}"
+        dest: "/usr/local/sbin/{{ item }}"
+        owner: root
+        group: root
+        mode: "0755"
+      loop: "{{ autoheal_scripts }}"
+      register: script_copy
+
+    - name: Deploy/repair auto-heal sudoers rules in /etc/sudoers.d (visudo-validated)
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/files/{{ item }}"
+        dest: "/etc/sudoers.d/{{ item }}"
+        owner: root
+        group: root
+        mode: "0440"
+        validate: "visudo -cf %s"
+      loop: "{{ autoheal_sudoers }}"
+      register: sudoers_copy
+
+    - name: Deploy zigbee soft-hang watchdog systemd units
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/files/{{ item }}"
+        dest: "/etc/systemd/system/{{ item }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop: "{{ watchdog_units }}"
+      register: wd_units
+
+    - name: Reload systemd manager if watchdog units changed
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when: wd_units.changed
+
+    - name: Ensure zigbee soft-hang watchdog timer is enabled and active
+      ansible.builtin.systemd:
+        name: zigbee-soft-hang-watchdog.timer
+        enabled: true
+        state: started
+      register: wd_timer
+
+    - name: Report per-node drift
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }} drift:
+          scripts_restored={{ script_copy.results | selectattr('changed') | map(attribute='item') | list }}
+          sudoers_restored={{ sudoers_copy.results | selectattr('changed') | map(attribute='item') | list }}
+          watchdog_units_restored={{ wd_units.results | selectattr('changed') | map(attribute='item') | list }}
+          watchdog_timer_changed={{ wd_timer.changed }}
+          sshpass_installed={{ pkg_sshpass.changed }}
+
+# Read-only confirmation that the Pacemaker alerts referencing these scripts are
+# still wired into the CIB. The CIB is cluster-wide (survives a single-node rebuild)
+# so this playbook does not manage it -- this just surfaces it if an alert went
+# missing, without failing the artifact restore.
+- name: Confirm CIB auto-heal alerts are wired
+  hosts: iot_nodes[0]
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Read configured Pacemaker alerts
+      ansible.builtin.shell: crm configure show | grep '^alert ' || true
+      register: crm_alerts
+      changed_when: false
+      check_mode: false
+      failed_when: false
+
+    - name: Warn if an auto-heal alert is missing from the CIB
+      ansible.builtin.debug:
+        msg: >-
+          WARNING: expected alert '{{ item }}' not found in the CIB -- the {{ item }}
+          self-heal will not fire. Re-add it (see native/haha/CLAUDE.md Alerts section).
+      loop:
+        - alert_zigbee_reset
+        - alert_arp
+      when: item not in (crm_alerts.stdout | default(''))

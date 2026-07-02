@@ -1,0 +1,13 @@
+# Allow the Pacemaker alert user (hacluster) to run the Zigbee coordinator
+# reset as root. Pacemaker executes alert agents as hacluster (uid 110), which
+# cannot write /var/run, /var/log, or run pcs/crm cleanup -- so the auto-heal
+# reset (which power-cycles the switch port and runs `pcs resource cleanup`)
+# must be invoked with root privileges, the same way the daily cron runs it.
+#
+# Scoped to exactly the one reset script, NOPASSWD so the non-interactive alert
+# handler (zigbee_coordinator_alert.sh) can call `sudo -n`.
+#
+# Installed at /etc/sudoers.d/zigbee-autoheal (mode 0440) on iot01/iot02/arb01.
+# Snapshot: native/haha/<host>/sudoers.d/zigbee-autoheal
+# Ref: HAHA Zigbee coordinator auto-heal (2026-06-27), found via controlled hang test.
+hacluster ALL=(root) NOPASSWD: /usr/local/sbin/zigbee_coordinator_reset.sh
