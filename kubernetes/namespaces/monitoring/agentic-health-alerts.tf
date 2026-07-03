@@ -694,6 +694,19 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               }
             },
             {
+              alert = "REDACTED_bd56ee60"
+              expr  = "judge_scored_fraction >= 0 and judge_scored_fraction < 0.5 and judge_eligible_sessions > 3"
+              for   = "2h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "local LLM judge scored only {{ $value }} of recent sessions — semantic judge-death detector"
+                description = "write-governance-metrics.py computes the fraction of sessions ended 26h..2h ago that carry a real (overall_score>=0) session_judgment row — from tables the judge does NOT write, so it cannot be fooled by the judge's own green liveness signals. Built 2026-07-03 after the judge died twice (heredoc-injection 06-07..06-27, type-filter regression 06-27..07-03) with every process-liveness signal green. Inspect: tail /tmp/llm-judge.log; sqlite3 gateway.db \"SELECT judge_model, MAX(judged_at) FROM session_judgment GROUP BY 1\"."
+              }
+            },
+            {
               alert = "REDACTED_880627c0"
               expr  = "increase(scheduled_reboot_misclassified_total[1h]) > 0"
               for   = "1m"
