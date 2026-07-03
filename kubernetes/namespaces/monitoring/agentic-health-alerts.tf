@@ -552,6 +552,189 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
             },
           ]
         },
+        {
+          # No-human eval anchors (IFRNLLEI01PRD-1451/-1452) + scheduled-reboot
+          # tf-twin (IFRNLLEI01PRD-1160) + QA/trace visibility. These 13 lived
+          # only in claude-gateway prometheus/alert-rules/agentic-health.yml
+          # (doc) and were never deployed -- the YAML<->tf drift its own header
+          # calls a defect. ChatOpsCostBudgetHigh deliberately NOT deployed:
+          # llm_cost_today is API-equivalent, not real spend (subscription),
+          # and >$20/day would false-fire near-daily; needs operator decision.
+          name     = "REDACTED_47324401"
+          interval = "1m"
+          rules = [
+            {
+              alert = "REDACTED_a5c79ff7"
+              expr  = "chatops_qa_total_fail{label=\"latest\"} > 0"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "QA suite has {{ $value }} failing test(s)"
+                description = "scripts/qa/run-qa-suite.sh reported failing tests in its latest nightly run. Inspect the newest scripts/qa/reports/scorecard-*.json and run `scripts/qa/run-qa-suite.sh --verbose` for the failing suite."
+              }
+            },
+            {
+              alert = "REDACTED_ade354ec"
+              expr  = "time() - chatops_qa_last_run_timestamp{} > 129600"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "QA-suite scorecard is stale (>36h since last run)"
+                description = "No fresh QA scorecard in over 36h (nightly cron is 04:30). The run-qa-suite.sh cron on nlclaude01 or write-qa-metrics.sh may have stopped. Check /tmp/qa-suite.log."
+              }
+            },
+            {
+              alert = "REDACTED_c2d14cac"
+              expr  = "trace_span_errors_7d > 5"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "{{ $value }} errored tool/agent spans in the last 7d"
+                description = "The OTel trace surface (now content-bearing, IFRNLLEI01PRD-1095) shows elevated tool/agent span errors. Inspect OpenObserve / otel_spans for the failing operations."
+              }
+            },
+            {
+              alert = "REDACTED_ce491bad"
+              expr  = "max(eval_composed_judge_fooled_total) >= 2"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "LLM judge approved {{ $value }} structurally-incomplete sessions (judge-fooled)"
+                description = "scripts/compose-eval-verdict.py (IFRNLLEI01PRD-1452) composes session_trajectory (hard checks) with session_judgment (LLM rubric); eval_composed_judge_fooled_total counts sessions the judge APPROVED but whose trajectory completed too few required steps (hard-veto overrode it). Inspect: compose-eval-verdict.py --recent 30; feed into judge calibration."
+              }
+            },
+            {
+              alert = "REDACTED_d9fc91eb"
+              expr  = "(time() - eval_composed_last_run_timestamp_seconds > 21600) or absent(eval_composed_last_run_timestamp_seconds)"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "composed eval-verdict metric stale 6h+ (or absent) — the judge/composer cron is wedged"
+                description = "compose-eval-verdict.py --metrics runs at the tail of llm-judge.sh (*/2h); staleness/absence means the judge cron or composer is broken. Run scripts/compose-eval-verdict.py --metrics to reproduce."
+              }
+            },
+            {
+              alert = "JudgeFrontierDrift"
+              expr  = "(judge_frontier_action_agreement_rate >= 0 and judge_frontier_action_agreement_rate < 0.6 and judge_frontier_pairs > 5) or judge_frontier_local_unscored_rate > 0.5"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "frontier (Opus) vs local judge diverged or the local judge is dead"
+                description = "judge-frontier-crosscheck.py (IFRNLLEI01PRD-1451, no-human anchor) re-judges a sample with Opus and compares to the local gemma judge. Low action-agreement (<0.6 over >5 pairs) = drift; judge_frontier_local_unscored_rate>0.5 = the local judge returns -1 while the frontier scores real (the 3-week dead-judge class, 2026-06-27). Inspect: scripts/judge-frontier-crosscheck.py --run 8."
+              }
+            },
+            {
+              alert = "JudgeFrontierStale"
+              expr  = "(time() - judge_frontier_last_run_timestamp_seconds > 172800) or absent(judge_frontier_last_run_timestamp_seconds)"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "judge frontier cross-check stale 2d+ (or absent) — the no-human judge-health anchor is itself dark"
+                description = "judge-frontier-crosscheck.py --metrics refreshes at the tail of llm-judge.sh (*/2h); the daily --run does the Opus crosschecks. Staleness/absence means the anchor stopped running."
+              }
+            },
+            {
+              alert = "AutoResolveFalseResolveHigh"
+              expr  = "autoresolve_held_rate >= 0 and autoresolve_held_rate < 0.6 and autoresolve_evaluated > 8"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "auto-resolved fixes are not holding (held_rate {{ $value }})"
+                description = "session-outcome-truth.py (IFRNLLEI01PRD-1451, no-human anchor) checks whether an auto-resolved incident's alert re-fired within 24h (mirrors the -1153 governance; chronic/dispositioned patterns excluded). A low held_rate over a real sample means autonomy is \"resolving\" incidents that come back. Inspect: scripts/session-outcome-truth.py --run; SELECT * FROM autoresolve_outcome WHERE held=0."
+              }
+            },
+            {
+              alert = "AutoResolveJudgeMissedFalseResolve"
+              expr  = "autoresolve_judge_missed_false_resolve > 0 and autoresolve_evaluated > 8"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "the LLM judge endorsed {{ $value }} auto-resolves that turned out to be false-resolves"
+                description = "A genuine false-resolve (the fix did not hold) that the judge SCORED >=4 — a judge calibration miss no purely-LLM metric can see, and the core reason this no-human outcome anchor exists. Feed these sessions back into judge calibration. SELECT * FROM autoresolve_outcome WHERE held=0 AND judge_score>=4."
+              }
+            },
+            {
+              alert = "REDACTED_6bf31d7f"
+              expr  = "(time() - autoresolve_last_run_timestamp_seconds > 172800) or absent(autoresolve_last_run_timestamp_seconds)"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "outcome-truth metric stale 2d+ (or absent) — the 'did autonomy work' anchor is dark"
+                description = "session-outcome-truth.py --metrics refreshes at the tail of llm-judge.sh; the daily --run re-evaluates from triage.log. Staleness/absence means the anchor stopped running."
+              }
+            },
+            {
+              alert = "REDACTED_880627c0"
+              expr  = "increase(scheduled_reboot_misclassified_total[1h]) > 0"
+              for   = "1m"
+              labels = {
+                severity = "critical"
+                tier     = "1"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "scheduled-reboot two-phase verify REOPENED {{ $value }} suppression(s) in 1h"
+                description = "A reboot suppressed as 'scheduled' was confirmed by the two-phase verify NOT to be a clean systemd-reboot (OOM/watchdog/self-heal landed in-window). The verify already force-escalated a real investigation + paged #alerts; this alert is the aggregate signal."
+              }
+            },
+            {
+              alert = "REDACTED_e9ab4b94"
+              expr  = "(time() - scheduled_reboot_metrics_last_run_timestamp_seconds > 1200) or absent(scheduled_reboot_metrics_last_run_timestamp_seconds)"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "scheduled-reboot metrics exporter stale 20m+ (or absent)"
+                description = "write-scheduled-reboot-metrics.sh (*/5 Cronicle) is not running. Registry counts + verify accumulators stop updating."
+              }
+            },
+            {
+              alert = "REDACTED_e648eeb8"
+              expr  = "scheduled_reboot_registry_entries{status=\"observing\"} > 0 and on() (time() - scheduled_reboot_metrics_last_run_timestamp_seconds < 1200)"
+              for   = "3h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "scheduled-reboot: observing row(s) not promoting to live"
+                description = "A discovered schedule has stayed 'observing' — either its cron never fires as predicted (wrong attribution) or the promoter can't SSH the host. Check promote-scheduled-reboot logs."
+              }
+            },
+          ]
+        },
       ]
     }
   }
