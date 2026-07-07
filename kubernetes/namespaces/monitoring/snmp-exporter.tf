@@ -221,7 +221,7 @@ resource "REDACTED_08d34ae1" "snmp_exporter" {
 
         container {
           name  = "snmp-exporter"
-          image = "prom/snmp-exporter:v0.26.0"
+          image = "prom/snmp-exporter:v0.30.1"
 
           args = [
             "--config.file=/etc/snmp_exporter/snmp.yml",
