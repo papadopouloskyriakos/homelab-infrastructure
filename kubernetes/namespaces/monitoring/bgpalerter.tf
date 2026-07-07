@@ -277,7 +277,7 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
         # Init container copies config files to writable volume
         init_container {
           name  = "copy-config"
-          image = "busybox:1.36"
+          image = "busybox:1.38"
           command = [
             "sh", "-c",
             "cp /config-readonly/* REDACTED_729ea3cb/"
