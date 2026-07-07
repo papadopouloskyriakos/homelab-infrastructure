@@ -24,6 +24,9 @@ resource "helm_release" "cilium" {
   version          = "1.19.5"
   create_namespace = false
 
+  # Canary-safe: don't block apply on the full DaemonSet roll (monitored externally)
+  wait = false
+
   set = [
     # Cluster settings
     {
@@ -294,6 +297,15 @@ resource "helm_release" "cilium" {
     {
       name  = "clustermesh.config.clusters[0].port"
       value = "2379"
+    },
+    # 1.19 upgrade safety: preserve pre-1.19 defaults (research: #44430 + clustermesh)
+    {
+      name  = "REDACTED_d95cbb1b"
+      value = "1.18"
+    },
+    {
+      name  = "REDACTED_08ead801"
+      value = "false"
     },
   ]
 
