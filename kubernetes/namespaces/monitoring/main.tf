@@ -105,7 +105,7 @@ resource "helm_release" "monitoring" {
   chart            = "REDACTED_d8074874"
   namespace        = "monitoring"
   create_namespace = true
-  version          = "79.10.0"
+  version          = "79.12.0"
   # 300s is too tight: a values change that rolls grafana's 2 replicas + the full-release
   # `wait` re-check exceeds 300s → atomic rollback (observed 2026-06-24, rev 9 failed/rev 10
   # rollback). 600s gives the readiness wait headroom for any monitoring-stack upgrade.
