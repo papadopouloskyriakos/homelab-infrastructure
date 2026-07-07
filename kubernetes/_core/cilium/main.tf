@@ -171,6 +171,10 @@ resource "helm_release" "cilium" {
       value = "true"
     },
     {
+      name  = "REDACTED_6fa691d2.enabled"
+      value = "true"
+    },
+    {
       name  = "REDACTED_6fa691d2.mutual.spire.install.enabled"
       value = "true"
     },
