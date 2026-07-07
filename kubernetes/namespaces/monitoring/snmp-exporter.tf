@@ -253,7 +253,10 @@ resource "REDACTED_08d34ae1" "snmp_exporter" {
 
           liveness_probe {
             http_get {
-              path = "/health"
+              # v0.30.x moved to exporter-toolkit endpoints: /health is 404,
+              # health lives at /-/healthy (verified live 2026-07-08). The old
+              # path killed a healthy container every ~90s (149 restarts/9h).
+              path = "/-/healthy"
               port = 9116
             }
             initial_delay_seconds = 10
@@ -262,7 +265,7 @@ resource "REDACTED_08d34ae1" "snmp_exporter" {
 
           readiness_probe {
             http_get {
-              path = "/health"
+              path = "/-/healthy"
               port = 9116
             }
             initial_delay_seconds = 5
