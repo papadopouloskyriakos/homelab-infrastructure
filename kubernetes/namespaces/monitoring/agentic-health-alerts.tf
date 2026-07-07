@@ -746,6 +746,32 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
                 description = "A discovered schedule has stayed 'observing' — either its cron never fires as predicted (wrong attribution) or the promoter can't SSH the host. Check promote-scheduled-reboot logs."
               }
             },
+            {
+              alert = "REDACTED_bffd9ffa"
+              expr  = "prompt_trial_malformed_issue_ids > 0"
+              for   = "10m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "prompt A/B trial assignments carry malformed issue_ids"
+                description = "session_trial_assignment rows have an empty or quote-wrapped issue_id, which cannot join session_judgment.issue_id — the exact defect (empty pre-MR!155, quoted pre-MR!156) that silently starved every prompt trial for ~2.5 months. Check the Runner Query Knowledge ISSUE_ID wiring + scripts/prompt-trial-assign.py normalization. Ref IFRNLLEI01PRD-1664/1666."
+              }
+            },
+            {
+              alert = "REDACTED_83b82b17"
+              expr  = "time() - workspace_guardrail_last_run_timestamp > 1800"
+              for   = "15m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "workspace-guardrail health writer stale 30m+ (Global-Workspace guardrails unmonitored)"
+                description = "write-workspace-guardrail-metrics.py (piggybacked on write-governance-metrics.py */15) has stopped emitting prom:workspace_guardrail — the LIVE silent-cognition guard + prompt-patch feature states are no longer observed. Check the governance-metrics Cronicle job. Ref IFRNLLEI01PRD-1663."
+              }
+            },
           ]
         },
       ]
