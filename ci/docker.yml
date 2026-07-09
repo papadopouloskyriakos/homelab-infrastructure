@@ -74,8 +74,7 @@ validate_docker_compose:
         if echo "$file" | grep -q "compose.ya\?ml"; then
           echo "Checking: $file"
           if [ ! -f "$CI_PROJECT_DIR/$file" ]; then
-            echo "  ERROR: File not found"
-            VALIDATION_FAILED=1
+            echo "  SKIP: file deleted in this change (nothing to validate)"
             continue
           fi
           if ! python3 -c "import yaml; yaml.safe_load(open('$CI_PROJECT_DIR/$file'))" 2>/dev/null; then
