@@ -141,8 +141,11 @@ resource "kubernetes_manifest" "REDACTED_34afa039" {
             {
               # >50% of MRs stalling on human poll → autonomy isn't paying off.
               alert = "REDACTED_98fffbfa"
-              expr  = "sum(increase(renovate_autonomy_decisions_total{decision=\"POLL\"}[24h])) / clamp_min(sum(increase(renovate_autonomy_decisions_total[24h])), 1) > 0.5"
-              for   = "6h"
+              # Gated on the LIVE backlog gauge (renovate_open_mrs, vetoed MRs excluded):
+              # the ratio alone is decision HISTORY — it fired 2026-07-09 on an already-empty
+              # review queue and would stay silent on a full one with no fresh decisions.
+              expr = "(sum(increase(renovate_autonomy_decisions_total{decision=\"POLL\"}[24h])) / clamp_min(sum(increase(renovate_autonomy_decisions_total[24h])), 1) > 0.5) and on() (max(renovate_open_mrs) > 4)"
+              for  = "6h"
               labels = {
                 severity = "warning"
               }
