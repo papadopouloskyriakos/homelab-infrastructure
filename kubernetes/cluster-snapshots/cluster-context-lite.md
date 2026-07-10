@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-07-09 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-07-10 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 2786 |
+| Total Restarts | 2787 |
 
 ## Topology
 
@@ -64,10 +64,8 @@ velero/velero-node-agent-mwfzv: 4 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                          MESSAGE
-kube-system   54m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02           Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system   54m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02           Liveness probe failed: HTTP probe failed with statuscode: 500
-monitoring    10m         Warning   Unhealthy   pod/monitoring-prometheus-node-exporter-88hp8   Liveness probe failed: Get "http://10.0.X.X:9100/": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+NAMESPACE    LAST SEEN   TYPE      REASON      OBJECT                                          MESSAGE
+monitoring   6m34s       Warning   Unhealthy   pod/monitoring-prometheus-node-exporter-88hp8   Readiness probe failed: Get "http://10.0.X.X:9100/": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
 ```
 
 ## Key Resources
