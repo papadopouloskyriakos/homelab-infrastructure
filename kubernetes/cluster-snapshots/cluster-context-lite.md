@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-07-10 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-07-11 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 2787 |
+| Total Restarts | 2793 |
 
 ## Topology
 
@@ -53,6 +53,7 @@ kube-system/tetragon-vbs6v: 14 restarts
 logging/promtail-hp5sc: 7 restarts
 logging/promtail-ng69s: 4 restarts
 monitoring/goldpinger-6dj9l: 25 restarts
+monitoring/goldpinger-zxtb9: 6 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 174 restarts
 monitoring/monitoring-prometheus-node-exporter-wmcb8: 6 restarts
 synology-csi/synology-csi-node-577mq: 10 restarts
@@ -65,7 +66,9 @@ velero/velero-node-agent-mwfzv: 4 restarts
 ### Recent Warnings (5)
 ```
 NAMESPACE    LAST SEEN   TYPE      REASON      OBJECT                                          MESSAGE
-monitoring   6m34s       Warning   Unhealthy   pod/monitoring-prometheus-node-exporter-88hp8   Readiness probe failed: Get "http://10.0.X.X:9100/": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+monitoring   30m         Warning   Unhealthy   pod/monitoring-prometheus-node-exporter-88hp8   Liveness probe failed: Get "http://10.0.X.X:9100/": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+monitoring   16m         Warning   Unhealthy   pod/goldpinger-zxtb9                            Readiness probe failed: Get "http://10.0.5.139:8080/healthz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+monitoring   15m         Warning   Unhealthy   pod/goldpinger-zxtb9                            Liveness probe failed: Get "http://10.0.5.139:8080/healthz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
 ```
 
 ## Key Resources
