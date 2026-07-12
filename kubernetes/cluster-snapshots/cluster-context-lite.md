@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-07-11 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-07-12 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,13 +11,13 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 2793 |
+| Total Restarts | 2802 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.19.5
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 149
+- **Pods:** 150
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8005928Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -39,9 +39,9 @@ kube-system/etcd-nlk8s-ctrl01: 64 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 1992 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 58 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 103 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl02: 35 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl03: 88 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl01: 105 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl02: 36 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl03: 89 restarts
 kube-system/kube-scheduler-nlk8s-ctrl01: 37 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 32 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 35 restarts
@@ -56,6 +56,7 @@ monitoring/goldpinger-6dj9l: 25 restarts
 monitoring/goldpinger-zxtb9: 6 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 174 restarts
 monitoring/monitoring-prometheus-node-exporter-wmcb8: 6 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956jjmld: 5 restarts
 synology-csi/synology-csi-node-577mq: 10 restarts
 synology-csi/synology-csi-node-kxrjb: 14 restarts
 synology-csi/synology-csi-node-l72f8: 4 restarts
@@ -65,10 +66,11 @@ velero/velero-node-agent-mwfzv: 4 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE    LAST SEEN   TYPE      REASON      OBJECT                                          MESSAGE
-monitoring   30m         Warning   Unhealthy   pod/monitoring-prometheus-node-exporter-88hp8   Liveness probe failed: Get "http://10.0.X.X:9100/": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-monitoring   16m         Warning   Unhealthy   pod/goldpinger-zxtb9                            Readiness probe failed: Get "http://10.0.5.139:8080/healthz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-monitoring   15m         Warning   Unhealthy   pod/goldpinger-zxtb9                            Liveness probe failed: Get "http://10.0.5.139:8080/healthz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
+kube-system   35m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl03   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   15m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system   2m29s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   2m24s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
