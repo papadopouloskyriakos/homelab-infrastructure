@@ -74,6 +74,8 @@ pre_deploy_drift_gate:
   extends: .cisco_base
   stage: validate
   rules:
+    - if: '$CI_MERGE_REQUEST_IID'
+      when: never
     - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
@@ -468,6 +470,8 @@ deploy_cisco_configs:
   extends: .cisco_base
   stage: deploy
   rules:
+    - if: '$CI_MERGE_REQUEST_IID'
+      when: never
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
       when: never
     - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
@@ -568,6 +572,8 @@ verify_cisco_deployments:
   extends: .cisco_base
   stage: verify
   rules:
+    - if: '$CI_MERGE_REQUEST_IID'
+      when: never
     - if: '$CI_COMMIT_AUTHOR =~ /^GitLab CI Auto-Sync /'
       when: never
     - changes:
