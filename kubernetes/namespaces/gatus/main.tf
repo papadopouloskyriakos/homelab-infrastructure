@@ -566,13 +566,24 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
         # =====================================================================
         [
           {
-            name     = "Portfolio"
+            name     = "Kyriakos Portfolio"
             group    = "📱 Applications"
             url      = "https://kyriakos.papadopoulos.tech"
             interval = "30s"
             conditions = [
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 2000"
+            ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "Ellizg Portfolio"
+            group    = "📱 Applications"
+            url      = "https://portfolio.ellizg.com"
+            interval = "30s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
             ]
             alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
           },
