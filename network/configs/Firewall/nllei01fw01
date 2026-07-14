@@ -1181,6 +1181,7 @@ access-list outside_freedom_access_in remark [Nginx Proxy Manager]
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlnpm01-80-tcp eq www 
 access-list outside_freedom_access_in remark [Nginx Proxy Manager]
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_KYRIAKOS object nlnpm01-443-tcp eq https 
+access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_PLEX object nlnpm01-443-tcp eq https 
 access-list outside_freedom_access_in remark [Postiz - Meta AS32934 media-fetch via NPM:443]
 access-list outside_freedom_access_in extended permit tcp object-group META_AS32934 object nlnpm01-443-tcp eq https 
 access-list outside_freedom_access_in extended permit udp object-group WHITELIST_OAS object nlstrongswan01 eq 4500 
@@ -1983,5 +1984,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:65b270020a449397cdf4197bede41966
+Cryptochecksum:5805031e5af556d3b6247d36cd792a5c
 : end
