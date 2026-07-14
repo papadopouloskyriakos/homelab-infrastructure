@@ -705,6 +705,15 @@ resource "REDACTED_08d34ae1" "gatus" {
   spec {
     replicas = 1
 
+    # gatus-data is a RWO iSCSI PVC and there is a single replica, so use
+    # Recreate: on a config change the old pod is terminated (releasing the
+    # volume) BEFORE the new one starts. The default RollingUpdate surges the
+    # new pod first, which then dead-locks on a Multi-Attach error for the RWO
+    # volume and the rollout hangs ~10m until the old pod is manually deleted.
+    strategy {
+      type = "Recreate"
+    }
+
     selector {
       match_labels = {
         "app.kubernetes.io/name" = "gatus"
