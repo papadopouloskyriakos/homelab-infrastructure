@@ -247,6 +247,28 @@ build_omoikane_nginx_base:
       docker push $IMAGE_REGISTRY/omoikane-nginx-base:latest
 
 # ===========================================================================
+# ELLIZG NGINX BASE — hardened chainguard-nginx + portfolio.ellizg.com CSP
+# ===========================================================================
+# Consumed by `websites/ellizg.com/portfolio` CI as its FROM. Bakes the CSP
+# (self-hosted fonts + Umami analytics.cubeos.app) + TLS + server_name once so
+# the Hugo product repo stays minimal (just COPY public/ on top).
+
+build_ellizg_nginx_base:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/ellizg-nginx-base/**/*
+      when: manual
+  script:
+    - |
+      cd images/ellizg-nginx-base
+      docker build -t $IMAGE_REGISTRY/ellizg-nginx-base:latest .
+      docker push $IMAGE_REGISTRY/ellizg-nginx-base:latest
+
+# ===========================================================================
 # PROTONMAIL BRIDGE
 # ===========================================================================
 
