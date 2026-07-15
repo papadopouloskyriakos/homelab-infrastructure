@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-07-14 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-07-15 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 2806 |
+| Total Restarts | 2808 |
 
 ## Topology
 
@@ -43,7 +43,7 @@ kube-system/kube-controller-manager-nlk8s-ctrl01: 105 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl02: 36 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl03: 89 restarts
 kube-system/kube-scheduler-nlk8s-ctrl01: 37 restarts
-kube-system/kube-scheduler-nlk8s-ctrl02: 32 restarts
+kube-system/kube-scheduler-nlk8s-ctrl02: 33 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 36 restarts
 kube-system/tetragon-75hdg: 6 restarts
 kube-system/tetragon-878gv: 4 restarts
@@ -67,8 +67,7 @@ velero/velero-node-agent-mwfzv: 4 restarts
 ### Recent Warnings (5)
 ```
 NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   54m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
-kube-system   53m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system   2m3s        Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
