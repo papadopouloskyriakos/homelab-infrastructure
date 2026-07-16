@@ -194,6 +194,7 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a" {
 # finops: bargauges -> hidden-value bars + Dutch string amounts (audit iteration 3) — 2026-06-11
 # finops: 🛍️ Online orders section (v_orders: Amazon/Thuisbezorgd/eBay/bol/AH/AliExpress/Flink from email receipts) — 2026-06-22
 # finops: 🛒 most-bought groceries panel (ah_invoice_items + flink_order_items, receipt-level) — 2026-06-21
+# finops: 🎯 food-targets 'spent so far' now = bank charges + un-charged online orders (order_recon recon='no_bank_charge', Flink/AH→groceries, Thuisbezorgd→takeaway) so card-paid grocery orders count from receipt emails before the ING-card PDF lands; self-nets once reconciled — 2026-07-16
 
 # Agora — finops-agora paper-trading cockpit (uid agora). NAV-vs-index race, open
 # prediction ledger, methodology scoreboard, verdict history, pipeline health, and (2026-06-12)
