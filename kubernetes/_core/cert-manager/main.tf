@@ -597,3 +597,26 @@ resource "kubernetes_manifest" "REDACTED_13c92cba" {
     }
   }
 }
+
+resource "kubernetes_manifest" "REDACTED_233e2f0b" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_7dede78a"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_7dede78a-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.territorygrounder.com",
+        "territorygrounder.com"
+      ]
+    }
+  }
+}
