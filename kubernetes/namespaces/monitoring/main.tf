@@ -56,6 +56,50 @@ resource "kubernetes_manifest" "REDACTED_9675462a" {
 }
 
 # -----------------------------------------------------------------------------
+# ExternalSecret for the Territory Grounder ingest bearer token
+# -----------------------------------------------------------------------------
+# Materializes k8s Secret `tg-ingest-token` (key `token`) from OpenBao
+# secret/REDACTED_d7c66005, mounted into Alertmanager via
+# alertmanagerSpec.secrets for the webhook-tg receiver's Bearer credentials_file.
+resource "kubernetes_manifest" "tg_ingest_token" {
+  manifest = {
+    apiVersion = "external-secrets.io/v1"
+    kind       = "ExternalSecret"
+    metadata = {
+      name      = "tg-ingest-token"
+      namespace = "monitoring"
+      labels = {
+        "app.kubernetes.io/name"      = "territory-grounder"
+        "app.kubernetes.io/component" = "ingest-token"
+        environment                   = "production"
+        "managed-by"                  = "opentofu"
+      }
+    }
+    spec = {
+      refreshInterval = "1h"
+      secretStoreRef = {
+        name = "openbao"
+        kind = "ClusterSecretStore"
+      }
+      target = {
+        name           = "tg-ingest-token"
+        creationPolicy = "Owner"
+        deletionPolicy = "Retain"
+      }
+      data = [
+        {
+          secretKey = "token"
+          remoteRef = {
+            key      = "REDACTED_d7c66005"
+            property = "token"
+          }
+        }
+      ]
+    }
+  }
+}
+
+# -----------------------------------------------------------------------------
 # ExternalSecret for the finops ledger read-only DB password (Grafana datasource)
 # -----------------------------------------------------------------------------
 resource "kubernetes_manifest" "grafana_finops_db_ro" {
@@ -608,6 +652,27 @@ resource "helm_release" "monitoring" {
                 send_resolved = true
                 max_alerts    = 5
               }]
+            },
+            # Territory Grounder — governed-autonomy SRE agent. Parallel to webhook-n8n (n8n untouched).
+            # Posted over HTTPS to the stable ingress hostname (valid Let's Encrypt *.example.net
+            # cert — no tls_config needed), which TLS-protects the bearer in transit. Bearer auth: TG's
+            # /v1/ingest can't verify an HMAC from Alertmanager, so a per-source static token (OpenBao
+            # secret/REDACTED_d7c66005 -> ExternalSecret tg-ingest-token, mounted via
+            # alertmanagerSpec.secrets) is presented as a Bearer credentials_file. TG runs mutation OFF —
+            # it triages + proposes only.
+            {
+              name = "webhook-tg"
+              webhook_configs = [{
+                url           = "https://territory-grounder.example.net/api/v1/ingest/prometheus-alertmanager"
+                send_resolved = true
+                max_alerts    = 10
+                http_config = {
+                  authorization = {
+                    type             = "Bearer"
+                    credentials_file = "REDACTED_0edcce58"
+                  }
+                }
+              }]
             }
           ]
           route = {
@@ -635,6 +700,14 @@ resource "helm_release" "monitoring" {
                 matchers = ["alertname = KubeAPIErrorBudgetBurn"]
                 receiver = "null"
               },
+              # Territory Grounder — fan actionable alerts to TG in parallel with n8n. Placed AFTER the
+              # null routes so Watchdog/InfoInhibitor/KubeAPIErrorBudgetBurn are consumed first and never
+              # reach TG; `continue = true` so the alert still falls through to the default receiver (n8n).
+              {
+                matchers = ["severity =~ \"warning|critical\""]
+                receiver = "webhook-tg"
+                continue = true
+              },
               # Tier-1 critical alerts: dual-route to Matrix (via webhook-n8n
               # for visibility) AND Twilio (for operator SMS escalation).
               # `continue: true` ensures the matching alert continues to the
@@ -654,6 +727,10 @@ resource "helm_release" "monitoring" {
         }
         alertmanagerSpec = {
           replicas = 2
+
+          # Mount the TG ingest bearer token (ExternalSecret tg-ingest-token) at
+          # REDACTED_0edcce58 for the webhook-tg receiver's credentials_file.
+          secrets = ["tg-ingest-token"]
 
           # Scrape all ServiceMonitors and PodMonitors (not just release=monitoring)
           serviceMonitorSelector                  = {}
