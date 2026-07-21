@@ -645,3 +645,27 @@ resource "kubernetes_manifest" "REDACTED_233e2f0b" {
     }
   }
 }
+
+# Wildcard Certificate - groundnet.net
+resource "kubernetes_manifest" "REDACTED_7a64a702" {
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_9774d43a"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_9774d43a-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.groundnet.net",
+        "groundnet.net"
+      ]
+    }
+  }
+}
