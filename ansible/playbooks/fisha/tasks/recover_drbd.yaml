@@ -1,0 +1,481 @@
+---
+# FISHA DRBD Recovery Tasks
+#
+# Self-healing recovery for DRBD, Pacemaker promotion, OCFS2, and network
+# after node reboots on the FISHA HA NFS cluster.
+#
+# Handles observed production failures:
+#   - DRBD minor not allocated after reboot (dirty activity log)
+#   - Pacemaker promotion delays or failures
+#   - DRBD disk Outdated/Inconsistent (resync in progress)
+#   - Peer connection not established
+#   - OCFS2 mount failures
+#   - MTU drift after reboot
+#
+# Cluster:
+#   nlcl01file01, nlcl01file02 (primaries, dual-primary DRBD)
+#   nlcl01filearb01 (arbiter, Diskless - no DRBD disk)
+#
+# DRBD resource: r0, backing /dev/nvme0n1, minor 0
+# Managed by Pacemaker as: ms_drbd_r0 (promotable clone)
+#
+# Expected variable: recover_node (passed from caller, defaults to inventory_hostname)
+#
+# Expected healthy end state:
+#   - DRBD: role:Primary, disk:UpToDate, peer-disk:UpToDate
+#   - OCFS2: /mnt/ocfs2 mounted
+#   - Pacemaker: ms_drbd_r0 Promoted on this node
+#
+# Skips all recovery on the arbiter (Diskless, drbdadm returns "No such resource").
+
+###############################################################################
+# Setup
+###############################################################################
+- name: "[DRBD-RECOVERY] Set recovery context"
+  set_fact:
+    _is_primary: "{{ inventory_hostname in groups.get('primaries', []) }}"
+    _peer_primary: "{{ groups.get('primaries', []) | difference([inventory_hostname]) | first | default('unknown') }}"
+    _recover_node: "{{ recover_node | default(inventory_hostname) }}"
+
+- name: "[DRBD-RECOVERY] Skip - arbiter has no DRBD disk"
+  debug:
+    msg: "[DRBD-RECOVERY] Skipping all recovery on {{ inventory_hostname }} (not a primary node, DRBD is Diskless)"
+  when: not (_is_primary | bool)
+
+###############################################################################
+# Step 1 - Check if DRBD resource exists
+###############################################################################
+- name: "[DRBD-RECOVERY] Step 1 - Check if DRBD resource r0 exists"
+  shell: |
+    echo "[DRBD-RECOVERY] Checking drbdadm status r0 on {{ inventory_hostname }}..."
+    output=$(drbdadm status r0 2>&1)
+    rc=$?
+    echo "$output"
+    if [ $rc -ne 0 ] || echo "$output" | grep -qi "No such resource"; then
+      echo "[DRBD-RECOVERY] DRBD resource r0 not available (rc=$rc) - needs recovery"
+      exit 1
+    fi
+    echo "[DRBD-RECOVERY] [OK] DRBD resource r0 exists"
+  register: _recover_step1
+  changed_when: false
+  failed_when: false
+  when: _is_primary | bool
+
+###############################################################################
+# Step 2 - Clean metadata and bring DRBD up (only when Step 1 found no resource)
+###############################################################################
+- name: "[DRBD-RECOVERY] Step 2 - Recover missing DRBD resource (dirty activity log)"
+  block:
+    - name: "[DRBD-RECOVERY] Step 2a - Apply activity log to clean metadata"
+      command: drbdadm apply-al r0
+      register: _recover_apply_al
+      failed_when: false
+
+    - name: "[DRBD-RECOVERY] Step 2a - Log result"
+      debug:
+        msg: >-
+          [DRBD-RECOVERY] apply-al
+          {{ 'succeeded' if _recover_apply_al.rc == 0
+          else 'failed (rc=' ~ _recover_apply_al.rc ~ ') - metadata may already be clean, continuing' }}
+
+    - name: "[DRBD-RECOVERY] Step 2b - Bring DRBD resource up"
+      command: drbdadm up r0
+      register: _recover_drbd_up
+      failed_when: false
+
+    - name: "[DRBD-RECOVERY] Step 2b - Collect diagnostics on failure"
+      shell: |
+        echo "=== crm status ==="
+        crm status 2>&1 || true
+        echo ""
+        echo "=== drbdadm dump r0 ==="
+        drbdadm dump r0 2>&1 || true
+      register: _recover_diag_2b
+      changed_when: false
+      failed_when: false
+      when: _recover_drbd_up.rc != 0
+
+    - name: "[DRBD-RECOVERY] [FAILED] Cannot bring DRBD up"
+      fail:
+        msg: |
+          [FAILED] Cannot bring DRBD up - manual intervention required.
+          drbdadm up stderr: {{ _recover_drbd_up.stderr | default('none') }}
+          {{ _recover_diag_2b.stdout | default('') }}
+      when: _recover_drbd_up.rc != 0
+
+    - name: "[DRBD-RECOVERY] Step 2c - Wait for resource to appear (30s)"
+      command: drbdadm status r0
+      register: _recover_step2c
+      until: _recover_step2c.rc == 0
+      retries: 6
+      delay: 5
+      changed_when: false
+      failed_when: false
+
+    - name: "[DRBD-RECOVERY] [FAILED] DRBD resource did not appear"
+      fail:
+        msg: "[FAILED] DRBD resource r0 did not appear after drbdadm up. Manual intervention required."
+      when: _recover_step2c.rc != 0
+
+    - name: "[DRBD-RECOVERY] Step 2d - Hand back to Pacemaker (drbdadm down)"
+      command: drbdadm down r0
+
+    - name: "[DRBD-RECOVERY] Step 2d - Brief wait before Pacemaker takeover"
+      pause:
+        seconds: 5
+
+    - name: "[DRBD-RECOVERY] Step 2 - [OK] DRBD metadata cleaned and resource handed to Pacemaker"
+      debug:
+        msg: "[DRBD-RECOVERY] [OK] Activity log applied, drbdadm up/down cycle completed, Pacemaker will manage from here"
+  when:
+    - _is_primary | bool
+    - _recover_step1.rc != 0
+
+- name: "[DRBD-RECOVERY] Step 2 - Skipped (resource already exists)"
+  debug:
+    msg: "[DRBD-RECOVERY] [OK] Step 2 skipped - DRBD resource r0 already available"
+  when:
+    - _is_primary | bool
+    - _recover_step1.rc == 0
+
+###############################################################################
+# Step 3 - Ensure node is online in Pacemaker
+###############################################################################
+- name: "[DRBD-RECOVERY] Step 3 - Ensure node is online in Pacemaker"
+  shell: |
+    node="{{ inventory_hostname }}"
+    crm_out=$(crm status 2>&1)
+
+    if echo "$crm_out" | grep -E "Online:" | grep -q "\b${node}\b"; then
+      echo "[DRBD-RECOVERY] [OK] $node is already Online in Pacemaker"
+      exit 0
+    fi
+
+    if echo "$crm_out" | grep -qi "standby" && echo "$crm_out" | grep -i "standby" | grep -q "\b${node}\b"; then
+      echo "[DRBD-RECOVERY] $node is in Standby - bringing online..."
+      crm node online "$node"
+      sleep 15
+      echo "[DRBD-RECOVERY] [OK] Brought $node online in Pacemaker"
+      exit 0
+    fi
+
+    echo "[DRBD-RECOVERY] [WARNING] $node status unclear, attempting to bring online..."
+    echo "$crm_out" | head -20
+    crm node online "$node" 2>/dev/null || true
+    sleep 15
+    echo "[DRBD-RECOVERY] Attempted to bring $node online"
+  register: _recover_step3
+  changed_when: "'bringing online' in _recover_step3.stdout"
+  when: _is_primary | bool
+
+###############################################################################
+# Step 4 - Wait for Pacemaker to promote DRBD (with cleanup fallback)
+###############################################################################
+- name: "[DRBD-RECOVERY] Step 4 - Wait for Pacemaker to promote ms_drbd_r0"
+  block:
+    - name: "[DRBD-RECOVERY] Step 4 - Check ms_drbd_r0 Promoted on {{ inventory_hostname }} (up to 3 min)"
+      shell: |
+        crm_out=$(crm status 2>&1)
+        drbd_section=$(echo "$crm_out" | grep -A5 "ms_drbd_r0" || true)
+        echo "[DRBD-RECOVERY] ms_drbd_r0 status:"
+        echo "$drbd_section"
+        if echo "$drbd_section" | grep -iE "Promoted|Masters" | grep -q "{{ inventory_hostname }}"; then
+          echo "[DRBD-RECOVERY] [OK] ms_drbd_r0 Promoted on {{ inventory_hostname }}"
+          exit 0
+        fi
+        exit 1
+      register: _recover_step4
+      until: _recover_step4.rc == 0
+      retries: 18
+      delay: 10
+      changed_when: false
+  rescue:
+    - name: "[DRBD-RECOVERY] Step 4 - [WARNING] Promotion timed out, running cleanup"
+      debug:
+        msg: "[DRBD-RECOVERY] [WARNING] ms_drbd_r0 not Promoted on {{ inventory_hostname }} after 3 minutes - attempting crm resource cleanup"
+
+    - name: "[DRBD-RECOVERY] Step 4 - crm resource cleanup ms_drbd_r0"
+      command: crm resource cleanup ms_drbd_r0
+
+    - name: "[DRBD-RECOVERY] Step 4 - Wait for cleanup (30s)"
+      pause:
+        seconds: 30
+
+    - name: "[DRBD-RECOVERY] Step 4 - Re-check promotion after cleanup"
+      shell: |
+        crm_out=$(crm status 2>&1)
+        drbd_section=$(echo "$crm_out" | grep -A5 "ms_drbd_r0" || true)
+        echo "$drbd_section"
+        if echo "$drbd_section" | grep -iE "Promoted|Masters" | grep -q "{{ inventory_hostname }}"; then
+          echo "[DRBD-RECOVERY] [OK] ms_drbd_r0 Promoted after cleanup"
+          exit 0
+        fi
+        exit 1
+      register: _recover_step4_retry
+      changed_when: false
+      failed_when: false
+
+    - name: "[DRBD-RECOVERY] Step 4 - Collect diagnostics on persistent failure"
+      shell: |
+        echo "=== crm status ==="
+        crm status 2>&1 || true
+        echo ""
+        echo "=== drbdadm status r0 ==="
+        drbdadm status r0 2>&1 || echo "drbdadm status r0 failed"
+      register: _recover_diag_4
+      changed_when: false
+      failed_when: false
+      when: _recover_step4_retry.rc != 0
+
+    - name: "[DRBD-RECOVERY] [FAILED] ms_drbd_r0 not Promoted after cleanup"
+      fail:
+        msg: |
+          [FAILED] ms_drbd_r0 not Promoted on {{ inventory_hostname }} after resource cleanup.
+          Manual intervention required.
+          {{ _recover_diag_4.stdout | default('No diagnostic output') }}
+      when: _recover_step4_retry.rc != 0
+  when: _is_primary | bool
+
+###############################################################################
+# Step 5 - Verify DRBD disk is UpToDate
+###############################################################################
+- name: "[DRBD-RECOVERY] Step 5 - Verify DRBD disk state"
+  shell: |
+    output=$(drbdadm status r0 2>&1)
+    echo "[DRBD-RECOVERY] Full DRBD status:"
+    echo "$output"
+
+    # Extract local disk state (first disk: field, before any peer sections)
+    disk_state=$(echo "$output" | grep "^\s*disk:" | head -1 | sed 's/.*disk://' | awk '{print $1}')
+    echo "[DRBD-RECOVERY] Local disk state: $disk_state"
+
+    case "$disk_state" in
+      UpToDate)
+        echo "[DRBD-RECOVERY] [OK] DRBD healthy: role:Primary disk:UpToDate"
+        exit 0
+        ;;
+      Outdated|Inconsistent)
+        echo "[DRBD-RECOVERY] [WARNING] DRBD disk is $disk_state - resync may be in progress"
+        echo "[DRBD-RECOVERY] Do NOT fail - resync can take hours on 3.6TB NVMe"
+        sync_info=$(drbdadm status r0 2>/dev/null | grep -iE "percent|sync|resynced|done" || echo "No sync progress info available")
+        echo "[DRBD-RECOVERY] Sync info: $sync_info"
+        exit 0
+        ;;
+      Diskless|Detaching|Failed)
+        echo "[DRBD-RECOVERY] [FAILED] DRBD disk in unrecoverable state: $disk_state"
+        exit 1
+        ;;
+      *)
+        echo "[DRBD-RECOVERY] [WARNING] Unexpected disk state: $disk_state - treating as non-fatal"
+        exit 0
+        ;;
+    esac
+  register: _recover_step5
+  changed_when: false
+  failed_when: false
+  when: _is_primary | bool
+
+- name: "[DRBD-RECOVERY] Step 5 - Collect diagnostics on disk failure"
+  shell: |
+    echo "=== crm status ==="
+    crm status 2>&1 || true
+    echo ""
+    echo "=== drbdadm status r0 ==="
+    drbdadm status r0 2>&1 || echo "drbdadm status r0 failed"
+  register: _recover_diag_5
+  changed_when: false
+  failed_when: false
+  when:
+    - _is_primary | bool
+    - _recover_step5.rc != 0
+
+- name: "[DRBD-RECOVERY] [FAILED] DRBD disk in unrecoverable state"
+  fail:
+    msg: |
+      [FAILED] DRBD disk in unrecoverable state on {{ inventory_hostname }}.
+      {{ _recover_step5.stdout | default('') }}
+      {{ _recover_diag_5.stdout | default('') }}
+  when:
+    - _is_primary | bool
+    - _recover_step5.rc != 0
+
+###############################################################################
+# Step 6 - Verify peer connection (warning only, non-fatal)
+###############################################################################
+- name: "[DRBD-RECOVERY] Step 6 - Wait for peer primary connection (60s)"
+  shell: |
+    peer="{{ _peer_primary }}"
+    echo "[DRBD-RECOVERY] Checking connection to peer primary $peer..."
+
+    drbd_out=$(drbdadm status r0 2>&1)
+    echo "$drbd_out"
+
+    # Check if peer primary shows peer-disk:UpToDate (fully connected)
+    if echo "$drbd_out" | grep -A2 "$peer" | grep -q "peer-disk:UpToDate"; then
+      echo "[DRBD-RECOVERY] [OK] Peer $peer: peer-disk:UpToDate (connected)"
+      exit 0
+    fi
+
+    # Fallback: check via cstate (Connected but not Connecting)
+    cstate=$(drbdadm cstate r0 2>/dev/null || true)
+    echo "[DRBD-RECOVERY] Connection states: $cstate"
+    if echo "$cstate" | grep -q "Connected"; then
+      echo "[DRBD-RECOVERY] [OK] At least one peer connection is Connected"
+      exit 0
+    fi
+
+    echo "[DRBD-RECOVERY] Peer $peer not yet connected"
+    exit 1
+  register: _recover_step6
+  until: _recover_step6.rc == 0
+  retries: 6
+  delay: 10
+  changed_when: false
+  failed_when: false
+  when: _is_primary | bool
+
+- name: "[DRBD-RECOVERY] Step 6 - Attempt reconnect to peer"
+  block:
+    - name: "[DRBD-RECOVERY] Step 6 - Try drbdadm connect r0"
+      command: drbdadm connect r0
+      failed_when: false
+
+    - name: "[DRBD-RECOVERY] Step 6 - Wait after reconnect (30s)"
+      pause:
+        seconds: 30
+
+    - name: "[DRBD-RECOVERY] Step 6 - Re-check peer connection"
+      shell: |
+        peer="{{ _peer_primary }}"
+        drbd_out=$(drbdadm status r0 2>&1)
+        echo "$drbd_out"
+
+        if echo "$drbd_out" | grep -A2 "$peer" | grep -q "peer-disk:UpToDate"; then
+          echo "[DRBD-RECOVERY] [OK] Peer $peer connected after reconnect"
+          exit 0
+        fi
+        cstate=$(drbdadm cstate r0 2>/dev/null || true)
+        echo "[DRBD-RECOVERY] Connection states: $cstate"
+        if echo "$cstate" | grep -q "Connected"; then
+          echo "[DRBD-RECOVERY] [OK] Peer connection restored after reconnect"
+          exit 0
+        fi
+        echo "[DRBD-RECOVERY] [WARNING] Peer {{ _peer_primary }} still not connected after reconnect (peer may still be rebooting)"
+        exit 1
+      register: _recover_step6_retry
+      changed_when: false
+      failed_when: false
+
+    - name: "[DRBD-RECOVERY] Step 6 - Log reconnect result"
+      debug:
+        msg: >-
+          [DRBD-RECOVERY]
+          {{ '[OK] Peer ' ~ _peer_primary ~ ' connected after reconnect'
+          if _recover_step6_retry.rc == 0
+          else '[WARNING] Peer ' ~ _peer_primary ~ ' still not connected - peer may still be rebooting. Continuing.' }}
+  when:
+    - _is_primary | bool
+    - _recover_step6.rc != 0
+
+- name: "[DRBD-RECOVERY] Step 6 - Peer connected"
+  debug:
+    msg: "[DRBD-RECOVERY] [OK] Peer {{ _peer_primary }} connection verified"
+  when:
+    - _is_primary | bool
+    - _recover_step6.rc == 0
+
+###############################################################################
+# Step 7 - Verify OCFS2 remounts (with restart fallback)
+###############################################################################
+- name: "[DRBD-RECOVERY] Step 7 - Verify OCFS2 mount"
+  block:
+    - name: "[DRBD-RECOVERY] Step 7 - Check if /mnt/ocfs2 is mounted"
+      shell: |
+        if df -h 2>/dev/null | grep -q '/mnt/ocfs2'; then
+          echo "[DRBD-RECOVERY] [OK] OCFS2 mounted on /mnt/ocfs2"
+          df -h /mnt/ocfs2 2>/dev/null
+          exit 0
+        fi
+        echo "[DRBD-RECOVERY] /mnt/ocfs2 not mounted"
+        exit 1
+      register: _recover_step7_initial
+      changed_when: false
+  rescue:
+    - name: "[DRBD-RECOVERY] Step 7 - OCFS2 not mounted, restarting ocfs2-clone"
+      debug:
+        msg: "[DRBD-RECOVERY] [WARNING] OCFS2 not mounted - restarting ocfs2-clone via CRM"
+
+    - name: "[DRBD-RECOVERY] Step 7 - crm resource restart ocfs2-clone"
+      command: crm resource restart ocfs2-clone
+
+    - name: "[DRBD-RECOVERY] Step 7 - Wait for OCFS2 to mount (up to 3 minutes)"
+      shell: |
+        if df -h 2>/dev/null | grep -q '/mnt/ocfs2'; then
+          echo "[DRBD-RECOVERY] [OK] OCFS2 mounted on /mnt/ocfs2 after restart"
+          df -h /mnt/ocfs2 2>/dev/null
+          exit 0
+        fi
+        echo "[DRBD-RECOVERY] /mnt/ocfs2 not yet mounted"
+        exit 1
+      register: _recover_step7_retry
+      until: _recover_step7_retry.rc == 0
+      retries: 12
+      delay: 15
+      changed_when: false
+      failed_when: false
+
+    - name: "[DRBD-RECOVERY] Step 7 - Collect diagnostics on OCFS2 failure"
+      shell: |
+        echo "=== crm status ==="
+        crm status 2>&1 || true
+        echo ""
+        echo "=== drbdadm status r0 ==="
+        drbdadm status r0 2>&1 || echo "drbdadm status r0 failed"
+        echo ""
+        echo "=== mount | grep ocfs2/drbd ==="
+        mount 2>/dev/null | grep -E 'ocfs2|drbd' || echo "No OCFS2/DRBD mounts found"
+      register: _recover_diag_7
+      changed_when: false
+      failed_when: false
+      when: _recover_step7_retry.rc != 0
+
+    - name: "[DRBD-RECOVERY] [FAILED] OCFS2 failed to remount after DRBD recovery"
+      fail:
+        msg: |
+          [FAILED] OCFS2 failed to remount on /mnt/ocfs2 after DRBD recovery.
+          Manual intervention required.
+          {{ _recover_diag_7.stdout | default('No diagnostic output') }}
+      when: _recover_step7_retry.rc != 0
+  when: _is_primary | bool
+
+###############################################################################
+# Step 8 - MTU consistency check (warning only, non-fatal)
+###############################################################################
+- name: "[DRBD-RECOVERY] Step 8 - Check MTU on enp6s18"
+  shell: |
+    mtu=$(ip link show enp6s18 2>/dev/null | grep -o 'mtu [0-9]*' | awk '{print $2}')
+    if [ -z "$mtu" ]; then
+      echo "[DRBD-RECOVERY] [WARNING] Could not determine MTU for enp6s18 (interface may not exist)"
+      exit 0
+    fi
+    echo "[DRBD-RECOVERY] enp6s18 MTU: $mtu"
+    if [ "$mtu" = "9000" ]; then
+      echo "[DRBD-RECOVERY] [OK] MTU is 9000 (jumbo frames)"
+      exit 0
+    fi
+    echo "[DRBD-RECOVERY] [WARNING] enp6s18 MTU is $mtu, expected 9000."
+    echo "  Check /etc/netplan/60-vlan10.yaml and"
+    echo "  /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg."
+    echo "  Also verify Proxmox VM net0 config has mtu=9000."
+  register: _recover_step8
+  changed_when: false
+  failed_when: false
+  when: _is_primary | bool
+
+###############################################################################
+# Summary
+###############################################################################
+- name: "[DRBD-RECOVERY] Recovery complete for {{ inventory_hostname }}"
+  debug:
+    msg: "[DRBD-RECOVERY] [OK] All recovery steps completed on {{ inventory_hostname }}"
+  when: _is_primary | bool

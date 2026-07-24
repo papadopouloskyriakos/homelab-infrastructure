@@ -1,0 +1,308 @@
+---
+# Synology DSM Update — nl-nas01 + nlsyno02 (parallel or sequential)
+#
+# Required extra_vars:
+#   matrix_api_token: Matrix bot token for status updates
+#
+# Optional extra_vars:
+#   targets: "syno01" (default), "both", or "syno02"
+#   parallel: true to update both simultaneously (default: true)
+#   dry_run: true to skip actual update (default: false)
+#   syno_sudo_pass: sudo password for synoadm@nlsyno02 (required for syno02 updates)
+#
+# nl-nas01 (DS1621+): DSM 7.2.x → patch update
+#   - SSH: admin@10.0.X.X, key ~/.ssh/one_key (passwordless sudo)
+#   - Post-update: verify NFS (10 exports), iSCSI, VMM (nlfilearb01, nliotarb01, nl-pve02)
+#
+# nlsyno02 (DS1513+): DSM 7.1.1 — PATCH ONLY (7.1.x security fixes)
+#   - SSH: synoadm@10.0.X.X, key ~/.ssh/one_key (sudo needs password)
+#   - Post-update: verify NFS (3 exports), packages, disk health
+#   - NOTE: DS1513+ is hardware-locked to DSM 7.1.x (Atom D2700, no AES-NI).
+#     Synology dropped 7.2 support for this model. synoupgrade --check will only
+#     find 7.1.x patches, never 7.2. Disk 5 (sde) has 56 bad sectors — monitor SMART.
+#   - EOL: Extended Life Phase, security patches through 2026. Plan DS1523+ replacement.
+#
+# Runs from localhost.
+
+- name: "Synology DSM update"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    _targets: "{{ targets | default('syno01') }}"
+    _parallel: "{{ parallel | default(true) | bool }}"
+    _dry_run: "{{ dry_run | default(false) | bool }}"
+    _syno01_sudo: "{{ 'echo ' + syno_sudo_pass + ' | sudo -S' if syno_sudo_pass is defined else 'sudo' }}"
+    _syno02_sudo: "{{ 'echo ' + syno_sudo_pass + ' | sudo -S' if syno_sudo_pass is defined else 'sudo' }}"
+
+  tasks:
+    ###########################################################################
+    # Pre-update state capture
+    ###########################################################################
+    - name: "[SYNO] Record nl-nas01 DSM version"
+      shell: |
+        ssh -i ~/.ssh/one_key admin@10.0.X.X \
+          "cat /etc.defaults/VERSION 2>/dev/null | grep -E 'productversion|buildnumber' | tr '\n' ' '"
+      register: syno01_version_before
+      changed_when: false
+      when: _targets in ['both', 'syno01']
+
+    - name: "[SYNO] Record nlsyno02 DSM version"
+      shell: |
+        ssh -i ~/.ssh/one_key synoadm@10.0.X.X \
+          "cat /etc.defaults/VERSION 2>/dev/null | grep -E 'productversion|buildnumber' | tr '\n' ' '"
+      register: syno02_version_before
+      changed_when: false
+      when: _targets in ['both', 'syno02']
+
+    - name: "[SYNO] Display pre-update versions"
+      debug:
+        msg: |
+          nl-nas01: {{ syno01_version_before.stdout | default('N/A') }}
+          nlsyno02: {{ syno02_version_before.stdout | default('N/A') }}
+
+    ###########################################################################
+    # syno01 update
+    ###########################################################################
+    - name: "[SYNO01] Check for DSM update"
+      shell: |
+        ssh -i ~/.ssh/one_key admin@10.0.X.X \
+          "{{ _syno01_sudo }} synoupgrade --check 2>&1" || echo "CHECK_FAILED"
+      register: syno01_check
+      changed_when: false
+      when: _targets in ['both', 'syno01']
+
+    - name: "[SYNO01] Download DSM update"
+      shell: |
+        ssh -i ~/.ssh/one_key admin@10.0.X.X \
+          "{{ _syno01_sudo }} synoupgrade --download 2>&1"
+      register: syno01_download
+      when:
+        - _targets in ['both', 'syno01']
+        - not _dry_run
+        - "'CHECK_FAILED' not in syno01_check.stdout"
+      async: 600
+      poll: 30
+
+    - name: "[SYNO01] Start DSM update (will reboot)"
+      shell: |
+        ssh -i ~/.ssh/one_key admin@10.0.X.X \
+          "{{ _syno01_sudo }} synoupgrade --start 2>&1" || true
+      when:
+        - _targets in ['both', 'syno01']
+        - not _dry_run
+        - syno01_download is defined
+        - syno01_download.rc | default(1) == 0
+      async: 60
+      poll: 0
+
+    ###########################################################################
+    # syno02 update (can run in parallel with syno01)
+    ###########################################################################
+    - name: "[SYNO02] Check for DSM 7.1.x patch (DS1513+ — max DSM 7.1, no 7.2 support)"
+      shell: |
+        ssh -i ~/.ssh/one_key synoadm@10.0.X.X \
+          "{{ _syno02_sudo }} synoupgrade --check 2>&1" || echo "CHECK_FAILED"
+      register: syno02_check
+      changed_when: false
+      when: _targets in ['both', 'syno02']
+
+    - name: "[SYNO02] Download DSM update"
+      shell: |
+        ssh -i ~/.ssh/one_key synoadm@10.0.X.X \
+          "{{ _syno02_sudo }} synoupgrade --download 2>&1"
+      register: syno02_download
+      when:
+        - _targets in ['both', 'syno02']
+        - not _dry_run
+        - "'CHECK_FAILED' not in syno02_check.stdout"
+      async: 600
+      poll: 30
+
+    - name: "[SYNO02] Start DSM 7.1.x patch (will reboot if patch applied)"
+      shell: |
+        ssh -i ~/.ssh/one_key synoadm@10.0.X.X \
+          "{{ _syno02_sudo }} synoupgrade --start 2>&1" || true
+      when:
+        - _targets in ['both', 'syno02']
+        - not _dry_run
+        - syno02_download is defined
+        - syno02_download.rc | default(1) == 0
+      async: 60
+      poll: 0
+
+    ###########################################################################
+    # Wait for both NAS to come back
+    ###########################################################################
+    - name: "[SYNO01] Wait for SSH (up to 15 min — DSM update takes time)"
+      ansible.builtin.wait_for:
+        host: 10.0.X.X
+        port: 22
+        timeout: 900
+        state: started
+      when:
+        - _targets in ['both', 'syno01']
+        - not _dry_run
+
+    - name: "[SYNO02] Wait for SSH (up to 10 min — 7.1.x patch reboot)"
+      ansible.builtin.wait_for:
+        host: 10.0.X.X
+        port: 22
+        timeout: 600
+        state: started
+      when:
+        - _targets in ['both', 'syno02']
+        - not _dry_run
+
+    - name: "[SYNO] Wait for services to stabilize (60s)"
+      pause:
+        seconds: 60
+      when: not _dry_run
+
+    ###########################################################################
+    # Post-update validation — syno01
+    ###########################################################################
+    - name: "[SYNO01] Validate post-update"
+      block:
+        - name: "[SYNO01] Check DSM web UI"
+          uri:
+            url: "https://10.0.X.X:5001"
+            method: GET
+            validate_certs: no
+            timeout: 30
+            status_code: [200, 302]
+          register: syno01_web
+          retries: 3
+          delay: 15
+          until: syno01_web.status | default(0) in [200, 302]
+          failed_when: false
+
+        - name: "[SYNO01] Check NFS exports (expect 10)"
+          shell: |
+            count=$(showmount -e 10.0.X.X 2>/dev/null | grep -c "/" || echo "0")
+            echo "NFS exports: $count (expected 10)"
+            [ "$count" -ge 10 ]
+          register: syno01_nfs
+          retries: 5
+          delay: 15
+          until: syno01_nfs.rc == 0
+          changed_when: false
+
+        - name: "[SYNO01] Check iSCSI target service"
+          shell: |
+            ssh -i ~/.ssh/one_key admin@10.0.X.X \
+              "sudo synoservice --status pkgctl-ScsiTarget 2>&1" || echo "SERVICE_CHECK_FAILED"
+          register: syno01_iscsi
+          changed_when: false
+
+        - name: "[SYNO01] Check VMM guests (nlcl01filearb01, nlcl01iotarb01, nl-pve02)"
+          shell: |
+            ssh -i ~/.ssh/one_key admin@10.0.X.X \
+              "sudo synovm --list 2>/dev/null || echo 'VMM_CHECK_FAILED'"
+          register: syno01_vmm
+          changed_when: false
+
+        - name: "[SYNO01] Check storage pools"
+          shell: |
+            ssh -i ~/.ssh/one_key admin@10.0.X.X \
+              "df -h /volume1 /volume2 2>/dev/null || echo 'REDACTED_f51eb3d7'"
+          register: syno01_storage
+          changed_when: false
+
+        - name: "[SYNO01] Record new DSM version"
+          shell: |
+            ssh -i ~/.ssh/one_key admin@10.0.X.X \
+              "cat /etc.defaults/VERSION 2>/dev/null | grep -E 'productversion|buildnumber' | tr '\n' ' '"
+          register: syno01_version_after
+          changed_when: false
+
+        - name: "[SYNO01] Post-update summary"
+          debug:
+            msg: |
+              nl-nas01 post-update:
+                DSM: {{ syno01_version_before.stdout | default('?') }} → {{ syno01_version_after.stdout | default('?') }}
+                Web UI: {{ 'OK' if syno01_web.status | default(0) in [200, 302] else 'CHECK' }}
+                NFS: {{ syno01_nfs.stdout_lines | first | default('?') }}
+                iSCSI: {{ 'running' if 'running' in (syno01_iscsi.stdout | default('')) else 'CHECK' }}
+                VMM: {{ syno01_vmm.stdout_lines | first | default('?') }}
+      when: _targets in ['both', 'syno01']
+
+    ###########################################################################
+    # Post-update validation — syno02
+    ###########################################################################
+    - name: "[SYNO02] Validate post-update (7.1.x patch)"
+      block:
+        - name: "[SYNO02] Check DSM web UI"
+          uri:
+            url: "https://10.0.X.X:5001"
+            method: GET
+            validate_certs: no
+            timeout: 30
+            status_code: [200, 302]
+          register: syno02_web
+          retries: 3
+          delay: 15
+          until: syno02_web.status | default(0) in [200, 302]
+          failed_when: false
+
+        - name: "[SYNO02] Check NFS exports (expect 3)"
+          shell: |
+            count=$(showmount -e 10.0.X.X 2>/dev/null | grep -c "/" || echo "0")
+            echo "NFS exports: $count (expected 3)"
+            [ "$count" -ge 3 ]
+          register: syno02_nfs
+          retries: 5
+          delay: 15
+          until: syno02_nfs.rc == 0
+          changed_when: false
+
+        - name: "[SYNO02] Check volume1 health"
+          shell: |
+            ssh -i ~/.ssh/one_key synoadm@10.0.X.X \
+              "df -h /volume1 2>/dev/null" || echo "VOLUME_CHECK_FAILED"
+          register: syno02_volume
+          changed_when: false
+
+        - name: "[SYNO02] Check packages after patch"
+          shell: |
+            ssh -i ~/.ssh/one_key synoadm@10.0.X.X \
+              "{{ _syno02_sudo }} synopkg list --name 2>/dev/null || echo 'PACKAGE_CHECK_FAILED'"
+          register: syno02_packages
+          changed_when: false
+
+        - name: "[SYNO02] Check NFS mount from syno01"
+          shell: |
+            ssh -i ~/.ssh/one_key synoadm@10.0.X.X \
+              "mount | grep nl-nas01 || echo 'NO_SYNO01_MOUNT (expected — soft mount)'"
+          register: syno02_nfs_mount
+          changed_when: false
+          failed_when: false
+
+        - name: "[SYNO02] Check disk 5 SMART (56 bad sectors)"
+          shell: |
+            ssh -i ~/.ssh/one_key synoadm@10.0.X.X \
+              "{{ _syno02_sudo }} smartctl -H /dev/sde 2>/dev/null | grep -i 'result\|passed\|failed' || echo 'SMART_CHECK_SKIPPED'"
+          register: syno02_smart
+          changed_when: false
+          failed_when: false
+
+        - name: "[SYNO02] Record new DSM version"
+          shell: |
+            ssh -i ~/.ssh/one_key synoadm@10.0.X.X \
+              "cat /etc.defaults/VERSION 2>/dev/null | grep -E 'productversion|buildnumber' | tr '\n' ' '"
+          register: syno02_version_after
+          changed_when: false
+
+        - name: "[SYNO02] Post-update summary"
+          debug:
+            msg: |
+              nlsyno02 post-update (7.1.x patch):
+                DSM: {{ syno02_version_before.stdout | default('?') }} → {{ syno02_version_after.stdout | default('?') }}
+                Web UI: {{ 'OK' if syno02_web.status | default(0) in [200, 302] else 'CHECK' }}
+                NFS: {{ syno02_nfs.stdout_lines | first | default('?') }}
+                Volume: {{ syno02_volume.stdout_lines | first | default('?') }}
+                Packages: {{ syno02_packages.stdout_lines | first | default('?') }}
+                Disk 5 SMART: {{ syno02_smart.stdout_lines | last | default('?') }}
+      when: _targets in ['both', 'syno02']

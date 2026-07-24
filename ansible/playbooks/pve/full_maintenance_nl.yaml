@@ -1,0 +1,723 @@
+---
+# NL Full Site Maintenance — End-to-end PVE kernel update orchestration
+#
+# Scope: nl-pve01 (83 guests) + nl-pve02 (7 guests) + nl-pve03 (53 guests)
+#        + nl-nas01 (DSM 7.2.x patch) + nlsyno02 (DSM 7.1.x patch only — DS1513+ EOL, no 7.2)
+# Clusters: K8s (7 nodes), FISHA (3 nodes), IoT/HAHA (3 nodes), Galera (3), Redis (3)
+# Nextcloud HA: 21 hosts across 9 layers
+#
+# Required extra_vars:
+#   api_token: LibreNMS API token (NL instance)
+#   matrix_api_token: Matrix bot token
+#
+# Optional extra_vars:
+#   operator: who is running this (default: "AWX")
+#   skip_email: true to skip email report (default: false)
+#   skip_synology: true to skip nl-nas01+nlsyno02 update (default: false)
+#   synology_targets: "syno01" (default), "both", or "syno02" — controls which NAS to update
+#   dry_run: true to skip actual reboots (default: false)
+#
+# Estimated duration: ~135 minutes (2.25 hours)
+#
+# Procedure (from maintenance plan section 4):
+#   Phase 1: Graceful application shutdown (top-down, T6→T0)
+#   Phase 2: K8s graceful drain
+#   Phase 3: Pacemaker clusters graceful shutdown
+#   Phase 4: Remaining infrastructure shutdown
+#   Phase 5: PVE + Synology updates + reboots
+#   Phase 6: Tiered startup with health gates (T0→T6)
+#   Phase 7: Post-maintenance cleanup + email
+
+###############################################################################
+# Play 1: Pre-maintenance
+###############################################################################
+- name: "NL Pre-maintenance"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    site: "nl"
+    _operator: "{{ operator | default('AWX') }}"
+
+  tasks:
+    ###########################################################################
+    # SSH config: ensure key and host-checking are set correctly
+    # In AWX EE: key is mounted at /runner/.ssh/one_key via K8s secret
+    # On claude-runner: key is at ~/.ssh/one_key natively
+    ###########################################################################
+    - name: "Ensure ~/.ssh directory exists"
+      file:
+        path: "~/.ssh"
+        state: directory
+        mode: '0700'
+
+    - name: "Configure SSH defaults (key path, no host checking)"
+      copy:
+        content: |
+          Host nlclaude01
+            User claude-runner
+            IdentityFile ~/.ssh/one_key
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+          Host nl* 192.168.181.* 192.168.88.*
+            User root
+            IdentityFile ~/.ssh/one_key
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+          Host gr* 192.168.2.* 192.168.58.*
+            User root
+            IdentityFile ~/.ssh/one_key
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+          Host *
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+            IdentityFile ~/.ssh/one_key
+        dest: "~/.ssh/config"
+        mode: '0600'
+        force: false
+
+    - name: Record maintenance start
+      set_fact:
+        maint_start: "{{ now(utc=true) }}"
+        maint_timeline: []
+        maint_issues: []
+
+    - name: Add timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'NL maintenance started'}] }}"
+
+    # STEP 1: LibreNMS maintenance (catastrophic — all devices, parallel)
+    - name: "[PRE] Set LibreNMS maintenance on ALL NL devices (parallel)"
+      shell: |
+        API_URL="https://nlnms01.example.net/api/v0"
+        TOKEN="{{ api_token }}"
+
+        # Fetch all device IDs
+        devices=$(curl -sk -H "X-Auth-Token: $TOKEN" \
+          "$API_URL/devices?columns=hostname,device_id" 2>/dev/null \
+          | python3 -c "import json,sys; [print(d['device_id']) for d in json.load(sys.stdin).get('devices',[])]" 2>/dev/null)
+
+        total=$(echo "$devices" | wc -l)
+        echo "Setting maintenance on $total devices (parallel, 10 at a time)..."
+
+        # Fire requests in batches of 10 (avoid overwhelming the API)
+        count=0
+        for did in $devices; do
+          curl -sk -X POST \
+            -H "X-Auth-Token: $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"title":"PVE kernel maintenance","notes":"Automated full-site maintenance","duration":"2:30"}' \
+            "$API_URL/devices/$did/maintenance/" \
+            -o /dev/null -w "" 2>/dev/null &
+          count=$((count + 1))
+          # Batch limit: wait every 10 requests
+          if [ $((count % 10)) -eq 0 ]; then
+            wait
+          fi
+        done
+        wait
+        echo "Done: $count devices processed"
+      register: librenms_maint
+      changed_when: false
+      ignore_errors: true
+
+    # STEP 2: ChatOps maintenance mode
+    - name: "[PRE] Set ChatOps maintenance mode"
+      shell: |
+        # Write locally if file path is accessible, otherwise SSH
+        if [ -d /home/claude-runner ]; then
+          echo '{"started":"{{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}","reason":"NL PVE kernel updates + Synology DSM","eta_minutes":135,"operator":"{{ _operator }}","site":"nl"}' > /home/claude-runner/gateway.maintenance
+        else
+          ssh -i ~/.ssh/one_key claude-runner@nlclaude01 "echo '{\"started\":\"{{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}\",\"reason\":\"NL PVE kernel updates + Synology DSM\",\"eta_minutes\":135,\"operator\":\"{{ _operator }}\",\"site\":\"nl\"}' > /home/claude-runner/gateway.maintenance"
+        fi
+      ignore_errors: true
+
+    # STEP 3: Snapshot state
+    - name: "[PRE] Capture pre-maintenance snapshot"
+      include_tasks: ../common/tasks/snapshot_state.yaml
+      vars:
+        site: "nl"
+
+    # STEP 4: Email notification
+    - name: "[PRE] Send start notification email"
+      shell: |
+        echo "Subject: [NL] PVE Maintenance Starting — {{ now(utc=true, fmt='%Y-%m-%d') }}
+
+        NL PVE kernel maintenance starting.
+        Services affected: ALL NL infrastructure.
+        ETA: 2 hours 15 minutes.
+        Operator: {{ _operator }}" | sendmail -t -S 10.0.X.X:25 root 2>/dev/null || true
+      failed_when: false
+
+    - name: Add timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'Pre-maintenance complete'}] }}"
+
+###############################################################################
+# Play 2: Phase 1 — Graceful Application Shutdown (T6→T5)
+###############################################################################
+- name: "NL Phase 1 — Graceful Application Shutdown"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    _dry_run: "{{ dry_run | default(false) | bool }}"
+
+  tasks:
+    # STEP 5: Stop T6 leaf services (bulk)
+    - name: "[SHUTDOWN] Stop T6 leaf LXCs on nl-pve01 (media stack)"
+      shell: |
+        ssh nl-pve01 "
+          for ctid in \$(pct list 2>/dev/null | grep running | awk '{print \$1}' | grep -v -E '101100201|101100301|101100401|101101401|101201202|101100103|101201201'); do
+            pct shutdown \$ctid --timeout 60 2>/dev/null &
+          done
+          wait
+          echo 'pve01 bulk LXC shutdown dispatched'
+        "
+      when: not _dry_run
+      async: 300
+      poll: 0
+      register: pve01_bulk_stop
+
+    - name: "[SHUTDOWN] Stop T6 leaf LXCs on pve03"
+      shell: |
+        ssh nl-pve03 "
+          # Keep: LibreNMS(103100701), Claude(103101213), OpenClaw(103101212)
+          for ctid in \$(pct list 2>/dev/null | grep running | awk '{print \$1}' | grep -v -E '103100701|103101213|103101212'); do
+            pct shutdown \$ctid --timeout 60 2>/dev/null &
+          done
+          wait
+          echo 'pve03 bulk LXC shutdown dispatched'
+        "
+      when: not _dry_run
+      async: 300
+      poll: 0
+      register: pve03_bulk_stop
+
+    # STEP 6: Stop T5 platform services
+    - name: "[SHUTDOWN] Stop T5 platform services"
+      shell: |
+        # Claude + OpenClaw (pve03)
+        ssh nl-pve03 "pct shutdown 103101213 --timeout 60 2>/dev/null; pct shutdown 103101212 --timeout 60 2>/dev/null" &
+        # n8n + Matrix + GitLab + Mattermost (pve01)
+        ssh nl-pve01 "pct shutdown 101101401 --timeout 60 2>/dev/null; pct shutdown 101201202 --timeout 60 2>/dev/null; pct shutdown 101100103 --timeout 60 2>/dev/null; pct shutdown 101201201 --timeout 60 2>/dev/null" &
+        # LibreNMS (pve03)
+        ssh nl-pve03 "pct shutdown 103100701 --timeout 60 2>/dev/null" &
+        # Frigate (pve03)
+        ssh nl-pve03 "pct shutdown 101101404 --timeout 60 2>/dev/null" &
+        wait
+        echo 'T5 services stopped'
+      when: not _dry_run
+
+    - name: "[SHUTDOWN] Wait for T5+T6 shutdowns (2 min)"
+      pause:
+        seconds: 120
+      when: not _dry_run
+
+    - name: Add timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'T5+T6 services stopped'}] }}"
+
+###############################################################################
+# Play 3: Phase 2 — K8s Graceful Drain
+###############################################################################
+- name: "NL Phase 2 — K8s Drain"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    _dry_run: "{{ dry_run | default(false) | bool }}"
+
+  tasks:
+    # STEPS 7-8: Cordon + drain
+    - name: "[K8S] Cordon all NL K8s nodes"
+      command: "kubectl cordon {{ item }}"
+      loop:
+        - nlk8s-ctrl01
+        - nlk8s-ctrl02
+        - nlk8s-ctrl03
+        - nlk8s-node01
+        - nlk8s-node02
+        - nlk8s-node03
+        - nlk8s-node04
+      failed_when: false
+      when: not _dry_run
+
+    - name: "[K8S] Drain workers"
+      command: >-
+        kubectl drain {{ item }}
+        --ignore-daemonsets --delete-emptydir-data --disable-eviction --timeout=300s --force
+      loop:
+        - nlk8s-node01
+        - nlk8s-node02
+        - nlk8s-node03
+        - nlk8s-node04
+      async: 360
+      poll: 15
+      when: not _dry_run
+
+    # STEPS 9-10: Stop K8s VMs
+    - name: "[K8S] Stop K8s workers + CP + infra"
+      shell: |
+        # Workers
+        ssh nl-pve01 "qm shutdown 101850602 --timeout 120 2>/dev/null; qm shutdown 101850603 --timeout 120 2>/dev/null" &
+        ssh nl-pve03 "qm shutdown 103850602 --timeout 120 2>/dev/null; qm shutdown 103850603 --timeout 120 2>/dev/null" &
+        wait
+        # CP + infra (pve01)
+        ssh nl-pve01 "qm shutdown 101850601 --timeout 120 2>/dev/null; pct shutdown 101850401 --timeout 60 2>/dev/null; pct shutdown 101850201 --timeout 60 2>/dev/null; pct shutdown 101850101 --timeout 60 2>/dev/null"
+        # CP + infra (pve03)
+        ssh nl-pve03 "qm shutdown 103850601 --timeout 120 2>/dev/null; pct shutdown 103850401 --timeout 60 2>/dev/null; pct shutdown 103850201 --timeout 60 2>/dev/null; pct shutdown 103850101 --timeout 60 2>/dev/null"
+        echo 'K8s VMs stopped'
+      when: not _dry_run
+
+    - name: Add timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'K8s drained + VMs stopped'}] }}"
+
+###############################################################################
+# Play 4: Phase 3 — Pacemaker Shutdown + Phase 4 — Remaining
+###############################################################################
+- name: "NL Phase 3+4 — Pacemaker + Remaining Shutdown"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    _dry_run: "{{ dry_run | default(false) | bool }}"
+
+  tasks:
+    # STEPS 11-12: Pacemaker graceful shutdown
+    - name: "[CLUSTER] Graceful Pacemaker shutdown"
+      include_tasks: ../pacemaker/graceful_shutdown.yaml
+      when: not _dry_run
+
+    # STEP 13: Nextcloud maintenance mode
+    - name: "[NC] Enable Nextcloud maintenance mode"
+      shell: |
+        ssh nlnc01 "sudo -u www-data php /var/www/nextcloud/occ maintenance:mode --on" 2>&1 || true
+      when: not _dry_run
+
+    - name: "[NC] Stop NC nodes + HAProxy + ProxySQL + Collabora"
+      shell: |
+        ssh nl-pve01 "qm shutdown 101101206 --timeout 120 2>/dev/null; pct shutdown 101100402 --timeout 60 2>/dev/null; pct shutdown 101101004 --timeout 60 2>/dev/null; pct shutdown 101101205 --timeout 60 2>/dev/null" &
+        ssh nl-pve03 "qm shutdown 103101201 --timeout 120 2>/dev/null; pct shutdown 103101007 --timeout 60 2>/dev/null; pct shutdown 101101008 --timeout 60 2>/dev/null; pct shutdown 103101008 --timeout 60 2>/dev/null; qm shutdown 103101205 --timeout 60 2>/dev/null; pct shutdown 103101203 --timeout 60 2>/dev/null" &
+        wait
+      when: not _dry_run
+
+    # STEP 14: DB + Cache
+    - name: "[DB] Record Galera seqno for bootstrap"
+      shell: |
+        ssh nlcl01mariadb01 "mysql -N -e \"SHOW STATUS LIKE 'REDACTED_9b24442e'\" 2>/dev/null | awk '{print \$2}'" || echo "0"
+      register: galera_seqno
+      changed_when: false
+      failed_when: false
+
+    - name: "[DB] Stop Galera + Redis"
+      shell: |
+        ssh nl-pve01 "pct shutdown 101101002 --timeout 60 2>/dev/null" &  # mariadb01
+        ssh nl-pve03 "pct shutdown 103101002 --timeout 60 2>/dev/null" &  # mariadb02
+        ssh nl-pve01 "pct shutdown 101101003 --timeout 60 2>/dev/null" &  # redis01
+        ssh nl-pve03 "pct shutdown 103101003 --timeout 60 2>/dev/null" &  # redis03
+        wait
+      when: not _dry_run
+
+    # STEP 15: Remaining guests on pve01 + pve03
+    - name: "[REMAINING] Stop remaining VMs (GPU, IoT, FISHA)"
+      shell: |
+        # GPU VM (pve03)
+        ssh nl-pve03 "qm shutdown 103100606 --timeout 120 2>/dev/null" &
+        # IoT VMs
+        ssh nl-pve01 "qm shutdown 666 --timeout 60 2>/dev/null" &
+        ssh nl-pve03 "qm shutdown 777 --timeout 60 2>/dev/null" &
+        # FISHA VMs
+        ssh nl-pve01 "qm shutdown \$(qm list 2>/dev/null | grep 'file01' | awk '{print \$1}') --timeout 120 2>/dev/null" &
+        ssh nl-pve03 "qm shutdown \$(qm list 2>/dev/null | grep 'file02' | awk '{print \$1}') --timeout 120 2>/dev/null" &
+        wait
+      when: not _dry_run
+
+    - name: "[REMAINING] Stop remaining LXCs (bulk, keep T0 on pve01)"
+      shell: |
+        # pve03 — stop everything remaining
+        ssh nl-pve03 "for ctid in \$(pct list 2>/dev/null | grep running | awk '{print \$1}'); do pct shutdown \$ctid --timeout 60 2>/dev/null & done; wait"
+        # pve01 — stop everything EXCEPT Pi-hole, FreeIPA, NPM
+        ssh nl-pve01 "for ctid in \$(pct list 2>/dev/null | grep running | awk '{print \$1}' | grep -v -E '101100201|101100301|101100401'); do pct shutdown \$ctid --timeout 60 2>/dev/null & done; wait"
+      when: not _dry_run
+
+    # STEP 16: pve02 guests
+    - name: "[PVE02] Stop nl-pve02 guests"
+      shell: |
+        ssh nl-pve02 "
+          for ctid in \$(pct list 2>/dev/null | grep running | awk '{print \$1}'); do pct shutdown \$ctid --timeout 60 2>/dev/null; done
+          for vmid in \$(qm list 2>/dev/null | grep running | awk '{print \$1}'); do qm shutdown \$vmid --timeout 60 2>/dev/null; done
+        "
+      when: not _dry_run
+
+    # STEP 17: T0 services last
+    - name: "[T0] Stop NPM, Pi-hole, FreeIPA (DNS goes offline)"
+      shell: |
+        ssh nl-pve01 "pct shutdown 101100401 --timeout 60 2>/dev/null"  # NPM
+        ssh nl-pve01 "pct shutdown 101100201 --timeout 60 2>/dev/null"  # Pi-hole
+        ssh nl-pve01 "pct shutdown 101100301 --timeout 60 2>/dev/null"  # FreeIPA
+      when: not _dry_run
+
+    - name: "[SHUTDOWN] Wait for all shutdowns to complete (3 min)"
+      pause:
+        seconds: 180
+      when: not _dry_run
+
+    - name: Add timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'All services stopped'}] }}"
+
+###############################################################################
+# Play 5: Phase 5 — PVE + Synology Updates
+###############################################################################
+- name: "NL Phase 5 — Updates + Reboots"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    _dry_run: "{{ dry_run | default(false) | bool }}"
+    _skip_synology: "{{ skip_synology | default(false) | bool }}"
+
+  tasks:
+    # STEP 18: Update pve02
+    - name: "[PVE02] Record state before"
+      shell: ssh nl-pve02 "uname -r; echo '---'; pveversion -v 2>/dev/null | head -5"
+      register: nl_pve02_kernel_before
+      changed_when: false
+
+    - name: "[PVE02] Update packages"
+      shell: |
+        ssh nl-pve02 "
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update && \
+          apt-get dist-upgrade -y -o Dpkg::Options::='--force-confold' && \
+          apt-get autoremove --purge -y
+        "
+      async: 600
+      poll: 30
+      when: not _dry_run
+
+    - name: "[PVE02] Pin latest kernel + refresh bootloader"
+      shell: |
+        ssh nl-pve02 "
+          latest=\$(proxmox-boot-tool kernel list 2>/dev/null | grep -E '^[0-9]+.*-pve' | sort -V | tail -1 | xargs)
+          if [ -n \"\$latest\" ]; then
+            pinned=\$(proxmox-boot-tool kernel list 2>/dev/null | grep -A1 'Pinned kernel' | tail -1 | xargs)
+            if [ \"\$pinned\" != \"\$latest\" ]; then
+              proxmox-boot-tool kernel pin \"\$latest\"
+              echo \"Pinned: \$latest\"
+            else
+              echo \"Already pinned: \$latest\"
+            fi
+            proxmox-boot-tool refresh
+          fi
+        "
+      when: not _dry_run
+
+    - name: "[PVE02] Shutdown pve02 VM on syno01"
+      shell: |
+        ssh -i ~/.ssh/one_key admin@10.0.X.X \
+          "sudo synovm --shutdown nl-pve02 2>&1" || true
+      when: not _dry_run
+
+    # STEP 19: Update Synology NAS (default: nl-nas01 only)
+    # nlsyno02 (DS1513+) is EOL — max DSM 7.1.x, no 7.2 support.
+    # Pass synology_targets="both" to include nlsyno02 for 7.1.x patches.
+    - name: "[SYNOLOGY] Update Synology DSM"
+      include_tasks: ../synology/update_dsm.yaml
+      vars:
+        targets: "{{ synology_targets | default('syno01') }}"
+      when: not _dry_run and not _skip_synology
+
+    # STEP 20: Wait for pve02 auto-start on syno01
+    - name: "[PVE02] Wait for pve02 SSH (auto-starts on syno01 VMM)"
+      ansible.builtin.wait_for:
+        host: nl-pve02
+        port: 22
+        timeout: 600
+        state: started
+      when: not _dry_run
+
+    - name: "[PVE02] Record state after"
+      shell: ssh nl-pve02 "uname -r; echo '---'; pveversion -v 2>/dev/null | head -5"
+      register: nl_pve02_kernel_after
+      changed_when: false
+
+    - name: Add timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'nl-pve02 + Synology updated'}] }}"
+
+    # STEP 21: Update + reboot pve03
+    - name: "[PVE03] Record state before"
+      shell: ssh nl-pve03 "uname -r; echo '---'; pveversion -v 2>/dev/null | head -5"
+      register: nl_pve03_kernel_before
+      changed_when: false
+
+    - name: "[PVE03] Update packages"
+      shell: |
+        ssh nl-pve03 "
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update && \
+          apt-get dist-upgrade -y -o Dpkg::Options::='--force-confold' && \
+          apt-get autoremove --purge -y
+        "
+      async: 600
+      poll: 30
+      when: not _dry_run
+
+    - name: "[PVE03] Pin latest kernel + refresh bootloader"
+      shell: |
+        ssh nl-pve03 "
+          latest=\$(proxmox-boot-tool kernel list 2>/dev/null | grep -E '^[0-9]+.*-pve' | sort -V | tail -1 | xargs)
+          if [ -n \"\$latest\" ]; then
+            pinned=\$(proxmox-boot-tool kernel list 2>/dev/null | grep -A1 'Pinned kernel' | tail -1 | xargs)
+            if [ \"\$pinned\" != \"\$latest\" ]; then
+              proxmox-boot-tool kernel pin \"\$latest\"
+              echo \"Pinned: \$latest\"
+            else
+              echo \"Already pinned: \$latest\"
+            fi
+            proxmox-boot-tool refresh
+          fi
+        "
+      when: not _dry_run
+
+    - name: "[PVE03] Reboot"
+      shell: ssh nl-pve03 "reboot" || true
+      when: not _dry_run
+
+    - name: "[PVE03] Wait for SSH (ZFS import may be slow)"
+      ansible.builtin.wait_for:
+        host: nl-pve03
+        port: 22
+        timeout: 600
+        state: started
+      when: not _dry_run
+
+    - name: "[PVE03] Record state after"
+      shell: ssh nl-pve03 "uname -r; echo '---'; pveversion -v 2>/dev/null | head -5"
+      register: nl_pve03_kernel_after
+      changed_when: false
+
+    - name: Add timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'nl-pve03 updated + rebooted'}] }}"
+
+    # STEP 22: Update + reboot pve01
+    - name: "[PVE01] Record state before"
+      shell: ssh nl-pve01 "uname -r; echo '---'; pveversion -v 2>/dev/null | head -5"
+      register: nl_pve01_kernel_before
+      changed_when: false
+
+    - name: "[PVE01] Update packages"
+      shell: |
+        ssh nl-pve01 "
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update && \
+          apt-get dist-upgrade -y -o Dpkg::Options::='--force-confold' && \
+          apt-get autoremove --purge -y
+        "
+      async: 600
+      poll: 30
+      when: not _dry_run
+
+    - name: "[PVE01] Pin latest kernel + refresh bootloader"
+      shell: |
+        ssh nl-pve01 "
+          latest=\$(proxmox-boot-tool kernel list 2>/dev/null | grep -E '^[0-9]+.*-pve' | sort -V | tail -1 | xargs)
+          if [ -n \"\$latest\" ]; then
+            pinned=\$(proxmox-boot-tool kernel list 2>/dev/null | grep -A1 'Pinned kernel' | tail -1 | xargs)
+            if [ \"\$pinned\" != \"\$latest\" ]; then
+              proxmox-boot-tool kernel pin \"\$latest\"
+              echo \"Pinned: \$latest\"
+            else
+              echo \"Already pinned: \$latest\"
+            fi
+            proxmox-boot-tool refresh
+          fi
+        "
+      when: not _dry_run
+
+    - name: "[PVE01] Reboot"
+      shell: ssh nl-pve01 "reboot" || true
+      when: not _dry_run
+
+    - name: "[PVE01] Wait for SSH (ZFS import may be slow)"
+      ansible.builtin.wait_for:
+        host: nl-pve01
+        port: 22
+        timeout: 600
+        state: started
+      when: not _dry_run
+
+    - name: "[PVE01] Record state after"
+      shell: ssh nl-pve01 "uname -r; echo '---'; pveversion -v 2>/dev/null | head -5"
+      register: nl_pve01_kernel_after
+      changed_when: false
+
+    - name: Add timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'nl-pve01 updated + rebooted, guests auto-starting'}] }}"
+
+###############################################################################
+# Play 6: Phase 6 — Tiered Startup
+###############################################################################
+- name: "NL Phase 6 — Tiered Startup"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  tasks:
+    - name: "[STARTUP] Wait for PVE guests to begin auto-starting (3 min)"
+      pause:
+        seconds: 180
+
+    - name: "[STARTUP] Run tiered startup with health gates"
+      include_tasks: tiered_startup_nl.yaml
+      vars:
+        matrix_api_token: "{{ matrix_api_token }}"
+
+    - name: Add timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'Tiered startup complete'}] }}"
+
+###############################################################################
+# Play 7: Post-maintenance cleanup
+###############################################################################
+- name: "NL Post-maintenance"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    _operator: "{{ operator | default('AWX') }}"
+    _skip_email: "{{ skip_email | default(false) | bool }}"
+
+  tasks:
+    # STEP 46: Clear ChatOps maintenance mode
+    - name: "[POST] Clear ChatOps maintenance mode"
+      shell: |
+        if [ -d /home/claude-runner ]; then
+          rm -f /home/claude-runner/gateway.maintenance
+        else
+          ssh -i ~/.ssh/one_key claude-runner@nlclaude01 "rm -f /home/claude-runner/gateway.maintenance"
+        fi
+      ignore_errors: true
+
+    - name: "[POST] Post completion to Matrix #chatops"
+      uri:
+        url: "https://matrix.example.net/_matrix/client/v3/rooms/!PVkZvHgyrtBVEbgpRt:matrix.example.net/send/m.room.message"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ matrix_api_token }}"
+          Content-Type: application/json
+        body_format: json
+        body:
+          msgtype: "m.notice"
+          body: "NL maintenance complete. All services restored. 15-minute cooldown active."
+        status_code: [200]
+        timeout: 30
+      ignore_errors: true
+
+    # STEP 48: Email report
+    - name: "[POST] Build report data"
+      set_fact:
+        report_data:
+          start_time: "{{ maint_start }}"
+          end_time: "{{ now(utc=true) }}"
+          node_updates:
+            - node: "nl-pve01"
+              kernel_before: "{{ nl_pve01_kernel_before.stdout | default('unknown') }}"
+              kernel_after: "{{ nl_pve01_kernel_after.stdout | default('unknown') }}"
+              packages_changed: "yes"
+            - node: "nl-pve02"
+              kernel_before: "{{ nl_pve02_kernel_before.stdout | default('unknown') }}"
+              kernel_after: "{{ nl_pve02_kernel_after.stdout | default('unknown') }}"
+              packages_changed: "yes"
+            - node: "nl-pve03"
+              kernel_before: "{{ nl_pve03_kernel_before.stdout | default('unknown') }}"
+              kernel_after: "{{ nl_pve03_kernel_after.stdout | default('unknown') }}"
+              packages_changed: "yes"
+          health_checks: []
+          issues: "{{ maint_issues | default([]) }}"
+          timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'Maintenance complete'}] }}"
+
+    - name: "[POST] Send email report"
+      include_tasks: ../common/tasks/email_report.yaml
+      vars:
+        site: "nl"
+        operator: "{{ _operator }}"
+      when: not _skip_email
+
+    ###########################################################################
+    # Post-maintenance LibreNMS alert check
+    ###########################################################################
+    - name: "[POST] Check NL LibreNMS for active alerts"
+      shell: |
+        alerts=$(curl -sk -H "X-Auth-Token: {{ api_token }}" \
+          "https://nlnms01.example.net/api/v0/alerts?state=1" 2>/dev/null)
+        active=$(echo "$alerts" | python3 -c "import json,sys; a=json.load(sys.stdin).get('alerts',[]); print(len(a))" 2>/dev/null || echo "?")
+        echo "Active alerts: $active"
+        if [ "$active" != "0" ] && [ "$active" != "?" ]; then
+          echo "$alerts" | python3 -c "import json,sys;[print('  [%s] %s'%(a.get('severity','?'),a.get('hostname','?'))) for a in json.load(sys.stdin).get('alerts',[])]" 2>/dev/null
+        fi
+      register: librenms_active
+      changed_when: false
+      failed_when: false
+
+    - name: "[POST] Check NL LibreNMS for acknowledged alerts"
+      shell: |
+        alerts=$(curl -sk -H "X-Auth-Token: {{ api_token }}" \
+          "https://nlnms01.example.net/api/v0/alerts?state=2" 2>/dev/null)
+        acked=$(echo "$alerts" | python3 -c "import json,sys; a=json.load(sys.stdin).get('alerts',[]); print(len(a))" 2>/dev/null || echo "?")
+        echo "Acknowledged alerts: $acked"
+        if [ "$acked" != "0" ] && [ "$acked" != "?" ]; then
+          echo "$alerts" | python3 -c "import json,sys;[print('  [%s] %s'%(a.get('severity','?'),a.get('hostname','?'))) for a in json.load(sys.stdin).get('alerts',[])]" 2>/dev/null
+        fi
+      register: librenms_acked
+      changed_when: false
+      failed_when: false
+
+    - name: "[POST] LibreNMS alert summary"
+      debug:
+        msg: |
+          Post-maintenance LibreNMS alert check:
+            {{ librenms_active.stdout_lines | first | default('Unknown') }}
+            {{ librenms_acked.stdout_lines | first | default('Unknown') }}
+          {% if (librenms_active.stdout | default('0')) is search('[1-9]') %}
+          WARNING: Active alerts detected — investigate before closing maintenance window.
+          {% endif %}
+
+    # Final summary
+    - name: "═══ NL MAINTENANCE COMPLETE ═══"
+      debug:
+        msg: |
+          ═══════════════════════════════════════════
+          NL Full Site Maintenance Complete
+          ═══════════════════════════════════════════
+          Start: {{ maint_start }}
+          End:   {{ now(utc=true) }}
+
+          Kernel updates:
+            nl-pve01: {{ nl_pve01_kernel_before.stdout | default('?') }} → {{ nl_pve01_kernel_after.stdout | default('?') }}
+            nl-pve02: {{ nl_pve02_kernel_before.stdout | default('?') }} → {{ nl_pve02_kernel_after.stdout | default('?') }}
+            nl-pve03: {{ nl_pve03_kernel_before.stdout | default('?') }} → {{ nl_pve03_kernel_after.stdout | default('?') }}
+
+          Timeline:
+          {% for t in maint_timeline %}
+            {{ t.time }} {{ t.event }}
+          {% endfor %}

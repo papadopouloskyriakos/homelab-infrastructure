@@ -1,0 +1,173 @@
+---
+# K8s Graceful Drain — Cordon + drain all nodes for maintenance
+#
+# Required extra_vars:
+#   k8s_context: kubectl context name ("default" for NL, "gr" for GR)
+#
+# Optional extra_vars:
+#   drain_timeout: seconds per node drain (default: 300)
+#   drain_workers_only: true to skip cordoning CP nodes (default: false)
+#
+# Steps:
+#   1. Discover all nodes via kubectl
+#   2. Cordon all nodes (or workers only)
+#   3. Drain all worker nodes (--ignore-daemonsets --delete-emptydir-data)
+#   4. Verify: no user pods on workers (only DaemonSets remain)
+#
+# Runs from localhost (kubectl available on claude-runner).
+
+- name: "K8s graceful drain (context: {{ k8s_context }})"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    _context: "{{ k8s_context }}"
+    _drain_timeout: "{{ drain_timeout | default(300) }}"
+    _workers_only: "{{ drain_workers_only | default(false) | bool }}"
+
+  tasks:
+    - name: Record drain start time
+      set_fact:
+        drain_start: "{{ now(utc=true) }}"
+
+    ###########################################################################
+    # Discover nodes
+    ###########################################################################
+    - name: Get all K8s nodes
+      command: >-
+        kubectl --context {{ _context }} get nodes
+        -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.metadata.labels.node-role\.kubernetes\.io/control-plane}{"\n"}{end}'
+      register: node_list
+      changed_when: false
+
+    - name: Parse node roles
+      set_fact:
+        all_nodes: "{{ node_list.stdout_lines | map('split', ' ') | map('first') | list }}"
+        cp_nodes: >-
+          {{ node_list.stdout_lines
+             | select('search', ' ')
+             | map('split', ' ')
+             | selectattr('1', 'defined')
+             | map('first')
+             | list }}
+        worker_nodes: >-
+          {{ node_list.stdout_lines
+             | reject('search', ' [^ ]')
+             | map('split', ' ')
+             | map('first')
+             | list }}
+
+    - name: Display discovered nodes
+      debug:
+        msg: |
+          Context: {{ _context }}
+          Total nodes: {{ all_nodes | length }}
+          Control plane: {{ cp_nodes | join(', ') }}
+          Workers: {{ worker_nodes | join(', ') }}
+          Mode: {{ 'workers only' if _workers_only else 'all nodes' }}
+
+    - name: Verify cluster is reachable
+      assert:
+        that:
+          - all_nodes | length > 0
+        fail_msg: "No nodes found in context {{ _context }}. Is the cluster reachable?"
+
+    ###########################################################################
+    # Cordon
+    ###########################################################################
+    - name: Determine nodes to cordon
+      set_fact:
+        cordon_nodes: "{{ worker_nodes if _workers_only else all_nodes }}"
+
+    - name: Cordon nodes
+      command: kubectl --context {{ _context }} cordon {{ item }}
+      loop: "{{ cordon_nodes }}"
+      register: cordon_results
+      changed_when: "'cordoned' in cordon_results.stdout"
+
+    - name: Verify all target nodes are cordoned
+      command: >-
+        kubectl --context {{ _context }} get node {{ item }}
+        -o jsonpath='{.spec.unschedulable}'
+      loop: "{{ cordon_nodes }}"
+      register: cordon_verify
+      changed_when: false
+      failed_when: "'true' not in cordon_verify.stdout"
+
+    ###########################################################################
+    # Drain workers
+    ###########################################################################
+    - name: Drain worker nodes (sequential, with timeout)
+      command: >-
+        kubectl --context {{ _context }} drain {{ item }}
+        --ignore-daemonsets
+        --delete-emptydir-data
+        --disable-eviction
+        --timeout={{ _drain_timeout }}s
+        --force
+      loop: "{{ worker_nodes }}"
+      register: drain_results
+      async: "{{ (_drain_timeout | int) + 60 }}"
+      poll: 15
+
+    - name: Display drain results
+      debug:
+        msg: "{{ item.item }}: {{ 'drained' if item.rc == 0 else 'FAILED (rc=' ~ item.rc ~ ')' }}"
+      loop: "{{ drain_results.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    ###########################################################################
+    # Verify: no user pods on workers
+    ###########################################################################
+    - name: Check remaining pods on worker nodes
+      shell: |
+        remaining=$(kubectl --context {{ _context }} get pods --all-namespaces \
+          --field-selector spec.nodeName={{ item }} \
+          -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}{" "}{.metadata.ownerReferences[0].kind}{"\n"}{end}' 2>/dev/null)
+
+        # Filter out DaemonSet pods (expected to remain)
+        non_ds=$(echo "$remaining" | grep -v "DaemonSet" | grep -v "^$" || true)
+
+        if [ -n "$non_ds" ]; then
+          echo "NON_DAEMONSET_PODS_REMAIN:"
+          echo "$non_ds"
+          exit 1
+        fi
+
+        ds_count=$(echo "$remaining" | grep "DaemonSet" | wc -l)
+        echo "OK: only {{ item }} has $ds_count DaemonSet pods remaining"
+      loop: "{{ worker_nodes }}"
+      register: verify_drain
+      changed_when: false
+      failed_when: false
+
+    - name: Warn if non-DaemonSet pods remain
+      debug:
+        msg: >-
+          WARNING: Non-DaemonSet pods still on {{ item.item }}: {{ item.stdout }}
+      loop: "{{ verify_drain.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: item.rc != 0
+
+    ###########################################################################
+    # Summary
+    ###########################################################################
+    - name: Store drain results for orchestrator
+      set_fact:
+        k8s_drain_completed: true
+        k8s_drain_start: "{{ drain_start }}"
+        k8s_drain_end: "{{ now(utc=true) }}"
+        k8s_cordoned_nodes: "{{ cordon_nodes }}"
+        k8s_drained_workers: "{{ worker_nodes }}"
+
+    - name: Display drain summary
+      debug:
+        msg: |
+          K8s drain complete (context: {{ _context }}).
+          Cordoned: {{ cordon_nodes | length }} nodes
+          Drained: {{ worker_nodes | length }} workers
+          Duration: {{ drain_start }} — {{ now(utc=true) }}

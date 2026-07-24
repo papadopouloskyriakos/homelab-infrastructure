@@ -1,0 +1,163 @@
+---
+# Sync cert-manager wildcard certificate to Proxmox VE nodes
+# Flow: K8s cert-manager secret -> Proxmox nodes via SSH (root)
+# Idempotent: skips if pveproxy cert expiry matches K8s cert expiry
+#
+# Hosts group required: proxmox
+# nl-pve01, nl-pve02, nl-pve03, gr-pve01, gr-pve02
+#
+# Credentials from AWX/OpenBao custom credentials:
+#   K8s API: K8S_HOST, K8S_TOKEN, K8S_CA_CERT
+#
+# Cert paths per node:
+#   /etc/pve/local/pveproxy-ssl.pem  (fullchain)
+#   /etc/pve/local/pveproxy-ssl.key  (private key)
+
+- name: Fetch certificate from Kubernetes
+  hosts: localhost
+  gather_facts: false
+  vars:
+    k8s_secret_name: REDACTED_0d82b4df-tls
+    k8s_secret_namespace: cert-manager
+    temp_dir: REDACTED_88f47687
+
+  tasks:
+    - name: Create temp directory
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: directory
+        mode: '0700'
+
+    - name: Set credentials from environment
+      ansible.builtin.set_fact:
+        k8s_host: "{{ lookup('env', 'K8S_HOST') }}"
+        k8s_token: "{{ lookup('env', 'K8S_TOKEN') }}"
+        k8s_ca_cert: "{{ lookup('env', 'K8S_CA_CERT') }}"
+      no_log: true
+
+    - name: Write CA cert to temp file
+      ansible.builtin.copy:
+        content: "{{ k8s_ca_cert }}"
+        dest: "{{ temp_dir }}/ca.crt"
+        mode: '0600'
+
+    - name: Get TLS secret from K8s API
+      ansible.builtin.uri:
+        url: "{{ k8s_host }}/api/v1/namespaces/{{ k8s_secret_namespace }}/secrets/{{ k8s_secret_name }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ k8s_token }}"
+        ca_path: "{{ temp_dir }}/ca.crt"
+        validate_certs: true
+        return_content: true
+      register: k8s_secret
+      no_log: true
+
+    - name: Decode and save fullchain cert
+      ansible.builtin.copy:
+        content: "{{ k8s_secret.json.data['tls.crt'] | b64decode }}"
+        dest: "{{ temp_dir }}/fullchain.pem"
+        mode: '0600'
+      no_log: true
+
+    - name: Decode and save private key
+      ansible.builtin.copy:
+        content: "{{ k8s_secret.json.data['tls.key'] | b64decode }}"
+        dest: "{{ temp_dir }}/privkey.pem"
+        mode: '0600'
+      no_log: true
+
+    - name: Get K8s certificate expiry
+      ansible.builtin.command:
+        cmd: openssl x509 -enddate -noout -in "{{ temp_dir }}/fullchain.pem"
+      register: k8s_cert_expiry_raw
+      changed_when: false
+
+    - name: Parse K8s certificate expiry to ISO format
+      ansible.builtin.command:
+        cmd: date -d "{{ k8s_cert_expiry_raw.stdout | regex_replace('notAfter=', '') }}" -u +%Y-%m-%dT%H:%M:%S
+      register: k8s_cert_expiry
+      changed_when: false
+
+    - name: Display K8s certificate expiry
+      ansible.builtin.debug:
+        msg: "K8s certificate expires: {{ k8s_cert_expiry.stdout }}"
+
+
+- name: Deploy certificate to Proxmox nodes
+  hosts: proxmox
+  gather_facts: false
+  vars:
+    temp_dir: REDACTED_88f47687
+    k8s_cert_expiry: "{{ hostvars['localhost']['k8s_cert_expiry']['stdout'] }}"
+
+  tasks:
+    - name: Check current pveproxy cert expiry
+      ansible.builtin.shell:
+        cmd: |
+          if [ -f /etc/pve/local/pveproxy-ssl.pem ]; then
+            DATE=$(openssl x509 -enddate -noout -in /etc/pve/local/pveproxy-ssl.pem | sed 's/notAfter=//')
+            date -d "$DATE" -u +%Y-%m-%dT%H:%M:%S
+          else
+            echo "NONE"
+          fi
+      register: node_cert_expiry
+      changed_when: false
+
+    - name: Display current node cert expiry
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} current cert expires: {{ node_cert_expiry.stdout }}"
+
+    - name: Set sync flag
+      ansible.builtin.set_fact:
+        sync_needed: "{{ node_cert_expiry.stdout == 'NONE' or k8s_cert_expiry != node_cert_expiry.stdout }}"
+
+    - name: Display sync decision
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}: {{
+            'Sync needed - deploying new certificate'
+            if sync_needed else
+            'Sync NOT needed - certificate already current (' + k8s_cert_expiry + ')'
+          }}
+
+    - name: Deploy fullchain cert to Proxmox node
+      ansible.builtin.copy:
+        src: "{{ temp_dir }}/fullchain.pem"
+        dest: /etc/pve/local/pveproxy-ssl.pem
+      when: sync_needed
+
+    - name: Deploy private key to Proxmox node
+      ansible.builtin.copy:
+        src: "{{ temp_dir }}/privkey.pem"
+        dest: /etc/pve/local/pveproxy-ssl.key
+      no_log: true
+      when: sync_needed
+
+    - name: Restart pveproxy to apply new certificate
+      ansible.builtin.systemd:
+        name: pveproxy
+        state: restarted
+      when: sync_needed
+
+    - name: Final status
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}: {{
+            'Certificate deployed and pveproxy restarted.'
+            if sync_needed else
+            'No sync needed - certificate already current.'
+          }}
+
+
+- name: Cleanup temp directory
+  hosts: localhost
+  gather_facts: false
+  vars:
+    temp_dir: REDACTED_88f47687
+
+  tasks:
+    - name: Remove temp directory
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: absent
