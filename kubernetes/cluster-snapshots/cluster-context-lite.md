@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-07-23 03:00:02 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-07-24 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -69,9 +69,10 @@ velero/velero-node-agent-mwfzv: 4 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   40s         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   36s         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+NAMESPACE     LAST SEEN   TYPE      REASON          OBJECT                                  MESSAGE
+kube-system   40m         Warning   Unhealthy       pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+awx           27m         Warning   FailedKillPod   pod/automation-job-31277-7qf74          error killing pod: failed to "KillContainer" for "worker" with KillContainerError: "rpc error: code = Unknown desc = failed to stop container \"29fa479ac152632c3766947effd8d376eb9537500090b0f367bddcc45173e9d1\": ttrpc: closed"
+kube-system   6m23s       Warning   Unhealthy       pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
