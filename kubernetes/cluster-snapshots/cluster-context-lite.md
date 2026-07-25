@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-07-24 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-07-25 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 2847 |
+| Total Restarts | 2854 |
 
 ## Topology
 
@@ -37,14 +37,15 @@ _None_
 awx/awx-operator-controller-manager-6ffdf98f6-hwvqf: 4 restarts
 cilium-spire/spire-agent-49g4h: 5 restarts
 cilium-spire/spire-agent-mdslp: 8 restarts
+kube-system/cilium-operator-6cdbfb68d7-z6v2x: 4 restarts
 kube-system/clustermesh-apiserver-6c96779765-rmrzt: 4 restarts
 kube-system/etcd-nlk8s-ctrl01: 64 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 1992 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 1994 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 58 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 105 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl01: 107 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl02: 37 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl03: 90 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl03: 92 restarts
 kube-system/kube-scheduler-nlk8s-ctrl01: 37 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 34 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 37 restarts
@@ -69,10 +70,10 @@ velero/velero-node-agent-mwfzv: 4 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE     LAST SEEN   TYPE      REASON          OBJECT                                  MESSAGE
-kube-system   40m         Warning   Unhealthy       pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
-awx           27m         Warning   FailedKillPod   pod/automation-job-31277-7qf74          error killing pod: failed to "KillContainer" for "worker" with KillContainerError: "rpc error: code = Unknown desc = failed to stop container \"29fa479ac152632c3766947effd8d376eb9537500090b0f367bddcc45173e9d1\": ttrpc: closed"
-kube-system   6m23s       Warning   Unhealthy       pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
+kube-system   38m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system   30m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system   28m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
