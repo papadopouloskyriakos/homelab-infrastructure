@@ -128,6 +128,46 @@ resource "kubernetes_manifest" "REDACTED_84ac6bca" {
           ]
         },
         {
+          name     = "omoikane-backups"
+          interval = "5m"
+          rules = [
+            {
+              # OMOIKANE-1489: omoikane-backup.service failed on both app
+              # hosts for three days and nothing said so. The cause was an
+              # unreadable restic lock object plus an 81-day-old exclusive
+              # lock; both are fixed, but the silence is the part worth
+              # alerting on. node_exporter already exports this — the metric
+              # was there the whole time, unqueried.
+              alert = "OmoikaneBackupFailed"
+              expr  = "node_systemd_unit_state{name=\"omoikane-backup.service\",state=\"failed\"} == 1"
+              for   = "30m"
+              labels = {
+                severity = "critical"
+                service  = "omoikane-backup"
+              }
+              annotations = {
+                summary     = "omoikane-backup.service has been failed for 30m on {{ $labels.instance }}"
+                description = "Backups are not running on {{ $labels.instance }}. Check `journalctl -u omoikane-backup.service`. Common cause is a stale restic lock: `restic unlock --remove-all` removes locks by id without reading them, which plain `unlock` cannot do for a corrupt lock object. Note restic can only judge staleness of a lock naming the host it runs on, so a lock held by a dead PID on the OTHER host must be cleared from that host."
+              }
+            },
+            {
+              # A timer that stops firing is as bad as a service that fails,
+              # and looks like nothing at all.
+              alert = "OmoikaneBackupTimerInactive"
+              expr  = "node_systemd_unit_state{name=\"omoikane-backup.timer\",state=\"active\"} == 0"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                service  = "omoikane-backup"
+              }
+              annotations = {
+                summary     = "omoikane-backup.timer is not active on {{ $labels.instance }}"
+                description = "The daily backup timer is not armed. No failure will ever be reported because nothing will run."
+              }
+            },
+          ]
+        },
+        {
           name     = "REDACTED_6360e2dd"
           interval = "1m"
           rules = [
