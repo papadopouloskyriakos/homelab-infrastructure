@@ -77,35 +77,50 @@ resource "kubernetes_manifest" "REDACTED_84ac6bca" {
           interval = "1m"
           rules = [
             {
-              # Sustained per-subsystem outage. 15m rather than 5m because the
-              # prober needs two passes (~2m) to call something down, and a
-              # shared upstream briefly bouncing is not worth a page.
-              alert = "REDACTED_40473522OrDown"
-              expr  = "omoikane_status_subsystem_up{criticality=~\"essential|capability_critical\"} == 0"
-              for   = "15m"
+              # Precise: the ALARM tier only. omoikane_status_subsystem_state
+              # carries the daemon's severity classification (2 nominal, 1
+              # calibration, 0 alarm) — the same encoding as
+              # omoikane_status_overall — so this cannot fire for a merely
+              # degraded dependency.
+              #
+              # It replaces a rule written against omoikane_status_subsystem_up,
+              # which is 1 only when fully Up and therefore could not tell
+              # Degraded from Down. That rule paged critical for goal_match_rag
+              # while match scores were still working via a fallback and the
+              # daemon's own rollup read amber.
+              alert = "REDACTED_3d159ed5"
+              expr  = "omoikane_status_subsystem_state{criticality=~\"essential|capability_critical\"} == 0"
+              for   = "10m"
               labels = {
-                severity = "warning"
+                severity = "critical"
                 service  = "omoikane-daemon"
               }
               annotations = {
-                summary     = "Omoikane dependency {{ $labels.subsystem }} not fully up for 15m on {{ $labels.instance }}"
-                description = "{{ $labels.subsystem }} ({{ $labels.criticality }}, capability {{ $labels.capability }}) is not Up. The gauge is binary so this covers Degraded as well as Down — it tells you WHAT, at warning level. The critical page is REDACTED_1bc9b144, which reads the daemon's own tiering."
+                summary     = "Omoikane dependency {{ $labels.subsystem }} is ALARMING on {{ $labels.instance }} (10m)"
+                description = "{{ $labels.subsystem }} ({{ $labels.criticality }}, capability {{ $labels.capability }}) has reached the alarm tier — two consecutive failed probes on a dependency whose loss a member would notice. This is a real outage, not reduced capability."
               }
             },
             {
-              # Enhancing dependencies degrade quality, not availability, so
-              # they warn rather than page. tei_rerank has been down for 6+
-              # hours as of this writing and nothing said so.
-              alert = "OmoikaneEnhancingSubsystemDown"
-              expr  = "omoikane_status_subsystem_up{criticality=\"enhancing\"} == 0"
+              # The calibration tier: reduced capability, correctly reported.
+              # Warning by design — this is the tier the whole severity model
+              # exists to keep OFF the pager. It covers both a degraded
+              # capability-critical dependency and an enhancing one that is
+              # fully down (enhancing can never reach alarm), so it replaces
+              # the separate enhancing rule.
+              #
+              # An hour, because these are quality regressions: tei_rerank was
+              # down for months behind a silent RRF-only fallback and nothing
+              # said so.
+              alert = "REDACTED_40473522"
+              expr  = "omoikane_status_subsystem_state == 1"
               for   = "1h"
               labels = {
                 severity = "warning"
                 service  = "omoikane-daemon"
               }
               annotations = {
-                summary     = "Omoikane {{ $labels.subsystem }} has been down for an hour on {{ $labels.instance }}"
-                description = "{{ $labels.subsystem }} is enhancing-only: {{ $labels.capability }} still works but is degraded. Silent fallbacks make these easy to miss for months."
+                summary     = "Omoikane {{ $labels.subsystem }} degraded for an hour on {{ $labels.instance }}"
+                description = "{{ $labels.subsystem }} ({{ $labels.criticality }}) is at the calibration tier: {{ $labels.capability }} still works but is reduced. Silent fallbacks make these easy to miss for months, which is why this alerts at all — and why it is a warning, not a page."
               }
             },
             {
