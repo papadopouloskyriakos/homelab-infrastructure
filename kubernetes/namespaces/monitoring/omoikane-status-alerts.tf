@@ -43,16 +43,16 @@ resource "kubernetes_manifest" "REDACTED_84ac6bca" {
               # caught 2026-07-25: match scores went to zero for twenty hours.
               # NotDeployed emits no series at all, so `== 0` cannot fire for
               # a capability nobody deployed.
-              alert = "OmoikaneCapabilityDown"
+              alert = "REDACTED_cd76c02a"
               expr  = "omoikane_status_capability_up == 0"
               for   = "10m"
               labels = {
-                severity = "critical"
+                severity = "warning"
                 service  = "omoikane-daemon"
               }
               annotations = {
-                summary     = "Omoikane capability {{ $labels.capability }} has been unavailable for 10m on {{ $labels.instance }}"
-                description = "The user-facing capability {{ $labels.capability }} is reporting unavailable. Open /admin/status on the affected host for the component breakdown. Runbook: docs/runbooks/embedding-path-dark.md"
+                summary     = "Omoikane capability {{ $labels.capability }} is not fully working on {{ $labels.instance }} (10m)"
+                description = "This gauge is 1 only when the capability is fully Up, so it cannot distinguish Degraded from Down — warning, not critical. The site rollup omoikane_status_overall carries the daemon's own severity tiering; REDACTED_1bc9b144 is the page. Open /admin/status for the component breakdown. Runbook: docs/runbooks/embedding-path-dark.md"
               }
             },
             {
@@ -66,8 +66,8 @@ resource "kubernetes_manifest" "REDACTED_84ac6bca" {
                 service  = "omoikane-daemon"
               }
               annotations = {
-                summary     = "Omoikane overall status has been red for 10m on {{ $labels.instance }}"
-                description = "At least one essential or capability-critical dependency has been alarming for 10 minutes."
+                summary     = "Omoikane overall status has been RED for 10m on {{ $labels.instance }}"
+                description = "At least one essential or capability-critical dependency has been ALARMING (not merely degraded) for 10 minutes. This is the page. omoikane_status_overall is the only series carrying the daemon severity tiers — 2 green, 1 amber, 0 red, -1 not yet measured — so it is the only one that can tell a real outage from correctly-reported reduced capability. The per-subsystem warnings tell you which component."
               }
             },
           ]
@@ -80,16 +80,16 @@ resource "kubernetes_manifest" "REDACTED_84ac6bca" {
               # Sustained per-subsystem outage. 15m rather than 5m because the
               # prober needs two passes (~2m) to call something down, and a
               # shared upstream briefly bouncing is not worth a page.
-              alert = "OmoikaneSubsystemDown"
+              alert = "REDACTED_40473522OrDown"
               expr  = "omoikane_status_subsystem_up{criticality=~\"essential|capability_critical\"} == 0"
               for   = "15m"
               labels = {
-                severity = "critical"
+                severity = "warning"
                 service  = "omoikane-daemon"
               }
               annotations = {
-                summary     = "Omoikane dependency {{ $labels.subsystem }} down 15m on {{ $labels.instance }}"
-                description = "{{ $labels.subsystem }} ({{ $labels.criticality }}, capability {{ $labels.capability }}) has been down for 15 minutes."
+                summary     = "Omoikane dependency {{ $labels.subsystem }} not fully up for 15m on {{ $labels.instance }}"
+                description = "{{ $labels.subsystem }} ({{ $labels.criticality }}, capability {{ $labels.capability }}) is not Up. The gauge is binary so this covers Degraded as well as Down — it tells you WHAT, at warning level. The critical page is REDACTED_1bc9b144, which reads the daemon's own tiering."
               }
             },
             {
