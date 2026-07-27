@@ -484,6 +484,57 @@ resource "helm_release" "monitoring" {
                 { source_labels = ["__address__"], regex = "192\\.168\\.181\\..*", target_label = "site", replacement = "nl" },
               ]
             },
+            # =============================================================
+            # omoikane-daemon — the APPLICATION's own metrics.
+            #
+            # OMOIKANE-1486 (2026-07-26). The daemon has exposed /metrics on
+            # container port 8080 (host 8459) since it was built, and this
+            # Prometheus has never scraped it. Only `omoikane-node` existed,
+            # which is node_exporter — host CPU/RAM, not the application.
+            #
+            # The consequence was not theoretical. On 2026-07-25 the
+            # embedding backend died and ran ~20 hours with no alert. Part of
+            # that was missing instrumentation (fixed in daemon !3155/!3157),
+            # but the rest was this: nothing collected what the daemon
+            # emitted, so no rule could evaluate and nothing could page.
+            # `daemon/monitoring/prometheus-rules-omoikane-daemon.yaml` has
+            # been in the repo for months and is loaded by neither cluster.
+            #
+            # Reachability was verified before adding this, from inside
+            # prometheus-REDACTED_6dfbe9fc-0:
+            #   wget -qO- http://10.255.4.11:8459/metrics -> 314 omoikane_* series
+            #   wget -qO- http://10.255.5.11:8459/metrics -> 314 omoikane_* series
+            # Same hosts already scraped on :9100 by omoikane-node, so no
+            # firewall change is required.
+            #
+            # Collection only. No alert rules are activated by this change —
+            # see the MR for why those are deliberately separate.
+            #
+            # 30s interval: the daemon's status prober refreshes every 60s by
+            # default (OMOIKANE_STATUS_REFRESH_SECS), so 30s gives two samples
+            # per prober pass and keeps `for:` windows meaningful.
+            # =============================================================
+            {
+              job_name        = "omoikane-daemon"
+              scrape_interval = "30s"
+              metrics_path    = "/metrics"
+              static_configs = [
+                {
+                  targets = [
+                    "10.255.4.11:8459", # notrf01dmz01 — app NL primary
+                    "10.255.5.11:8459", # notrf01dmz02 — app NL peer
+                  ]
+                  labels = {
+                    role = "omoikane-production"
+                  }
+                },
+              ]
+              relabel_configs = [
+                { source_labels = ["__address__"], regex = "10\\.255\\.4\\.11:.*", target_label = "instance", replacement = "notrf01dmz01" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.5\\.11:.*", target_label = "instance", replacement = "notrf01dmz02" },
+                { source_labels = ["__address__"], regex = "10\\.255\\..*", target_label = "site", replacement = "no" },
+              ]
+            },
             # ChatOps Infrastructure - GPU Metrics (nvidia_gpu_exporter)
             {
               job_name = "chatops-nvidia"
