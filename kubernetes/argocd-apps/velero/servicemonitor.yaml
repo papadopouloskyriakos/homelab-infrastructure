@@ -1,0 +1,61 @@
+# OMOIKANE-1527: make Velero observable.
+#
+# Velero serves 73 metric series on container port 8085 (verified by curling the
+# pod IP directly), including velero_backup_partial_failure_total and
+# velero_backup_last_successful_timestamp. Prometheus never saw any of them:
+# there was no Service in front of the port and no ServiceMonitor, so every
+# velero_* query returned 0 series.
+#
+# That is why 244 days of PartiallyFailed backups produced no alert. It was not
+# that a rule was missing — there was no data for a rule to evaluate. Adding an
+# alert first would have created a rule that can never fire, which is the exact
+# class of defect OMOIKANE-1520 was.
+#
+# The Prometheus CR uses serviceMonitorSelector: {} and
+# serviceMonitorNamespaceSelector: {}, so any ServiceMonitor in any namespace is
+# picked up; no release label is required. One is set anyway to match the
+# house convention used by gatus/ingress-nginx.
+apiVersion: v1
+kind: Service
+metadata:
+  name: velero-metrics
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    component: velero
+    environment: production
+    managed-by: argocd
+spec:
+  type: ClusterIP
+  # Deliberately NOT selecting velero-ui, which shares the namespace but serves
+  # a web UI on 3000 and exports no velero_* metrics.
+  selector:
+    app.kubernetes.io/name: velero
+  ports:
+  - name: metrics
+    port: 8085
+    targetPort: 8085
+    protocol: TCP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: velero
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    release: monitoring
+    environment: production
+    managed-by: argocd
+spec:
+  namespaceSelector:
+    matchNames: [velero]
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: velero
+      component: velero
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
