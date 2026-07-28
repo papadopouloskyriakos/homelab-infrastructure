@@ -234,7 +234,89 @@ resource "kubernetes_manifest" "custom_alert_rules" {
               }
             }
           ]
-        }
+        },
+        {
+          # OMOIKANE-1527 / OMOIKANE-1520.
+          #
+          # Velero ran for 244 days and never once produced a Completed backup.
+          # Nothing alerted because nothing COULD: velero exports 27 metric
+          # series on :8085 but had no Service and no ServiceMonitor, so every
+          # velero_* query returned 0 series. The metrics were wired up first
+          # (argocd-apps/velero/servicemonitor.yaml); these expressions are
+          # written against series confirmed present in Prometheus rather than
+          # assumed metric names.
+          name = "custom-backup"
+          rules = [
+            {
+              # PartiallyFailed is the specific trap this whole incident turned
+              # on. It does not read as "broken" on any dashboard — DaemonSet
+              # 4/4, schedules Enabled and firing, 2043/2043 items backed up,
+              # artifacts landing in object storage — while the VOLUME CONTENTS
+              # were absent the entire time.
+              alert = "REDACTED_4b0d26ba"
+              expr  = "increase(velero_backup_partial_failure_total[1h]) > 0"
+              for   = "0m"
+              labels = {
+                severity = "critical"
+              }
+              annotations = {
+                summary     = "Velero backup schedule {{ $labels.schedule }} finished PartiallyFailed"
+                description = "A Velero backup completed as PartiallyFailed. This does NOT mean 'mostly fine'. Until 2026-07-28 every backup in this cluster was PartiallyFailed and NONE captured any volume data, because the node-agent labels, the DaemonSet name and the CRDs had all drifted from the server version. First check: 'kubectl -n velero get podvolumebackups' — if that is empty, no volume data was captured at all."
+              }
+            },
+            {
+              alert = "VeleroBackupFailed"
+              expr  = "increase(velero_backup_failure_total[1h]) > 0"
+              for   = "0m"
+              labels = {
+                severity = "critical"
+              }
+              annotations = {
+                summary     = "Velero backup schedule {{ $labels.schedule }} FAILED"
+                description = "A Velero backup failed outright. Investigate with 'velero backup describe' and 'kubectl -n velero logs deploy/velero'."
+              }
+            },
+            {
+              # Staleness, not failure. A failure rule cannot fire when backups
+              # stop being ATTEMPTED at all — a suspended schedule, a wedged
+              # server (deleting an in-flight backup does exactly this), or a
+              # deleted schedule all produce SILENCE rather than a failure
+              # counter. `or absent()` keeps the rule alive if the series
+              # disappears entirely.
+              alert = "VeleroBackupStale"
+              expr  = "(time() - velero_backup_last_successful_timestamp > 172800) or absent(velero_backup_last_successful_timestamp)"
+              for   = "30m"
+              labels = {
+                severity = "critical"
+              }
+              annotations = {
+                summary     = "No successful Velero backup in over 48h (schedule {{ $labels.schedule }})"
+                description = "The last successful Velero backup is more than 48h old, or the metric has vanished. Daily backups run at 02:00, so 48h means at least two consecutive runs did not succeed."
+              }
+            },
+            {
+              # The estate had ten omoikane timer-driven units and not one had
+              # OnFailure=. node_systemd_unit_state is ALREADY scraped (1125
+              # series on notrf01dmz01) and nothing consumed it.
+              #
+              # This is a LEVEL signal — it reports what is true right now.
+              # An OnFailure= handler only fires on the TRANSITION into failure,
+              # so by construction it can never report a unit that was already
+              # failed when the handler was installed. Both are wanted; only
+              # this one describes current reality.
+              alert = "REDACTED_febdf887"
+              expr  = "node_systemd_unit_state{name=~\"omoikane-.*|smoke-harness.*\",state=\"failed\"} == 1"
+              for   = "10m"
+              labels = {
+                severity = "critical"
+              }
+              annotations = {
+                summary     = "systemd unit {{ $labels.name }} is failed on {{ $labels.instance }}"
+                description = "An omoikane timer-driven unit is in the failed state. On 2026-07-27 two such units had been failed for hours on both DMZ hosts with nobody aware, and restic retention died silently for 81 days the same way. Check 'systemctl status {{ $labels.name }}' and 'journalctl -u {{ $labels.name }}'."
+              }
+            }
+          ]
+        },
       ]
     }
   }
