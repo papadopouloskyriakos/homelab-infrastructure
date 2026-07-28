@@ -1,7 +1,19 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: velero-node-agent
+  # MUST be exactly "node-agent". Velero resolves the host pod path via
+  # nodeagent.GetPodVolumeHostPath -> getDaemonSet, which fetches the DaemonSet
+  # by the literal constant `daemonSet = "node-agent"` (v1.17.1
+  # pkg/nodeagent/node_agent.go:38). Named anything else, every PodVolumeBackup
+  # fails with:
+  #   error to expose PVB: error to extract pod volume path: error getting host
+  #   pod path from node-agent: error getting daemonset node-agent:
+  #   daemonsets.apps "node-agent" not found
+  #
+  # Note this is a SECOND lookup, distinct from isRunningInNode's role=node-agent
+  # pod selector. Both must be satisfied: the label gets past pod discovery, the
+  # name gets past host-path resolution.
+  name: node-agent
   namespace: velero
   labels:
     app.kubernetes.io/name: velero-node-agent
