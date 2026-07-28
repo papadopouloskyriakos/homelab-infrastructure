@@ -18,10 +18,17 @@ spec:
         environment: production
         managed-by: argocd
         # REQUIRED, and not decorative. Velero's server locates its node-agent
-        # by this exact literal — nodeagent.IsRunningInNode() parses the
-        # selector "name=node-agent" against pods in the velero namespace. It
-        # does NOT look at the DaemonSet's name or at
-        # app.kubernetes.io/name.
+        # by label, not by DaemonSet name and not by app.kubernetes.io/name.
+        #
+        # v1.17.1 pkg/nodeagent/node_agent.go:119 (isRunningInNode) builds the
+        # selector as:
+        #     labels.Parse(fmt.Sprintf("role=%s", nodeAgentRole))   // "role=node-agent"
+        # and lists pods with it in the velero namespace, then matches on node.
+        #
+        # `role` is the one that matters on 1.17. `name` is the older
+        # restic-era convention and is kept because the upstream chart still
+        # sets it and other code paths/tooling reference it; carrying both is
+        # harmless and version-proof.
         #
         # Without it, every backup logged
         #   "daemonset pod not found in running state in node <n>"
@@ -36,6 +43,7 @@ spec:
         # a DaemonSet, and adding a label to the pod template is sufficient
         # because the existing selector still matches.
         name: node-agent
+        role: node-agent
     spec:
       serviceAccountName: velero
       containers:
