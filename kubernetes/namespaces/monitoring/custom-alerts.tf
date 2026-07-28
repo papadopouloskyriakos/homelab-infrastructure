@@ -245,6 +245,72 @@ resource "kubernetes_manifest" "custom_alert_rules" {
           # (argocd-apps/velero/servicemonitor.yaml); these expressions are
           # written against series confirmed present in Prometheus rather than
           # assumed metric names.
+          name = "REDACTED_b00a177a"
+          rules = [
+            {
+              # OMOIKANE-1434. The daemon's malware gate defaults to BLOCK mode:
+              # an upload it cannot scan is refused. That is the right default —
+              # but if block mode is on with no CLAMAV_URL configured, the gate
+              # refuses EVERYTHING, and the product looks like "uploads are
+              # broken" rather than like a misconfiguration.
+              #
+              # This exact state reached production on 2026-07-24. Three
+              # independent alarms were supposed to catch it — a startup error
+              # line, this gauge, and /readyz reporting clamav:false — and ALL
+              # THREE were silent, because Prometheus had never scraped the
+              # daemon at all (OMOIKANE-1490, fixed 2026-07-26). The rule below
+              # is the first of the three that can now actually fire.
+              #
+              # The daemon's own metric description specifies the threshold:
+              # "Alert on > 0 for more than one scrape interval."
+              #
+              # {sentinel!="boot"} is REQUIRED, not decoration. The daemon
+              # emits every described metric twice: the real series, plus a
+              # zero-valued sample labelled sentinel="boot" so the HELP text
+              # exists in /metrics before any real sample does
+              # (metrics.rs:763-770). That file states the rule outright —
+              # "Operator PromQL MUST filter {sentinel!=\"boot\"}".
+              #
+              # Verified against live Prometheus: this gauge currently returns
+              # FOUR series for two hosts, one of each pair carrying
+              # sentinel="boot". Today the sentinel is pinned at 0 so a bare
+              # "> 0" happens to be harmless, but it would double-count the
+              # moment the sentinel convention changes, and a rule that is
+              # only accidentally correct is not correct.
+              alert = "REDACTED_ea768c16"
+              expr  = "omoikane_clamav_fail_closed_misconfigured{sentinel!=\"boot\"} > 0"
+              for   = "5m"
+              labels = {
+                severity = "critical"
+              }
+              annotations = {
+                summary     = "omoikane-daemon on {{ $labels.instance }} is fail-closed with no malware scanner"
+                description = "The malware gate is in block mode but no CLAMAV_URL is configured on {{ $labels.instance }}, so EVERY file upload will 503 — CVs, offer contracts and inbound mail attachments alike. Users see a broken uploader, not a security message. Check CLAUDE_/CLAMAV_URL in that host's /srv/omoikane-daemon/app/.env and 'curl -s https://app.omoikane.coach/readyz | jq .subsystems.clamav'. Either point it at a reachable clamd or set the gate to log mode deliberately; leaving it here means the product is down for uploads."
+              }
+            },
+            {
+              # The other half: the scanner is CONFIGURED but unreachable, so
+              # ingests are being rejected one at a time. The daemon's own
+              # description of this series: "a sustained non-zero rate on that
+              # series means users are being turned away, not protected."
+              #
+              # Rate-based rather than a gauge, because a single unavailable
+              # verdict is a blip (a restart, a timeout) while a sustained rate
+              # is an outage the user experiences as "my CV will not upload".
+              alert = "REDACTED_3437cf48"
+              expr  = "sum by (instance) (rate(omoikane_clamav_verdict_total{outcome=\"unavailable\",mode=\"block\",sentinel!=\"boot\"}[15m])) > 0"
+              for   = "15m"
+              labels = {
+                severity = "warning"
+              }
+              annotations = {
+                summary     = "omoikane-daemon on {{ $labels.instance }} is rejecting uploads it could not scan"
+                description = "Ingests are being refused because the ClamAV scanner was unreachable or the payload exceeded the scan cap. This is the gate working as designed, but the user experience is a failed upload with no explanation. COVERAGE CAVEAT: handlers/upload.rs does NOT emit this series yet (it calls scan_bytes + verdict_gate by hand), so CV and LinkedIn uploads are invisible here — a quiet reading does NOT mean those paths are healthy."
+              }
+            },
+          ]
+        },
+        {
           name = "custom-backup"
           rules = [
             {
