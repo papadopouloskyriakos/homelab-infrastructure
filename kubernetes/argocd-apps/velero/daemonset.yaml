@@ -17,6 +17,25 @@ spec:
         app.kubernetes.io/name: velero-node-agent
         environment: production
         managed-by: argocd
+        # REQUIRED, and not decorative. Velero's server locates its node-agent
+        # by this exact literal — nodeagent.IsRunningInNode() parses the
+        # selector "name=node-agent" against pods in the velero namespace. It
+        # does NOT look at the DaemonSet's name or at
+        # app.kubernetes.io/name.
+        #
+        # Without it, every backup logged
+        #   "daemonset pod not found in running state in node <n>"
+        # once per affected node, produced ZERO PodVolumeBackup objects, and
+        # finished PartiallyFailed — while `kubectl -n velero get pods` showed
+        # 4/4 node-agents Running and the DaemonSet reported fully available.
+        # Backups ran nightly for 244 days and captured no PVC data at all,
+        # including the SeaweedFS filer volumes that hold the restic
+        # repository the rest of the estate backs up into.
+        #
+        # The `selector` above is intentionally left alone: it is immutable on
+        # a DaemonSet, and adding a label to the pod template is sufficient
+        # because the existing selector still matches.
+        name: node-agent
     spec:
       serviceAccountName: velero
       containers:
