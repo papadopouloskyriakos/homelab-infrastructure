@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-07-27 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-07-28 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: HEALTHY ✅
 
@@ -11,13 +11,13 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 0 |
 | Pending PVCs | 0 |
-| Total Restarts | 2856 |
+| Total Restarts | 2857 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.19.5
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 149
+- **Pods:** 150
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8005928Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -34,12 +34,15 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 _None_
 
 ### High Restart Pods (>3)
+argocd/argocd-server-64dd47d8bf-fkr26: 5 restarts
 awx/awx-operator-controller-manager-6ffdf98f6-hwvqf: 4 restarts
 cilium-spire/spire-agent-49g4h: 5 restarts
 cilium-spire/spire-agent-mdslp: 8 restarts
+REDACTED_01b50c5d/REDACTED_ab04b573-v2-8c85f5d4b-ng8lb: 4 restarts
 kube-system/cilium-operator-6cdbfb68d7-z6v2x: 4 restarts
-kube-system/clustermesh-apiserver-6c96779765-rmrzt: 4 restarts
+kube-system/clustermesh-apiserver-6c96779765-rmrzt: 6 restarts
 kube-system/etcd-nlk8s-ctrl01: 64 restarts
+kube-system/hubble-ui-6bb97d8894-nnkx5: 4 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 1996 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 58 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
@@ -56,25 +59,25 @@ kube-system/tetragon-tbcc7: 4 restarts
 kube-system/tetragon-vbs6v: 14 restarts
 logging/promtail-hp5sc: 7 restarts
 logging/promtail-ng69s: 4 restarts
+monitoring/goldpinger-25hf5: 5 restarts
 monitoring/goldpinger-6dj9l: 25 restarts
 monitoring/goldpinger-zxtb9: 6 restarts
+monitoring/monitoring-kube-prometheus-operator-67d8d4c647-5955s: 4 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 174 restarts
-monitoring/monitoring-prometheus-node-exporter-wmcb8: 9 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956jjmld: 11 restarts
+monitoring/monitoring-prometheus-node-exporter-wmcb8: 11 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956jjmld: 12 restarts
 synology-csi/synology-csi-node-577mq: 10 restarts
 synology-csi/synology-csi-node-kxrjb: 14 restarts
 synology-csi/synology-csi-node-l72f8: 4 restarts
 synology-csi/synology-csi-node-ptwb8: 4 restarts
 synology-csi/synology-csi-node-zch7n: 18 restarts
-velero/velero-node-agent-mwfzv: 4 restarts
 
 ### Recent Warnings (5)
 ```
 NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   54m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl02             Readiness probe failed: HTTP probe failed with statuscode: 503
-kube-system   9m43s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system   7m39s       Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
-kube-system   3m54s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   60m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system   10m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   3m41s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
