@@ -3,21 +3,21 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-07-28 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-07-29 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
-## Health: HEALTHY ✅
+## Health: CRITICAL ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 0 |
+| Unhealthy Pods | 16 |
 | Pending PVCs | 0 |
-| Total Restarts | 2857 |
+| Total Restarts | 3141 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.19.5
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 150
+- **Pods:** 192
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8005928Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -31,18 +31,38 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 ## Anomalies
 
 ### Unhealthy Pods
-_None_
+```
+velero                   REDACTED_d97cef76-default-kopia-maintain-job-1785293164kpbfc   0/1   Error       0                  14m
+velero                   REDACTED_d97cef76-default-kopia-maintain-job-17852935595q7qv   0/1   Error       0                  8m13s
+velero                   REDACTED_d97cef76-default-kopia-maintain-job-1785293857cvrg5   0/1   Error       0                  3m15s
+velero                   logging-default-kopia-maintain-job-1785293174855-9llkc            0/1   Error       0                  14m
+velero                   logging-default-kopia-maintain-job-1785293633648-ks6hc            0/1   Error       0                  6m59s
+velero                   logging-default-kopia-maintain-job-1785293865143-2msgw            0/1   Error       0                  3m7s
+velero                   monitoring-default-kopia-maintain-job-1785293184111-d6mcj         0/1   Error       0                  14m
+velero                   monitoring-default-kopia-maintain-job-1785293464685-5zntc         0/1   Error       0                  9m48s
+velero                   monitoring-default-kopia-maintain-job-1785293874252-jjbc8         0/1   Error       0                  2m58s
+velero                   nfs-provisioner-default-kopia-maintain-job-1785293201309-sg28g    0/1   Error       0                  14m
+velero                   REDACTED_00313366-maintain-job-1785293192213-qbfnl          0/1   Error       0                  14m
+velero                   REDACTED_00313366-maintain-job-1785293496983-ft4r9          0/1   Error       0                  9m15s
+velero                   REDACTED_00313366-maintain-job-1785293885514-phv99          0/1   Error       0                  2m47s
+velero                   synology-csi-default-kopia-maintain-job-1785293210391-r85ts       0/1   Error       0                  14m
+velero                   synology-csi-default-kopia-maintain-job-1785293538242-dlzch       0/1   Error       0                  8m34s
+velero                   synology-csi-default-kopia-maintain-job-1785293764686-x8j8c       0/1   Error       0                  4m46s
+```
 
 ### High Restart Pods (>3)
-argocd/argocd-server-64dd47d8bf-fkr26: 5 restarts
-awx/awx-operator-controller-manager-6ffdf98f6-hwvqf: 4 restarts
-cilium-spire/spire-agent-49g4h: 5 restarts
+argocd/argocd-repo-server-7dfc645f84-qxz64: 4 restarts
+argocd/argocd-server-64dd47d8bf-fkr26: 28 restarts
+awx/awx-operator-controller-manager-6ffdf98f6-hwvqf: 16 restarts
+cilium-spire/spire-agent-49g4h: 21 restarts
 cilium-spire/spire-agent-mdslp: 8 restarts
-REDACTED_01b50c5d/REDACTED_ab04b573-v2-8c85f5d4b-ng8lb: 4 restarts
-kube-system/cilium-operator-6cdbfb68d7-z6v2x: 4 restarts
-kube-system/clustermesh-apiserver-6c96779765-rmrzt: 6 restarts
+cilium-spire/spire-server-0: 13 restarts
+REDACTED_01b50c5d/REDACTED_ab04b573-v2-8c85f5d4b-ng8lb: 19 restarts
+ingress-nginx/ingress-nginx-controller-8445475547-mxdrc: 7 restarts
+kube-system/cilium-operator-6cdbfb68d7-z6v2x: 5 restarts
+kube-system/clustermesh-apiserver-6c96779765-rmrzt: 34 restarts
 kube-system/etcd-nlk8s-ctrl01: 64 restarts
-kube-system/hubble-ui-6bb97d8894-nnkx5: 4 restarts
+kube-system/hubble-ui-6bb97d8894-nnkx5: 19 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 1996 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 58 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
@@ -57,15 +77,22 @@ kube-system/tetragon-878gv: 4 restarts
 kube-system/tetragon-mdsn9: 18 restarts
 kube-system/tetragon-tbcc7: 4 restarts
 kube-system/tetragon-vbs6v: 14 restarts
+REDACTED_d97cef76/REDACTED_d97cef76-kong-5c7f96dd9b-fgxd9: 13 restarts
 logging/promtail-hp5sc: 7 restarts
 logging/promtail-ng69s: 4 restarts
-monitoring/goldpinger-25hf5: 5 restarts
+monitoring/goldpinger-25hf5: 35 restarts
 monitoring/goldpinger-6dj9l: 25 restarts
+monitoring/goldpinger-n2fzm: 7 restarts
 monitoring/goldpinger-zxtb9: 6 restarts
-monitoring/monitoring-kube-prometheus-operator-67d8d4c647-5955s: 4 restarts
+monitoring/monitoring-kube-prometheus-operator-67d8d4c647-5955s: 30 restarts
+monitoring/monitoring-kube-state-metrics-75f9fff55b-6cc8x: 6 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 174 restarts
-monitoring/monitoring-prometheus-node-exporter-wmcb8: 11 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956jjmld: 12 restarts
+monitoring/monitoring-prometheus-node-exporter-6sc8j: 6 restarts
+monitoring/monitoring-prometheus-node-exporter-wmcb8: 35 restarts
+monitoring/prometheus-REDACTED_6dfbe9fc-0: 12 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956jjmld: 41 restarts
+seaweedfs/seaweedfs-filer-0: 26 restarts
+seaweedfs/seaweedfs-filer-1: 32 restarts
 synology-csi/synology-csi-node-577mq: 10 restarts
 synology-csi/synology-csi-node-kxrjb: 14 restarts
 synology-csi/synology-csi-node-l72f8: 4 restarts
@@ -74,10 +101,11 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE     LAST SEEN   TYPE      REASON      OBJECT                                  MESSAGE
-kube-system   60m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01             Readiness probe failed: HTTP probe failed with statuscode: 503
-kube-system   10m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   3m41s       Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01   Readiness probe failed: HTTP probe failed with statuscode: 500
+seaweedfs                3m          Warning   BackOff                pod/seaweedfs-filer-0                                                 Back-off restarting failed container seaweedfs in pod seaweedfs-filer-0_seaweedfs(fb9a7f54-d0d8-47bb-9cae-5958dab2add9)
+velero                   3m          Warning   BackoffLimitExceeded   job/logging-default-kopia-maintain-job-1785293865143                  Job has reached the specified backoff limit
+velero                   2m49s       Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1785293874252               Job has reached the specified backoff limit
+velero                   2m31s       Warning   BackoffLimitExceeded   job/REDACTED_00313366-maintain-job-1785293885514                Job has reached the specified backoff limit
+kube-system              29s         Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl01                                 Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
