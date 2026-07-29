@@ -33,7 +33,7 @@ Internet → HAProxy (2 VPSes, BGP anycast) → nginx:443/6666 (TLS re-encryptio
 | Service | Image | Port | Status |
 |---|---|---|---|
 | postgres | postgres:15.13-alpine | 5432 | active |
-| synapse | element-hq/synapse:v1.149.1 | 8008 | active |
+| synapse | element-hq/synapse:v1.157.2 | 8008 | active |
 | mas | element-hq/matrix-REDACTED_6fa691d2-service:1.13.0 | 9090 | active |
 | element-web | vectorim/element-web:v1.12.12 | 8088 | active |
 | nginx | nginx:1.29.6 | 443, 6666 | active |
