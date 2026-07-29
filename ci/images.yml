@@ -324,6 +324,29 @@ build_ellizg_nginx_base:
       docker push $IMAGE_REGISTRY/ellizg-nginx-base:latest
 
 # ===========================================================================
+# TG NGINX BASE — territorygrounder.com + groundnet.net
+# ===========================================================================
+# Added 2026-07-29. This was the last *-nginx-base context with no CI job: it
+# could only be built by hand via images/tg-nginx-base/build.sh, which is the
+# same "not rebuildable from CI" pattern that let the estate's nginx age to
+# 1.29.5 unnoticed. Consumed by tg-www and gn-www on both DMZ hosts.
+build_tg_nginx_base:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/tg-nginx-base/**/*
+      when: manual
+  script:
+    - |
+      cd images/tg-nginx-base
+      docker build --pull -t $IMAGE_REGISTRY/tg-nginx-base:latest .
+      docker push $IMAGE_REGISTRY/tg-nginx-base:latest
+      docker run --rm --entrypoint nginx $IMAGE_REGISTRY/tg-nginx-base:latest -v
+
+# ===========================================================================
 # CUBEOS NGINX BASE
 # ===========================================================================
 # Consumed by the cubeos + meshsat site repos as their FROM. Covers 8 containers
