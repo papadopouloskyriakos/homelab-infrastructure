@@ -243,7 +243,7 @@ build_omoikane_nginx_base:
   script:
     - |
       cd images/omoikane-nginx-base
-      docker build -t $IMAGE_REGISTRY/omoikane-nginx-base:latest .
+      docker build --pull -t $IMAGE_REGISTRY/omoikane-nginx-base:latest .
       docker push $IMAGE_REGISTRY/omoikane-nginx-base:latest
 
 # ===========================================================================
@@ -265,8 +265,124 @@ build_ellizg_nginx_base:
   script:
     - |
       cd images/ellizg-nginx-base
-      docker build -t $IMAGE_REGISTRY/ellizg-nginx-base:latest .
+      docker build --pull -t $IMAGE_REGISTRY/ellizg-nginx-base:latest .
       docker push $IMAGE_REGISTRY/ellizg-nginx-base:latest
+
+# ===========================================================================
+# CUBEOS NGINX BASE
+# ===========================================================================
+# Consumed by the cubeos + meshsat site repos as their FROM. Covers 8 containers
+# across both DMZ hosts (cubeos-website, meshsat-website, meshsat-docs, meshsat-releases).
+# Migrated into Git 2026-07-29 — was untracked on nlgitlab01 (see CLAUDE.md).
+# --pull is REQUIRED: without it a cached cgr.dev/chainguard/nginx layer means the
+# rebuild ships the SAME nginx, which is how these sat on 1.29.5 while the base was fixed.
+
+build_cubeos_nginx_base:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/cubeos-nginx-base/**/*
+      when: manual
+  script:
+    - |
+      cd images/cubeos-nginx-base
+      docker build --pull -t $IMAGE_REGISTRY/cubeos-nginx-base:latest .
+      docker push $IMAGE_REGISTRY/cubeos-nginx-base:latest
+
+# ===========================================================================
+# CUBEOS DEMO NGINX BASE
+# ===========================================================================
+# Consumed by the cubeos demo site repo. Covers cubeos-demo on both DMZ hosts.
+# Migrated into Git 2026-07-29 — was untracked on nlgitlab01 (see CLAUDE.md).
+# --pull is REQUIRED: without it a cached cgr.dev/chainguard/nginx layer means the
+# rebuild ships the SAME nginx, which is how these sat on 1.29.5 while the base was fixed.
+
+build_cubeos_demo_nginx_base:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/cubeos-demo-nginx-base/**/*
+      when: manual
+  script:
+    - |
+      cd images/cubeos-demo-nginx-base
+      docker build --pull -t $IMAGE_REGISTRY/cubeos-demo-nginx-base:latest .
+      docker push $IMAGE_REGISTRY/cubeos-demo-nginx-base:latest
+
+# ===========================================================================
+# WITHELLI NGINX BASE
+# ===========================================================================
+# Consumed by the withelli.com site repos. Covers withelli + withelli-beta on both DMZ hosts.
+# Migrated into Git 2026-07-29 — was untracked on nlgitlab01 (see CLAUDE.md).
+# --pull is REQUIRED: without it a cached cgr.dev/chainguard/nginx layer means the
+# rebuild ships the SAME nginx, which is how these sat on 1.29.5 while the base was fixed.
+
+build_withelli_nginx_base:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/withelli-nginx-base/**/*
+      when: manual
+  script:
+    - |
+      cd images/withelli-nginx-base
+      docker build --pull -t $IMAGE_REGISTRY/withelli-nginx-base:latest .
+      docker push $IMAGE_REGISTRY/withelli-nginx-base:latest
+
+# ===========================================================================
+# MULECUBE NGINX BASE
+# ===========================================================================
+# Consumed by the mulecube site repos. Covers mulecube + mulecube-dashboard on both DMZ hosts.
+# Migrated into Git 2026-07-29 — was untracked on nlgitlab01 (see CLAUDE.md).
+# --pull is REQUIRED: without it a cached cgr.dev/chainguard/nginx layer means the
+# rebuild ships the SAME nginx, which is how these sat on 1.29.5 while the base was fixed.
+
+build_mulecube_nginx_base:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/mulecube-nginx-base/**/*
+      when: manual
+  script:
+    - |
+      cd images/mulecube-nginx-base
+      docker build --pull -t $IMAGE_REGISTRY/mulecube-nginx-base:latest .
+      docker push $IMAGE_REGISTRY/mulecube-nginx-base:latest
+
+# ===========================================================================
+# PORTFOLIO NGINX BASE
+# ===========================================================================
+# Consumed by the papadopoulos.tech portfolio repo. Covers portfolio on both DMZ hosts.
+# Migrated into Git 2026-07-29 — was untracked on nlgitlab01 (see CLAUDE.md).
+# --pull is REQUIRED: without it a cached cgr.dev/chainguard/nginx layer means the
+# rebuild ships the SAME nginx, which is how these sat on 1.29.5 while the base was fixed.
+
+build_portfolio_nginx_base:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/portfolio-nginx-base/**/*
+      when: manual
+  script:
+    - |
+      cd images/portfolio-nginx-base
+      docker build --pull -t $IMAGE_REGISTRY/portfolio-nginx-base:latest .
+      docker push $IMAGE_REGISTRY/portfolio-nginx-base:latest
 
 # ===========================================================================
 # PROTONMAIL BRIDGE
