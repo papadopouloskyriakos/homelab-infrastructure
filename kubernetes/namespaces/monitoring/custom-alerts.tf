@@ -361,6 +361,38 @@ resource "kubernetes_manifest" "custom_alert_rules" {
               }
             },
             {
+              # OMOIKANE-1526 — restic retention is pinned to ONE host
+              # (OMOIKANE-1510 item 2), because `restic forget --prune` needs an
+              # exclusive repo lock and two hosts contending for it is what
+              # produced the stale lock in OMOIKANE-1489.
+              #
+              # The failure mode that pinning leaves behind: lose the designated
+              # host and the other keeps capturing, writes `ok-capture-only` and
+              # reports GREEN, while pruning never runs again anywhere and the
+              # bucket grows until it fills. That is exactly how OMOIKANE-1489
+              # ran 81 days unnoticed.
+              #
+              # Staleness + absence, never failure. A failure rule cannot fire
+              # here because nothing fails — the host is simply gone. And it is
+              # deliberately aggregated with max() and NO host label: scoped to
+              # one instance, losing that instance loses the series and the rule
+              # silently stops evaluating at the exact moment it is needed.
+              # Only the retention host ever reaches state=ok, so max() across
+              # the estate is the correct reading of "has retention run at all".
+              #
+              # 3d, against a daily timer: two consecutive misses plus slack.
+              alert = "REDACTED_68b949e6"
+              expr  = "(time() - max(omoikane_backup_retention_last_success_seconds) > 259200) or absent(omoikane_backup_retention_last_success_seconds)"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+              }
+              annotations = {
+                summary     = "restic retention has not succeeded anywhere in over 3 days"
+                description = "No host has completed `restic forget --prune` for the shared omoikane-backups repo in more than 3 days, or the heartbeat metric has vanished entirely. Backups may still be CAPTURING fine — this is specifically about pruning, which is pinned to one host (OMOIKANE_RETENTION_HOST, default notrf01dmz01). If that host is down or was rebuilt, fail retention over by setting OMOIKANE_RETENTION_HOST in /etc/restic/omoikane.env on both hosts and restarting omoikane-backup.timer. Left alone, the repo grows until the bucket fills. See daemon backup/README.md and OMOIKANE-1489."
+              }
+            },
+            {
               # The estate had ten omoikane timer-driven units and not one had
               # OnFailure=. node_systemd_unit_state is ALREADY scraped (1125
               # series on notrf01dmz01) and nothing consumed it.
