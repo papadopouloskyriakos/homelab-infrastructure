@@ -221,6 +221,41 @@ build_ci_deploy_tools:
       docker push $IMAGE_REGISTRY/ci-deploy-tools:latest
 
 # ===========================================================================
+# CUBEOS-API-BUILDER-RUNNER — Go module cache + prebuilt stdlib
+# ===========================================================================
+# Migrated 2026-07-29 from /srv/cubeos-api-builder-runner on nlgitlab01,
+# where it was built by hand with a GitLab ROOT ADMIN PAT hardcoded as an ARG
+# default. Docker bakes ARG defaults into image history and the published image
+# is a PUBLIC ghcr package, so that token was anonymously readable on the
+# internet from 2026-01-29. The ARG is now empty by design.
+#
+# GITLAB_PAT must come from a CI variable scoped to `read_repository` on
+# products/cubeos/api only. Until that variable exists this job FAILS ON
+# PURPOSE — do not "fix" it by putting a token back in the Dockerfile.
+build_cubeos_api_builder_runner:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/cubeos-api-builder-runner/**/*
+      when: manual
+  script:
+    - |
+      cd images/cubeos-api-builder-runner
+      if [ -z "${CUBEOS_API_READ_TOKEN:-}" ]; then
+        echo "ERROR: CUBEOS_API_READ_TOKEN is not set."
+        echo "Create it as a masked CI variable with read_repository scope on"
+        echo "products/cubeos/api. Do NOT hardcode a token in the Dockerfile —"
+        echo "ARG defaults are recoverable from public image history."
+        exit 1
+      fi
+      docker build --pull --build-arg GITLAB_PAT="$CUBEOS_API_READ_TOKEN" \
+        -t $IMAGE_REGISTRY/cubeos-api-builder-runner:latest .
+      docker push $IMAGE_REGISTRY/cubeos-api-builder-runner:latest
+
+# ===========================================================================
 # CI-UTILS — shellcheck/bash/git/curl/jq on docker:24-cli, for CubeOS pipelines
 # ===========================================================================
 # Migrated 2026-07-29 from an untracked build context at /srv/ci-utils on
