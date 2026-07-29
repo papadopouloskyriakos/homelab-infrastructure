@@ -254,7 +254,7 @@ services:
         tag: "{{.Name}}"
 
   matrix-hookshot:
-    image: halfshot/matrix-hookshot:${HOOKSHOT_VERSION}
+    image: ghcr.io/matrix-org/matrix-hookshot:${HOOKSHOT_VERSION}
     container_name: matrix-hookshot
     restart: unless-stopped
     network_mode: "host"
