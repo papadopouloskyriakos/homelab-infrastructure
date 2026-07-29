@@ -194,6 +194,7 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a" {
 # finops: bargauges -> hidden-value bars + Dutch string amounts (audit iteration 3) — 2026-06-11
 # finops: 🛍️ Online orders section (v_orders: Amazon/Thuisbezorgd/eBay/bol/AH/AliExpress/Flink from email receipts) — 2026-06-22
 # finops: spend panels now read v_spend_canonical / v_income_canonical (ledger migration 016) — 2026-07-27
+# finops: 🏷️ staples-on-bonus table (retail_offers × product_match, ledger migration 017 Bonusradar; AH mobile API weekly feed; '—' price = multi-buy mechanism) — 2026-07-29
 #   Health audit P0 #3 / P1 #6: 9 copies of an "exclude the ING credit-card bill" clause plus four
 #   inconsistent account scopes meant this dashboard reported EUR 1.790,34 for July while the weekly
 #   digest reported EUR 4.871,69. The card feed froze 2026-05-04, so the exclusion (correct while the
