@@ -221,6 +221,26 @@ build_ci_deploy_tools:
       docker push $IMAGE_REGISTRY/ci-deploy-tools:latest
 
 # ===========================================================================
+# CI-UTILS — shellcheck/bash/git/curl/jq on docker:24-cli, for CubeOS pipelines
+# ===========================================================================
+# Migrated 2026-07-29 from an untracked build context at /srv/ci-utils on
+# nlgitlab01, where it was built by hand and could not be rebuilt from CI.
+build_ci_utils:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/ci-utils/**/*
+      when: manual
+  script:
+    - |
+      cd images/ci-utils
+      docker build --pull -t $IMAGE_REGISTRY/ci-utils:latest .
+      docker push $IMAGE_REGISTRY/ci-utils:latest
+
+# ===========================================================================
 # OMOIKANE NGINX BASE — hardened chainguard-nginx + omoikane.coach CSP
 # ===========================================================================
 # Consumed by both `omoikane.coach/www` and `omoikane.coach/beta` CI as
