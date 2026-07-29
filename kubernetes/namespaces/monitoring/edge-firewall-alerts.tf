@@ -39,9 +39,18 @@
 #     firing twice for that host.
 #
 # tier="1" + severity="critical" routes to the Twilio SMS receiver
-# (main.tf alertmanager route -> 10.0.X.X:9106, group_wait 10s). That is
-# reserved here for a firewall that has actually stopped enforcing on an
-# internet-facing host — the one condition that warrants waking someone.
+# (main.tf alertmanager route -> 10.0.X.X:9106, group_wait 10s). Applied here
+# to every condition that means an internet-facing host has lost a security control
+# it is supposed to have: the packet filter not enforcing, either default policy no
+# longer DROP, the ruleset collapsed, or CrowdSec/its bouncer dead. Operator decision
+# 2026-07-29 — CrowdSec included because a dead bouncer stops enforcing bans silently
+# while detection dashboards still look busy.
+#
+# NOTE the scanner cannot page directly: the Twilio bridge on 10.0.X.X:9106 is
+# NOT reachable from nlsec01 (verified — host pings, tcp/22 open, tcp/9106 closed;
+# it only accepts from the in-cluster Alertmanager). So SMS for host posture comes from
+# these rules, and the daily scanner email restates the same state via
+# posture-summary.py reading Prometheus.
 #
 # namespace="edge-firewall" is set because the n8n Prometheus receiver dedups on
 # alertname+":"+namespace; edge hosts have no k8s namespace, so without it every
@@ -164,6 +173,7 @@ resource "kubernetes_manifest" "edge_firewall_alert_rules" {
               for   = "5m"
               labels = {
                 severity  = "critical"
+                tier      = "1"
                 category  = "host-firewall"
                 service   = "edge"
                 namespace = "edge-firewall"
@@ -180,7 +190,8 @@ resource "kubernetes_manifest" "edge_firewall_alert_rules" {
               expr  = "max by (instance) (edge_posture_context{unit=\"crowdsec\"}) == 0"
               for   = "5m"
               labels = {
-                severity  = "warning"
+                severity  = "critical"
+                tier      = "1"
                 category  = "host-firewall"
                 service   = "edge"
                 namespace = "edge-firewall"
