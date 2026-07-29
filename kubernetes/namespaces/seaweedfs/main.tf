@@ -255,6 +255,21 @@ resource "kubernetes_ingress_v1" "seaweedfs_s3" {
     annotations = {
       "kubernetes.io/ingress.class"                 = "nginx"
       "nginx.ingress.kubernetes.io/proxy-body-size" = "0"
+      # OMOIKANE-1510 — pin every nl-s3 request to ONE filer replica.
+      #
+      # seaweedfs-filer fronts filer-0 and filer-1, which keep their own leveldb2
+      # metadata and reconcile asynchronously via meta_aggregator. Round-robin
+      # therefore lets restic DELETE a lock through one replica and LIST through
+      # the other before the aggregator has caught up, so `restic unlock` reports
+      # a clean repo while the lock is still visible — the false all-clear behind
+      # OMOIKANE-1489's 81-day silent retention outage.
+      #
+      # Hashing on a constant ($host) makes the choice deterministic instead of
+      # per-request. nginx still fails over if the chosen replica is unavailable,
+      # so this costs redundancy only during the failover itself. Measured before
+      # and after on 20 requests: both replicas served (315/125) before, one
+      # served and the other took zero after.
+      "nginx.ingress.kubernetes.io/upstream-hash-by" = "$host"
     }
   }
   spec {
