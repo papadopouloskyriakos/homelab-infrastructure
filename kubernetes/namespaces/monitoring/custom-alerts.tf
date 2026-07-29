@@ -393,6 +393,36 @@ resource "kubernetes_manifest" "custom_alert_rules" {
               }
             },
             {
+              # OMOIKANE-1534 — the restic repo's SECOND copy. The primary lives
+              # on SeaweedFS, and SeaweedFS's own PVCs are protected by Velero
+              # writing to the SAME object storage, so losing that cluster
+              # plausibly loses both the backups and the backup of the backups.
+              # The mirror is written to /srv/yb-backups/restic-mirror and then
+              # pulled to the Synology, which shares no fate with SeaweedFS.
+              #
+              # A second copy that silently stops is WORSE than none, because it
+              # is counted on. So: staleness + absence, never failure — the same
+              # shape as REDACTED_68b949e6 above and for the same
+              # reason (a failure rule cannot fire when the producer is gone).
+              #
+              # This one is real: the first offsite pull left a 24 KB directory
+              # with no config, no snapshots and no data — an empty shell that
+              # read as "present" — because restic writes the repo 2700
+              # root-owned and the NAS pulls as a different user.
+              #
+              # 3d against a daily 06:40 timer: two consecutive misses plus slack.
+              alert = "REDACTED_975a0eda"
+              expr  = "(time() - max(omoikane_restic_mirror_last_success_seconds) > 259200) or absent(omoikane_restic_mirror_last_success_seconds)"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+              }
+              annotations = {
+                summary     = "restic second copy has not succeeded in over 3 days"
+                description = "The second copy of the restic repository (/srv/yb-backups/restic-mirror on the retention host, mirrored to the Synology by the nightly pull) has not completed for more than 3 days, or its heartbeat has vanished. The PRIMARY backup may be perfectly healthy — this is specifically about the offsite duplicate, which exists because the primary repo lives inside SeaweedFS alongside Velero's own target. Check 'systemctl status omoikane-restic-mirror.service' on notrf01dmz01 and 'journalctl -u omoikane-restic-mirror'. See daemon backup/README.md and OMOIKANE-1534."
+              }
+            },
+            {
               # The estate had ten omoikane timer-driven units and not one had
               # OnFailure=. node_systemd_unit_state is ALREADY scraped (1125
               # series on notrf01dmz01) and nothing consumed it.
