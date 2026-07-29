@@ -150,6 +150,48 @@ resource "kubernetes_manifest" "edge_firewall_alert_rules" {
               }
             },
             {
+              # CrowdSec BOUNCER — the component that actually enforces bans. If the
+              # engine keeps detecting but the bouncer is dead, attacks are logged and
+              # NOT blocked, which looks healthy in every dashboard that counts
+              # detections. Added 2026-07-29 after it was noticed that crowdsec state
+              # was exported but nothing consumed it.
+              #
+              # Unlike ufw.service this IS a long-running daemon, so unit state is a
+              # truthful signal here. The "never alert on unit state" warning at the top
+              # of this file applies specifically to ufw.service being Type=oneshot.
+              alert = "REDACTED_22590886"
+              expr  = "max by (instance) (edge_posture_context{unit=\"crowdsec-firewall-bouncer\"}) == 0"
+              for   = "5m"
+              labels = {
+                severity  = "critical"
+                category  = "host-firewall"
+                service   = "edge"
+                namespace = "edge-firewall"
+              }
+              annotations = {
+                summary     = "CrowdSec bouncer down on {{ $labels.instance }} — bans not enforced"
+                description = "crowdsec-firewall-bouncer is not running on {{ $labels.instance }}. The CrowdSec engine may still be detecting and logging attacks, but nothing is inserting the block rules — so the host is being attacked, is aware of it, and is doing nothing about it. This fails silently: detection dashboards still look busy. Check `systemctl status crowdsec-firewall-bouncer` and `cscli decisions list` on the host."
+                impact      = "Intrusion decisions are no longer enforced on an internet-facing host."
+              }
+            },
+            {
+              # CrowdSec engine itself — no engine, no detection at all.
+              alert = "EdgeCrowdSecDown"
+              expr  = "max by (instance) (edge_posture_context{unit=\"crowdsec\"}) == 0"
+              for   = "5m"
+              labels = {
+                severity  = "warning"
+                category  = "host-firewall"
+                service   = "edge"
+                namespace = "edge-firewall"
+              }
+              annotations = {
+                summary     = "CrowdSec engine down on {{ $labels.instance }}"
+                description = "The CrowdSec engine is not running on {{ $labels.instance }}, so no log parsing, no scenario matching and no new decisions are being produced on an internet-facing host. Existing bans may still be enforced by the bouncer until they expire. Check `systemctl status crowdsec` and its acquisition config."
+                impact      = "No intrusion detection on this host."
+              }
+            },
+            {
               # Mandatory dead-man, matching REDACTED_33f74497 /
               # REDACTED_4113c0dd. Without it a dead probe leaves stale
               # all-green metrics and silence reads as health — the precise failure
