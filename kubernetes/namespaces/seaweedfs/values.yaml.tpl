@@ -58,6 +58,9 @@ volume:
       size: "${volume_storage_size}"
       storageClass: "${storage_class}"
       maxVolumes: 0  # auto-configure based on disk space
+  # Below this free-space percentage the server marks all volumes read-only AND
+  # refuses compaction — see the variable comment in variables.tf.
+  minFreeSpacePercent: ${REDACTED_0a7b20f8}
   idx: {}
   logs: {}
   # Resources as YAML object — 4Gi limit needed for compaction of large thanos/loki volumes (700MB+)
