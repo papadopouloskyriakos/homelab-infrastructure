@@ -294,7 +294,7 @@ variable "REDACTED_c1342204" {
 variable "REDACTED_a8217c41" {
   description = "Storage size per volume server"
   type        = string
-  default     = "500Gi"
+  default     = "1000Gi"
 }
 
 # Operational lever — see namespaces/seaweedfs/variables.tf for the full rationale.
