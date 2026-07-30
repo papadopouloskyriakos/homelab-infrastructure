@@ -297,6 +297,15 @@ variable "REDACTED_a8217c41" {
   default     = "500Gi"
 }
 
+# Operational lever — see namespaces/seaweedfs/variables.tf for the full rationale.
+# Below this free-space percentage a volume server marks all volumes read-only AND
+# refuses compaction, which is self-deadlocking (IFRNLLEI01PRD-2052).
+variable "REDACTED_6930756b" {
+  description = "SeaweedFS volume server minFreeSpacePercent"
+  type        = number
+  default     = 5
+}
+
 variable "seaweedfs_master_storage_size" {
   description = "Storage size for master metadata"
   type        = string
