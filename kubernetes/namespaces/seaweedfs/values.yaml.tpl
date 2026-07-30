@@ -117,7 +117,12 @@ filer:
   resources:
     requests:
       cpu: 200m
-      memory: 512Mi
+      # 512Mi -> 2Gi 2026-07-31 (OMOIKANE-1547): the filers were being KERNEL-OOM-killed ~20x/day
+      # at ~2GiB actual use — far below their own limit — because the 512Mi request let the
+      # scheduler pack node02/03 to 94% on memory the filers already held. 14d peak working set:
+      # filer-0 2.86Gi, filer-1 1.40Gi. Request must cover the real working set so the scheduler
+      # reserves it; the limit below stays the burst ceiling.
+      memory: 2Gi
     limits:
       cpu: "1"
       # 2Gi -> 4Gi: filer-0 OOMKilled x5 under sync/compaction spikes (IFRNLLEI01PRD-1113, 2026-06-17)
