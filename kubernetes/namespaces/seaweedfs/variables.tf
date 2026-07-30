@@ -34,7 +34,7 @@ variable "master_storage_size" {
 variable "volume_storage_size" {
   description = "Storage size per volume server (main data storage)"
   type        = string
-  default     = "500Gi" # 2 volume servers x 500Gi = 1TB total
+  default     = "1000Gi" # 2 volume servers x 1000Gi = 2TB total
 }
 
 # When free space on a volume server drops below this percentage, the server marks
