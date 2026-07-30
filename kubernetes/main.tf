@@ -188,13 +188,14 @@ module "seaweedfs" {
 
   common_labels = local.common_labels
 
-  storage_class           = "REDACTED_b280aec5"
-  REDACTED_c1342204 = var.REDACTED_c1342204
-  volume_storage_size     = var.REDACTED_a8217c41
-  master_storage_size     = var.seaweedfs_master_storage_size
-  filer_storage_size      = var.REDACTED_b907bdb5
-  cluster_name            = "nlcl01k8s"
-  node_region             = "nl-lei"
+  storage_class                 = "REDACTED_b280aec5"
+  REDACTED_c1342204       = var.REDACTED_c1342204
+  volume_storage_size           = var.REDACTED_a8217c41
+  REDACTED_0a7b20f8 = var.REDACTED_6930756b
+  master_storage_size           = var.seaweedfs_master_storage_size
+  filer_storage_size            = var.REDACTED_b907bdb5
+  cluster_name                  = "nlcl01k8s"
+  node_region                   = "nl-lei"
 
   # Cross-site replication settings
   site_code                     = "nl"
