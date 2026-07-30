@@ -114,7 +114,9 @@ variable "REDACTED_11f97ee2" {
 variable "REDACTED_8e93a7d2" {
   description = "Memory request for filer.sync container"
   type        = string
-  default     = "128Mi"
+  # 128Mi -> 512Mi 2026-07-31 (OMOIKANE-1547): 14d peak working set 528Mi during sync catch-up;
+  # the request must cover it so the scheduler reserves what the container actually holds.
+  default = "512Mi"
 }
 
 variable "REDACTED_7c4dc246" {

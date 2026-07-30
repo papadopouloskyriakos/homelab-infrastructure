@@ -310,8 +310,11 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
 
           resources {
             requests = {
-              cpu    = "200m"
-              memory = "512Mi"
+              cpu = "200m"
+              # 512Mi -> 1536Mi 2026-07-31 (OMOIKANE-1547): bgpalerter holds the RIS routing state
+              # in RAM permanently — steady ~1.1Gi, 14d peak 1.40Gi (GR peaks 1.48Gi). At 512Mi it
+              # was a chronic co-tenant crowder in the node02/03 kernel-OOM incident.
+              memory = "1536Mi"
             }
             limits = {
               cpu    = "1000m"
