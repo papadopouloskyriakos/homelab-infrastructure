@@ -37,6 +37,20 @@ variable "volume_storage_size" {
   default     = "500Gi" # 2 volume servers x 500Gi = 1TB total
 }
 
+# When free space on a volume server drops below this percentage, the server marks
+# EVERY volume it holds read-only and also refuses to compact. That second half is a
+# deadlock: vacuum is the tool that would reclaim the space, and it is disabled by the
+# same condition it would fix. On 2026-07-30 volume-1 sat at 6.99% free against the
+# chart default of 7 and took cv.omoikane.coach down for 12h, while Thanos/Loki/Tempo
+# writes failed silently (IFRNLLEI01PRD-2052).
+# Held at 5 to keep a compaction margin below the ~7% the cluster operates near.
+# Raise back toward 7 only after the volume PVs are expanded — see the issue.
+variable "REDACTED_0a7b20f8" {
+  description = "SeaweedFS volume server minFreeSpacePercent (below this, volumes go read-only AND compaction is refused)"
+  type        = number
+  default     = 5
+}
+
 variable "filer_storage_size" {
   description = "Storage size for filer metadata"
   type        = string
