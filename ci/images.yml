@@ -125,6 +125,40 @@ build_hugo_runner:
       docker push $IMAGE_REGISTRY/hugo-runner:1.5
 
 # ===========================================================================
+# A11Y RUNNER
+# ===========================================================================
+#
+# axe-core accessibility scanning for the website pipelines.
+# Consumed by websites/omoikane.coach/www `a11y` job (OMOIKANE-1502).
+#
+# Versioned tag, like hugo-runner and rust-runner: the playwright PACKAGE and the
+# chromium BUILD are pinned together in the Dockerfile because playwright refuses
+# to drive a browser revision it was not built against. Bumping either means a new
+# tag, so a pipeline cannot silently acquire a mismatched pair.
+#
+# The Dockerfile asserts at BUILD time that playwright imports and chromium
+# actually launches and renders. That is deliberate: the job this replaced pulled
+# mcr.microsoft.com/playwright/python successfully and then failed with
+# ModuleNotFoundError, because that image ships the browsers WITHOUT the Python
+# package. A build-time assertion turns that class of mistake into a red image
+# build instead of a red pipeline in another repo.
+
+build_a11y_runner:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/a11y-runner/**/*
+      when: manual
+  script:
+    - |
+      cd images/a11y-runner
+      docker build -t $IMAGE_REGISTRY/a11y-runner:1.0 .
+      docker push $IMAGE_REGISTRY/a11y-runner:1.0
+
+# ===========================================================================
 # GITHUB SYNC RUNNER
 # ===========================================================================
 
