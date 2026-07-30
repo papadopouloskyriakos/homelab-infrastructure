@@ -14,6 +14,15 @@ master:
   grpcPort: 19333
   # Replication: 001 = 1 copy on another server in same rack
   defaultReplication: "001"
+  # The master's background vacuum only compacts a volume whose garbage ratio
+  # exceeds this. The chart default is null -> weed's built-in 0.3, and NO volume
+  # in this cluster has ever exceeded 30% garbage, so automatic GC has been a
+  # permanent no-op since install. ~68 GiB of reclaimable garbage accumulated
+  # (thanos-nl 54.9 GiB @ 11.1%, loki 11.0 GiB @ 13.0%) and the disks reached 92-93%,
+  # which tripped minFreeSpacePercent and took the S3 write path down for 12h
+  # (IFRNLLEI01PRD-2052). 0.10 sits below both collections' observed ratios so GC
+  # actually reclaims. Compaction is throttled by the volume servers' -compactionMBps=50.
+  garbageThreshold: "0.10"
   # Persistence uses data/logs structure, NOT persistence.enabled
   data:
     type: "REDACTED_33feff97"
