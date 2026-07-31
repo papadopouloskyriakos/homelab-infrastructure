@@ -10,7 +10,13 @@ metadata:
 spec:
   schedule: "0 2 * * *"
   template:
-    ttl: 720h
+    # OMOIKANE-1568 (2026-07-31): 30d → 14d. Velero backups had grown to
+    # 683 GB (68% of the 1000 Gi SeaweedFS S3), refilling the disk in
+    # <24h after the 500→1000 Gi expansion and re-triggering the
+    # low-space read-only deadlock (IFRNLLEI01PRD-2052 class) that took
+    # the whole NL S3 write path — and all daemon CI — down. Shorter
+    # retention keeps backup growth from wedging the shared backend.
+    ttl: 336h
     includedNamespaces:
     - "*"
     excludedNamespaces:
@@ -33,7 +39,8 @@ metadata:
 spec:
   schedule: "0 3 * * 0"
   template:
-    ttl: 2160h
+    # OMOIKANE-1568 (2026-07-31): 90d → 60d — see daily-backup note.
+    ttl: 1440h
     includedNamespaces:
     - "*"
     excludedNamespaces:
