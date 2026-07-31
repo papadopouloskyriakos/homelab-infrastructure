@@ -39,6 +39,20 @@
 #  D) If the velero deployment is removed or its ServiceMonitor breaks there are no series
 #     left to be 0, so every `== 0` rule goes quiet. VeleroMetricsMissing uses absent().
 #
+# ⚠ RELATIONSHIP TO custom-alerts.tf — READ BEFORE ADDING MORE VELERO RULES.
+# custom-alerts.tf already carries REDACTED_4b0d26ba, VeleroBackupFailed and
+# VeleroBackupStale. Those are NOT redundant with these, but the first two are
+# counter-based (`increase(velero_backup_partial_failure_total[1h]) > 0`) and are exactly
+# what trap A describes: the counters reset on every velero pod restart, so
+# `max_over_time(...[7d])` for partial_failure is **0** across a week in which ~35
+# PartiallyFailed backups exist. That rule cannot see the steady-state degradation it was
+# written for — it only catches a NEW failure that happens to land in a scrape window with
+# no restart. This file's gauge-based rules cover the steady state instead.
+# Deliberate de-duplication: our staleness rule was dropped (custom-alerts.tf's
+# VeleroBackupStale is equivalent and already has the `or absent()` guard), and our
+# hard-failure rule is named REDACTED_59968a02 so it does not collide with the
+# counter-based VeleroBackupFailed.
+#
 # tier="1" + severity="critical" is the Twilio SMS route (main.tf alertmanager route ->
 # 10.0.X.X:9106). Applied to VeleroBackupFailed and REDACTED_8cdf02da:
 # both mean the estate may have no usable restore point, and an untested backup is only a
@@ -68,7 +82,7 @@ resource "kubernetes_manifest" "REDACTED_e981a6a4" {
           rules = [
             {
               # Hard failure of the most recent run for a schedule.
-              alert = "VeleroBackupFailed"
+              alert = "REDACTED_59968a02"
               expr  = "velero_backup_last_status == 0"
               for   = "15m"
               labels = {
@@ -148,32 +162,6 @@ resource "kubernetes_manifest" "REDACTED_e981a6a4" {
 
                   Check: kubectl -n velero get schedules.velero.io ;
                   kubectl -n velero get backups.velero.io --sort-by=.metadata.creationTimestamp | tail
-                EOT
-              }
-            },
-            {
-              # A schedule that stopped firing. Separate from the age rule because this
-              # keys on the schedule object, not on the estate-wide newest success.
-              alert = "VeleroBackupStale"
-              expr  = "time() - max by (schedule) (velero_backup_last_successful_timestamp) > 172800"
-              for   = "1h"
-              labels = {
-                severity = "warning"
-                team     = "infra"
-                scope    = "backup"
-              }
-              annotations = {
-                summary     = "Velero schedule {{ $labels.schedule }} has not succeeded in 48h"
-                description = <<-EOT
-                  Schedule {{ $labels.schedule }} has produced no successful backup for over 48
-                  hours. Either the schedule stopped firing, or every run since has failed.
-
-                  Note the weekly schedule legitimately runs every 7 days — this rule is scoped by
-                  schedule label, so tune the threshold if a weekly-only schedule ever needs its
-                  own rule.
-
-                  Check: kubectl -n velero get schedules.velero.io -o wide ;
-                  kubectl -n velero describe schedule {{ $labels.schedule }}
                 EOT
               }
             },
