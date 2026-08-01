@@ -72,8 +72,8 @@ resource "kubernetes_manifest" "omoikane_yb_backup_alert_rules" {
               for   = "30m"
               labels = {
                 severity = "critical"
-                tier     = "1"
-                service  = "omoikane-dmz"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                service = "omoikane-dmz"
               }
               annotations = {
                 summary     = "{{ $labels.instance }} has missed two consecutive YugabyteDB DR snapshots ({{ $value | humanizeDuration }})"
@@ -94,8 +94,8 @@ resource "kubernetes_manifest" "omoikane_yb_backup_alert_rules" {
               for   = "15m"
               labels = {
                 severity = "critical"
-                tier     = "1"
-                service  = "omoikane-dmz"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                service = "omoikane-dmz"
               }
               annotations = {
                 summary     = "{{ $labels.instance }} DR snapshot is not readable by the offsite puller — the mirror WILL truncate"

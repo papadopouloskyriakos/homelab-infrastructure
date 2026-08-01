@@ -78,8 +78,8 @@ resource "kubernetes_manifest" "omoikane_container_memory_alert_rules" {
               for   = "2m"
               labels = {
                 severity = "critical"
-                tier     = "1"
-                service  = "omoikane-dmz"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                service = "omoikane-dmz"
               }
               annotations = {
                 summary     = "{{ $labels.container }} on {{ $labels.instance }} above 95% of its memory limit — OOM kill imminent"
@@ -109,8 +109,8 @@ resource "kubernetes_manifest" "omoikane_container_memory_alert_rules" {
               for   = "0m"
               labels = {
                 severity = "critical"
-                tier     = "1"
-                service  = "omoikane-dmz"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                service = "omoikane-dmz"
               }
               annotations = {
                 summary     = "{{ $labels.task }} was OOM-killed by its cgroup on {{ $labels.instance }} ({{ $value }} in 10m)"
