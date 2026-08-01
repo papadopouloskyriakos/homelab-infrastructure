@@ -101,8 +101,8 @@ resource "kubernetes_manifest" "REDACTED_289e5914" {
               for   = "5m"
               labels = {
                 severity = "critical"
-                tier     = "1"
-                service  = "omoikane-dmz"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                service = "omoikane-dmz"
               }
               annotations = {
                 summary     = "{{ $labels.instance }} {{ $labels.mountpoint }} is {{ $value | printf \"%.1f\" }}% full — YugabyteDB writes at risk"
