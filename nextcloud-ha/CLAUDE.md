@@ -71,8 +71,41 @@ ssh -i ~/.ssh/one_key root@nlnc02
 
 | Host | VMID | PVE | IPs | Version |
 |------|------|-----|-----|---------|
-| nlnc01 | 101101206 | nl-pve01 | 10.0.X.X, 10.0.X.X | Nextcloud 32.0.6, PHP 8.4.18, Apache 2.4.58 |
-| nlnc02 | 103101201 | nl-pve03 | 10.0.X.X, 10.0.X.X | Nextcloud 32.0.6, PHP 8.4.18, Apache 2.4.58 |
+| nlnc01 | 101101206 | nl-pve01 | 10.0.X.X, 10.0.X.X | Nextcloud 32.0.6, PHP **8.4.24**, Apache 2.4.58 |
+| nlnc02 | 103101201 | nl-pve03 | 10.0.X.X, 10.0.X.X | Nextcloud 32.0.6, PHP **8.4.24**, Apache 2.4.58 |
+
+#### ⚠ Upgrade status (checked live 2026-08-01) — UPDATE REQUIRED, and there is a deadline
+
+- **Core is 7 maintenance releases behind: 32.0.6 -> 32.0.13.** 32.0.13 shipped 2026-07-23
+  alongside 33.0.7 and 34.0.2, so the 32 branch is still actively maintained — this is a
+  straight patch-level update. Nextcloud publishes CVE detail ~3 weeks *after* the release that
+  fixes it, so on an internet-facing instance (`nextcloud.example.net` via npm01) a
+  7-release gap likely means publicly-documented, unpatched issues.
+- **17 app updates pending** — incl. `spreed` (Talk), `mail`, `richdocuments` +
+  `richdocumentscode`, `groupfolders`, `files_accesscontrol`, `contacts`, `calendar`,
+  `notify_push`. List with `occ update:check`.
+- **🗓 Nextcloud 32 reaches EOL ~2026-09-30.** Majors must be taken one at a time (32 -> 33 -> 34;
+  34 is current). Plan the 33 upgrade well before that date — after EOL there are no security
+  patches. Tracked in **IFRNLLEI01PRD-2235**.
+
+**🔴 THE APP TIER CANNOT BE ROLLING-UPGRADED.** `/var/www/nextcloud` is a **shared** NFSv4.2
+mount of `10.0.X.X:/mnt/ocfs2/nextcloud/nextcloud-app` on **both** nc01 and nc02 — they
+execute the *same files*, and both report the same version because there is only one copy. So:
+
+- You upgrade **once**, not per node. Do not try to "do nc01 first".
+- `maintenance:mode --on` takes the **entire service** down; HAProxy is left with no healthy
+  backend in `nextcloud_servers`. This is a full outage window, not a failover.
+- The nc01/nc02 pair gives you redundancy against *host* failure, **not** against an upgrade.
+
+Prerequisites verified OK 2026-08-01: built-in `updater/` present, PHP 8.4.24, 3.6 TB free on the
+app and data volumes, DB schema clean (`occ setupchecks` database section all green,
+`needsDbUpgrade: false`).
+
+**Back up explicitly first — do not rely on the existing chain.** Velero produced its first clean
+backup on record only on 2026-07-30 and *"prove a restore"* is still an open item (see root
+`CLAUDE.md`), and the app directory lives on the same DRBD/OCFS2 cluster as the data it would
+restore from. Take a `mysqldump` of the `nextcloud` schema plus a copy of `config/` before
+starting.
 
 **Key config (config.php):**
 - `datadirectory` → `/mnt/nextcloud-data` (NFS from nlcl01file01)
