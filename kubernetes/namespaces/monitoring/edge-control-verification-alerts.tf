@@ -120,8 +120,8 @@ resource "kubernetes_manifest" "REDACTED_c209409f" {
               expr  = "absent(edge_control_denied)"
               for   = "30m"
               labels = {
-                severity  = "critical"
-                tier      = "1"
+                severity = "critical"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
                 category  = "edge-control"
                 service   = "edge"
                 namespace = "edge-firewall"

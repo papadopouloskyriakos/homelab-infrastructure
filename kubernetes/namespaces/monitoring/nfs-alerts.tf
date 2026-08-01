@@ -39,8 +39,8 @@ resource "kubernetes_manifest" "nfs_alert_rules" {
               for   = "3m"
               labels = {
                 severity = "critical"
-                tier     = "1"
-                service  = "fisha-nfs"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                service = "fisha-nfs"
               }
               annotations = {
                 summary     = "nfsd emitting NFS4ERR_STALE on {{ $labels.instance }} ({{ $value | printf \"%.2f\" }}/s)"

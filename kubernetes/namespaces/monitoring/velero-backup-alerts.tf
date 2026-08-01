@@ -87,9 +87,9 @@ resource "kubernetes_manifest" "REDACTED_e981a6a4" {
               for   = "15m"
               labels = {
                 severity = "critical"
-                tier     = "1"
-                team     = "infra"
-                scope    = "backup"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                team  = "infra"
+                scope = "backup"
               }
               annotations = {
                 summary     = "Velero backup FAILED for schedule {{ $labels.schedule }}"
@@ -146,9 +146,9 @@ resource "kubernetes_manifest" "REDACTED_e981a6a4" {
               for   = "30m"
               labels = {
                 severity = "critical"
-                tier     = "1"
-                team     = "infra"
-                scope    = "backup"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                team  = "infra"
+                scope = "backup"
               }
               annotations = {
                 summary     = "No successful Velero backup in over 36 hours"
