@@ -163,6 +163,40 @@ Claude Code L3 (reads YT comments, plans fix, waits for human approval)
 
 **YT custom fields set by k8s-triage.sh:** Hostname, Alert Rule, Severity, Namespace, Pod, Alert Source (`Prometheus`).
 
+### SMS (Twilio) surface — what actually pages a human
+
+**SMS is the only channel that pages.** Two independent paths reach the phone:
+
+1. **Alertmanager → Twilio bridge** (`http://10.0.X.X:9106/alert`, `nlclaude01:9106`). The route matches **`tier = 1` AND `severity = critical`** only (`group_wait 10s`, `repeat 1h`, `continue = true` so it still reaches Matrix/YT). Stock kube-prometheus rules carry **no `tier` label**, so none of them can SMS — only the custom `namespaces/monitoring/*.tf` rules that set `tier = "1"`.
+2. **Gatus → Twilio directly** (`gatus/main.tf`, `alerts = local.twilio_enabled ? [...]`), bypassing Alertmanager. Enabled live via `TF_VAR_gatus_twilio_*` in Atlantis's env (source of the harmless "gatus_twilio will be destroyed" phantom in the drift job — ignore it).
+
+**Current SMS surface = 12** (operator triage 2026-08-01, MR !447):
+
+| Path | Alerts |
+|------|--------|
+| Alertmanager (`tier=1`+`critical`) — **8** | `REDACTED_06ec64ac`, `REDACTED_c39c23d4`, `REDACTED_e67edccb`, `REDACTED_578414e4`, `EdgeWafNotEnforcing`, `EdgeWafNotWired`, `EdgeCrowdSecDown`, `REDACTED_22590886` |
+| Gatus — **4** | `NL Kubernetes API`, `FISHA file01`, `FISHA file02`, `Home Assistant` |
+
+**31 alerts were removed from SMS on 2026-08-01** by commenting out their `tier = "1"` label
+(`# tier = "1"  # SMS-disabled 2026-08-01 …`). **`severity` stays `critical`** — every one still
+fires to Matrix + YouTrack triage; only the page is gone. **Reversible: uncomment the tier line.**
+Disabled set: the two SeaweedFS write-path lines; the omoikane/velero/YB-backup, PVE-pressure,
+pmxcfs and NFS-poisoning infra alerts; and all agentic-platform governance + dead-man alerts
+(`agentic-health-alerts.tf`, `renovate-autonomy-alerts.tf`, `scheduled-reboot-alerts.tf`, etc.).
+
+⚠ **To re-enable one, uncomment its `tier = "1"` — do NOT re-derive from severity.** `severity =
+"critical"` alone does **not** SMS; the `tier` label is the gate. And note `OmoikaneContainerMemoryCritical`
+was separately set to `tier = "2"` (not commented) by MR OMOIKANE-1493 with a "restore tier=1 at
+launch" note — a different mechanism, same effect (no SMS).
+
+⚠ **`REDACTED_880627c0` is defined in two files** (`agentic-health-alerts.tf` +
+`scheduled-reboot-alerts.tf`) — change both or they drift. Alertmanager dedups by `alertname`,
+so a live duplicate pages once, but it is a config smell worth collapsing.
+
+To re-audit the SMS surface: grep the custom rule files for a `tier = "1"` label co-located with
+`severity = "critical"` in the same rule block (a header-comment mention of "tier" does not count),
+plus the `alerts = local.twilio_enabled` blocks in `gatus/main.tf`.
+
 ## Known Issues
 
 - **kube-apiserver on nlk8s-ctrl01**: chronic apiserver crash-loop (~1994 restarts as of 2026-07-24). **Root cause is etcd WAL fsync latency on the hypervisor's ZFS rpool — NOT the old pve01 memory-pressure / androidsdk01 story (obsolete).** ctrl01 was migrated off nl-pve01 (~2026-05) and now runs as **QEMU VM 101850601 on nlpve04** — a 4th NL hypervisor (EPYC 9334, 32c/64t, ~135 GB) absent from most docs and from the `pve/` repo; its rpool is a consumer-NVMe mirror with **no SLOG** (`zpool iostat -l` write syncq_wait ~1s). Slow etcd (WAL fdatasync 1–2 s, apply/range up to ~2 s) → apiserver `/livez` HTTP 500 → kubelet restarts it (now a graceful exit 0, not the old exit 137/OOM). Worsens during long `vzdump` backups on pve04. Tracked in **IFRNLLEI01PRD-1741** (+ **1861** etcdInsufficientMembers); a 200 MiB/s backup `bwlimit` (2026-07-09) helped but does not cover off-schedule rpool I/O (a Friday 2026-07-24 flap confirmed this). Durable fix: live-migrate ctrl01 off pve04's rpool, or add a PLP/Optane SLOG vdev. See memory `reference_etcd_tuning` + `reference_k8s_api_lb`.
