@@ -19,9 +19,21 @@ spec:
     ttl: 336h
     includedNamespaces:
     - "*"
+    # seaweedfs excluded (IFRNLLEI01PRD-2227, 2026-08-01): with
+    # defaultVolumesToFsBackup this schedule kopia-copied SeaweedFS's own
+    # 2×1000Gi volume PVs INTO SeaweedFS — velero's storage backend — a
+    # backup that cannot restore the thing it lives inside. The recursive
+    # repo reached 602 GiB (94% of the velero collection) and refilled the
+    # disks to 95% within a day of the TTL cut above, recreating the
+    # 2052-class write outage as its slot-exhaustion variant. SeaweedFS
+    # manifests are OpenTofu-managed; its DATA protection is replication
+    # 001 + the GR filer.sync mirror, never velero. Belt-and-braces: the
+    # seaweedfs pods also carry backup.velero.io/backup-volumes-excludes
+    # podAnnotations (namespaces/seaweedfs/values.yaml.tpl).
     excludedNamespaces:
     - kube-system
     - velero
+    - seaweedfs
     includeClusterResources: true
     storageLocation: default
     volumeSnapshotLocations:
@@ -43,9 +55,11 @@ spec:
     ttl: 1440h
     includedNamespaces:
     - "*"
+    # seaweedfs: see the daily-backup note (IFRNLLEI01PRD-2227).
     excludedNamespaces:
     - kube-system
     - velero
+    - seaweedfs
     includeClusterResources: true
     storageLocation: default
     volumeSnapshotLocations:
