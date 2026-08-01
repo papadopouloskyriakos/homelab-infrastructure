@@ -781,7 +781,7 @@ Nextcloud Frontends (Apache 2.4.58 + PHP 8.4.18 + PHP-FPM)
     ├─ nlnc01 (QEMU, pve01, 10.0.X.X) — PRIMARY
     └─ nlnc02 (QEMU, pve03, 10.0.X.X) — BACKUP
     │
-    ├── DB → ProxySQL (2x, 10.0.X.X+154, port 6033) → Galera MariaDB 11.6.2
+    ├── DB → ProxySQL (2x, 10.0.X.X+154, port 6033) → Galera MariaDB 11.8.8
     ├── Cache → HAProxy TCP :6380 → Redis Sentinel (3-node, master: redis02)
     ├── Files → NFS VIP 10.0.X.X (DRBD dual-primary + OCFS2, VLAN 88)
     ├── Auth → FreeIPA LDAP (sec.example.net)
@@ -821,8 +821,8 @@ NFS mounts (both nodes, VLAN 88): `10.0.X.X:/mnt/ocfs2/nextcloud/nextcloud-app` 
 |------|------|-----|-----|------|
 | nlproxysql01 | 101101004 | nl-pve01 | 10.0.X.X | ProxySQL 2.7.2, port 6033 |
 | nlproxysql02 | 101101008 | nl-pve03 | 10.0.X.X | ProxySQL 2.7.2, identical config |
-| nlcl01mariadb01 | 101101002 | nl-pve01 | 10.0.X.X | MariaDB 11.6.2 Galera, Primary |
-| nlcl01mariadb02 | 101101006 | nl-pve03 | 10.0.X.X | MariaDB 11.6.2 Galera, Primary |
+| nlcl01mariadb01 | 101101002 | nlpve04 | 10.0.X.X | MariaDB 11.8.8 Galera, Primary (11.8 LTS since 2026-08-01) |
+| nlcl01mariadb02 | 101101006 | nl-pve03 | 10.0.X.X | MariaDB 11.8.8 Galera, Primary (11.8 LTS since 2026-08-01) |
 | nlcl01garbd01 | 101101007 | nl-pve02 | 10.0.X.X | Galera Arbitrator (quorum voter, no data) |
 
 DNS: `proxysql.example.net` → RR .152 + .154 (Nextcloud connects directly, NOT via HAProxy)
