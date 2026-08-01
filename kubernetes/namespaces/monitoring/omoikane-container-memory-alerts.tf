@@ -57,10 +57,23 @@ resource "kubernetes_manifest" "omoikane_container_memory_alert_rules" {
             # The `> 0` on the denominator drops containers with memory.max
             # unset — the exporter reports those as limit 0, and dividing by it
             # would yield +Inf and page on every unlimited container.
+            #
+            # 2026-08-01 — BOTH thresholds moved off omoikane_container_memory_bytes
+            # (cgroup memory.current) onto ..._anon_bytes (memory.stat anon).
+            # memory.current INCLUDES page cache, essentially all of which the
+            # kernel reclaims before OOM-killing anything, so the old expression
+            # could not distinguish "about to die" from "warm cache". It sent a
+            # tier-1 SMS at 95.6% while the real state was: anon 6.78G of an 8G
+            # limit (79%), file 1.42G of which inactive_file 1.42G — 1.4G of
+            # instantly-reclaimable headroom, zero OOM kills, zero restarts, anon
+            # flat across repeated sampling. anon is what the kernel's OOM
+            # decision keys on. The July 23-24 incident this rule was built for
+            # (26 kills in 12.7h) is visible on anon too: the signal is kept, the
+            # false positive removed.
             # -----------------------------------------------------------------
             {
               alert = "OmoikaneREDACTED_879bd353"
-              expr  = "omoikane_container_memory_bytes / (omoikane_container_memory_limit_bytes > 0) > 0.90"
+              expr  = "omoikane_container_memory_anon_bytes / (omoikane_container_memory_limit_bytes > 0) > 0.90"
               for   = "5m"
               labels = {
                 severity = "warning"
@@ -74,12 +87,16 @@ resource "kubernetes_manifest" "omoikane_container_memory_alert_rules" {
             },
             {
               alert = "OmoikaneContainerMemoryCritical"
-              expr  = "omoikane_container_memory_bytes / (omoikane_container_memory_limit_bytes > 0) > 0.95"
+              expr  = "omoikane_container_memory_anon_bytes / (omoikane_container_memory_limit_bytes > 0) > 0.95"
               for   = "2m"
               labels = {
                 severity = "critical"
-                tier     = "1"
-                service  = "omoikane-dmz"
+                # tier 2, NOT 1 (operator ruling 2026-08-01): omoikane has no
+                # customers yet, so an SMS at 03:00 about a pre-launch container
+                # is noise, not an incident. Restore tier="1" at launch, when a
+                # crash-loop actually costs a user something.
+                tier    = "2"
+                service = "omoikane-dmz"
               }
               annotations = {
                 summary     = "{{ $labels.container }} on {{ $labels.instance }} above 95% of its memory limit — OOM kill imminent"
