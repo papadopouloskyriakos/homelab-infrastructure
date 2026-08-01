@@ -99,8 +99,8 @@ ssh -i ~/.ssh/one_key root@nlnc02
 |------|------|-----|-----|------|
 | nlproxysql01 | 101101004 | nl-pve01 | 10.0.X.X | ProxySQL 2.7.2. Port 6033. Docker. Monitor user: `monitor`. 64MB query cache. |
 | nlproxysql02 | 101101008 | nl-pve03 | 10.0.X.X | ProxySQL 2.7.2. Identical config. |
-| nlcl01mariadb01 | 101101002 | nl-pve01 | 10.0.X.X | MariaDB 11.6.2 Galera. Synced, Primary. InnoDB buffer pool 128MB. |
-| nlcl01mariadb02 | 101101006 | nl-pve03 | 10.0.X.X | MariaDB 11.6.2 Galera. Synced, Primary. |
+| nlcl01mariadb01 | 101101002 | nlpve04 | 10.0.X.X | MariaDB 11.8.8 Galera. Synced, Primary. InnoDB buffer pool 128MB. Upgraded 11.6.2→11.8.8 LTS 2026-08-01 (native VECTOR for healthops); CT lives on pve04, not pve01 as older docs said. |
+| nlcl01mariadb02 | 101101006 | nl-pve03 | 10.0.X.X | MariaDB 11.8.8 Galera. Synced, Primary. Upgraded 2026-08-01. |
 | nlcl01garbd01 | 101101007 | nl-pve02 | 10.0.X.X | Galera Arbitrator (quorum voter, no data). |
 
 **DNS:** `proxysql.example.net` → RR 10.0.X.X + .154 (Nextcloud connects here directly, NOT via HAProxy)
