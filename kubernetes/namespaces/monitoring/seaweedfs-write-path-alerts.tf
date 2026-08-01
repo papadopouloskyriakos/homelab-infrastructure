@@ -87,8 +87,8 @@ resource "kubernetes_manifest" "REDACTED_78d971a7" {
               expr  = "sum by (instance, pod) (SeaweedFS_volumeServer_read_only_volumes{type=\"isDiskSpaceLow\"}) > 0"
               for   = "5m"
               labels = {
-                severity  = "critical"
-                tier      = "1"
+                severity = "critical"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
                 category  = "storage-write-path"
                 service   = "seaweedfs"
                 namespace = "seaweedfs"
@@ -108,8 +108,8 @@ resource "kubernetes_manifest" "REDACTED_78d971a7" {
               expr  = "sum(rate(SeaweedFS_master_pick_for_write_error[5m])) > 0"
               for   = "10m"
               labels = {
-                severity  = "critical"
-                tier      = "1"
+                severity = "critical"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
                 category  = "storage-write-path"
                 service   = "seaweedfs"
                 namespace = "seaweedfs"

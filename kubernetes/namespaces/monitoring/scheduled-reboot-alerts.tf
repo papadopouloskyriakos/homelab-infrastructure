@@ -43,7 +43,7 @@ resource "kubernetes_manifest" "REDACTED_faf4a833" {
               for   = "1m"
               labels = {
                 severity = "critical"
-                tier     = "1"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
                 category = "agentic-platform"
               }
               annotations = {
