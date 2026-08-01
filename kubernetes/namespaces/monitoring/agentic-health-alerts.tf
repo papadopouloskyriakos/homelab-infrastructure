@@ -180,7 +180,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               for   = "5m"
               labels = {
                 severity = "critical"
-                tier     = "1"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
                 category = "agentic-platform"
               }
               annotations = {
@@ -194,7 +194,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               for   = "15m"
               labels = {
                 severity = "critical"
-                tier     = "1"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
                 category = "agentic-platform"
               }
               annotations = {
@@ -211,7 +211,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               for   = "0m"
               labels = {
                 severity = "critical"
-                tier     = "1"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
                 category = "agentic-platform"
               }
               annotations = {
@@ -268,7 +268,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               for   = "15m"
               labels = {
                 severity = "critical"
-                tier     = "1"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
                 category = "agentic-platform"
               }
               annotations = {
@@ -298,7 +298,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               for   = "1h"
               labels = {
                 severity = "critical"
-                tier     = "1"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
                 category = "agentic-platform"
               }
               annotations = {
@@ -325,7 +325,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               for   = "5m"
               labels = {
                 severity = "critical"
-                tier     = "1"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
                 category = "agentic-platform"
               }
               annotations = {
@@ -353,7 +353,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               labels = {
                 severity = "critical"
                 category = "agentic-platform"
-                tier     = "1"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
               }
               annotations = {
                 summary     = "{{ $value }} CRITICAL registered component(s) went dark"
@@ -393,7 +393,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               labels = {
                 severity = "critical"
                 category = "agentic-platform"
-                tier     = "1"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
               }
               annotations = {
                 summary     = "{{ $value }} orchestration safety-composition failure(s) - an irreversible incident was auto-resolved"
@@ -420,7 +420,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               labels = {
                 severity = "critical"
                 category = "agentic-platform"
-                tier     = "1"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
               }
               annotations = {
                 summary     = "the Cronicle job scheduler is DOWN - the platform's cron scheduling has stopped"
@@ -460,7 +460,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               labels = {
                 severity = "critical"
                 category = "agentic-platform"
-                tier     = "1"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
               }
               annotations = {
                 summary     = "{{ $value }} platform target(s) the self-healer could not fix (heal cap hit)"
@@ -474,7 +474,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               labels = {
                 severity = "critical"
                 category = "agentic-platform"
-                tier     = "1"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
               }
               annotations = {
                 summary     = "the Plane-A platform self-healer is down (or metric absent)"
@@ -529,7 +529,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               labels = {
                 severity = "critical"
                 category = "agentic-platform"
-                tier     = "1"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
               }
               annotations = {
                 summary     = "the autonomy-forward decision log hash-chain is BROKEN (first break id {{ with query \"governance_chain_first_break_id\" }}{{ . | first | value }}{{ end }})"
@@ -543,7 +543,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               labels = {
                 severity = "critical"
                 category = "agentic-platform"
-                tier     = "1"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
               }
               annotations = {
                 summary     = "the governance-chain tamper-evidence check is not running (or metric absent)"
@@ -712,7 +712,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               for   = "1m"
               labels = {
                 severity = "critical"
-                tier     = "1"
+                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
                 category = "agentic-platform"
               }
               annotations = {
