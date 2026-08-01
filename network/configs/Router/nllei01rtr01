@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 21900 bytes
+Current configuration : 21928 bytes
 !
-! Last configuration change at 19:55:35 CEST Mon Jun 1 2026 by kyriakosp
+! Last configuration change at 01:40:54 CEST Sat Aug 1 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -205,6 +205,7 @@ crypto ikev2 profile VTI-IKEV2-PROFILE
  REDACTED_6fa691d2 local pre-share
  keyring local VTI-KEYRING
  dpd 10 5 on-demand
+ no config-exchange request
 !
 !
 controller VDSL 0/1/0
