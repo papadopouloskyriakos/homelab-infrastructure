@@ -12,6 +12,14 @@ master:
   replicas: 3
   port: 9333
   grpcPort: 19333
+  # Velero must NEVER fs-backup SeaweedFS's own PVs into SeaweedFS
+  # (recursive, unrestorable; filled the disks to 95% and killed the S3
+  # write path — IFRNLLEI01PRD-2227). Defense-in-depth with the
+  # namespace exclusion in argocd-apps/velero/schedules.yaml: the
+  # annotation also protects against ad-hoc `velero backup create`
+  # runs that scope namespaces themselves. Value = pod volume NAME.
+  podAnnotations:
+    backup.velero.io/backup-volumes-excludes: "data-seaweedfs"
   # Replication: 001 = 1 copy on another server in same rack
   defaultReplication: "001"
   # The master's background vacuum only compacts a volume whose garbage ratio
@@ -60,6 +68,10 @@ volume:
   replicas: 2
   port: 8080
   grpcPort: 18080
+  # See master.podAnnotations — the 2×1000Gi .dat stores were the bulk
+  # of the recursive 602 GiB kopia repo (IFRNLLEI01PRD-2227).
+  podAnnotations:
+    backup.velero.io/backup-volumes-excludes: "data"
   # Volume servers use dataDirs array, NOT persistence.enabled
   dataDirs:
     - name: data
@@ -104,6 +116,9 @@ filer:
   replicas: 2
   port: 8888
   grpcPort: 18888
+  # See master.podAnnotations (IFRNLLEI01PRD-2227).
+  podAnnotations:
+    backup.velero.io/backup-volumes-excludes: "data-filer"
   # Match master replication setting
   defaultReplicaPlacement: "001"
   # Filer uses data structure, NOT persistence.enabled
