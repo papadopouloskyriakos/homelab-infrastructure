@@ -327,6 +327,37 @@ resource "helm_release" "monitoring" {
                 { source_labels = ["__address__"], regex = "10\\.255\\.6\\.11:.*", target_label = "site", replacement = "tx" },
               ]
             },
+            # FRR BGP Exporters - Omoikane app DMZ pair (OMOIKANE-1437)
+            #
+            # These two speak iBGP in AS65000 and have shipped frr_exporter on
+            # :9342 all along — they were simply in neither list above, so
+            # MeshiBGPPeerDown (expr `frr_bgp_peer_state != 1`, no job selector)
+            # could never fire for them: no series, no alert. A rule that cannot
+            # express the failure it was written for.
+            #
+            # Verified live before adding, not inferred from config: dmz01 :9342
+            # answers HTTP 200 and serves 9 frr_bgp_peer_state samples right now.
+            #
+            # instance/site replacements deliberately match the omoikane-node job
+            # below (full hostname, site "no") so BGP and disk alerts name these
+            # hosts identically.
+            {
+              job_name = "frr-dmz-nodes"
+              static_configs = [{
+                targets = [
+                  "10.255.4.11:9342", # notrf01dmz01 — omoikane app DMZ
+                  "10.255.5.11:9342", # notrf01dmz02 — omoikane app DMZ
+                ]
+                labels = {
+                  role = "dmz-node"
+                }
+              }]
+              relabel_configs = [
+                { source_labels = ["__address__"], regex = "10\\.255\\.4\\.11:.*", target_label = "instance", replacement = "notrf01dmz01" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.5\\.11:.*", target_label = "instance", replacement = "notrf01dmz02" },
+                { source_labels = ["__address__"], regex = "10\\.255\\.[45]\\..*", target_label = "site", replacement = "no" },
+              ]
+            },
             # IPsec Exporters - Edge Nodes
             {
               job_name = "ipsec-edge-nodes"
