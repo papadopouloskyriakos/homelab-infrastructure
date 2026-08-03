@@ -753,16 +753,31 @@ resource "helm_release" "monitoring" {
               },
               # Territory Grounder — fan actionable alerts to TG in parallel with n8n. Placed AFTER the
               # null routes so Watchdog/InfoInhibitor/KubeAPIErrorBudgetBurn are consumed first and never
-              # reach TG; `continue = true` so the alert still falls through to the default receiver (n8n).
+              # reach TG.
+              #
+              # ⚠ CORRECTED 2026-08-03 — this comment previously claimed `continue = true` means the alert
+              # "still falls through to the default receiver (n8n)". THAT IS NOT ALERTMANAGER'S ROUTING
+              # SEMANTICS. `continue` only allows evaluation to proceed to the NEXT SIBLING route; a
+              # parent's own `receiver` fires ONLY when no child route matched at all. Because
+              # `severity =~ "warning|critical"` matches essentially every actionable alert, the default
+              # `webhook-n8n` became unreachable the moment this route landed (commit 5031322, 2026-07-17).
+              #
+              # Effect, measured 2026-08-03: for 17 days EVERY warning/critical in the estate reached
+              # Territory Grounder ONLY — the documented n8n → Matrix #infra-nl-prod → k8s-triage.sh
+              # → YouTrack pipeline received nothing. Found via REDACTED_96945896, which fired
+              # continuously for ~22h (notrf01dmz01 root fs 85→92%, 2026-08-02T16:31Z → 2026-08-03T14:31Z)
+              # while Alertmanager's /api/v2/alerts held 0 such alerts and YouTrack had 0 triage issues.
+              #
+              # The explicit webhook-n8n sibling at the END of this list is what actually implements the
+              # "parallel to n8n" intent. Do NOT delete it believing the default receiver covers it.
               {
                 matchers = ["severity =~ \"warning|critical\""]
                 receiver = "webhook-tg"
                 continue = true
               },
-              # Tier-1 critical alerts: dual-route to Matrix (via webhook-n8n
-              # for visibility) AND Twilio (for operator SMS escalation).
-              # `continue: true` ensures the matching alert continues to the
-              # default route after hitting twilio-tier1.
+              # Tier-1 critical alerts → Twilio SMS. `continue = true` here lets evaluation reach the
+              # explicit webhook-n8n sibling below (NOT the parent default — see the correction above),
+              # so a tier-1 critical still reaches Matrix/YouTrack as well as the phone.
               {
                 matchers = ["tier = 1", "severity = critical"]
                 receiver = "twilio-tier1"
@@ -772,6 +787,14 @@ resource "helm_release" "monitoring" {
                 group_wait      = "10s"
                 group_interval  = "1m"
                 repeat_interval = "1h"
+              },
+              # The EXPLICIT n8n leg of the fan-out. Terminal (no `continue`) — anything that should also
+              # page or reach TG has already matched a sibling above. This route is the ONLY thing that
+              # delivers warning/critical alerts to n8n → Matrix → YouTrack triage; it is not redundant
+              # with the parent `receiver = "webhook-n8n"`, which is unreachable for these alerts.
+              {
+                matchers = ["severity =~ \"warning|critical\""]
+                receiver = "webhook-n8n"
               }
             ]
           }
