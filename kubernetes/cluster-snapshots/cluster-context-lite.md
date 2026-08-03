@@ -3,21 +3,21 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-08-02 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-08-03 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: DEGRADED ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 2 |
+| Unhealthy Pods | 1 |
 | Pending PVCs | 0 |
-| Total Restarts | 3181 |
+| Total Restarts | 3186 |
 
 ## Topology
 
 - **K8s:** v1.34.2 | **CNI:** Cilium 1.19.5
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 197
+- **Pods:** 192
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8005928Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -32,8 +32,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-ingress-nginx            ingress-nginx-controller-8445475547-cz8k2                         0/1   OOMKilled           0                 25d
-velero                   weekly-backup-20260802030016-4pjfd                                0/1   ContainerCreating   0                 1s
+ingress-nginx            ingress-nginx-controller-8445475547-cz8k2                         0/1   OOMKilled   0                 26d
 ```
 
 ### High Restart Pods (>3)
@@ -44,7 +43,7 @@ cilium-spire/spire-agent-49g4h: 28 restarts
 cilium-spire/spire-agent-mdslp: 8 restarts
 cilium-spire/spire-server-0: 17 restarts
 REDACTED_01b50c5d/REDACTED_ab04b573-v2-8c85f5d4b-ng8lb: 24 restarts
-ingress-nginx/ingress-nginx-controller-8445475547-bwczk: 5 restarts
+ingress-nginx/ingress-nginx-controller-8445475547-bwczk: 10 restarts
 ingress-nginx/ingress-nginx-controller-8445475547-mxdrc: 30 restarts
 kube-system/cilium-operator-6cdbfb68d7-z6v2x: 6 restarts
 kube-system/clustermesh-apiserver-6c96779765-rmrzt: 42 restarts
@@ -86,11 +85,8 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-monitoring    58m         Warning   Unhealthy   pod/monitoring-kube-state-metrics-75f9fff55b-6cc8x   Liveness probe failed: HTTP probe failed with statuscode: 503
-kube-system   46m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01                          Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system   43m         Warning   Unhealthy   pod/etcd-nlk8s-ctrl01                          Readiness probe failed: HTTP probe failed with statuscode: 503
-kube-system   16m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl01                Liveness probe failed: HTTP probe failed with statuscode: 500
-monitoring    14m         Warning   Unhealthy   pod/bgpalerter-789f984488-jpkvh                      Readiness probe failed: Get "http://10.0.6.70:8011/status": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+NAMESPACE    LAST SEEN   TYPE      REASON      OBJECT                            MESSAGE
+monitoring   14m         Warning   Unhealthy   pod/bgpalerter-789f984488-jpkvh   Readiness probe failed: Get "http://10.0.6.70:8011/status": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
 ```
 
 ## Key Resources
