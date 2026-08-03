@@ -115,7 +115,12 @@ resource "kubernetes_manifest" "REDACTED_d6d62266" {
           interval = "1m"
           rules = [
             {
-              # A route-reflector or VPS-edge iBGP session left Established.
+              # A route-reflector, VPS-edge, or omoikane app-DMZ iBGP session
+              # left Established. The DMZ pair only became reachable by this rule
+              # in OMOIKANE-1437: they were in no frr scrape job, so despite both
+              # running bgpd and serving :9342, this alert produced no series for
+              # them and could not fire. Expr is deliberately job-agnostic — the
+              # coverage lives in the scrape config, not here.
               alert = "MeshiBGPPeerDown"
               expr  = "frr_bgp_peer_state != 1"
               for   = "10m"
