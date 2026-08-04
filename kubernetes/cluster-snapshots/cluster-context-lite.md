@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-08-03 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-08-04 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: DEGRADED ⚠️
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 1 |
 | Pending PVCs | 0 |
-| Total Restarts | 3186 |
+| Total Restarts | 3195 |
 
 ## Topology
 
@@ -32,7 +32,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-ingress-nginx            ingress-nginx-controller-8445475547-cz8k2                         0/1   OOMKilled   0                 26d
+ingress-nginx            ingress-nginx-controller-8445475547-cz8k2                         0/1   OOMKilled   0                  27d
 ```
 
 ### High Restart Pods (>3)
@@ -43,7 +43,7 @@ cilium-spire/spire-agent-49g4h: 28 restarts
 cilium-spire/spire-agent-mdslp: 8 restarts
 cilium-spire/spire-server-0: 17 restarts
 REDACTED_01b50c5d/REDACTED_ab04b573-v2-8c85f5d4b-ng8lb: 24 restarts
-ingress-nginx/ingress-nginx-controller-8445475547-bwczk: 10 restarts
+ingress-nginx/ingress-nginx-controller-8445475547-bwczk: 19 restarts
 ingress-nginx/ingress-nginx-controller-8445475547-mxdrc: 30 restarts
 kube-system/cilium-operator-6cdbfb68d7-z6v2x: 6 restarts
 kube-system/clustermesh-apiserver-6c96779765-rmrzt: 42 restarts
@@ -85,8 +85,11 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-NAMESPACE    LAST SEEN   TYPE      REASON      OBJECT                            MESSAGE
-monitoring   14m         Warning   Unhealthy   pod/bgpalerter-789f984488-jpkvh   Readiness probe failed: Get "http://10.0.6.70:8011/status": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+monitoring     58m         Warning   Unhealthy   pod/monitoring-kube-state-metrics-75f9fff55b-6cc8x         Liveness probe failed: HTTP probe failed with statuscode: 503
+kube-system    58m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02                      Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system    58m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02                      Liveness probe failed: HTTP probe failed with statuscode: 500
+monitoring     54m         Warning   Unhealthy   pod/monitoring-kube-prometheus-operator-67d8d4c647-5955s   Readiness probe failed: Get "https://10.0.3.94:10250/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
+cilium-spire   54m         Warning   Unhealthy   pod/spire-agent-49g4h                                      Readiness probe failed: Get "http://10.0.X.X:4251/ready": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
 ```
 
 ## Key Resources
