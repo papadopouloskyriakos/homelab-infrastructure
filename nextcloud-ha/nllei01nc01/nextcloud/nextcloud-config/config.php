@@ -47,7 +47,7 @@ $CONFIG = array (
   ),
   'datadirectory' => '/mnt/nextcloud-data',
   'dbtype' => 'mysql',
-  'version' => '32.0.6.1',
+  'version' => '33.0.7.1',
   'overwrite.cli.url' => 'https://nextcloud.example.net',
   'dbname' => 'nextcloud',
   'dbhost' => 'proxysql.example.net:6033',

@@ -71,22 +71,34 @@ ssh -i ~/.ssh/one_key root@nlnc02
 
 | Host | VMID | PVE | IPs | Version |
 |------|------|-----|-----|---------|
-| nlnc01 | 101101206 | nl-pve01 | 10.0.X.X, 10.0.X.X | Nextcloud 32.0.6, PHP **8.4.24**, Apache 2.4.58 |
-| nlnc02 | 103101201 | nl-pve03 | 10.0.X.X, 10.0.X.X | Nextcloud 32.0.6, PHP **8.4.24**, Apache 2.4.58 |
+| nlnc01 | 101101206 | nl-pve01 | 10.0.X.X, 10.0.X.X | Nextcloud **33.0.7**, PHP **8.4.24**, Apache 2.4.58 |
+| nlnc02 | 103101201 | nl-pve03 | 10.0.X.X, 10.0.X.X | Nextcloud **33.0.7**, PHP **8.4.24**, Apache 2.4.58 |
 
-#### ⚠ Upgrade status (checked live 2026-08-01) — UPDATE REQUIRED, and there is a deadline
+#### Upgrade status (2026-08-05: 32.0.6 → 32.0.13 → 33.0.7 DONE, IFRNLLEI01PRD-2235)
 
-- **Core is 7 maintenance releases behind: 32.0.6 -> 32.0.13.** 32.0.13 shipped 2026-07-23
-  alongside 33.0.7 and 34.0.2, so the 32 branch is still actively maintained — this is a
-  straight patch-level update. Nextcloud publishes CVE detail ~3 weeks *after* the release that
-  fixes it, so on an internet-facing instance (`nextcloud.example.net` via npm01) a
-  7-release gap likely means publicly-documented, unpatched issues.
-- **17 app updates pending** — incl. `spreed` (Talk), `mail`, `richdocuments` +
-  `richdocumentscode`, `groupfolders`, `files_accesscontrol`, `contacts`, `calendar`,
-  `notify_push`. List with `occ update:check`.
-- **🗓 Nextcloud 32 reaches EOL ~2026-09-30.** Majors must be taken one at a time (32 -> 33 -> 34;
-  34 is current). Plan the 33 upgrade well before that date — after EOL there are no security
-  patches. Tracked in **IFRNLLEI01PRD-2235**.
+The EOL-driven chain ran in one window 2026-08-05 ~02:30–04:00 CEST. Next major is 34.0.2 —
+no deadline pressure, schedule normally. Lessons that WILL bite the next upgrade:
+
+- **Run the updater from a node with a healthy NFS client.** The 32 run from nc01 crawled
+  ~45 min in the code-integrity check because nc01's NFSv4 state-manager thread
+  (`[10.0.X.X-manager]`) had been stuck since file01's Aug-2 weekly NFS restart
+  (`check lease failed ... error 13` in nc01 dmesg). Diagnostic signature: updater at ~1–2%
+  CPU, `head -2 /proc/<pid>/stack` shows `nfs4_wait_clnt_recover`, while fresh processes on
+  the same mount are fast. That is a wedged *client*, not slow storage. Fix = kill the
+  updater chain, resume `occ upgrade` from the other node (shared code dir makes this safe),
+  reboot the wedged node.
+- **Restart php8.4-fpm + apache2 on BOTH nodes after the code swap.** OPcache keeps executing
+  the OLD version's opcodes against the new code — nc02 returned HTTP 500 on every request
+  until restarted.
+- **A major disables incompatible apps silently mid-run** (33 disabled 9, incl. spreed,
+  richdocuments, groupfolders, files_accesscontrol). `occ app:update --all` afterwards pulls
+  compatible builds and re-enables them. Grep the updater output for `Disabled incompatible
+  app:`. Note 7 apps (encryption, facerecognition, support, survey_client, suspicious_login,
+  tasks, user_status) are disabled *by design* — don't "fix" them.
+- **The updater can leave `loglevel => 0` (debug)** despite printing "Resetting log level" —
+  check config.php afterwards; fix with `occ config:system:set loglevel --value=2 --type=integer`.
+- Pretty URLs are NOT configured (`htaccess.RewriteBase` absent, always been so): bare
+  `/login` 404s; `/` → `index.php/login` is the working entry path. Not upgrade damage.
 
 **🔴 THE APP TIER CANNOT BE ROLLING-UPGRADED.** `/var/www/nextcloud` is a **shared** NFSv4.2
 mount of `10.0.X.X:/mnt/ocfs2/nextcloud/nextcloud-app` on **both** nc01 and nc02 — they
