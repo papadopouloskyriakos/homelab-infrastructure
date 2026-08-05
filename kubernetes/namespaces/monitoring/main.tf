@@ -476,6 +476,39 @@ resource "helm_release" "monitoring" {
             # collection gap (assertion was coded but the observation
             # field was never populated).
             # =============================================================
+            # =============================================================
+            # OMOIKANE-1153 — cAdvisor on the benchmark host.
+            #
+            # Container metrics existed ONLY for job=kubelet (466 series, all
+            # k8s nodes). Every compose host had node_exporter and no
+            # container_* at all, so per-container metrics for the benchmark
+            # could not be queried from anywhere — and pointing the bench
+            # poller at the kubelet series would have populated its panel with
+            # unrelated k8s workloads, which is worse than an empty one.
+            #
+            # cAdvisor is deployed alongside the runner (benchmark repo
+            # compose.yml, host port 8098) with read-only mounts.
+            #
+            # The `role` label mirrors the omoikane-node job below so the same
+            # production-only alert rules keep excluding the benchmark host.
+            # =============================================================
+            {
+              job_name = "omoikane-cadvisor"
+              static_configs = [
+                {
+                  targets = [
+                    "10.0.X.X:8098", # nlomktst01 — benchmark host
+                  ]
+                  labels = {
+                    role = "omoikane-benchmark"
+                  }
+                },
+              ]
+              relabel_configs = [
+                { source_labels = ["__address__"], regex = "192\\.168\\.181\\.30:.*", target_label = "instance", replacement = "nlomktst01" },
+                { source_labels = ["__address__"], regex = "192\\.168\\.181\\..*", target_label = "site", replacement = "nl" },
+              ]
+            },
             {
               job_name = "omoikane-node"
               static_configs = [
