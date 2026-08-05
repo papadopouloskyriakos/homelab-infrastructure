@@ -100,6 +100,22 @@ no deadline pressure, schedule normally. Lessons that WILL bite the next upgrade
 - Pretty URLs are NOT configured (`htaccess.RewriteBase` absent, always been so): bare
   `/login` 404s; `/` → `index.php/login` is the working entry path. Not upgrade damage.
 
+#### OS patching (apt) — use AWX, never bare `apt upgrade` by hand
+
+**⚠ php.ini symlink quirk:** on nc01/nc02 the SAPI configs are symlinks to one tuned file —
+`/etc/php/<ver>/{apache2,fpm,phpdbg}/php.ini` → `/etc/php/<ver>/cli/php.ini` (the only
+regular file, the source of truth). PHP package upgrades treat the SAPI paths as conffiles
+and write **through the symlink**, clobbering `cli/php.ini`. A bare `apt upgrade` touching
+any `php8.x-*` package destroys the tuning.
+
+Use **AWX job template 51 "Nextcloud Weekly Update"**
+(`common/production/ansible/playbooks/nextcloud/weekly_update.yaml`, also on a weekly
+schedule): pre-flight asserts `cli/php.ini` is a regular file → removes the symlinks before
+`apt full-upgrade` → recreates + asserts them after → restarts FPM/Apache → reboots — and
+refuses to reboot if the symlink assertions fail. Nodes are done **serially** with per-node
+LibreNMS maintenance, so OS patching IS rolling (the shared-OCFS2 no-rolling constraint
+applies only to the Nextcloud code dir, not the OS). Verified worked 2026-08-05 (job 34099).
+
 **🔴 THE APP TIER CANNOT BE ROLLING-UPGRADED.** `/var/www/nextcloud` is a **shared** NFSv4.2
 mount of `10.0.X.X:/mnt/ocfs2/nextcloud/nextcloud-app` on **both** nc01 and nc02 — they
 execute the *same files*, and both report the same version because there is only one copy. So:
