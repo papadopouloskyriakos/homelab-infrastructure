@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-08-04 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-08-05 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: DEGRADED ⚠️
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 1 |
 | Pending PVCs | 0 |
-| Total Restarts | 3195 |
+| Total Restarts | 3218 |
 
 ## Topology
 
@@ -32,32 +32,32 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-ingress-nginx            ingress-nginx-controller-8445475547-cz8k2                         0/1   OOMKilled   0                  27d
+ingress-nginx            ingress-nginx-controller-8445475547-cz8k2                         0/1   OOMKilled   0                  28d
 ```
 
 ### High Restart Pods (>3)
 argocd/argocd-repo-server-7dfc645f84-qxz64: 5 restarts
-argocd/argocd-server-64dd47d8bf-fkr26: 35 restarts
+argocd/argocd-server-64dd47d8bf-fkr26: 36 restarts
 awx/awx-operator-controller-manager-6ffdf98f6-hwvqf: 19 restarts
 cilium-spire/spire-agent-49g4h: 28 restarts
 cilium-spire/spire-agent-mdslp: 8 restarts
 cilium-spire/spire-server-0: 17 restarts
-REDACTED_01b50c5d/REDACTED_ab04b573-v2-8c85f5d4b-ng8lb: 24 restarts
-ingress-nginx/ingress-nginx-controller-8445475547-bwczk: 19 restarts
+REDACTED_01b50c5d/REDACTED_ab04b573-v2-8c85f5d4b-ng8lb: 25 restarts
+ingress-nginx/ingress-nginx-controller-8445475547-bwczk: 28 restarts
 ingress-nginx/ingress-nginx-controller-8445475547-mxdrc: 30 restarts
-kube-system/cilium-operator-6cdbfb68d7-z6v2x: 6 restarts
-kube-system/clustermesh-apiserver-6c96779765-rmrzt: 42 restarts
+kube-system/cilium-operator-6cdbfb68d7-z6v2x: 9 restarts
+kube-system/clustermesh-apiserver-6c96779765-rmrzt: 43 restarts
 kube-system/etcd-nlk8s-ctrl01: 64 restarts
-kube-system/hubble-ui-6bb97d8894-nnkx5: 21 restarts
+kube-system/hubble-ui-6bb97d8894-nnkx5: 22 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 1999 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 58 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 14 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 108 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl01: 109 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl02: 37 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl03: 93 restarts
-kube-system/kube-scheduler-nlk8s-ctrl01: 37 restarts
+kube-system/kube-scheduler-nlk8s-ctrl01: 38 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 35 restarts
-kube-system/kube-scheduler-nlk8s-ctrl03: 39 restarts
+kube-system/kube-scheduler-nlk8s-ctrl03: 40 restarts
 kube-system/tetragon-75hdg: 6 restarts
 kube-system/tetragon-878gv: 4 restarts
 kube-system/tetragon-mdsn9: 18 restarts
@@ -66,17 +66,17 @@ kube-system/tetragon-vbs6v: 14 restarts
 REDACTED_d97cef76/REDACTED_d97cef76-kong-5c7f96dd9b-fgxd9: 14 restarts
 logging/promtail-hp5sc: 7 restarts
 logging/promtail-ng69s: 4 restarts
-monitoring/goldpinger-25hf5: 44 restarts
+monitoring/goldpinger-25hf5: 45 restarts
 monitoring/goldpinger-6dj9l: 25 restarts
 monitoring/goldpinger-n2fzm: 8 restarts
 monitoring/goldpinger-zxtb9: 6 restarts
-monitoring/monitoring-kube-prometheus-operator-67d8d4c647-5955s: 38 restarts
+monitoring/monitoring-kube-prometheus-operator-67d8d4c647-5955s: 39 restarts
 monitoring/monitoring-kube-state-metrics-75f9fff55b-6cc8x: 7 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 174 restarts
 monitoring/monitoring-prometheus-node-exporter-6sc8j: 7 restarts
-monitoring/monitoring-prometheus-node-exporter-wmcb8: 42 restarts
-monitoring/prometheus-REDACTED_6dfbe9fc-0: 14 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956jjmld: 51 restarts
+monitoring/monitoring-prometheus-node-exporter-wmcb8: 43 restarts
+monitoring/prometheus-REDACTED_6dfbe9fc-0: 15 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956jjmld: 53 restarts
 synology-csi/synology-csi-node-577mq: 10 restarts
 synology-csi/synology-csi-node-kxrjb: 14 restarts
 synology-csi/synology-csi-node-l72f8: 4 restarts
@@ -85,11 +85,11 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-monitoring     58m         Warning   Unhealthy   pod/monitoring-kube-state-metrics-75f9fff55b-6cc8x         Liveness probe failed: HTTP probe failed with statuscode: 503
-kube-system    58m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02                      Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system    58m         Warning   Unhealthy   pod/kube-apiserver-nlk8s-ctrl02                      Liveness probe failed: HTTP probe failed with statuscode: 500
-monitoring     54m         Warning   Unhealthy   pod/monitoring-kube-prometheus-operator-67d8d4c647-5955s   Readiness probe failed: Get "https://10.0.3.94:10250/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
-cilium-spire   54m         Warning   Unhealthy   pod/spire-agent-49g4h                                      Readiness probe failed: Get "http://10.0.X.X:4251/ready": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system              40m         Warning   Unhealthy   pod/hubble-ui-6bb97d8894-nnkx5                                        Readiness probe failed: Get "http://10.0.3.69:8081/": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+monitoring               40m         Warning   Unhealthy   pod/monitoring-prometheus-node-exporter-wmcb8                         Readiness probe failed: Get "http://10.0.X.X:9100/": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+default                  40m         Warning   SystemOOM   node/nlk8s-node03                                                System OOM encountered, victim process: weed, pid: 4140003
+monitoring               40m         Warning   Unhealthy   pod/monitoring-grafana-b54c68dbb-khbn6                                Liveness probe failed: HTTP probe failed with statuscode: 503
+seaweedfs                40m         Warning   Unhealthy   pod/seaweedfs-filer-1                                                 Readiness probe failed: Get "http://10.0.3.38:8888/": dial tcp 10.0.3.38:8888: connect: connection refused
 ```
 
 ## Key Resources
