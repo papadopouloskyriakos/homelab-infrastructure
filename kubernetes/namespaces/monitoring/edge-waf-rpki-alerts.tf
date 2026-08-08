@@ -288,6 +288,115 @@ resource "kubernetes_manifest" "REDACTED_ab779e5c" {
               }
             },
             {
+              # 2026-08-08: a Cloudflare RTR desync forced a simultaneous full-table
+              # revalidation and OOM-killed bgpd on chzrh01vps01 (~2.4 GB RSS on the
+              # 3.9 GB node) -> 42s global withdrawal of the /48. bgpd heap creeps
+              # unbounded (~450 MB fresh -> 2.4 GB on CH; 10.5 GB measured on TX).
+              # bgpd-memory-guard.sh restarts frr at 40% of MemTotal; this fires at
+              # 50%, so a firing alert means THE GUARD FAILED to act. Ratio, not a
+              # fixed byte threshold: the nodes are 3.9 GB and 16 GB.
+              # Plain division (no on()): both series come from the same scrape
+              # target so labels match one-to-one, and naming no job honours trap E.
+              alert = "EdgeBgpdMemoryHigh"
+              expr  = "edge_bgpd_rss_bytes / node_memory_MemTotal_bytes > 0.5"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                team     = "infra"
+                scope    = "edge"
+              }
+              annotations = {
+                summary     = "bgpd at {{ $value | humanizePercentage }} of RAM on {{ $labels.instance }} — guard did not act"
+                description = <<-EOT
+                  bgpd RSS on {{ $labels.instance }} exceeds 50% of MemTotal for 1h. The
+                  bgpd-memory-guard (daily 03:10 UTC timer) restarts frr at 40%, so this firing
+                  means the guard is dead, disabled, or failing - and the node is on the path to
+                  the 2026-08-08 OOM (kernel killed bgpd, 42s global withdrawal of the /48,
+                  BGPalerter fired).
+
+                  Check: systemctl status edge-bgpd-memory-guard.timer ;
+                  journalctl -t bgpd-memory-guard -n 20 ;
+                  ps -o rss= -C bgpd. Manual fix: /usr/local/sbin/bgpd-memory-guard.sh --now
+                  (graceful-restart is negotiated with upstreams, the restart is near-hitless -
+                  but NEVER run it on two VPS at once: simultaneous restarts caused the second
+                  BGPalerter withdrawal of 2026-08-08).
+                EOT
+              }
+            },
+            {
+              # The node-level backstop: available memory low enough that any spike
+              # (RTR revalidation, convergence churn) can OOM something critical.
+              # notrf01vps01 sat at 364 MB for hours on 2026-08-08 - one Cloudflare
+              # hiccup from repeating the CH incident. Instance-scoped to the three
+              # VPS by name; PVE hosts have their own rules in host-pressure-alerts.tf.
+              alert = "REDACTED_3c96f08f"
+              expr  = "node_memory_MemAvailable_bytes{instance=~\".*vps01.*\"} < 419430400"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                team     = "infra"
+                scope    = "edge"
+              }
+              annotations = {
+                summary     = "{{ $labels.instance }} has {{ $value | humanize1024 }}B available memory"
+                description = <<-EOT
+                  Available memory on {{ $labels.instance }} has been under 400 MiB for 30m. On
+                  these nodes the usual cause is bgpd heap creep (check edge_bgpd_rss_bytes);
+                  the next revalidation or convergence spike can OOM-kill bgpd and withdraw the
+                  anycast /48 from this origin (happened on chzrh01vps01 2026-08-08).
+
+                  Check: free -m ; ps -o rss,cmd -C bgpd ;
+                  /usr/local/sbin/bgpd-memory-guard.sh --now if bgpd is the consumer.
+                EOT
+              }
+            },
+            {
+              # A guard restart that failed its own convergence verification.
+              alert = "REDACTED_93968f7a"
+              expr  = "edge_bgpd_guard_last_restart_verified == 0"
+              for   = "10m"
+              labels = {
+                severity = "warning"
+                team     = "infra"
+                scope    = "edge"
+              }
+              annotations = {
+                summary     = "bgpd-memory-guard restart on {{ $labels.instance }} failed verification"
+                description = <<-EOT
+                  The last guard-initiated frr restart on {{ $labels.instance }} did not verify
+                  within 300s (upstream v6 eBGP Established + the /48 advertised). The node may
+                  not be announcing the anycast prefix.
+
+                  Check: vtysh -c 'show bgp ipv6 unicast summary' ;
+                  vtysh -c 'show bgp ipv6 unicast 2a0c:9a40:8e20::/48' ;
+                  journalctl -t bgpd-memory-guard -n 30
+                EOT
+              }
+            },
+            {
+              # Dead-man for the guard itself: a dead timer silently stops the
+              # hygiene and the only other signal is EdgeBgpdMemoryHigh weeks later.
+              alert = "EdgeBgpdGuardStale"
+              expr  = "time() - max by (instance) (edge_bgpd_guard_last_run_timestamp) > 129600"
+              for   = "15m"
+              labels = {
+                severity = "warning"
+                team     = "infra"
+                scope    = "edge"
+              }
+              annotations = {
+                summary     = "bgpd-memory-guard has not run on {{ $labels.instance }} for >36h"
+                description = <<-EOT
+                  The daily bgpd-memory-guard (03:10 UTC) has not completed on
+                  {{ $labels.instance }} for over 36 hours. Memory hygiene is not happening and
+                  bgpd RSS is creeping toward the 2026-08-08 OOM again.
+
+                  Check: systemctl status edge-bgpd-memory-guard.timer ;
+                  journalctl -u edge-bgpd-memory-guard -n 30
+                EOT
+              }
+            },
+            {
               # Trap C: a dead probe freezes healthy values in place forever.
               alert = "REDACTED_b5622ab0"
               expr  = "time() - max by (instance) (edge_waf_rpki_last_run_timestamp) > 3600"
