@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 21928 bytes
+Current configuration : 22060 bytes
 !
-! Last configuration change at 01:40:54 CEST Sat Aug 1 2026 by kyriakosp
+! Last configuration change at 16:28:20 CEST Sat Aug 8 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -396,11 +396,16 @@ interface Tunnel8
  tunnel protection ipsec profile VTI-PROFILE
 !
 interface GigabitEthernet0/0/0
- description 2026-04-21 LACP not negotiating with nlsw01 Gi1/0/32 - tried media-type rj45 and forced 1000/full - PHYSICAL CHECK NEEDED
+ description To nlsw01 Gi1/0/32 | Po4 LACP member | 2026-08-08 TDR: cable ABSENT at sw01 side - config pre-staged, patch cable then no-shut both ends
  no ip address
+ ip nat inside
+ ip tcp adjust-mss 1360
  shutdown
+ media-type rj45
  negotiation auto
  no mop enabled
+ spanning-tree portfast disable
+ channel-group 4 mode active
 !
 interface GigabitEthernet0/0/1
  description *** Connection to nlsw01 | Gi1/0/34 | 1 Gbps ***

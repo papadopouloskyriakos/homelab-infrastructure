@@ -1,9 +1,9 @@
 Building configuration...
 
-Current configuration : 25675 bytes
+Current configuration : 25648 bytes
 !
-! Last configuration change at 15:04:12 CEST Mon May 11 2026 by kyriakosp
-! NVRAM config last updated at 15:04:13 CEST Mon May 11 2026 by kyriakosp
+! Last configuration change at 16:28:35 CEST Sat Aug 8 2026 by kyriakosp
+! NVRAM config last updated at 16:28:36 CEST Sat Aug 8 2026 by kyriakosp
 !
 version 16.12
 no service pad
@@ -578,7 +578,7 @@ interface GigabitEthernet1/0/31
  spanning-tree bpduguard enable
 !
 interface GigabitEthernet1/0/32
- description *** MIGRATING LACP bundle member to nlrtr01 Gi0/0/0 | LACP PDUs not crossing 2026-04-21 despite media-type rj45 + forced 1000/full - PHYSICAL CHECK NEEDED (cable swap / SFP cage / port hardware) 
+ description *** To nlrtr01 Gi0/0/0 | Po4 LACP member | 2026-08-08 TDR: NO CABLE in port (0m all pairs; was mis-diagnosed as port hw 04-21) - patch ~12m run then no-shut both ends ***
  switchport trunk native vlan 10
  switchport trunk allowed vlan 2
  switchport mode trunk
