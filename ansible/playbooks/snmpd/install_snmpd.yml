@@ -1,0 +1,40 @@
+---
+- name: Install and configure SNMPD on Debian/Ubuntu
+  hosts: all
+  become: yes
+  vars:
+    snmp_community: "uBnr@W9dKOu#7ifTdVbA"  # Your community string
+    snmp_trap_hosts:  # List of trap destinations
+      - "10.0.X.X"
+      - "10.0.X.X"  # Add your extra host here; add more lines for others
+  tasks:
+    - name: Install snmpd package
+      apt:
+        name: snmpd
+        state: present
+        update_cache: yes
+
+    - name: Upgrade snmpd to latest (reduce header bug)
+      apt:
+        name: snmpd
+        state: latest
+      notify: Restart snmpd
+
+    - name: Deploy minimal snmpd.conf template
+      template:
+        src: snmpd.conf.j2  # Path to your template file
+        dest: /etc/snmp/snmpd.conf
+        backup: yes
+      notify: Restart snmpd
+
+    - name: Ensure snmpd is enabled and started
+      service:
+        name: snmpd
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Restart snmpd
+      service:
+        name: snmpd
+        state: restarted

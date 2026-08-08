@@ -1,0 +1,32 @@
+---
+- name: Power off the host (with pre-shutdown script)
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Check host reachability
+      ping:
+      ignore_errors: true
+
+    - name: Filter unreachable hosts
+      meta: clear_host_errors
+
+    - name: Run maintenance script on remote host
+      ansible.builtin.shell: /usr/local/sbin/pacemaker_update.sh
+      args:
+        executable: /bin/bash
+      register: script_result
+      failed_when: script_result.rc != 0
+
+    - name: Show script stdout for debugging
+      debug:
+        var: script_result.stdout
+
+    - name: Shutdown the host
+      ansible.builtin.command: poweroff
+      ignore_errors: true
+
+    - name: Confirm playbook completion
+      debug:
+        msg: "Playbook execution completed."

@@ -1,0 +1,229 @@
+---
+# =============================================================================
+# Reconcile TLS material that lives in a Docker NAMED VOLUME (meshsat-nats)
+# =============================================================================
+# WHY THIS EXISTS (added 2026-08-04, IFRNLLEI01PRD-2266)
+#
+# The parent playbook copies every cert-manager cert to /srv/certs/ on each DMZ
+# host, then restarts "containers using certs" - discovered by listing containers
+# whose Mounts include /srv/certs.
+#
+# meshsat-nats does not match that filter and never has. It mounts a Docker NAMED
+# VOLUME (meshsat-hub_nats-certs) at /etc/nats/certs, seeded by hand on
+# 2026-04-08, and nats.conf reads cert_file /etc/nats/certs/server.crt from it.
+# So the renewed wildcard landed in /srv/certs/meshsat.net.crt every single day
+# while NATS kept serving the copy inside the volume.
+#
+# Result: mqtt-hub.meshsat.net served a certificate that EXPIRED 2026-06-14 for
+# 51 days, on BOTH nldmz01 and grdmz01. It went unnoticed because that
+# hostname is TCP-passthrough at the VPS HAProxy and was excluded from the
+# security scanners' TLS checks on the reasoning that its posture "belongs to
+# NATS on the DMZ" - where nothing was checking. stunnel beside it was current,
+# so nothing looked wrong from outside.
+#
+# NOTE FOR ANYONE ADDING A SERVICE: a container that keeps certs in a named
+# volume is invisible to the parent playbook's /srv/certs mount filter. Either
+# bind-mount /srv/certs into the container, or extend this file.
+#
+# SAFETY: restarts the single container by name. NEVER use docker compose here -
+# /srv/meshsat-hub/docker-compose.yml also defines MariaDB/Galera, and a
+# compose up/restart against that file can break the cluster (see the Galera
+# safety rules in nl edge/CLAUDE.md).
+#
+# Idempotent: compares SHA-256 fingerprints and does nothing when they match.
+# =============================================================================
+
+# NOTE ON argv: every docker call here uses argv (a list), not cmd (a string).
+# ansible.builtin.command splits a cmd string on whitespace and does no shell
+# quoting, so a Go template containing spaces - such as
+# {{if eq .Destination "/etc/nats/certs"}} - arrives at docker as FIVE separate
+# arguments with the quotes stripped, and docker answers
+# "template parsing error: unclosed action". Observed in AWX job 33873.
+- name: Check whether this host runs the NATS container
+  ansible.builtin.command:
+    argv:
+      - docker
+      - ps
+      - -a
+      - --filter
+      - "name=^{{ nats_container }}$"
+      - --format
+      - "{{ '{{' }}.Names{{ '}}' }}"
+  register: nats_container_present
+  changed_when: false
+  failed_when: false
+
+- name: Reconcile NATS certificate volume
+  when: nats_container in (nats_container_present.stdout_lines | default([]))
+  block:
+
+    - name: Read the NATS container mount table
+      # Emit the mounts as JSON and select in Jinja, rather than asking Go's
+      # template engine to do the filtering. Keeps the format string free of the
+      # quoting that broke job 33873, and gives a far better error if the shape
+      # ever changes.
+      ansible.builtin.command:
+        argv:
+          - docker
+          - inspect
+          - "{{ nats_container }}"
+          - --format
+          - "{{ '{{' }}json .Mounts{{ '}}' }}"
+      register: nats_mounts_raw
+      changed_when: false
+
+    - name: Resolve the host path backing the NATS cert mount
+      # Derived from the container, never hardcoded: this yields the volume's
+      # host path whatever the volume is called and wherever the docker root is.
+      ansible.builtin.set_fact:
+        nats_volume_path: >-
+          {{ (nats_mounts_raw.stdout | from_json
+              | selectattr('Destination', 'equalto', nats_cert_dir_in_container)
+              | map(attribute='Source') | list | first | default('')) | trim }}
+
+    - name: Fail loudly if the NATS cert mount cannot be resolved
+      # A container that exists but no longer mounts its cert dir is a config
+      # change, not a no-op. Skipping quietly is how the original gap survived.
+      ansible.builtin.assert:
+        that:
+          - nats_volume_path | length > 0
+        fail_msg: >-
+          {{ nats_container }} exists on {{ inventory_hostname }} but has no mount at
+          {{ nats_cert_dir_in_container }}. Its TLS material cannot be reconciled, so the
+          certificate it serves is UNMANAGED. Inspect the container before ignoring this.
+
+    - name: Read fingerprint of the freshly distributed certificate
+      ansible.builtin.shell:
+        cmd: >-
+          set -o pipefail;
+          openssl x509 -in {{ dmz_cert_dir }}/{{ nats_cert_domain }}.crt
+          -noout -fingerprint -sha256 | cut -d= -f2
+        executable: /bin/bash
+      register: nats_source_fp
+      changed_when: false
+
+    - name: Read fingerprint of the certificate currently inside the volume
+      ansible.builtin.shell:
+        cmd: >-
+          set -o pipefail;
+          openssl x509 -in {{ nats_volume_path }}/{{ nats_cert_file }}
+          -noout -fingerprint -sha256 2>/dev/null | cut -d= -f2 || true
+        executable: /bin/bash
+      register: nats_current_fp
+      changed_when: false
+      failed_when: false
+
+    - name: Verify the distributed key matches the distributed certificate
+      # Guard against pushing a half-synced pair into the volume: NATS refuses to
+      # start on a cert/key mismatch, which would turn a routine cert refresh
+      # into an outage of the very endpoint this file exists to keep healthy.
+      ansible.builtin.shell:
+        cmd: >-
+          set -o pipefail;
+          a=$(openssl x509 -in {{ dmz_cert_dir }}/{{ nats_cert_domain }}.crt -noout -pubkey | openssl sha256);
+          b=$(openssl pkey -in {{ dmz_cert_dir }}/{{ nats_cert_domain }}.key -pubout | openssl sha256);
+          test "$a" = "$b"
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Report NATS certificate state
+      ansible.builtin.debug:
+        msg: >-
+          {{ nats_container }} on {{ inventory_hostname }}:
+          volume={{ nats_current_fp.stdout | trim | default('(none)', true) }}
+          distributed={{ nats_source_fp.stdout | trim }}
+          {{ 'IN SYNC - nothing to do' if (nats_current_fp.stdout | trim) == (nats_source_fp.stdout | trim) else 'DIVERGED - refreshing' }}
+
+    - name: Refresh the certificate inside the volume and restart NATS
+      when: (nats_current_fp.stdout | trim) != (nats_source_fp.stdout | trim)
+      block:
+
+        - name: Back up the certificate material currently in the volume
+          ansible.builtin.copy:
+            src: "{{ nats_volume_path }}/{{ item }}"
+            dest: "{{ nats_volume_path }}/{{ item }}.bak"
+            remote_src: true
+            owner: root
+            group: root
+            mode: '0600'
+          loop:
+            - "{{ nats_cert_file }}"
+            - "{{ nats_key_file }}"
+          failed_when: false
+
+        - name: Copy the current certificate into the NATS volume
+          ansible.builtin.copy:
+            src: "{{ dmz_cert_dir }}/{{ nats_cert_domain }}.crt"
+            dest: "{{ nats_volume_path }}/{{ nats_cert_file }}"
+            remote_src: true
+            owner: root
+            group: root
+            mode: '0644'
+
+        - name: Copy the current private key into the NATS volume
+          # 0600: the container runs as root (verified 2026-08-04), so tightening
+          # this from the 0644 it was seeded with costs nothing and stops a
+          # private key being world-readable inside the volume.
+          ansible.builtin.copy:
+            src: "{{ dmz_cert_dir }}/{{ nats_cert_domain }}.key"
+            dest: "{{ nats_volume_path }}/{{ nats_key_file }}"
+            remote_src: true
+            owner: root
+            group: root
+            mode: '0600'
+
+        - name: Restart the NATS container only
+          # Single container, by name. NEVER docker compose - Galera lives in the
+          # same compose file.
+          ansible.builtin.command:
+            argv:
+              - docker
+              - restart
+              - "{{ nats_container }}"
+          changed_when: true
+
+        - name: Wait for the NATS TLS listener to accept connections again
+          ansible.builtin.wait_for:
+            host: "{{ nats_probe_host }}"
+            port: "{{ nats_tls_port }}"
+            timeout: 60
+
+        - name: Verify NATS is SERVING the refreshed certificate and that it is in date
+          # The point of the whole file. A restart that silently keeps the old
+          # cert, or a container that comes back unhealthy, must FAIL here rather
+          # than let the play report success - that failure mode is exactly what
+          # let an expired certificate live for 51 days.
+          #
+          # NOTE: deliberately NO pipefail. This endpoint is mTLS, so the peer
+          # answers our probe with alert 116 (certificate_required) because we
+          # present no client certificate, and openssl s_client then exits
+          # non-zero. That exit status says nothing about whether we obtained the
+          # SERVER certificate - which we did, during the handshake. The first
+          # version of this task piped into `openssl x509 -checkend 0` under
+          # pipefail and failed with rc=1 while printing "Certificate will not
+          # expire". Judge the extracted certificate, never the probe's exit code.
+          ansible.builtin.shell:
+            cmd: |
+              cert=$(echo | openssl s_client -connect {{ nats_probe_host }}:{{ nats_tls_port }} \
+                       -servername {{ nats_probe_sni }} 2>/dev/null \
+                     | sed -n '/BEGIN CERTIFICATE/,/END CERTIFICATE/p')
+              if [ -z "$cert" ]; then
+                echo "NO_CERTIFICATE_RETRIEVED"; exit 1
+              fi
+              if ! printf '%s\n' "$cert" | openssl x509 -noout -checkend 0 >/dev/null 2>&1; then
+                echo "SERVED_CERTIFICATE_IS_EXPIRED"; exit 1
+              fi
+              printf '%s\n' "$cert" | openssl x509 -noout -fingerprint -sha256 | cut -d= -f2
+            executable: /bin/bash
+          register: nats_served_fp
+          until: (nats_served_fp.stdout | trim) == (nats_source_fp.stdout | trim)
+          retries: 6
+          delay: 5
+          changed_when: false
+
+        - name: Report the NATS certificate refresh
+          ansible.builtin.debug:
+            msg: >-
+              {{ nats_container }} on {{ inventory_hostname }} restarted and is now serving
+              {{ nats_served_fp.stdout | trim }}
+              (was {{ nats_current_fp.stdout | trim | default('none', true) }}).

@@ -1,0 +1,192 @@
+---
+- name: Post-Update Health Check for Primary Nodes
+  hosts: primaries
+  become: yes
+  gather_facts: no
+  serial: 1  # One at a time to avoid outage
+
+  tasks:
+    - name: Check DRBD status
+      command: drbdadm status
+      register: drbd_output
+      changed_when: false
+      failed_when: false
+
+    - name: Act if DRBD unhealthy (e.g., not UpToDate, StandAlone, Inconsistent, Secondary)
+      block:
+        - name: Reconnect if StandAlone or Connecting (enhanced for stuck states)
+          command: drbdadm connect r0
+          when: '"StandAlone" in drbd_output.stdout or "Connecting" in drbd_output.stdout'
+
+        - name: Adjust and resync if Inconsistent
+          command: drbdadm adjust r0
+          when: '"Inconsistent" in drbd_output.stdout'
+
+        - name: Restart DRBD if not UpToDate or Secondary
+          systemd:
+            name: drbd
+            state: restarted
+          when: '"UpToDate" not in drbd_output.stdout or "Primary" not in drbd_output.stdout'
+      rescue:
+        - name: Force promote via CRM if still Secondary (safe for primary/primary)
+          command: crm resource promote ms_drbd_r0 {{ inventory_hostname }}
+          when: '"Secondary" in drbd_output.stdout'
+
+        - name: Reboot primary as last resort if DRBD fixes fail
+          reboot:
+            msg: "Rebooting primary due to persistent DRBD issues"
+
+    - name: Check CRM status
+      command: crm status
+      register: crm_output
+      changed_when: false
+      failed_when: false
+
+    - name: Parse CRM for issues and validate setup
+      block:
+        - name: Detect CRM issues (failed/stopped/offline)
+          command: crm status | grep -iE 'failed|stopped|offline' || true
+          register: crm_issues
+          changed_when: false
+
+        - name: Validate nfs-group on exactly 1 node
+          command: crm status | grep -c 'nfs-ip.*Started'
+          register: nfs_count
+          changed_when: false
+
+        - name: Fail if nfs-group not on exactly 1 node
+          fail:
+            msg: "nfs-group running on {{ nfs_count.stdout }} nodes (expected 1)"
+          when: nfs_count.stdout != '1'
+
+        - name: Restart DRBD resource if issues
+          command: crm resource restart ms_drbd_r0
+          when: crm_issues.stdout | length > 0 and 'drbd' in crm_issues.stdout.lower()
+
+        - name: Restart OCFS2 clone if issues
+          command: crm resource restart ocfs2-clone
+          when: crm_issues.stdout | length > 0 and 'ocfs2' in crm_issues.stdout.lower()
+
+        - name: Restart NFS group if issues
+          command: crm resource restart nfs-group
+          when: crm_issues.stdout | length > 0 and 'nfs' in crm_issues.stdout.lower()
+      rescue:
+        - name: Restart Pacemaker/Corosync if resource restarts fail
+          systemd:
+            name: "{{ item }}"
+            state: restarted
+          loop: [corosync, pacemaker]
+
+    - name: Identify active NFS node from CRM
+      set_fact:
+        active_nfs_node: "{{ crm_output.stdout | regex_search('nfs-ip.*Started (\\S+)', '\\1') | default('unknown') }}"
+
+    - name: Check NFS and floating IP on active node only
+      block:
+        - name: Check NFS active
+          command: systemctl is-active nfs-server
+          register: nfs_active
+          changed_when: false
+          when: inventory_hostname == active_nfs_node
+
+        - name: Check floating IP assigned
+          command: ip addr show | grep -q '10.0.X.X'
+          register: ip_check
+          changed_when: false
+          failed_when: false
+          when: inventory_hostname == active_nfs_node
+
+        - name: Restart NFS group via CRM if inactive or IP missing
+          command: crm resource restart nfs-group
+          when: (inventory_hostname == active_nfs_node) and (nfs_active.stdout != 'active' or ip_check.rc != 0)
+      when: active_nfs_node != 'unknown'
+
+    - name: Check OCFS2 mount (should be mounted on primaries)  # Fixed: Use shell for pipe
+      shell: df -h | grep -q '/dev/drbd0.* /mnt/ocfs2'
+      register: ocfs2_mount
+      changed_when: false
+      failed_when: ocfs2_mount.rc != 0
+      ignore_errors: yes  # Allow continuation if not mounted
+
+    - name: Remount OCFS2 if not mounted
+      command: mount /mnt/ocfs2
+      when: ocfs2_mount.rc != 0
+
+- name: Post-Update Health Check for Arbiter Node
+  hosts: arbiter
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Check DRBD status on arbiter (expect Diskless, Connected)
+      command: drbdadm status
+      register: drbd_output
+      changed_when: false
+      failed_when: false
+
+    - name: Act if DRBD unhealthy on arbiter
+      block:
+        - name: Reconnect if StandAlone or Connecting
+          command: drbdadm connect r0
+          when: '"StandAlone" in drbd_output.stdout or "Connecting" in drbd_output.stdout'
+
+        - name: Restart DRBD if not Diskless or disconnected
+          systemd:
+            name: drbd
+            state: restarted
+          when: '"Diskless" not in drbd_output.stdout or "Connected" not in drbd_output.stdout'
+      rescue:
+        - name: Reboot arbiter if DRBD fixes fail
+          reboot:
+            msg: "Rebooting arbiter due to persistent DRBD issues"
+
+    - name: Check CRM status on arbiter
+      command: crm status
+      register: crm_output
+      changed_when: false
+      failed_when: false
+
+    - name: Act if CRM unhealthy on arbiter
+      block:
+        - name: Detect issues (ignore normal OCFS2 Stopped)
+          command: crm status | grep -iE 'failed|offline' || true  # Stopped OCFS2 is expected
+          register: crm_issues
+          changed_when: false
+
+        - name: Restart Pacemaker/Corosync if issues
+          systemd:
+            name: "{{ item }}"
+            state: restarted
+          loop: [corosync, pacemaker]
+          when: crm_issues.stdout | length > 0
+      rescue:
+        - name: Reboot arbiter if stack restart fails
+          reboot:
+            msg: "Rebooting arbiter due to persistent cluster issues"
+
+    - name: Check Corosync Quorum (central check)
+      command: corosync-quorumtool -s
+      register: quorum_output
+      changed_when: false
+      failed_when: false
+
+    - name: Act if quorum unhealthy
+      block:
+        - name: Restart Corosync if not quorate or low votes
+          systemd:
+            name: corosync
+            state: restarted
+          when: '"Quorate: Yes" not in quorum_output.stdout or "Total votes: 3" not in quorum_output.stdout'
+      rescue:
+        - name: Reboot arbiter if quorum persists unhealthy
+          reboot:
+            msg: "Rebooting arbiter due to persistent quorum issues"
+
+- name: Final Cluster-Wide Validation
+  hosts: fileservers
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Log final status
+      command: echo "Post-update checks complete on {{ inventory_hostname }}. All remediations applied."
+      changed_when: false
