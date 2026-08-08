@@ -619,6 +619,55 @@ resource "helm_release" "monitoring" {
               ]
             },
 
+            # Omoikane public surfaces — OUTSIDE-IN availability (OMOIKANE-8).
+            # Every other omoikane check watches an INTERNAL mesh IP or the
+            # daemon's own /metrics; an edge or DMZ outage with a healthy daemon
+            # alerts nothing today. This probes the full public path
+            # (edge -> DMZ -> daemon) from the blackbox exporter on
+            # nlclaude01, egressing to the internet like a real user, so a
+            # broken edge trips probe_success even while the daemon is fine.
+            # http_2xx follows redirects, so www (301 -> apex) and cv
+            # (302 -> login) both resolve to 200. Deliberately NOT wired to the
+            # tier=1 SMS surface — these route via Alertmanager -> n8n ->
+            # Matrix/YT like the rest of the omoikane rules (page-free).
+            {
+              job_name        = "omoikane-public"
+              scrape_interval = "60s"
+              scrape_timeout  = "30s"
+              metrics_path    = "/probe"
+              params = {
+                module = ["http_2xx"]
+              }
+              static_configs = [
+                {
+                  targets = [
+                    "https://omoikane.coach",
+                    "https://www.omoikane.coach",
+                    "https://app.omoikane.coach",
+                    "https://cv.omoikane.coach",
+                  ]
+                  labels = {
+                    service = "omoikane"
+                    env     = "production"
+                    site    = "nl"
+                  }
+                },
+                {
+                  targets = ["https://beta.omoikane.coach"]
+                  labels = {
+                    service = "omoikane"
+                    env     = "staging"
+                    site    = "nl"
+                  }
+                },
+              ]
+              relabel_configs = [
+                { source_labels = ["__address__"], target_label = "__param_target" },
+                { source_labels = ["__param_target"], target_label = "instance" },
+                { target_label = "__address__", replacement = "10.0.X.X:9115" },
+              ]
+            },
+
             # CrowdSec Security Metrics
             {
               job_name = "crowdsec"
