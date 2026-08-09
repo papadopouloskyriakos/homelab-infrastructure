@@ -155,6 +155,7 @@ interface Dot11Radio0
  !
  antenna gain 0
  speed  basic-1.0 basic-2.0 basic-5.5 basic-11.0 basic-6.0 basic-9.0 basic-12.0 basic-18.0 basic-24.0 basic-36.0 basic-48.0 basic-54.0 m0. m1. m2. m3. m4. m5. m6. m7. m8. m9. m10. m11. m12. m13. m14. m15.
+ channel 2472
  station-role root access-point
  no cdp enable
 !
