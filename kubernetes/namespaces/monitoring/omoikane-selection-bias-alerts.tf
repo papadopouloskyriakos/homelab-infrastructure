@@ -86,6 +86,29 @@ resource "kubernetes_manifest" "REDACTED_817fc099" {
                 description = "No omoikane_outcome_sensor_bias_feature_adoption_rate series at all — the bias_metrics_worker is not running or its metrics registration was dropped. While this is true, REDACTED_5d59a8f1 cannot fire and cohort divergence is invisible. Check the daemon logs for the worker's guard_pass series."
               }
             },
+            {
+              # The hole the absent-guard cannot see: the metrics registry
+              # keeps exporting a dead worker's LAST values, so if the tokio
+              # task dies after its first tick, absent() stays quiet and the
+              # threshold rule reads yesterday's gauges as current — a frozen
+              # dashboard indistinguishable from a fresh one. The daemon
+              # stamps every guard_pass tick into
+              # omoikane_worker_last_tick_timestamp_seconds, so staleness IS
+              # expressible: > 2 missed daily ticks. Verified live before
+              # writing (both hosts export the worker="outcome-sensor-bias-
+              # metrics-worker" series).
+              alert = "REDACTED_f8e39e1f"
+              expr  = "(time() - omoikane_worker_last_tick_timestamp_seconds{worker=\"outcome-sensor-bias-metrics-worker\"}) > 172800"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+                service  = "omoikane-outcome-sensor"
+              }
+              annotations = {
+                summary     = "Selection-bias worker on {{ $labels.instance }} has not ticked in 2+ days — gauges are frozen, not fresh"
+                description = "The bias_metrics_worker's last guard_pass tick on {{ $labels.instance }} is over two daily intervals old. Its gauges are still exported (the registry keeps last values), so the other two rules in this group see a plausible, frozen picture. Treat the current bias metrics as stale until the worker ticks again; check daemon logs for a died task or a panicking tick (omoikane_worker_panics_total)."
+              }
+            },
           ]
         },
       ]
