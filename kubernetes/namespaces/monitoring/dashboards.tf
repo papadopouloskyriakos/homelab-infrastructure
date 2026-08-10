@@ -172,6 +172,7 @@ resource "REDACTED_a9df2e77" "REDACTED_dae6e5e3" {
 }
 
 # My Money — UNIFIED dashboard (uid finops). Fuses the former finops-simple +
+# (2026-08-10: + Projects&AI pay-cycle table, folder-OCR status, online-services slug rename)
 # finops-details + finops-behavior into ONE page: calm single-hue blue, plain-word
 # value mappings, variance-first, live SQL on the ledger, 30-min auto-refresh.
 # Sections: ① right now ② this month ③ where it goes ④ trends ⑤ data health.
