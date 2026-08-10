@@ -594,7 +594,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT s.`Where it goes`, s.`Spent` AS `bar`, CONCAT('€ ', FORMAT(s.`Spent`,2,'de_DE')) AS `amt` FROM (SELECT CASE t.category WHEN 'online-shopping' THEN 'Online shopping' WHEN 'card-spending' THEN 'Credit-card bill (detail comes with the statement)' WHEN 'groceries' THEN 'Food (groceries)' WHEN 'mortgage' THEN 'Home (mortgage)' WHEN 'online-services' THEN 'Apps & subscriptions' WHEN 'electronics-homelab' THEN 'Gear / electronics' WHEN 'takeaway-delivery' THEN 'Takeaway' WHEN 'loans' THEN 'Loan payments' WHEN 'electric-gas' THEN 'Electric & gas' WHEN 'greece-family' THEN 'Family (Greece)' WHEN 'internet-mobile' THEN 'Internet / mobile' WHEN 'supplements-fitness' THEN 'Supplements' WHEN 'health-insurance-nn' THEN 'Health insurance' WHEN 'water-dunea' THEN 'Water' WHEN 'transfer' THEN 'Money moved onto the credit card' WHEN 'taxes' THEN 'Taxes' WHEN 'travel-insurance-asr' THEN 'Travel insurance' WHEN 'liability-insurance-asr' THEN 'Liability insurance' WHEN 'legal-insurance-de-vereende' THEN 'Legal insurance' WHEN 'card-fee' THEN 'Bank / card fees' ELSE COALESCE(t.category,'Not sorted yet') END AS `Where it goes`, ROUND(-SUM(t.base_amount),2) AS `Spent` FROM v_spend_canonical t WHERE t.booked_date >= DATE_FORMAT(CURDATE(),'%Y-%m-01') GROUP BY 1 ORDER BY 2 DESC LIMIT 6) s ORDER BY s.`Spent` DESC"
+          "rawSql": "SELECT s.`Where it goes`, s.`Spent` AS `bar`, CONCAT('€ ', FORMAT(s.`Spent`,2,'de_DE')) AS `amt` FROM (SELECT CASE t.category WHEN 'card-spending' THEN 'Credit-card bill (detail comes with the statement)' WHEN 'transfer' THEN 'Money moved onto the credit card' ELSE COALESCE(c.name, t.category, 'Not sorted yet') END AS `Where it goes`, ROUND(-SUM(t.base_amount),2) AS `Spent` FROM v_spend_canonical t LEFT JOIN categories c ON c.slug = t.category WHERE t.booked_date >= DATE_FORMAT(CURDATE(),'%Y-%m-01') GROUP BY 1 ORDER BY 2 DESC LIMIT 6) s ORDER BY s.`Spent` DESC"
         }
       ]
     },
@@ -970,7 +970,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT s.`Where it goes`, s.`Per month` AS `bar`, CONCAT('€ ', FORMAT(s.`Per month`,2,'de_DE')) AS `amt` FROM (SELECT CASE t.category WHEN 'online-shopping' THEN 'Online shopping' WHEN 'card-spending' THEN 'Credit-card bill (detail comes with the statement)' WHEN 'groceries' THEN 'Food (groceries)' WHEN 'mortgage' THEN 'Home (mortgage)' WHEN 'online-services' THEN 'Apps & subscriptions' WHEN 'electronics-homelab' THEN 'Gear / electronics' WHEN 'takeaway-delivery' THEN 'Takeaway' WHEN 'loans' THEN 'Loan payments' WHEN 'electric-gas' THEN 'Electric & gas' WHEN 'greece-family' THEN 'Family (Greece)' WHEN 'internet-mobile' THEN 'Internet / mobile' WHEN 'supplements-fitness' THEN 'Supplements' WHEN 'health-insurance-nn' THEN 'Health insurance' WHEN 'water-dunea' THEN 'Water' WHEN 'transfer' THEN 'Money moved onto the credit card' WHEN 'taxes' THEN 'Taxes' WHEN 'travel-insurance-asr' THEN 'Travel insurance' WHEN 'liability-insurance-asr' THEN 'Liability insurance' WHEN 'legal-insurance-de-vereende' THEN 'Legal insurance' WHEN 'card-fee' THEN 'Bank / card fees' ELSE COALESCE(t.category,'Not sorted yet') END AS `Where it goes`, ROUND(-SUM(t.base_amount)/6,0) AS `Per month` FROM v_spend_canonical t WHERE t.booked_date >= DATE_SUB(CURDATE(),INTERVAL 6 MONTH) GROUP BY 1 ORDER BY 2 DESC LIMIT 10) s ORDER BY s.`Per month` DESC"
+          "rawSql": "SELECT s.`Where it goes`, s.`Per month` AS `bar`, CONCAT('€ ', FORMAT(s.`Per month`,2,'de_DE')) AS `amt` FROM (SELECT CASE t.category WHEN 'card-spending' THEN 'Credit-card bill (detail comes with the statement)' WHEN 'transfer' THEN 'Money moved onto the credit card' ELSE COALESCE(c.name, t.category, 'Not sorted yet') END AS `Where it goes`, ROUND(-SUM(t.base_amount)/6,0) AS `Per month` FROM v_spend_canonical t LEFT JOIN categories c ON c.slug = t.category WHERE t.booked_date >= DATE_SUB(CURDATE(),INTERVAL 6 MONTH) GROUP BY 1 ORDER BY 2 DESC LIMIT 10) s ORDER BY s.`Per month` DESC"
         }
       ]
     },
@@ -1469,7 +1469,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT CASE cat WHEN 'online-shopping' THEN 'Online shopping' WHEN 'online-services' THEN 'Apps & subscriptions' WHEN 'electronics-homelab' THEN 'Gear / electronics' WHEN 'groceries' THEN 'Food (groceries)' WHEN 'takeaway-delivery' THEN 'Takeaway' WHEN 'health-insurance-nn' THEN 'Health insurance' WHEN 'internet-mobile' THEN 'Internet / mobile' WHEN 'water-dunea' THEN 'Water' WHEN 'supplements-fitness' THEN 'Supplements' WHEN 'loans' THEN 'Loan payments' ELSE cat END AS `Category`, CONCAT('€ ', FORMAT(y25,0,'de_DE')) AS `Jan–Jun 2025`, CONCAT('€ ', FORMAT(y26,0,'de_DE')) AS `Jan–Jun 2026`, CONCAT(IF(y26-y25>=0,'▲ +€ ','▼ −€ '), FORMAT(ABS(y26-y25),0,'de_DE')) AS `Change` FROM (SELECT category AS cat, ROUND(-SUM(IF(booked_date BETWEEN '2025-01-01' AND '2025-06-30',base_amount,0)),0) AS y25, ROUND(-SUM(IF(booked_date BETWEEN '2026-01-01' AND '2026-06-30',base_amount,0)),0) AS y26 FROM v_spend_canonical WHERE category IS NOT NULL AND category NOT IN ('transfer','greece-family','cash','card-spending','mortgage','electric-gas','taxes','disability-supp-asr') GROUP BY category) t WHERE ABS(y26-y25)>=60 ORDER BY ABS(y26-y25) DESC LIMIT 10"
+          "rawSql": "SELECT COALESCE(c.name, t.cat) AS `Category`, CONCAT('€ ', FORMAT(y25,0,'de_DE')) AS `Jan–Jun 2025`, CONCAT('€ ', FORMAT(y26,0,'de_DE')) AS `Jan–Jun 2026`, CONCAT(IF(y26-y25>=0,'▲ +€ ','▼ −€ '), FORMAT(ABS(y26-y25),0,'de_DE')) AS `Change` FROM (SELECT category AS cat, ROUND(-SUM(IF(booked_date BETWEEN '2025-01-01' AND '2025-06-30',base_amount,0)),0) AS y25, ROUND(-SUM(IF(booked_date BETWEEN '2026-01-01' AND '2026-06-30',base_amount,0)),0) AS y26 FROM v_spend_canonical WHERE category IS NOT NULL AND category NOT IN ('transfer','greece-family','cash','card-spending','mortgage','electric-gas','taxes','disability-supp-asr') GROUP BY category) t LEFT JOIN categories c ON c.slug = t.cat WHERE ABS(y26-y25)>=60 ORDER BY ABS(y26-y25) DESC LIMIT 10"
         }
       ]
     },
@@ -1482,7 +1482,7 @@
         "uid": "finops-ledger"
       },
       "gridPos": {
-        "h": 8,
+        "h": 10,
         "w": 24,
         "x": 0,
         "y": 101
@@ -1506,7 +1506,71 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 330
+                "value": 340
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "this cycle*"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              },
+              {
+                "id": "custom.align",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "last cycle"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              },
+              {
+                "id": "custom.align",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "2 cycles back"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              },
+              {
+                "id": "custom.align",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "3 cycles back"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              },
+              {
+                "id": "custom.align",
+                "value": "right"
               }
             ]
           }
@@ -1528,7 +1592,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT\n CASE q.category\n  WHEN 'zz' THEN '— block total —'\n  WHEN 'llm-ai' THEN 'LLM & AI vendors (Claude, Mistral, Moonshot, …)'\n  WHEN 'online-services' THEN 'Online services (hosting, domains, tools)'\n  WHEN 'REDACTED_d45e5ab5' THEN 'Project AGORA — market data'\n  WHEN 'project-omoikane' THEN 'Project Omoikane — search API'\n  WHEN 'project-mulecube' THEN 'Project Mulecube — ads'\n  WHEN 'project-logos' THEN 'Project Logos'\n  WHEN 'project-meshsat' THEN 'Project Meshsat — satellite IoT'\n  ELSE q.category END AS `Projects & AI`,\n CONCAT('€ ', FORMAT(q.c0,2,'de_DE')) AS `this cycle*`,\n CONCAT('€ ', FORMAT(q.c1,2,'de_DE')) AS `last cycle`,\n CONCAT('€ ', FORMAT(q.c2,2,'de_DE')) AS `2 cycles back`,\n CONCAT('€ ', FORMAT(q.c3,2,'de_DE')) AS `3 cycles back`\nFROM (\n SELECT COALESCE(category,'zz') AS category,\n  ROUND(COALESCE(SUM(CASE WHEN d=0 THEN amt END),0),2) c0,\n  ROUND(COALESCE(SUM(CASE WHEN d=1 THEN amt END),0),2) c1,\n  ROUND(COALESCE(SUM(CASE WHEN d=2 THEN amt END),0),2) c2,\n  ROUND(COALESCE(SUM(CASE WHEN d=3 THEN amt END),0),2) c3\n FROM (SELECT category, -base_amount amt,\n   PERIOD_DIFF(DATE_FORMAT(DATE_SUB(CURDATE(),INTERVAL 22 DAY),'%Y%m'),\n               DATE_FORMAT(DATE_SUB(booked_date,INTERVAL 22 DAY),'%Y%m')) d\n  FROM v_spend_canonical\n  WHERE booked_date >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)\n    AND category IN ('llm-ai','online-services','REDACTED_d45e5ab5','project-omoikane',\n                     'project-mulecube','project-logos','project-meshsat')) x\n WHERE d BETWEEN 0 AND 3\n GROUP BY category WITH ROLLUP\n) q\nORDER BY (q.category='zz'), q.c0 DESC, q.c1 DESC"
+          "rawSql": "SELECT\n CASE q.category\n  WHEN 'zz' THEN '— block total —'\n  WHEN 'llm-ai' THEN 'LLM & AI vendors (Claude, Mistral, Moonshot, …)'\n  WHEN 'online-services' THEN 'Online services (hosting, domains, tools)'\n  WHEN 'REDACTED_d45e5ab5' THEN 'Project AGORA — market data'\n  WHEN 'project-omoikane' THEN 'Project Omoikane — search API'\n  WHEN 'project-mulecube' THEN 'Project Mulecube — ads'\n  WHEN 'project-logos' THEN 'Project Logos'\n  WHEN 'project-meshsat' THEN 'Project Meshsat — satellite IoT'\n  ELSE q.category END AS `Projects & AI`,\n CONCAT('€ ', FORMAT(q.c0,2,'de_DE')) AS `this cycle*`,\n CONCAT('€ ', FORMAT(q.c1,2,'de_DE')) AS `last cycle`,\n CONCAT('€ ', FORMAT(q.c2,2,'de_DE')) AS `2 cycles back`,\n CONCAT('€ ', FORMAT(q.c3,2,'de_DE')) AS `3 cycles back`\nFROM (\n SELECT COALESCE(category,'zz') AS category,\n  ROUND(COALESCE(SUM(CASE WHEN d=0 THEN amt END),0),2) c0,\n  ROUND(COALESCE(SUM(CASE WHEN d=1 THEN amt END),0),2) c1,\n  ROUND(COALESCE(SUM(CASE WHEN d=2 THEN amt END),0),2) c2,\n  ROUND(COALESCE(SUM(CASE WHEN d=3 THEN amt END),0),2) c3\n FROM (SELECT category, -base_amount amt,\n   PERIOD_DIFF(DATE_FORMAT(DATE_SUB(CURDATE(),INTERVAL 22 DAY),'%Y%m'),\n               DATE_FORMAT(DATE_SUB(booked_date,INTERVAL 22 DAY),'%Y%m')) d\n  FROM v_spend_canonical\n  WHERE booked_date >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)\n    AND category IN ('llm-ai','online-services','REDACTED_d45e5ab5','project-omoikane',\n                     'project-mulecube','project-logos','project-meshsat')) x\n WHERE d BETWEEN 0 AND 3\n GROUP BY category WITH ROLLUP\n) q\nORDER BY (q.category='zz') DESC, q.c0 DESC, q.c1 DESC"
         }
       ]
     },
@@ -1539,7 +1603,7 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 109
+        "y": 111
       },
       "options": {
         "mode": "markdown",
@@ -1557,7 +1621,7 @@
         "h": 3,
         "w": 8,
         "x": 0,
-        "y": 111
+        "y": 113
       },
       "fieldConfig": {
         "defaults": {
@@ -1645,7 +1709,7 @@
         "h": 3,
         "w": 8,
         "x": 8,
-        "y": 111
+        "y": 113
       },
       "fieldConfig": {
         "defaults": {
@@ -1724,7 +1788,7 @@
         "h": 3,
         "w": 8,
         "x": 16,
-        "y": 111
+        "y": 113
       },
       "fieldConfig": {
         "defaults": {
@@ -1754,7 +1818,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT\n CONCAT((SELECT COALESCE(SUM(status='done'),0)    FROM folder_pages),' read')   AS `pages`,\n CONCAT((SELECT COALESCE(SUM(status='pending'),0) FROM folder_pages),' queued') AS `queued`,\n CONCAT((SELECT COALESCE(SUM(status='failed'),0)  FROM folder_pages),' stuck')  AS `stuck`,\n CONCAT((SELECT COUNT(*) FROM retail_offers WHERE source='folder-ocr'\n   AND week_tag=DATE_FORMAT(CURDATE(),'%x-W%v')),' offers/wk')                  AS `harvest`"
+          "rawSql": "SELECT (SELECT COALESCE(SUM(status='done'),0)    FROM folder_pages) AS `read`, (SELECT COALESCE(SUM(status='pending'),0) FROM folder_pages) AS `queued`, (SELECT COALESCE(SUM(status='failed'),0)  FROM folder_pages) AS `stuck`, (SELECT COUNT(*) FROM retail_offers WHERE source='folder-ocr' AND week_tag=DATE_FORMAT(CURDATE(),'%x-W%v')) AS `offers (wk)`"
         }
       ]
     },
@@ -1765,7 +1829,7 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 114
+        "y": 116
       },
       "options": {
         "mode": "markdown",
@@ -1784,7 +1848,7 @@
         "h": 4,
         "w": 8,
         "x": 0,
-        "y": 116
+        "y": 118
       },
       "fieldConfig": {
         "defaults": {
@@ -1832,7 +1896,7 @@
         "h": 4,
         "w": 8,
         "x": 8,
-        "y": 116
+        "y": 118
       },
       "fieldConfig": {
         "defaults": {
@@ -1880,7 +1944,7 @@
         "h": 4,
         "w": 8,
         "x": 16,
-        "y": 116
+        "y": 118
       },
       "fieldConfig": {
         "defaults": {
@@ -1928,7 +1992,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 120
+        "y": 122
       },
       "fieldConfig": {
         "defaults": {
@@ -2045,7 +2109,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 128
+        "y": 130
       },
       "fieldConfig": {
         "defaults": {
@@ -2087,7 +2151,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 128
+        "y": 130
       },
       "fieldConfig": {
         "defaults": {
