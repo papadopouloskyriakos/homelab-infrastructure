@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-08-13 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-08-14 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: CRITICAL ⚠️
 
@@ -32,25 +32,24 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-velero                   monitoring-default-kopia-maintain-job-1786589139368-df8kh         0/1   Error               0                 15m
-velero                   monitoring-default-kopia-maintain-job-1786589439363-9p2lm         0/1   Error               0                 10m
-velero                   monitoring-default-kopia-maintain-job-1786589739225-t8sh2         0/1   Error               0                 5m5s
-velero                   nfs-provisioner-default-kopia-maintain-job-1786040876571-6bjxq    0/1   Error               0                 6d8h
-velero                   nfs-provisioner-default-kopia-maintain-job-1786041167440-x8kbw    0/1   Error               0                 6d8h
-velero                   nfs-provisioner-default-kopia-maintain-job-1786041455209-5bhtz    0/1   Error               0                 6d8h
-velero                   pihole-default-kopia-maintain-job-1786040852187-99d5q             0/1   Error               0                 6d8h
-velero                   pihole-default-kopia-maintain-job-1786041143027-7bfsl             0/1   Error               0                 6d8h
-velero                   pihole-default-kopia-maintain-job-1786041487800-cm7xb             0/1   Error               0                 6d8h
-velero                   REDACTED_00313366-maintain-job-1786040856243-5mlk6          0/1   Error               0                 6d8h
-velero                   REDACTED_00313366-maintain-job-1786041147068-szc9f          0/1   Error               0                 6d8h
-velero                   REDACTED_00313366-maintain-job-1786041434895-5md9m          0/1   Error               0                 6d8h
-velero                   velero-resttest-default-kopia-maintain-job-1786040860311-rq69r    0/1   Error               0                 6d8h
-velero                   velero-resttest-default-kopia-maintain-job-1786041151140-k7b4s    0/1   Error               0                 6d8h
-velero                   velero-resttest-default-kopia-maintain-job-1786041438983-fdkgv    0/1   Error               0                 6d8h
-velero                   velero-rt-default-kopia-maintain-job-1786040864370-kv498          0/1   Error               0                 6d8h
-velero                   velero-rt-default-kopia-maintain-job-1786041155220-whvtw          0/1   Error               0                 6d8h
-velero                   velero-rt-default-kopia-maintain-job-1786041443052-pvhfv          0/1   Error               0                 6d8h
-velero                   well-known-default-kopia-maintain-job-1786590044263-djmbq         0/1   ContainerCreating   0                 0s
+velero                   monitoring-default-kopia-maintain-job-1786675539478-nnjmc         0/1   Error       0                 15m
+velero                   monitoring-default-kopia-maintain-job-1786675839480-xzrds         0/1   Error       0                 10m
+velero                   monitoring-default-kopia-maintain-job-1786676139480-ff6ct         0/1   Error       0                 5m15s
+velero                   nfs-provisioner-default-kopia-maintain-job-1786040876571-6bjxq    0/1   Error       0                 7d8h
+velero                   nfs-provisioner-default-kopia-maintain-job-1786041167440-x8kbw    0/1   Error       0                 7d8h
+velero                   nfs-provisioner-default-kopia-maintain-job-1786041455209-5bhtz    0/1   Error       0                 7d8h
+velero                   pihole-default-kopia-maintain-job-1786040852187-99d5q             0/1   Error       0                 7d8h
+velero                   pihole-default-kopia-maintain-job-1786041143027-7bfsl             0/1   Error       0                 7d8h
+velero                   pihole-default-kopia-maintain-job-1786041487800-cm7xb             0/1   Error       0                 7d8h
+velero                   REDACTED_00313366-maintain-job-1786040856243-5mlk6          0/1   Error       0                 7d8h
+velero                   REDACTED_00313366-maintain-job-1786041147068-szc9f          0/1   Error       0                 7d8h
+velero                   REDACTED_00313366-maintain-job-1786041434895-5md9m          0/1   Error       0                 7d8h
+velero                   velero-resttest-default-kopia-maintain-job-1786040860311-rq69r    0/1   Error       0                 7d8h
+velero                   velero-resttest-default-kopia-maintain-job-1786041151140-k7b4s    0/1   Error       0                 7d8h
+velero                   velero-resttest-default-kopia-maintain-job-1786041438983-fdkgv    0/1   Error       0                 7d8h
+velero                   velero-rt-default-kopia-maintain-job-1786040864370-kv498          0/1   Error       0                 7d8h
+velero                   velero-rt-default-kopia-maintain-job-1786041155220-whvtw          0/1   Error       0                 7d8h
+velero                   velero-rt-default-kopia-maintain-job-1786041443052-pvhfv          0/1   Error       0                 7d8h
 ```
 
 ### High Restart Pods (>3)
@@ -102,11 +101,11 @@ synology-csi/synology-csi-node-zch7n: 18 restarts
 
 ### Recent Warnings (5)
 ```
-velero        30m         Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786588239220   Job has reached the specified backoff limit
-velero        25m         Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786588539222   Job has reached the specified backoff limit
-velero        20m         Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786588839222   Job has reached the specified backoff limit
-velero        15m         Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786589139368   Job has reached the specified backoff limit
-velero        10m         Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786589439363   Job has reached the specified backoff limit
+velero         30m         Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786674639475   Job has reached the specified backoff limit
+velero         25m         Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786674939477   Job has reached the specified backoff limit
+velero         20m         Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786675239477   Job has reached the specified backoff limit
+velero         15m         Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786675539478   Job has reached the specified backoff limit
+velero         10m         Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786675839480   Job has reached the specified backoff limit
 ```
 
 ## Key Resources
