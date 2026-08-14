@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 22060 bytes
+Current configuration : 22634 bytes
 !
-! Last configuration change at 16:28:20 CEST Sat Aug 8 2026 by kyriakosp
+! Last configuration change at 12:34:52 CEST Fri Aug 14 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -212,6 +212,9 @@ controller VDSL 0/1/0
  sync mode itu
 !
 !
+!
+track 10 ip sla 10 reachability
+ delay down 90 up 30
 !
 !
 class-map match-any TENANT_D_DL
@@ -650,6 +653,10 @@ ip access-list extended TENANT_D_DL
 ip access-list extended TENANT_D_UL
  10 permit ip 10.0.X.X 0.0.0.31 any
 !
+ip sla 10
+ icmp-echo 10.255.200.1 source-interface Tunnel1
+  frequency 30
+ip sla schedule 10 life forever start-time now
 logging host 10.0.X.X
 logging host 10.0.X.X
 ip access-list standard 23
@@ -725,5 +732,11 @@ ntp server 3.pool.ntp.org
 !
 !
 !
+event manager applet INTERSITE-BUDGET-LEG-HEAL
+ event track 10 state down
+ action 10 syslog priority errors msg "INTERSITE-HEAL: Tu1 probe to 10.255.200.1 dead 90s+ - clearing crypto session to 91.211.213.72"
+ action 20 cli command "enable"
+ action 30 cli command "clear crypto session remote 91.211.213.72"
+ action 40 syslog priority errors msg "INTERSITE-HEAL: clear issued - IKE re-initiating"
 !
 end
