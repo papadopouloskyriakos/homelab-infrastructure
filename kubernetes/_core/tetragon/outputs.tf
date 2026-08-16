@@ -14,7 +14,7 @@ output "tetragon_namespace" {
 
 output "REDACTED_98fcd60a" {
   description = "Directory where Tetragon exports JSON logs"
-  value       = "/var/run/cilium/tetragon"
+  value       = var.export_base_path
 }
 
 output "tetragon_metrics_port" {
@@ -36,9 +36,4 @@ output "enabled_policies" {
     var.REDACTED_936fa359 ? "REDACTED_e2274e6a" : "",
     var.REDACTED_073bcdbd ? "network-connection-monitor" : "",
   ])
-}
-
-output "grafana_dashboard_enabled" {
-  description = "Whether Grafana dashboard is deployed"
-  value       = var.enable_grafana_dashboard
 }

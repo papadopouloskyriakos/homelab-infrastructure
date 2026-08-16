@@ -6,16 +6,16 @@
 # Core Settings
 # ========================================================================
 
+variable "namespace" {
+  description = "Kubernetes namespace for Tetragon"
+  type        = string
+  default     = "kube-system"
+}
+
 variable "tetragon_version" {
   description = "Tetragon Helm chart version"
   type        = string
   default     = "1.6.0"
-}
-
-variable "cluster_name" {
-  description = "Kubernetes cluster name for event correlation"
-  type        = string
-  default     = "nlcl01k8s"
 }
 
 # ========================================================================
@@ -54,9 +54,9 @@ variable "tetragon_memory_limit" {
 # ========================================================================
 
 variable "REDACTED_8a8d8279" {
-  description = "Enable process execution monitoring policy"
+  description = "Enable process execution monitoring policy (disabled on both sites: raw_syscalls tracepoint is high-volume)"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "REDACTED_ca9faf45" {
@@ -87,33 +87,36 @@ variable "REDACTED_073bcdbd" {
 # Export Configuration
 # ========================================================================
 
+variable "export_base_path" {
+  description = "Base path for Tetragon export files"
+  type        = string
+  default     = "/var/log/tetragon"
+}
+
+variable "export_filename" {
+  description = "Filename for Tetragon event exports"
+  type        = string
+  default     = "tetragon.log"
+}
+
+variable "REDACTED_9e291ab8" {
+  description = "Maximum size of export file in MB before rotation"
+  type        = number
+  default     = 50
+}
+
+variable "REDACTED_740e128e" {
+  description = "Maximum number of backup files to keep"
+  type        = number
+  default     = 2
+}
+
 variable "export_rate_limit" {
-  description = "Rate limit for exports in events per second (-1 for unlimited)"
+  description = "Rate limit for event export (-1 for unlimited)"
   type        = number
   default     = 1000
 }
 
-# ========================================================================
-# Grafana Dashboard
-# ========================================================================
-
-variable "enable_grafana_dashboard" {
-  description = "Deploy Tetragon Grafana dashboard ConfigMap"
-  type        = bool
-  default     = true
-}
-
-variable "grafana_dashboard_namespace" {
-  description = "Namespace where Grafana is deployed"
-  type        = string
-  default     = "monitoring"
-}
-
-variable "grafana_sidecar_label" {
-  description = "Label that Grafana sidecar watches for dashboard ConfigMaps"
-  type        = string
-  default     = "grafana_dashboard"
-}
 # ========================================================================
 # Monitoring
 # ========================================================================

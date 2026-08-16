@@ -28,8 +28,7 @@ All monitoring happens in-kernel via eBPF with minimal overhead.
 │  │      │      │    │      │      │    │      │      │          │
 │  │      ▼      │    │      ▼      │    │      ▼      │          │
 │  │  JSON Logs  │    │  JSON Logs  │    │  JSON Logs  │          │
-│  │  /var/run/  │    │  /var/run/  │    │  /var/run/  │          │
-│  │  cilium/    │    │  cilium/    │    │  cilium/    │          │
+│  │  /var/log/  │    │  /var/log/  │    │  /var/log/  │          │
 │  │  tetragon/  │    │  tetragon/  │    │  tetragon/  │          │
 │  └──────┬──────┘    └──────┬──────┘    └──────┬──────┘          │
 │         │                  │                  │                  │
@@ -66,24 +65,24 @@ All monitoring happens in-kernel via eBPF with minimal overhead.
 
 ### 1. Deploy Tetragon Module
 
-Add module to your OpenTofu configuration:
+Add module to your OpenTofu configuration (identical on NL and GR):
 
 ```hcl
 module "tetragon" {
-  source = "./k8s/_core/tetragon"
-
-  cluster_name = "nlcl01k8s"
+  source = "./_core/tetragon"
 
   # TracingPolicy toggles (all observe-only, no enforcement)
-  REDACTED_8a8d8279         = true
+  REDACTED_8a8d8279         = false # raw_syscalls tracepoint is high-volume
   REDACTED_ca9faf45      = true
   REDACTED_f45ec1ce = true
   REDACTED_936fa359         = true
-  REDACTED_073bcdbd      = false  # Can be noisy
+  REDACTED_073bcdbd      = false # Can be noisy
 
-  # Grafana dashboard
-  enable_grafana_dashboard      = true
-  grafana_dashboard_namespace   = "monitoring"
+  # ServiceMonitor for Prometheus
+  REDACTED_46d876c8 = true
+
+  # Rate limit exports
+  export_rate_limit = 1000
 }
 ```
 
@@ -94,18 +93,12 @@ Add the Tetragon scrape config from `PROMTAIL_CONFIG_SNIPPET.yaml` to your Promt
 ### 3. Apply Changes
 
 ```bash
-# Via Atlantis
+# Via Atlantis (the ONLY supported apply path — never run tofu apply locally)
 git checkout -b feature/tetragon
 git add k8s/_core/tetragon/
-git commit -m "feat: Add Tetragon runtime security observability"
+git commit -m "feat(k8s): Add Tetragon runtime security observability"
 git push origin feature/tetragon
-# Create MR and let Atlantis plan/apply
-
-# Or directly
-cd k8s/_core/tetragon
-tofu init
-tofu plan
-tofu apply
+# Create MR, review the Atlantis plan, then comment: atlantis apply -p k8s
 ```
 
 ## Deployed Resources
@@ -113,11 +106,11 @@ tofu apply
 | Resource | Type | Description |
 |----------|------|-------------|
 | `tetragon` | Helm Release | Tetragon DaemonSet + Operator |
-| `REDACTED_de85e9d6` | TracingPolicy | Monitors process executions |
+| `REDACTED_de85e9d6` | TracingPolicy | Monitors process executions (disabled by default) |
 | `REDACTED_8cae118b` | TracingPolicy | Monitors file access |
 | `REDACTED_bbe670ef` | TracingPolicy | Monitors privilege changes |
 | `REDACTED_e2274e6a` | TracingPolicy | Monitors shell access |
-| `tetragon-security-dashboard` | ConfigMap | Grafana dashboard |
+| `network-connection-monitor` | TracingPolicy | Monitors TCP connections (disabled by default) |
 
 ## TracingPolicies
 
@@ -125,7 +118,7 @@ All policies are **observe-only** (no enforcement). Events are logged to Loki.
 
 | Policy | What it monitors |
 |--------|------------------|
-| `REDACTED_de85e9d6` | All process executions via `execve` |
+| `REDACTED_de85e9d6` | All process executions via `execve` (disabled by default - high volume) |
 | `REDACTED_8cae118b` | Access to `/etc/shadow`, `/etc/passwd`, SSH keys, K8s secrets |
 | `REDACTED_bbe670ef` | `setuid`, `setgid`, capability changes |
 | `REDACTED_e2274e6a` | Shell processes (`bash`, `sh`, `zsh`) |
@@ -172,22 +165,23 @@ kubectl port-forward -n monitoring svc/prometheus-operated 9090
 
 ## Grafana Dashboard
 
-The deployed dashboard includes:
-- **Overview stats**: Total events, process exec count, kprobe events
-- **Event timeline**: Events over time by type
-- **Security events log**: Live log viewer with JSON parsing
-- **Agent metrics**: CPU/memory usage of Tetragon pods
+This module does not ship a dashboard ConfigMap. Import the official Tetragon
+dashboard from Grafana Labs instead:
+- **Dashboard ID**: 20189
+- **Name**: Tetragon "kubectl exec" Audit
 
-Access via Grafana → Dashboards → "Tetragon Security Observability"
+Tetragon exposes metrics on port 2112 (agent) and 2113 (operator); ServiceMonitors
+are created when `REDACTED_46d876c8 = true`.
+
+```promql
+# Events per second
+sum(rate(tetragon_events_total[5m]))
+```
 
 ## Upgrading
 
-Update `tetragon_version` variable and run:
-
-```bash
-tofu plan
-tofu apply
-```
+Update `tetragon_version` variable, create an MR, review the Atlantis plan and
+comment `atlantis apply -p k8s`.
 
 ## Troubleshooting
 
@@ -208,7 +202,7 @@ kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c tetragon | gre
 kubectl logs -n logging -l app.kubernetes.io/name=promtail | grep tetragon
 
 # Check Tetragon is exporting events
-kubectl exec -n kube-system ds/tetragon -c tetragon -- ls -la /var/run/cilium/tetragon/
+kubectl exec -n kube-system ds/tetragon -c tetragon -- ls -la /var/log/tetragon/
 ```
 
 ### TracingPolicy not working

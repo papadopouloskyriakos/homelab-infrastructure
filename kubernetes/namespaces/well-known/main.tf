@@ -334,6 +334,12 @@ resource "kubernetes_service_v1" "well_known" {
 
 # -----------------------------------------------------------------------------
 # Ingress - Serves .well-known for all configured domains
+# TLS is site-dependent:
+#   - acme_issuer_enabled = true  (NL): one cert-manager Certificate
+#     ("well-known-tls") covering all domains (see resource below)
+#   - acme_issuer_enabled = false (GR): no ClusterIssuer exists - reuse the
+#     existing wildcard certificates copied into this namespace
+#     (var.wildcard_tls_secrets)
 # -----------------------------------------------------------------------------
 resource "kubernetes_ingress_v1" "well_known" {
   metadata {
@@ -353,9 +359,22 @@ resource "kubernetes_ingress_v1" "well_known" {
   spec {
     ingress_class_name = "nginx"
 
-    tls {
-      hosts       = var.domains
-      secret_name = "well-known-tls"
+    # ACME path: single managed certificate covering all domains
+    dynamic "tls" {
+      for_each = var.acme_issuer_enabled ? [1] : []
+      content {
+        hosts       = var.domains
+        secret_name = "well-known-tls"
+      }
+    }
+
+    # Wildcard path: pre-existing wildcard secrets, one tls block per secret
+    dynamic "tls" {
+      for_each = var.acme_issuer_enabled ? [] : var.wildcard_tls_secrets
+      content {
+        hosts       = tls.value.hosts
+        secret_name = tls.value.secret_name
+      }
     }
 
     # Create a rule for each domain
@@ -386,8 +405,12 @@ resource "kubernetes_ingress_v1" "well_known" {
 
 # -----------------------------------------------------------------------------
 # Certificate (cert-manager) - Multi-domain certificate
+# Gated on acme_issuer_enabled: NL has ClusterIssuer letsencrypt-prod; GR has
+# no ClusterIssuer and serves the wildcard secrets directly (see Ingress above).
 # -----------------------------------------------------------------------------
 resource "kubernetes_manifest" "REDACTED_72c40b12" {
+  count = var.acme_issuer_enabled ? 1 : 0
+
   manifest = {
     apiVersion = "cert-manager.io/v1"
     kind       = "Certificate"
