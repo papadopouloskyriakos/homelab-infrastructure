@@ -7,7 +7,7 @@
 
 resource "helm_release" "tetragon" {
   name             = "tetragon"
-  namespace        = "kube-system"
+  namespace        = var.namespace
   repository       = "https://helm.cilium.io"
   chart            = "tetragon"
   version          = var.tetragon_version
@@ -19,16 +19,16 @@ resource "helm_release" "tetragon" {
     # =========================================================================
     # Export Directory - Top level setting for Tetragon agent
     # =========================================================================
-    exportDirectory = "/var/log/tetragon"
+    exportDirectory = var.export_base_path
 
     # =========================================================================
     # Tetragon Agent Configuration
     # =========================================================================
     tetragon = {
       # Export settings for JSON file output
-      exportFilename       = "tetragon.log"
-      exportFileMaxSizeMB  = 50
-      exportFileMaxBackups = 2
+      exportFilename       = var.export_filename
+      exportFileMaxSizeMB  = var.REDACTED_9e291ab8
+      exportFileMaxBackups = var.REDACTED_740e128e
       exportFileCompress   = false
       exportFilePerm       = "600"
       exportRateLimit      = var.export_rate_limit
@@ -57,7 +57,7 @@ resource "helm_release" "tetragon" {
         enabled = "base,kprobe,tracepoint"
       }
 
-      # Enable BPF filesystem for persistence
+      # Performance tuning
       enableMsgHandlingLatency = false
 
       # Prometheus metrics
@@ -65,7 +65,7 @@ resource "helm_release" "tetragon" {
         enabled = true
         port    = 2112
         serviceMonitor = {
-          enabled = true
+          enabled = var.REDACTED_46d876c8
           labelsOverride = {
             release = "monitoring"
           }
@@ -84,8 +84,8 @@ resource "helm_release" "tetragon" {
       }
 
       filenames = {
-        basePath       = "/var/log/tetragon"
-        exportFilename = "tetragon.log"
+        basePath       = var.export_base_path
+        exportFilename = var.export_filename
       }
 
       resources = {
@@ -111,7 +111,7 @@ resource "helm_release" "tetragon" {
         enabled = true
         port    = 2113
         serviceMonitor = {
-          enabled = true
+          enabled = var.REDACTED_46d876c8
           labelsOverride = {
             release = "monitoring"
           }

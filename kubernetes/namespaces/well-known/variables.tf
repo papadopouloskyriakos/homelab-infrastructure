@@ -3,44 +3,6 @@
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# security.txt Configuration (RFC 9116)
-# -----------------------------------------------------------------------------
-variable "security_contact_email" {
-  description = "Email address for security vulnerability reports"
-  type        = string
-}
-
-variable "security_contact_url" {
-  description = "Optional URL for security reports (e.g., GitHub security advisories)"
-  type        = string
-  default     = ""
-}
-
-variable "security_txt_expires" {
-  description = "Expiration date for security.txt (ISO 8601 format)"
-  type        = string
-  default     = "2026-12-31T23:59:59.000Z"
-}
-
-variable "preferred_languages" {
-  description = "Preferred languages for security reports"
-  type        = list(string)
-  default     = ["en"]
-}
-
-variable "security_policy_url" {
-  description = "Optional URL to security policy documentation"
-  type        = string
-  default     = ""
-}
-
-variable "acknowledgments_url" {
-  description = "Optional URL to security researchers acknowledgments page"
-  type        = string
-  default     = ""
-}
-
-# -----------------------------------------------------------------------------
 # Domain Configuration
 # -----------------------------------------------------------------------------
 variable "domains" {
@@ -48,24 +10,34 @@ variable "domains" {
   type        = list(string)
 }
 
-variable "primary_hostname" {
-  description = "Primary hostname for canonical security.txt URL"
-  type        = string
-}
-
 # -----------------------------------------------------------------------------
 # Certificate Configuration
 # -----------------------------------------------------------------------------
+variable "acme_issuer_enabled" {
+  description = "Whether a cert-manager ClusterIssuer is available. true (NL): create the multi-domain Certificate and reference its secret in the Ingress. false (GR): skip the Certificate and serve the pre-existing wildcard secrets listed in wildcard_tls_secrets."
+  type        = bool
+  default     = true
+}
+
 variable "cert_issuer_name" {
-  description = "cert-manager issuer name"
+  description = "cert-manager issuer name (used only when acme_issuer_enabled)"
   type        = string
   default     = "letsencrypt-prod"
 }
 
 variable "cert_issuer_kind" {
-  description = "cert-manager issuer kind (Issuer or ClusterIssuer)"
+  description = "cert-manager issuer kind (Issuer or ClusterIssuer; used only when acme_issuer_enabled)"
   type        = string
   default     = "ClusterIssuer"
+}
+
+variable "wildcard_tls_secrets" {
+  description = "Ordered list of pre-existing wildcard TLS secrets to serve when acme_issuer_enabled is false. Each entry becomes one Ingress tls block. The secrets must already exist in the well-known namespace (copied wildcard certs)."
+  type = list(object({
+    hosts       = list(string)
+    secret_name = string
+  }))
+  default = []
 }
 
 # -----------------------------------------------------------------------------
