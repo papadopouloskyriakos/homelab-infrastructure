@@ -28,6 +28,21 @@ resource "helm_release" "external_secrets" {
 
     webhook = {
       port = 9443
+      resources = {
+        requests = {
+          cpu    = "25m"
+          memory = "64Mi"
+        }
+      }
+    }
+
+    certController = {
+      resources = {
+        requests = {
+          cpu    = "25m"
+          memory = "64Mi"
+        }
+      }
     }
 
     resources = {
@@ -44,6 +59,7 @@ resource "helm_release" "external_secrets" {
 
 # =============================================================================
 # ClusterSecretStore for OpenBao
+# CA is delivered inline (base64 caBundle) — no openbao-ca Secret object.
 # =============================================================================
 
 resource "kubernetes_manifest" "cluster_secret_store" {
@@ -64,7 +80,7 @@ resource "kubernetes_manifest" "cluster_secret_store" {
           caBundle = var.openbao_ca_cert
           auth = {
             kubernetes = {
-              mountPath = "kubernetes"
+              mountPath = var.eso_auth_mount_path
               role      = var.openbao_role
               serviceAccountRef = {
                 name      = "external-secrets"

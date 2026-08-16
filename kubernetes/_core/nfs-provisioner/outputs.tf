@@ -1,6 +1,9 @@
-output "namespace" {
-  value = helm_release.nfs_provisioner.metadata.namespace
+output "storage_class_name" {
+  description = "Name of the NFS storage class"
+  value       = "nfs-client"
 }
-output "chart_version" {
-  value = helm_release.nfs_provisioner.metadata.version
+
+output "namespace" {
+  description = "Namespace where NFS provisioner is installed"
+  value       = "nfs-provisioner"
 }
