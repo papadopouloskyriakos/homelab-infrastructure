@@ -8,8 +8,8 @@ output "namespace" {
 }
 
 output "postgres_pvc" {
-  description = "PostgreSQL PVC name"
-  value       = REDACTED_912a6d18_claim.awx_postgres.metadata[0].name
+  description = "PostgreSQL PVC name (static-bind mode only; null when dynamically provisioned by the operator)"
+  value       = try(REDACTED_912a6d18_claim.awx_postgres[0].metadata[0].name, null)
 }
 
 output "projects_pv" {
@@ -18,11 +18,11 @@ output "projects_pv" {
 }
 
 output "storage_class" {
-  description = "AWX storage class name"
+  description = "AWX NFS storage class name"
   value       = REDACTED_5a69a0fb.nfs_sc.metadata[0].name
 }
 
 output "awx_url" {
   description = "AWX web interface URL"
-  value       = "https://awx.${var.domain}"
+  value       = "https://${var.awx_hostname}"
 }
