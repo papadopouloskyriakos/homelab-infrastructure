@@ -52,8 +52,6 @@ module "cilium_bgp" {
   local_asn     = var.cilium_local_asn
   peer_asn      = var.cilium_peer_asn
   peer_address  = var.cilium_peer_address
-  # Disable old ExternalSecret - using Helm-managed clustermesh.config.clusters
-  clustermesh_gr_enabled = false
 }
 
 module "tetragon" {
