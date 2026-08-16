@@ -89,7 +89,7 @@ resource "helm_release" "seaweedfs" {
 
   values = [
     templatefile("${path.module}/values.yaml.tpl", {
-      storage_class                 = var.storage_class
+      storage_class                 = var.storage_class_retain
       master_storage_size           = var.master_storage_size
       volume_storage_size           = var.volume_storage_size
       REDACTED_0a7b20f8 = var.REDACTED_0a7b20f8
@@ -118,7 +118,7 @@ resource "kubernetes_manifest" "REDACTED_f7ae41ec" {
         "release"     = "monitoring"
         "environment" = "production"
         "managed-by"  = "opentofu"
-        "repository"  = "REDACTED_25022d4e"
+        "repository"  = var.repository_label
       }
     }
     spec = {
@@ -139,9 +139,6 @@ resource "kubernetes_manifest" "REDACTED_f7ae41ec" {
   depends_on = [helm_release.seaweedfs]
 }
 
-# =============================================================================
-# Ingress for Web UI access
-# =============================================================================
 # =============================================================================
 # PodDisruptionBudgets — protect availability during voluntary disruptions
 # =============================================================================
@@ -230,7 +227,7 @@ resource "kubernetes_ingress_v1" "seaweedfs_master" {
   }
   spec {
     rule {
-      host = "nl-seaweedfs.example.net"
+      host = var.master_hostname
       http {
         path {
           path      = "/"
@@ -256,7 +253,7 @@ resource "kubernetes_ingress_v1" "seaweedfs_s3" {
     annotations = {
       "kubernetes.io/ingress.class"                 = "nginx"
       "nginx.ingress.kubernetes.io/proxy-body-size" = "0"
-      # OMOIKANE-1510 — pin every nl-s3 request to ONE filer replica.
+      # OMOIKANE-1510 — pin every s3 request to ONE filer replica.
       #
       # seaweedfs-filer fronts filer-0 and filer-1, which keep their own leveldb2
       # metadata and reconcile asynchronously via meta_aggregator. Round-robin
@@ -275,7 +272,7 @@ resource "kubernetes_ingress_v1" "seaweedfs_s3" {
   }
   spec {
     rule {
-      host = "nl-s3.example.net"
+      host = var.s3_hostname
       http {
         path {
           path      = "/"

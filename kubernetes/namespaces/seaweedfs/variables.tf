@@ -19,8 +19,8 @@ variable "REDACTED_c1342204" {
 # -----------------------------------------------------------------------------
 # Storage Configuration
 # -----------------------------------------------------------------------------
-variable "storage_class" {
-  description = "Storage class for SeaweedFS PVCs"
+variable "storage_class_retain" {
+  description = "Retain-policy storage class for SeaweedFS PVCs"
   type        = string
   default     = "REDACTED_b280aec5"
 }
@@ -58,21 +58,36 @@ variable "filer_storage_size" {
 }
 
 # -----------------------------------------------------------------------------
-# Cluster Mesh
-# -----------------------------------------------------------------------------
-variable "cluster_name" {
-  description = "Cluster name for cross-site identification"
-  type        = string
-  default     = "nlcl01k8s"
-}
-
-# -----------------------------------------------------------------------------
 # Node Selection
 # -----------------------------------------------------------------------------
 variable "node_region" {
   description = "Region label to select local nodes only"
   type        = string
   default     = "nl-lei"
+}
+
+# -----------------------------------------------------------------------------
+# Ingress Hostnames
+# -----------------------------------------------------------------------------
+variable "master_hostname" {
+  description = "Hostname for the SeaweedFS master web UI ingress"
+  type        = string
+  default     = "nl-seaweedfs.example.net"
+}
+
+variable "s3_hostname" {
+  description = "Hostname for the SeaweedFS S3 API ingress"
+  type        = string
+  default     = "nl-s3.example.net"
+}
+
+# -----------------------------------------------------------------------------
+# Observability
+# -----------------------------------------------------------------------------
+variable "repository_label" {
+  description = "Value of the 'repository' label on monitoring resources (which repo manages this cluster)"
+  type        = string
+  default     = "REDACTED_25022d4e"
 }
 
 # -----------------------------------------------------------------------------
