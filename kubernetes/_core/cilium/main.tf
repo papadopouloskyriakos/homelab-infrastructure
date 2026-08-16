@@ -3,13 +3,20 @@
 # ========================================================================
 # Manages Cilium installation via Helm through OpenTofu
 # Enables Service Mesh mTLS with SPIRE
-# ClusterMesh with shared CA for NL ↔ GR connectivity
+# ClusterMesh with shared CA for cross-site (NL ↔ GR) connectivity
 # ========================================================================
+
+locals {
+  # REDACTED_9b1272d3 is "<ip>:<port>"; the Helm values take them
+  # as separate keys (clusters[0].ips[0] + clusters[0].port).
+  clustermesh_remote_ip   = split(":", var.REDACTED_9b1272d3)[0]
+  clustermesh_remote_port = split(":", var.REDACTED_9b1272d3)[1]
+}
 
 # ========================================================================
 # Data source for shared CA (synced by ExternalSecret)
 # ========================================================================
-data "kubernetes_secret" "cilium_ca_shared" {
+data "kubernetes_secret_v1" "cilium_ca_shared" {
   metadata {
     name      = "cilium-ca-shared"
     namespace = "kube-system"
@@ -21,21 +28,22 @@ resource "helm_release" "cilium" {
   namespace        = "kube-system"
   repository       = "https://helm.cilium.io/"
   chart            = "cilium"
-  version          = "1.20.0"
+  version          = var.cilium_version
   create_namespace = false
 
-  # Canary-safe: don't block apply on the full DaemonSet roll (monitored externally)
+  # Canary-safe: don't block the Atlantis apply on the full DaemonSet roll — it is
+  # monitored externally by a per-node host-egress canary (cilium/cilium #44430).
   wait = false
 
   set = [
     # Cluster settings
     {
       name  = "cluster.name"
-      value = "nlcl01k8s"
+      value = var.cluster_name
     },
     {
       name  = "cluster.id"
-      value = "1"
+      value = var.cluster_id
     },
     {
       name  = "k8sServiceHost"
@@ -47,7 +55,7 @@ resource "helm_release" "cilium" {
     },
     # =========================================================================
     # IPAM Configuration - CRITICAL FOR CLUSTERMESH
-    # NL Cluster uses 10.0.0.0/16, GR Cluster uses 10.1.0.0/16
+    # NL Cluster uses 10.0.0.0/16, GR Cluster uses 10.1.0.0/16 (var.pod_cidr)
     # This prevents pod CIDR collisions across clusters
     # =========================================================================
     {
@@ -56,7 +64,7 @@ resource "helm_release" "cilium" {
     },
     {
       name  = "ipam.operator.clusterPoolIPv4PodCIDRList"
-      value = "10.0.0.0/16"
+      value = var.pod_cidr
     },
     {
       name  = "ipam.operator.clusterPoolIPv4MaskSize"
@@ -110,7 +118,7 @@ resource "helm_release" "cilium" {
     },
     {
       name  = "hubble.metrics.serviceMonitor.enabled"
-      value = "true"
+      value = var.REDACTED_46d876c8
     },
     # ========================================================================
     # Hubble TLS Configuration
@@ -126,6 +134,8 @@ resource "helm_release" "cilium" {
       value = "helm"
     },
     # Force Hubble relay pod recreation to pick up new certs
+    # ⚠ Value must stay BYTE-IDENTICAL — changing it regenerates clustermesh
+    # certs and blips the mesh.
     {
       name  = "hubble.relay.podAnnotations.cert-regen-trigger"
       value = "REDACTED_a36086b6"
@@ -139,7 +149,7 @@ resource "helm_release" "cilium" {
     },
     {
       name  = "prometheus.serviceMonitor.enabled"
-      value = "true"
+      value = var.REDACTED_46d876c8
     },
     {
       name  = "operator.prometheus.enabled"
@@ -147,14 +157,14 @@ resource "helm_release" "cilium" {
     },
     {
       name  = "operator.prometheus.serviceMonitor.enabled"
-      value = "true"
+      value = var.REDACTED_46d876c8
     },
     # ========================================================================
     # ClusterMesh Metrics
     # ========================================================================
     {
       name  = "clustermesh.apiserver.metrics.serviceMonitor.enabled"
-      value = "true"
+      value = var.REDACTED_46d876c8
     },
     # ========================================================================
     # Gateway API (future-proofing)
@@ -164,12 +174,24 @@ resource "helm_release" "cilium" {
       value = "true"
     },
     # ========================================================================
+    # BGP Control Plane
+    # Both clusters run live with enable-bgp-control-plane=true; set it
+    # explicitly so the Helm values finally record reality.
+    # ========================================================================
+    {
+      name  = "bgpControlPlane.enabled"
+      value = "true"
+    },
+    # ========================================================================
     # Service Mesh - mTLS with SPIRE
     # ========================================================================
     {
       name  = "REDACTED_6fa691d2.mutual.spire.enabled"
       value = "true"
     },
+    # REDACTED_6fa691d2.enabled=true is REQUIRED alongside spire.enabled since 1.19
+    # (chart validate.yaml hard-fails otherwise — fail-SAFE, rejects before
+    # rolling any pod).
     {
       name  = "REDACTED_6fa691d2.enabled"
       value = "true"
@@ -180,7 +202,7 @@ resource "helm_release" "cilium" {
     },
     {
       name  = "REDACTED_6fa691d2.mutual.spire.install.server.dataStorage.storageClass"
-      value = "nfs-client"
+      value = var.spire_storage_class
     },
 
     # SPIRE server security context - running as root due to hostPath socket permissions
@@ -292,15 +314,15 @@ resource "helm_release" "cilium" {
     },
     {
       name  = "clustermesh.config.clusters[0].name"
-      value = "grcl01k8s"
+      value = var.clustermesh_remote_cluster_name
     },
     {
       name  = "clustermesh.config.clusters[0].ips[0]"
-      value = "10.0.X.X"
+      value = local.clustermesh_remote_ip
     },
     {
       name  = "clustermesh.config.clusters[0].port"
-      value = "2379"
+      value = local.clustermesh_remote_port
     },
     # 1.20 upgrade safety (IFRNLLEI01PRD-2373): REDACTED_d95cbb1b = outgoing minor;
     # pin datapathMode=veth — 1.20's new default "auto" probes netkit (present on our 7.0 kernels)
@@ -326,11 +348,11 @@ resource "helm_release" "cilium" {
   set_sensitive = [
     {
       name  = "tls.ca.cert"
-      value = base64encode(data.kubernetes_secret.cilium_ca_shared.data["ca.crt"])
+      value = base64encode(data.kubernetes_secret_v1.cilium_ca_shared.data["ca.crt"])
     },
     {
       name  = "tls.ca.key"
-      value = base64encode(data.kubernetes_secret.cilium_ca_shared.data["ca.key"])
+      value = base64encode(data.kubernetes_secret_v1.cilium_ca_shared.data["ca.key"])
     },
   ]
 }
@@ -501,7 +523,7 @@ resource "kubernetes_ingress_v1" "hubble_ui" {
     ingress_class_name = "nginx"
 
     rule {
-      host = "nl-hubble.example.net"
+      host = var.hubble_hostname
 
       http {
         path {
