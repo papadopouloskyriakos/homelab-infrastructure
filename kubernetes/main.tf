@@ -129,7 +129,9 @@ module "argocd" {
   source = "./namespaces/argocd"
 
   common_labels = local.common_labels
-  domain        = var.domain
+
+  site            = "nl"
+  argocd_hostname = "argocd.${var.domain}"
 
   REDACTED_be8b31fd         = var.REDACTED_be8b31fd
   argocd_nodeport              = var.argocd_nodeport
@@ -141,7 +143,15 @@ module "argocd" {
   argocd_ssh_known_hosts       = var.argocd_ssh_known_hosts
   argocd_matrix_token          = var.argocd_matrix_token
 
-  depends_on = [module.ingress_nginx]
+  # server/repo-server replicas + notification prefix: module defaults (2/2, "[ArgoCD]")
+
+  REDACTED_9360424f = {
+    "gitlab-repo-creds" = {
+      openbao_path = "REDACTED_79b33008"
+    }
+  }
+
+  depends_on = [module.external_secrets, module.ingress_nginx]
 }
 
 module "awx" {

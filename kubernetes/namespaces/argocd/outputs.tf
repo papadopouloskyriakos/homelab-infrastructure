@@ -24,7 +24,7 @@ output "server_url_nodeport" {
 
 output "server_url_ingress" {
   description = "Argo CD URL via Ingress"
-  value       = var.REDACTED_84146aee ? "https://argocd.${var.domain}" : null
+  value       = var.REDACTED_84146aee ? "https://${var.argocd_hostname}" : null
 }
 
 output "REDACTED_913cfbf9" {

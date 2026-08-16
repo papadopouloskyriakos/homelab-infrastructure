@@ -5,6 +5,12 @@
 # Public status page served via BGP anycast
 # Monitors both NL and GR sites from each location
 # Includes Prometheus-based network health checks for AS214304
+#
+# CANONICAL NL<->GR MIRROR MODULE (2026-08-16 campaign): this file is
+# byte-identical in both repos. Site-specific values come in via variables
+# (NL defaults, GR overrides in the root call). The endpoint list is the
+# UNION of both sites' sets — both vantages monitor the shared estate; only
+# Twilio paging (NL-wired) and the cert-manager pieces are gated per site.
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -26,7 +32,13 @@ resource "REDACTED_46569c16" "gatus" {
 # Locals — derived values for alerting providers
 # -----------------------------------------------------------------------------
 locals {
-  twilio_enabled = var.twilio_account_sid != "" && var.twilio_api_key_sid != "" && var.twilio_api_key_secret != "" && var.twilio_to_number != ""
+  # Twilio paging arms only when (a) this site's SMS bridge is wired
+  # (twilio_bridge_url != "" — mirror-campaign contract gate; GR passes its
+  # bridge URL once 10.0.X.X:9106 is live) AND (b) all Twilio credentials
+  # are present (on NL these arrive as TF_VAR_gatus_twilio_* in Atlantis's
+  # env — /srv/atlantis/twilio.env — which is also why the scheduled drift
+  # job, lacking them, plans the well-known phantom gatus_twilio destroy).
+  twilio_enabled = var.twilio_bridge_url != "" && var.twilio_account_sid != "" && var.twilio_api_key_sid != "" && var.twilio_api_key_secret != "" && var.twilio_to_number != ""
   # Pre-compute Basic-auth header content. Twilio accepts API-Key auth as
   # HTTP Basic where username=API_KEY_SID and password=API_KEY_SECRET.
   # Computed at plan time (sensitive); injected into Gatus pod via Secret.
@@ -61,6 +73,9 @@ resource "kubernetes_secret_v1" "gatus_twilio" {
 # -----------------------------------------------------------------------------
 # ConfigMap - Gatus Configuration
 # -----------------------------------------------------------------------------
+# Source of truth is this file (GitOps); Atlantis apply rolls the Deployment's
+# checksum/config annotation automatically. (GR note 2026-04-24: detect_k8s_drift
+# pipelines #6387..#6406 flagged live-vs-module divergence — reconciled here.)
 resource "REDACTED_a9df2e77_v1" "gatus_config" {
   metadata {
     name      = "gatus-config"
@@ -228,13 +243,18 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
           },
           # --- Edge Node Health ---
+          # NOTE (GR vantage): the *-int hostnames resolve to the VPS overlay
+          # loopbacks (10.255.2-3.0/24). A GR note from 2026-04 said GR K8s
+          # could not reach those (routed via NL RRs only) and probed the
+          # public IPs instead. Canonical keeps the NL internal-stats form —
+          # verify GR->10.255.2-3.0/24 reachability when merging on GR.
           {
             name     = "Edge: Zürich (CH)"
             group    = "🌐 Network (AS214304)"
             url      = "http://chzrh01vps01-int.example.net:8404/stats;csv"
             interval = "60s"
             headers = {
-              Authorization = "Basic REDACTED_38a2053f"
+              Authorization = "Basic ${var.haproxy_stats_auth}"
             }
             conditions = [
               "[STATUS] == 200",
@@ -248,7 +268,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             url      = "http://notrf01vps01-int.example.net:8404/stats;csv"
             interval = "60s"
             headers = {
-              Authorization = "Basic REDACTED_38a2053f"
+              Authorization = "Basic ${var.haproxy_stats_auth}"
             }
             conditions = [
               "[STATUS] == 200",
@@ -344,8 +364,11 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
         # =====================================================================
         # 🔒 SECURITY & SECRETS
         # =====================================================================
-        [
-          # cert-manager health via Prometheus
+        # cert-manager health via Prometheus. Gated: only meaningful where
+        # ACME issuance runs (NL). GR consumes the NL wildcard secret and has
+        # no certmanager_* series — an ungated check would sit red forever
+        # (which is why GR historically commented this block out).
+        var.acme_issuer_enabled ? [
           {
             name     = "cert-manager"
             group    = "🔒 Security & Secrets"
@@ -359,7 +382,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
           }
           # NOTE: OpenBao is internal-only, add when ingress/metrics are available
-        ],
+        ] : [],
 
         # =====================================================================
         # 📊 OBSERVABILITY
@@ -647,15 +670,60 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               type        = "custom"
               description = "file02-down"
             }] : []
+          },
+          # NL history note 2026-04-30 (FISHA endpoints): earlier removal
+          # incorrectly blamed K8s→inside_mgmt routing; actual cause was an
+          # HTTP-protocol mismatch in the exporter. See exporter IaC for the
+          # fix. From GR these checks double-monitor NL-hosted services —
+          # accepted by the mirror campaign (paging stays NL-gated).
+          # --- Public product sites (GR-origin set, canonical union) ---
+          {
+            name     = "CubeOS"
+            group    = "📱 Applications"
+            url      = "https://get.cubeos.app"
+            interval = "30s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "MeshSat"
+            group    = "📱 Applications"
+            url      = "https://meshsat.net"
+            interval = "30s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "MeshSat Hub"
+            group    = "📱 Applications"
+            url      = "https://hub.meshsat.net"
+            interval = "30s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+          },
+          {
+            name     = "Mulecube"
+            group    = "📱 Applications"
+            url      = "https://mulecube.com"
+            interval = "30s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
           }
-          # End of endpoints. Original removal note 2026-04-30: I incorrectly
-          # blamed K8s→inside_mgmt routing; actual cause was an HTTP-protocol
-          # mismatch in the exporter. See exporter IaC for the fix.
-          # Twilio). Re-add here once K8s pod network has a route to
-          # 10.0.X.X/24, or move the exporter to a node-internal service.
         ],
 
-        # Additional custom endpoints from tfvars
+        # Additional custom endpoints from the root call
         var.additional_endpoints
       )
     })
@@ -678,7 +746,7 @@ resource "REDACTED_912a6d18_claim_v1" "gatus_data" {
 
   spec {
     access_modes       = ["ReadWriteOnce"]
-    storage_class_name = var.storage_class
+    storage_class_name = var.storage_class_delete
 
     resources {
       requests = {
@@ -881,6 +949,8 @@ resource "kubernetes_service_v1" "gatus" {
 # -----------------------------------------------------------------------------
 # Ingress
 # -----------------------------------------------------------------------------
+# TLS secret is site-specific: NL uses the gated per-host Certificate below
+# ("gatus-tls"); GR points at the wildcard secret synced from NL.
 resource "kubernetes_ingress_v1" "gatus" {
   metadata {
     name      = "gatus"
@@ -898,7 +968,7 @@ resource "kubernetes_ingress_v1" "gatus" {
 
     tls {
       hosts       = [var.gatus_hostname]
-      secret_name = "gatus-tls"
+      secret_name = var.tls_secret_name
     }
 
     rule {
@@ -924,9 +994,11 @@ resource "kubernetes_ingress_v1" "gatus" {
 }
 
 # -----------------------------------------------------------------------------
-# Certificate (cert-manager)
+# Certificate (cert-manager) — only where ACME issuance runs (NL)
 # -----------------------------------------------------------------------------
 resource "kubernetes_manifest" "gatus_certificate" {
+  count = var.acme_issuer_enabled ? 1 : 0
+
   manifest = {
     apiVersion = "cert-manager.io/v1"
     kind       = "Certificate"
