@@ -27,7 +27,7 @@ resource "helm_release" "ingress_nginx" {
         replicaCount = 2
 
         extraArgs = {
-          default-ssl-certificate = "REDACTED_f89271df"
+          default-ssl-certificate = var.REDACTED_3b82c3d6
         }
 
         # =====================================================================
@@ -70,6 +70,7 @@ resource "helm_release" "ingress_nginx" {
           forwarded-for-header       = "X-Forwarded-For"
 
           # Trust edge VPS proxies (CH and NO) and their tunnel subnets
+          # Estate-global (same edge fronts both sites) - intentionally not per-site
           proxy-real-ip-cidr = "198.51.100.X/32,198.51.100.X/32,10.255.2.0/24,10.255.3.0/24"
 
           # === RATE LIMITING ===
@@ -136,6 +137,7 @@ resource "helm_release" "ingress_nginx" {
 
           # HIGH: Content Security Policy - Prevents XSS and data injection
           # frame-ancestors includes matrix.example.net to allow Grafana embedding
+          # (matrix is a single estate-wide instance - intentionally identical on both sites)
           Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss:; frame-ancestors 'self' https://matrix.example.net vector://vector; base-uri 'self'; form-action 'self';"
 
           # MEDIUM: Controls referrer information sent with requests
@@ -215,4 +217,14 @@ resource "helm_release" "ingress_nginx" {
       }
     })
   ]
+}
+
+# Data source to get the LoadBalancer IP after deployment
+data "kubernetes_service" "ingress_nginx" {
+  metadata {
+    name      = "ingress-nginx-controller"
+    namespace = "ingress-nginx"
+  }
+
+  depends_on = [helm_release.ingress_nginx]
 }
