@@ -287,6 +287,22 @@ interface Tunnel11
  tunnel mode ipsec ipv4
  tunnel protection ipsec profile VTI-PROFILE
 !
+interface Tunnel12
+ nameif vti-no-dmz05-f
+ ip address 10.255.200.90 255.255.255.254 
+ tunnel source interface outside_freedom
+ tunnel destination 185.125.169.183
+ tunnel mode ipsec ipv4
+ tunnel protection ipsec profile VTI-PROFILE
+!
+interface Tunnel13
+ nameif vti-no-dmz06-f
+ ip address 10.255.200.104 255.255.255.254 
+ tunnel source interface outside_freedom
+ tunnel destination 185.125.169.184
+ tunnel mode ipsec ipv4
+ tunnel protection ipsec profile VTI-PROFILE
+!
 boot system disk0:/asa9-16-4-lfbff-k8.SPA
 ftp mode passive
 clock timezone CET 1
@@ -703,6 +719,14 @@ object network notrf01dmz01
  host 193.200.238.138
 object network notrf01dmz02
  host 193.200.238.139
+object network NET_no_dmz03
+ subnet 10.255.7.0 255.255.255.0
+object network NET_no_dmz04
+ subnet 10.255.8.0 255.255.255.0
+object network NET_no_dmz05
+ subnet 10.255.9.0 255.255.255.0
+object network NET_no_dmz06
+ subnet 10.255.10.0 255.255.255.0
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -902,6 +926,10 @@ object-group network ALL_VPS_OVERLAY
  network-object 10.255.8.0 255.255.255.0
  network-object host 193.200.238.240
  network-object host 193.200.238.241
+ network-object 10.255.9.0 255.255.255.0
+ network-object 10.255.10.0 255.255.255.0
+ network-object host 185.125.169.183
+ network-object host 185.125.169.184
 object-group network whitelist_shun_nlgr_all_subnets
  group-object gr_all_subnets
  group-object nl_all_subnets
@@ -1414,6 +1442,46 @@ nat (inside_k8s,outside_freedom) source static any any destination static NET_no
 nat (inside_mgmt,outside_budget) source static any any destination static NET_vps_tx NET_vps_tx no-proxy-arp route-lookup
 nat (inside_k8s,outside_budget) source static any any destination static NET_vps_tx NET_vps_tx no-proxy-arp route-lookup
 nat (dmz_servers02,outside_budget) source static NET_k8s_rr NET_k8s_rr destination static NET_vps_tx NET_vps_tx no-proxy-arp route-lookup
+nat (dmz_servers02,outside_budget) source static any any destination static NET_no_dmz03 NET_no_dmz03 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_budget) source static any any destination static NET_no_dmz03 NET_no_dmz03 no-proxy-arp route-lookup
+nat (inside_k8s,outside_budget) source static any any destination static NET_no_dmz03 NET_no_dmz03 no-proxy-arp route-lookup
+nat (inside_servers01,outside_budget) source static any any destination static NET_no_dmz03 NET_no_dmz03 no-proxy-arp route-lookup
+nat (inside_servers02,outside_budget) source static any any destination static NET_no_dmz03 NET_no_dmz03 no-proxy-arp route-lookup
+nat (inside_corosync,outside_budget) source static any any destination static NET_no_dmz03 NET_no_dmz03 no-proxy-arp route-lookup
+nat (inside_nfs,outside_budget) source static any any destination static NET_no_dmz03 NET_no_dmz03 no-proxy-arp route-lookup
+nat (dmz_servers02,outside_freedom) source static any any destination static NET_no_dmz03 NET_no_dmz03 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static any any destination static NET_no_dmz03 NET_no_dmz03 no-proxy-arp route-lookup
+nat (inside_k8s,outside_freedom) source static any any destination static NET_no_dmz03 NET_no_dmz03 no-proxy-arp route-lookup
+nat (dmz_servers02,outside_budget) source static any any destination static NET_no_dmz04 NET_no_dmz04 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_budget) source static any any destination static NET_no_dmz04 NET_no_dmz04 no-proxy-arp route-lookup
+nat (inside_k8s,outside_budget) source static any any destination static NET_no_dmz04 NET_no_dmz04 no-proxy-arp route-lookup
+nat (inside_servers01,outside_budget) source static any any destination static NET_no_dmz04 NET_no_dmz04 no-proxy-arp route-lookup
+nat (inside_servers02,outside_budget) source static any any destination static NET_no_dmz04 NET_no_dmz04 no-proxy-arp route-lookup
+nat (inside_corosync,outside_budget) source static any any destination static NET_no_dmz04 NET_no_dmz04 no-proxy-arp route-lookup
+nat (inside_nfs,outside_budget) source static any any destination static NET_no_dmz04 NET_no_dmz04 no-proxy-arp route-lookup
+nat (dmz_servers02,outside_freedom) source static any any destination static NET_no_dmz04 NET_no_dmz04 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static any any destination static NET_no_dmz04 NET_no_dmz04 no-proxy-arp route-lookup
+nat (inside_k8s,outside_freedom) source static any any destination static NET_no_dmz04 NET_no_dmz04 no-proxy-arp route-lookup
+nat (dmz_servers02,outside_budget) source static any any destination static NET_no_dmz05 NET_no_dmz05 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_budget) source static any any destination static NET_no_dmz05 NET_no_dmz05 no-proxy-arp route-lookup
+nat (inside_k8s,outside_budget) source static any any destination static NET_no_dmz05 NET_no_dmz05 no-proxy-arp route-lookup
+nat (inside_servers01,outside_budget) source static any any destination static NET_no_dmz05 NET_no_dmz05 no-proxy-arp route-lookup
+nat (inside_servers02,outside_budget) source static any any destination static NET_no_dmz05 NET_no_dmz05 no-proxy-arp route-lookup
+nat (inside_corosync,outside_budget) source static any any destination static NET_no_dmz05 NET_no_dmz05 no-proxy-arp route-lookup
+nat (inside_nfs,outside_budget) source static any any destination static NET_no_dmz05 NET_no_dmz05 no-proxy-arp route-lookup
+nat (dmz_servers02,outside_freedom) source static any any destination static NET_no_dmz05 NET_no_dmz05 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static any any destination static NET_no_dmz05 NET_no_dmz05 no-proxy-arp route-lookup
+nat (inside_k8s,outside_freedom) source static any any destination static NET_no_dmz05 NET_no_dmz05 no-proxy-arp route-lookup
+nat (dmz_servers02,outside_budget) source static any any destination static NET_no_dmz06 NET_no_dmz06 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_budget) source static any any destination static NET_no_dmz06 NET_no_dmz06 no-proxy-arp route-lookup
+nat (inside_k8s,outside_budget) source static any any destination static NET_no_dmz06 NET_no_dmz06 no-proxy-arp route-lookup
+nat (inside_servers01,outside_budget) source static any any destination static NET_no_dmz06 NET_no_dmz06 no-proxy-arp route-lookup
+nat (inside_servers02,outside_budget) source static any any destination static NET_no_dmz06 NET_no_dmz06 no-proxy-arp route-lookup
+nat (inside_corosync,outside_budget) source static any any destination static NET_no_dmz06 NET_no_dmz06 no-proxy-arp route-lookup
+nat (inside_nfs,outside_budget) source static any any destination static NET_no_dmz06 NET_no_dmz06 no-proxy-arp route-lookup
+nat (dmz_servers02,outside_freedom) source static any any destination static NET_no_dmz06 NET_no_dmz06 no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static any any destination static NET_no_dmz06 NET_no_dmz06 no-proxy-arp route-lookup
+nat (inside_k8s,outside_freedom) source static any any destination static NET_no_dmz06 NET_no_dmz06 no-proxy-arp route-lookup
 !
 object network NAT_dmz_servers01
  nat (dmz_servers01,outside_freedom) dynamic PUBLIC_dmz_servers01
@@ -1517,6 +1585,8 @@ access-group vti_access_in in interface vti-no-dmz02-f
 access-group vti_access_in in interface vti-txhou01-f
 access-group vti_access_in in interface vti-no-dmz03-f
 access-group vti_access_in in interface vti-no-dmz04-f
+access-group vti_access_in in interface vti-no-dmz05-f
+access-group vti_access_in in interface vti-no-dmz06-f
 access-group global_access global
 !
 prefix-list METALLB-VIPS seq 10 permit 10.0.X.X/26 le 32
@@ -1645,6 +1715,8 @@ route vti-no-dmz02-f 10.255.5.0 255.255.255.0 10.255.200.37 100
 route vti-txhou01-f 10.255.6.0 255.255.255.0 10.255.200.42 100
 route vti-no-dmz03-f 10.255.7.0 255.255.255.0 10.255.200.57 100
 route vti-no-dmz04-f 10.255.8.0 255.255.255.0 10.255.200.71 100
+route vti-no-dmz05-f 10.255.9.0 255.255.255.0 10.255.200.91 100
+route vti-no-dmz06-f 10.255.10.0 255.255.255.0 10.255.200.105 100
 route Null0 10.0.X.X 255.255.255.0 255
 route Null0 10.0.X.X 255.255.255.0 255
 route Null0 10.0.X.X 255.255.255.0 255
@@ -1912,6 +1984,16 @@ tunnel-group 193.200.238.241 ipsec-attributes
  isakmp keepalive threshold 10 retry 5
  ikev2 remote-REDACTED_6fa691d2 pre-shared-key *****
  ikev2 local-REDACTED_6fa691d2 pre-shared-key *****
+tunnel-group 185.125.169.183 type ipsec-l2l
+tunnel-group 185.125.169.183 ipsec-attributes
+ isakmp keepalive threshold 10 retry 5
+ ikev2 remote-REDACTED_6fa691d2 pre-shared-key *****
+ ikev2 local-REDACTED_6fa691d2 pre-shared-key *****
+tunnel-group 185.125.169.184 type ipsec-l2l
+tunnel-group 185.125.169.184 ipsec-attributes
+ isakmp keepalive threshold 10 retry 5
+ ikev2 remote-REDACTED_6fa691d2 pre-shared-key *****
+ ikev2 local-REDACTED_6fa691d2 pre-shared-key *****
 !
 class-map global-class
  match access-list global_mpc
@@ -1984,5 +2066,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:5805031e5af556d3b6247d36cd792a5c
+Cryptochecksum:4e5c3c2ab25f000c58b34d1693865437
 : end

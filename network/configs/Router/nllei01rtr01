@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 22634 bytes
+Current configuration : 25081 bytes
 !
-! Last configuration change at 12:34:52 CEST Fri Aug 14 2026 by kyriakosp
+! Last configuration change at 00:50:40 CEST Mon Aug 17 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -188,6 +188,18 @@ crypto ikev2 keyring VTI-KEYRING
   pre-shared-key local 56987c396db06cbdf943bb9d1560b29a51caa9a4ffc05296709f29feb738eec6
   pre-shared-key remote 56987c396db06cbdf943bb9d1560b29a51caa9a4ffc05296709f29feb738eec6
  !
+ peer notrf01dmz05
+  description VTI PSK to notrf01dmz05 budget-facing
+  address 185.125.169.183
+  pre-shared-key local f443d0a8d81cf7229dfe8d6de84dcb7cd90fbac4016f1cc345f9d46eb8140235
+  pre-shared-key remote f443d0a8d81cf7229dfe8d6de84dcb7cd90fbac4016f1cc345f9d46eb8140235
+ !
+ peer notrf01dmz06
+  description VTI PSK to notrf01dmz06 budget-facing
+  address 185.125.169.184
+  pre-shared-key local f87ae0ccf64b3c5ac6c13c5c2e097f2e8bdd2d9dca96a52e4fb42518ed6c80b5
+  pre-shared-key remote f87ae0ccf64b3c5ac6c13c5c2e097f2e8bdd2d9dca96a52e4fb42518ed6c80b5
+ !
 !
 !
 crypto ikev2 profile VTI-IKEV2-PROFILE
@@ -200,6 +212,8 @@ crypto ikev2 profile VTI-IKEV2-PROFILE
  match identity remote address 185.121.169.27 255.255.255.255 
  match identity remote address 193.200.238.240 255.255.255.255 
  match identity remote address 193.200.238.241 255.255.255.255 
+ match identity remote address 185.125.169.183 255.255.255.255 
+ match identity remote address 185.125.169.184 255.255.255.255 
  identity local address 145.53.163.13
  REDACTED_6fa691d2 remote pre-share
  REDACTED_6fa691d2 local pre-share
@@ -398,6 +412,28 @@ interface Tunnel8
  tunnel destination 193.200.238.241
  tunnel protection ipsec profile VTI-PROFILE
 !
+interface Tunnel9
+ description Budget VTI to notrf01dmz05 vti-no-dmz05
+ ip address 10.255.200.88 255.255.255.254
+ ip mtu 1400
+ ip tcp adjust-mss 1360
+ bfd template VTI-BFD
+ tunnel source Dialer1
+ tunnel mode ipsec ipv4
+ tunnel destination 185.125.169.183
+ tunnel protection ipsec profile VTI-PROFILE
+!
+interface Tunnel10
+ description Budget VTI to notrf01dmz06 vti-no-dmz06
+ ip address 10.255.200.102 255.255.255.254
+ ip mtu 1400
+ ip tcp adjust-mss 1360
+ bfd template VTI-BFD
+ tunnel source Dialer1
+ tunnel mode ipsec ipv4
+ tunnel destination 185.125.169.184
+ tunnel protection ipsec profile VTI-PROFILE
+!
 interface GigabitEthernet0/0/0
  description To nlsw01 Gi1/0/32 | Po4 LACP member | 2026-08-08 TDR: cable ABSENT at sw01 side - config pre-staged, patch cable then no-shut both ends
  no ip address
@@ -494,6 +530,14 @@ router bgp 65000
  neighbor 10.255.200.69 description notrf01dmz04-budget-VTI
  neighbor 10.255.200.69 timers 10 30
  neighbor 10.255.200.69 fall-over bfd
+ neighbor 10.255.200.89 remote-as 65000
+ neighbor 10.255.200.89 description notrf01dmz05-budget-VTI
+ neighbor 10.255.200.89 timers 10 30
+ neighbor 10.255.200.89 fall-over bfd
+ neighbor 10.255.200.103 remote-as 65000
+ neighbor 10.255.200.103 description notrf01dmz06-budget-VTI
+ neighbor 10.255.200.103 timers 10 30
+ neighbor 10.255.200.103 fall-over bfd
  neighbor 10.0.X.X remote-as 65000
  neighbor 10.0.X.X description grk8s-frr01-GR-RR
  neighbor 10.0.X.X update-source Port-channel4.2
@@ -519,6 +563,10 @@ router bgp 65000
   network 10.255.200.18 mask 255.255.255.254
   network 10.255.200.30 mask 255.255.255.254
   network 10.255.200.40 mask 255.255.255.254
+  network 10.255.200.54 mask 255.255.255.254
+  network 10.255.200.68 mask 255.255.255.254
+  network 10.255.200.88 mask 255.255.255.254
+  network 10.255.200.102 mask 255.255.255.254
   neighbor 10.255.200.1 activate
   neighbor 10.255.200.1 send-community both
   neighbor 10.255.200.1 weight 200
@@ -552,6 +600,14 @@ router bgp 65000
   neighbor 10.255.200.69 weight 200
   neighbor 10.255.200.69 route-reflector-client
   neighbor 10.255.200.69 next-hop-self all
+  neighbor 10.255.200.89 activate
+  neighbor 10.255.200.89 weight 200
+  neighbor 10.255.200.89 route-reflector-client
+  neighbor 10.255.200.89 next-hop-self all
+  neighbor 10.255.200.103 activate
+  neighbor 10.255.200.103 weight 200
+  neighbor 10.255.200.103 route-reflector-client
+  neighbor 10.255.200.103 next-hop-self all
   neighbor 10.0.X.X activate
   neighbor 10.0.X.X send-community both
   neighbor 10.0.X.X next-hop-self
@@ -612,6 +668,8 @@ ip access-list extended OUTSIDE_BUDGET_IN
  93 permit esp host 185.121.169.27 any
  94 permit esp host 193.200.238.240 any
  95 permit esp host 193.200.238.241 any
+ 96 permit esp host 185.125.169.183 any
+ 97 permit esp host 185.125.169.184 any
  100 permit udp host 91.211.213.72 eq isakmp any
  110 permit udp host 198.51.100.X eq isakmp any
  120 permit udp host 198.51.100.X eq isakmp any
@@ -620,6 +678,8 @@ ip access-list extended OUTSIDE_BUDGET_IN
  123 permit udp host 185.121.169.27 eq isakmp any
  124 permit udp host 193.200.238.240 eq isakmp any
  125 permit udp host 193.200.238.241 eq isakmp any
+ 126 permit udp host 185.125.169.183 eq isakmp any
+ 127 permit udp host 185.125.169.184 eq isakmp any
  130 permit udp host 91.211.213.72 eq non500-isakmp any
  140 permit udp host 198.51.100.X eq non500-isakmp any
  150 permit udp host 198.51.100.X eq non500-isakmp any
@@ -628,6 +688,8 @@ ip access-list extended OUTSIDE_BUDGET_IN
  153 permit udp host 185.121.169.27 eq non500-isakmp any
  154 permit udp host 193.200.238.240 eq non500-isakmp any
  155 permit udp host 193.200.238.241 eq non500-isakmp any
+ 156 permit udp host 185.125.169.183 eq non500-isakmp any
+ 157 permit udp host 185.125.169.184 eq non500-isakmp any
  160 permit tcp any any established
  170 permit udp any any range 1024 65535
  180 permit icmp any any echo-reply
