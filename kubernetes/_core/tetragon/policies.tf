@@ -6,6 +6,15 @@
 # Events flow to Loki via Promtail for alerting in Grafana
 # ========================================================================
 
+locals {
+  policy_labels = {
+    "app.kubernetes.io/name"       = "tetragon-policy"
+    "app.kubernetes.io/component"  = "REDACTED_fd63afa2"
+    "app.kubernetes.io/managed-by" = "opentofu"
+    "policy.tetragon.io/type"      = "observe-only"
+  }
+}
+
 # ========================================================================
 # Policy 1: Process Execution Monitoring
 # ========================================================================
@@ -21,13 +30,8 @@ resource "kubernetes_manifest" "REDACTED_f3167a87" {
     apiVersion = "cilium.io/v1alpha1"
     kind       = "TracingPolicy"
     metadata = {
-      name = "REDACTED_de85e9d6"
-      labels = {
-        "app.kubernetes.io/name"       = "tetragon-policy"
-        "app.kubernetes.io/component"  = "REDACTED_fd63afa2"
-        "app.kubernetes.io/managed-by" = "opentofu"
-        "policy.tetragon.io/type"      = "observe-only"
-      }
+      name   = "REDACTED_de85e9d6"
+      labels = local.policy_labels
     }
     spec = {
       # Monitor process executions via tracepoint
@@ -73,13 +77,8 @@ resource "kubernetes_manifest" "REDACTED_f3d5149d" {
     apiVersion = "cilium.io/v1alpha1"
     kind       = "TracingPolicy"
     metadata = {
-      name = "REDACTED_8cae118b"
-      labels = {
-        "app.kubernetes.io/name"       = "tetragon-policy"
-        "app.kubernetes.io/component"  = "REDACTED_fd63afa2"
-        "app.kubernetes.io/managed-by" = "opentofu"
-        "policy.tetragon.io/type"      = "observe-only"
-      }
+      name   = "REDACTED_8cae118b"
+      labels = local.policy_labels
     }
     spec = {
       kprobes = [
@@ -195,13 +194,8 @@ resource "kubernetes_manifest" "REDACTED_827df794" {
     apiVersion = "cilium.io/v1alpha1"
     kind       = "TracingPolicy"
     metadata = {
-      name = "REDACTED_bbe670ef"
-      labels = {
-        "app.kubernetes.io/name"       = "tetragon-policy"
-        "app.kubernetes.io/component"  = "REDACTED_fd63afa2"
-        "app.kubernetes.io/managed-by" = "opentofu"
-        "policy.tetragon.io/type"      = "observe-only"
-      }
+      name   = "REDACTED_bbe670ef"
+      labels = local.policy_labels
     }
     spec = {
       kprobes = [
@@ -251,11 +245,13 @@ resource "kubernetes_manifest" "REDACTED_827df794" {
                 {
                   index    = 2
                   operator = "Equal"
+                  # Tetragon supports max 4 values per selector
+                  # Monitoring most security-critical capabilities:
                   values = [
-                    "21", # CAP_SYS_ADMIN
-                    "24", # CAP_SYS_CHROOT
-                    "25", # CAP_SYS_PTRACE
-                    "38", # CAP_SETFCAP
+                    "21", # CAP_SYS_ADMIN - most privileged capability
+                    "24", # CAP_SYS_RESOURCE - resource limits bypass
+                    "25", # CAP_SYS_TIME - system time manipulation
+                    "38", # CAP_PERFMON - performance monitoring (can leak info)
                   ]
                 }
               ]
@@ -282,13 +278,8 @@ resource "kubernetes_manifest" "REDACTED_0c258c9c" {
     apiVersion = "cilium.io/v1alpha1"
     kind       = "TracingPolicy"
     metadata = {
-      name = "REDACTED_e2274e6a"
-      labels = {
-        "app.kubernetes.io/name"       = "tetragon-policy"
-        "app.kubernetes.io/component"  = "REDACTED_fd63afa2"
-        "app.kubernetes.io/managed-by" = "opentofu"
-        "policy.tetragon.io/type"      = "observe-only"
-      }
+      name   = "REDACTED_e2274e6a"
+      labels = local.policy_labels
     }
     spec = {
       kprobes = [
@@ -342,6 +333,7 @@ resource "kubernetes_manifest" "REDACTED_0c258c9c" {
 # Monitors outbound network connections from pods
 # Useful for: detecting C2 communication, data exfiltration
 # NOTE: Can be noisy - disabled by default
+# Excludes kube-system/cilium namespaces to cut infrastructure noise
 # ========================================================================
 resource "kubernetes_manifest" "REDACTED_97012cc7" {
   count = var.REDACTED_073bcdbd ? 1 : 0
@@ -352,13 +344,8 @@ resource "kubernetes_manifest" "REDACTED_97012cc7" {
     apiVersion = "cilium.io/v1alpha1"
     kind       = "TracingPolicy"
     metadata = {
-      name = "network-connection-monitor"
-      labels = {
-        "app.kubernetes.io/name"       = "tetragon-policy"
-        "app.kubernetes.io/component"  = "REDACTED_fd63afa2"
-        "app.kubernetes.io/managed-by" = "opentofu"
-        "policy.tetragon.io/type"      = "observe-only"
-      }
+      name   = "network-connection-monitor"
+      labels = local.policy_labels
     }
     spec = {
       kprobes = [
@@ -369,6 +356,17 @@ resource "kubernetes_manifest" "REDACTED_97012cc7" {
             {
               index = 0
               type  = "sock"
+            }
+          ]
+          selectors = [
+            {
+              matchNamespaces = [
+                {
+                  namespace = ""
+                  operator  = "NotIn"
+                  values    = ["kube-system", "cilium"]
+                }
+              ]
             }
           ]
         }
