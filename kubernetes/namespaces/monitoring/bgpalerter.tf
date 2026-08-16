@@ -271,7 +271,7 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
 
       spec {
         node_selector = {
-          "topology.kubernetes.io/region" = "nl-lei"
+          "topology.kubernetes.io/region" = var.node_region
         }
 
         # Init container copies config files to writable volume

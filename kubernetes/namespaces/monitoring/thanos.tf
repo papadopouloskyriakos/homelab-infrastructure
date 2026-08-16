@@ -23,12 +23,10 @@ resource "kubernetes_manifest" "REDACTED_fb3d2492" {
     metadata = {
       name      = "REDACTED_5f4971dc"
       namespace = "monitoring"
-      labels = {
+      labels = merge(var.common_labels, {
         "app.kubernetes.io/name"      = "thanos"
         "app.kubernetes.io/component" = "objstore"
-        environment                   = "production"
-        "managed-by"                  = "opentofu"
-      }
+      })
     }
     spec = {
       refreshInterval = "1h"
@@ -90,12 +88,10 @@ resource "REDACTED_08d34ae1" "thanos_query" {
   metadata {
     name      = "thanos-query"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "thanos"
       "app.kubernetes.io/component" = "query"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
   }
 
   spec {
@@ -110,12 +106,10 @@ resource "REDACTED_08d34ae1" "thanos_query" {
 
     template {
       metadata {
-        labels = {
+        labels = merge(var.common_labels, {
           "app.kubernetes.io/name"      = "thanos"
           "app.kubernetes.io/component" = "query"
-          environment                   = "production"
-          "managed-by"                  = "opentofu"
-        }
+        })
       }
 
       spec {
@@ -238,12 +232,10 @@ resource "kubernetes_service_v1" "thanos_query" {
   metadata {
     name      = "thanos-query"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "thanos"
       "app.kubernetes.io/component" = "query"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
   }
 
   spec {
@@ -277,12 +269,10 @@ resource "REDACTED_4ad9fc99_v1" "thanos_query" {
   metadata {
     name      = "thanos-query"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "thanos"
       "app.kubernetes.io/component" = "query"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
   }
 }
 
@@ -293,12 +283,10 @@ resource "REDACTED_2f6bdfa2" "thanos_store" {
   metadata {
     name      = "thanos-store"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "thanos"
       "app.kubernetes.io/component" = "store"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
   }
 
   spec {
@@ -314,12 +302,10 @@ resource "REDACTED_2f6bdfa2" "thanos_store" {
 
     template {
       metadata {
-        labels = {
+        labels = merge(var.common_labels, {
           "app.kubernetes.io/name"      = "thanos"
           "app.kubernetes.io/component" = "store"
-          environment                   = "production"
-          "managed-by"                  = "opentofu"
-        }
+        })
       }
 
       spec {
@@ -466,12 +452,10 @@ resource "kubernetes_service_v1" "thanos_store" {
   metadata {
     name      = "thanos-store"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "thanos"
       "app.kubernetes.io/component" = "store"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
   }
 
   spec {
@@ -506,12 +490,10 @@ resource "REDACTED_4ad9fc99_v1" "thanos_store" {
   metadata {
     name      = "thanos-store"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "thanos"
       "app.kubernetes.io/component" = "store"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
   }
 }
 
@@ -522,12 +504,10 @@ resource "REDACTED_2f6bdfa2" "thanos_compactor" {
   metadata {
     name      = "thanos-compactor"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "thanos"
       "app.kubernetes.io/component" = "compactor"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
   }
 
   spec {
@@ -543,12 +523,10 @@ resource "REDACTED_2f6bdfa2" "thanos_compactor" {
 
     template {
       metadata {
-        labels = {
+        labels = merge(var.common_labels, {
           "app.kubernetes.io/name"      = "thanos"
           "app.kubernetes.io/component" = "compactor"
-          environment                   = "production"
-          "managed-by"                  = "opentofu"
-        }
+        })
       }
 
       spec {
@@ -683,12 +661,10 @@ resource "kubernetes_service_v1" "thanos_compactor" {
   metadata {
     name      = "thanos-compactor"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "thanos"
       "app.kubernetes.io/component" = "compactor"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
   }
 
   spec {
@@ -715,12 +691,10 @@ resource "REDACTED_4ad9fc99_v1" "thanos_compactor" {
   metadata {
     name      = "thanos-compactor"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "thanos"
       "app.kubernetes.io/component" = "compactor"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
   }
 }
 
@@ -732,12 +706,10 @@ resource "kubernetes_service_v1" "thanos_sidecar" {
   metadata {
     name      = "REDACTED_e135e9ed"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "thanos"
       "app.kubernetes.io/component" = "sidecar"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
   }
 
   spec {
@@ -777,12 +749,10 @@ resource "kubernetes_manifest" "REDACTED_99efe840" {
     metadata = {
       name      = "thanos"
       namespace = "monitoring"
-      labels = {
+      labels = merge(var.common_labels, {
         "app.kubernetes.io/name" = "thanos"
-        environment              = "production"
-        "managed-by"             = "opentofu"
         release                  = "monitoring"
-      }
+      })
     }
     spec = {
       selector = {
@@ -815,12 +785,10 @@ resource "kubernetes_ingress_v1" "thanos_query" {
   metadata {
     name      = "thanos-query"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "thanos"
       "app.kubernetes.io/component" = "query"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
   }
 
   spec {
@@ -855,13 +823,11 @@ resource "kubernetes_service_v1" "thanos_store_global" {
   metadata {
     name      = "thanos-store-${var.site_code}"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "thanos"
       "app.kubernetes.io/component" = "store"
       "app.kubernetes.io/instance"  = "thanos-${var.site_code}"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
     annotations = {
       "service.cilium.io/global" = "true"
       "service.cilium.io/shared" = "true"
@@ -894,14 +860,12 @@ resource "kubernetes_service_v1" "thanos_store_remote" {
   metadata {
     name      = "thanos-store-${var.remote_site_code}"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "thanos"
       "app.kubernetes.io/component" = "store"
       "app.kubernetes.io/instance"  = "thanos-${var.remote_site_code}"
       "cilium.io/cluster-mesh"      = "remote-stub"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
     annotations = {
       "service.cilium.io/global" = "true"
       "service.cilium.io/shared" = "true"
@@ -932,13 +896,11 @@ resource "kubernetes_service_v1" "REDACTED_c910f24e" {
   metadata {
     name      = "thanos-sidecar-${var.site_code}"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "thanos"
       "app.kubernetes.io/component" = "sidecar"
       "app.kubernetes.io/instance"  = "thanos-${var.site_code}"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
     annotations = {
       "service.cilium.io/global" = "true"
       "service.cilium.io/shared" = "true"
@@ -973,14 +935,12 @@ resource "kubernetes_service_v1" "REDACTED_f6984057" {
   metadata {
     name      = "thanos-sidecar-${var.remote_site_code}"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "thanos"
       "app.kubernetes.io/component" = "sidecar"
       "app.kubernetes.io/instance"  = "thanos-${var.remote_site_code}"
       "cilium.io/cluster-mesh"      = "remote-stub"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
     annotations = {
       "service.cilium.io/global" = "true"
       "service.cilium.io/shared" = "true"

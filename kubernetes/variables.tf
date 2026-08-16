@@ -39,11 +39,6 @@ variable "nfs_path" {
 # Monitoring
 # =============================================================================
 
-variable "prometheus_retention" {
-  description = "Prometheus data retention period"
-  type        = string
-  default     = "1095d"
-}
 
 variable "REDACTED_6a2724e6" {
   description = "Prometheus PVC size"
