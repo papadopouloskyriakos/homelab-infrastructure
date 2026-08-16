@@ -136,3 +136,13 @@ moved {
   from = module.monitoring.kubernetes_manifest.tg_ingest_token
   to   = module.monitoring.kubernetes_manifest.tg_ingest_token[0]
 }
+
+moved {
+  from = module.awx.REDACTED_912a6d18_claim.awx_postgres
+  to   = module.awx.REDACTED_912a6d18_claim.awx_postgres[0]
+}
+
+moved {
+  from = module.awx.kubernetes_manifest.awx_cr
+  to   = module.awx.kubernetes_manifest.awx_cr[0]
+}
