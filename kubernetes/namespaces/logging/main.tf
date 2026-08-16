@@ -15,7 +15,7 @@ resource "kubernetes_namespace" "logging" {
 }
 
 # -----------------------------------------------------------------------------
-# External Secret - Loki MinIO Credentials
+# External Secret - Loki S3 Credentials
 # -----------------------------------------------------------------------------
 resource "kubernetes_manifest" "REDACTED_4d3fed8e" {
   manifest = {
@@ -140,9 +140,13 @@ resource "helm_release" "loki" {
       ]
 
       persistence = {
-        enabled      = true
-        size         = var.loki_storage_size
-        storageClass = "REDACTED_4f3da73d"
+        enabled = true
+        size    = var.loki_storage_size
+        # Per-site: NL runs the delete class, GR runs the retain class (matching
+        # live). storageClassName is IMMUTABLE on the bound loki PVC — do NOT
+        # align the two sites here; GR -> delete-class is a future migration
+        # step (GR-6) requiring a PVC recreate.
+        storageClass = var.loki_storage_class
       }
 
       # Prevent PVC deletion when scaling down - only delete when StatefulSet is deleted
@@ -318,7 +322,7 @@ resource "helm_release" "promtail" {
         protocol      = "TCP"
         service = {
           type           = "LoadBalancer"
-          loadBalancerIP = "10.0.X.X"
+          loadBalancerIP = var.REDACTED_337e6630
           port           = 514
         }
       }
