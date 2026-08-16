@@ -387,6 +387,21 @@ resource "REDACTED_2f6bdfa2" "thanos_store" {
             }
           }
 
+          # Store startup re-reads index headers from S3; on a loaded storage
+          # backend that takes minutes, and a liveness kill restarts the sync
+          # from a colder state (probe-kill loop observed on GR 2026-08-16
+          # during the canonical roll — gr-pve02 LIO saturation). The
+          # startup probe gives it a 15-minute budget before liveness arms.
+          startup_probe {
+            http_get {
+              path = "/-/healthy"
+              port = 10902
+            }
+            period_seconds    = 15
+            timeout_seconds   = 10
+            failure_threshold = 60
+          }
+
           liveness_probe {
             http_get {
               path = "/-/healthy"

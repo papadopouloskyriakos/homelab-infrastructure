@@ -160,12 +160,15 @@ module "awx" {
   source = "./namespaces/awx"
 
   common_labels = local.common_labels
-  domain        = var.domain
 
   nfs_server                = var.nfs_server
   nfs_path                  = var.nfs_path
   REDACTED_3e5e811f = var.REDACTED_3e5e811f
   REDACTED_12032801 = var.REDACTED_12032801
+
+  # Static/imported postgres PV (CSI migration 2024-11-27) — pins the claim
+  # to the existing Synology-CSI PV. Empty on GR (operator provisions).
+  REDACTED_5ac2e308 = "REDACTED_c7d87e23"
 }
 
 
