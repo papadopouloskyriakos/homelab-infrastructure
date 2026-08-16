@@ -248,21 +248,16 @@ module "gatus" {
 module "well_known" {
   source = "./namespaces/well-known"
 
-  # security.txt configuration
-  security_contact_email = "security@example.net"
-  security_txt_expires   = "2026-12-31T23:59:59.000Z"
-  preferred_languages    = ["en", "nl", "el"]
-
   # Domains to serve .well-known endpoints
   domains = [
     "status.example.net",
     "kyriakos.papadopoulos.tech",
   ]
-  primary_hostname = "status.example.net"
 
-  # Certificate configuration
-  cert_issuer_name = "letsencrypt-prod"
-  cert_issuer_kind = "ClusterIssuer"
+  # cert-manager Certificate via ClusterIssuer letsencrypt-prod (NL only)
+  acme_issuer_enabled = true
+  cert_issuer_name    = "letsencrypt-prod"
+  cert_issuer_kind    = "ClusterIssuer"
 
   depends_on = [module.ingress_nginx, module.cert_manager]
 }
