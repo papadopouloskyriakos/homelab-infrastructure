@@ -22,7 +22,14 @@ variable "openbao_role" {
   default     = "external-secrets"
 }
 
-variable "openbao_ca_cert" {
-  description = "OpenBao CA certificate (base64 encoded)"
+variable "eso_auth_mount_path" {
+  description = "OpenBao Kubernetes auth mount path for this cluster (NL: kubernetes, GR: kubernetes-gr)"
   type        = string
+  default     = "kubernetes"
+}
+
+variable "openbao_ca_cert" {
+  description = "OpenBao CA certificate (base64-encoded PEM, used as ClusterSecretStore caBundle)"
+  type        = string
+  sensitive   = true
 }
