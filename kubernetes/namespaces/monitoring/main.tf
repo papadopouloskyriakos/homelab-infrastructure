@@ -17,12 +17,10 @@ resource "kubernetes_manifest" "REDACTED_9675462a" {
     metadata = {
       name      = "monitoring-grafana"
       namespace = "monitoring"
-      labels = {
+      labels = merge(var.common_labels, {
         "app.kubernetes.io/name"      = "grafana"
         "app.kubernetes.io/component" = "admin-secret"
-        environment                   = "production"
-        "managed-by"                  = "opentofu"
-      }
+      })
     }
     spec = {
       refreshInterval = "1h"
@@ -61,19 +59,21 @@ resource "kubernetes_manifest" "REDACTED_9675462a" {
 # Materializes k8s Secret `tg-ingest-token` (key `token`) from OpenBao
 # secret/REDACTED_d7c66005, mounted into Alertmanager via
 # alertmanagerSpec.secrets for the webhook-tg receiver's Bearer credentials_file.
+# Gated with the webhook-tg receiver: TG is a single NL-estate instance, so
+# only the cluster that feeds it (tg_webhook_url != "") creates the token.
 resource "kubernetes_manifest" "tg_ingest_token" {
+  count = var.tg_webhook_url != "" ? 1 : 0
+
   manifest = {
     apiVersion = "external-secrets.io/v1"
     kind       = "ExternalSecret"
     metadata = {
       name      = "tg-ingest-token"
       namespace = "monitoring"
-      labels = {
+      labels = merge(var.common_labels, {
         "app.kubernetes.io/name"      = "territory-grounder"
         "app.kubernetes.io/component" = "ingest-token"
-        environment                   = "production"
-        "managed-by"                  = "opentofu"
-      }
+      })
     }
     spec = {
       refreshInterval = "1h"
@@ -109,12 +109,10 @@ resource "kubernetes_manifest" "grafana_finops_db_ro" {
     metadata = {
       name      = "monitoring-finops-db-ro"
       namespace = "monitoring"
-      labels = {
+      labels = merge(var.common_labels, {
         "app.kubernetes.io/name"      = "grafana"
         "app.kubernetes.io/component" = "finops-datasource"
-        environment                   = "production"
-        "managed-by"                  = "opentofu"
-      }
+      })
     }
     spec = {
       refreshInterval = "1h"
@@ -141,6 +139,49 @@ resource "kubernetes_manifest" "grafana_finops_db_ro" {
 }
 
 # -----------------------------------------------------------------------------
+# ExternalSecret for the OpenObserve read-only basic-auth password (Grafana
+# datasource). Replaces the plaintext password that used to sit inline in the
+# additionalDataSources block (mirror-campaign finding D28) — the datasource
+# now reads it via $__file from a sidecar-mounted secret.
+# OpenBao path: secret/REDACTED_17ddacf8 (property: password)
+# -----------------------------------------------------------------------------
+resource "kubernetes_manifest" "grafana_openobserve_ro" {
+  manifest = {
+    apiVersion = "external-secrets.io/v1"
+    kind       = "ExternalSecret"
+    metadata = {
+      name      = "monitoring-openobserve-ro"
+      namespace = "monitoring"
+      labels = merge(var.common_labels, {
+        "app.kubernetes.io/name"      = "grafana"
+        "app.kubernetes.io/component" = "REDACTED_d2c11099"
+      })
+    }
+    spec = {
+      refreshInterval = "1h"
+      secretStoreRef = {
+        name = "openbao"
+        kind = "ClusterSecretStore"
+      }
+      target = {
+        name           = "monitoring-openobserve-ro"
+        creationPolicy = "Owner"
+        deletionPolicy = "Retain"
+      }
+      data = [
+        {
+          secretKey = "password"
+          remoteRef = {
+            key      = "REDACTED_17ddacf8"
+            property = "password"
+          }
+        }
+      ]
+    }
+  }
+}
+
+# -----------------------------------------------------------------------------
 # Monitoring Helm Release
 # -----------------------------------------------------------------------------
 resource "helm_release" "monitoring" {
@@ -158,8 +199,12 @@ resource "helm_release" "monitoring" {
   atomic          = true
   cleanup_on_fail = true
 
-  # Ensure ExternalSecret creates the secret first
-  depends_on = [kubernetes_manifest.REDACTED_9675462a, kubernetes_manifest.grafana_finops_db_ro]
+  # Ensure ExternalSecrets create the mounted secrets first
+  depends_on = [
+    kubernetes_manifest.REDACTED_9675462a,
+    kubernetes_manifest.grafana_finops_db_ro,
+    kubernetes_manifest.grafana_openobserve_ro,
+  ]
 
   values = [
     yamlencode({
@@ -187,12 +232,12 @@ resource "helm_release" "monitoring" {
             minAvailable = 1
           }
 
-          retention     = "24h"
+          retention     = var.prometheus_retention
           retentionSize = "50GB"
 
           # Thanos sidecar configuration
           thanos = {
-            image = "quay.io/thanos/thanos:v0.37.2"
+            image = "quay.io/thanos/thanos:${var.thanos_version}"
             objectStorageConfig = {
               existingSecret = {
                 name = "REDACTED_5f4971dc"
@@ -213,8 +258,8 @@ resource "helm_release" "monitoring" {
 
           # External labels for Thanos deduplication
           externalLabels = {
-            cluster = "nl"
-            site    = "nl"
+            cluster = var.cluster_name
+            site    = var.site
           }
 
           replicaExternalLabelName = "prometheus_replica"
@@ -237,7 +282,7 @@ resource "helm_release" "monitoring" {
           storageSpec = {
             volumeClaimTemplate = {
               spec = {
-                storageClassName = "REDACTED_4f3da73d"
+                storageClassName = var.REDACTED_cdb3d821
                 accessModes      = ["ReadWriteOnce"]
                 resources = {
                   requests = {
@@ -281,17 +326,15 @@ resource "helm_release" "monitoring" {
           # =================================================================
           # Additional Scrape Configs - Network Infrastructure Exporters
           # =================================================================
-          additionalScrapeConfigs = [
+          # Base jobs (below) run on BOTH clusters with per-site targets.
+          # Estate jobs (scrape-estate.tf) are collected by ONE cluster only,
+          # gated by var.estate_scrape_enabled.
+          additionalScrapeConfigs = concat([
             # FRR BGP Exporters - Route Reflector VMs
             {
               job_name = "frr-route-reflectors"
               static_configs = [{
-                targets = [
-                  "10.0.X.X:9342",
-                  "10.0.X.X:9342",
-                  "10.0.X.X:9342",
-                  "10.0.X.X:9342",
-                ]
+                targets = var.frr_route_reflector_targets
                 labels = {
                   role = "route-reflector"
                 }
@@ -309,11 +352,7 @@ resource "helm_release" "monitoring" {
             {
               job_name = "frr-edge-nodes"
               static_configs = [{
-                targets = [
-                  "10.255.2.11:9342",
-                  "10.255.3.11:9342",
-                  "10.255.6.11:9342",
-                ]
+                targets = var.frr_edge_targets
                 labels = {
                   role = "edge-node"
                 }
@@ -327,46 +366,11 @@ resource "helm_release" "monitoring" {
                 { source_labels = ["__address__"], regex = "10\\.255\\.6\\.11:.*", target_label = "site", replacement = "tx" },
               ]
             },
-            # FRR BGP Exporters - Omoikane app DMZ pair (OMOIKANE-1437)
-            #
-            # These two speak iBGP in AS65000 and have shipped frr_exporter on
-            # :9342 all along — they were simply in neither list above, so
-            # MeshiBGPPeerDown (expr `frr_bgp_peer_state != 1`, no job selector)
-            # could never fire for them: no series, no alert. A rule that cannot
-            # express the failure it was written for.
-            #
-            # Verified live before adding, not inferred from config: dmz01 :9342
-            # answers HTTP 200 and serves 9 frr_bgp_peer_state samples right now.
-            #
-            # instance/site replacements deliberately match the omoikane-node job
-            # below (full hostname, site "no") so BGP and disk alerts name these
-            # hosts identically.
-            {
-              job_name = "frr-dmz-nodes"
-              static_configs = [{
-                targets = [
-                  "10.255.4.11:9342", # notrf01dmz01 — omoikane app DMZ
-                  "10.255.5.11:9342", # notrf01dmz02 — omoikane app DMZ
-                ]
-                labels = {
-                  role = "dmz-node"
-                }
-              }]
-              relabel_configs = [
-                { source_labels = ["__address__"], regex = "10\\.255\\.4\\.11:.*", target_label = "instance", replacement = "notrf01dmz01" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.5\\.11:.*", target_label = "instance", replacement = "notrf01dmz02" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.[45]\\..*", target_label = "site", replacement = "no" },
-              ]
-            },
             # IPsec Exporters - Edge Nodes
             {
               job_name = "ipsec-edge-nodes"
               static_configs = [{
-                targets = [
-                  "10.255.2.11:9536",
-                  "10.255.3.11:9536",
-                  "10.255.6.11:9536",
-                ]
+                targets = var.ipsec_edge_targets
                 labels = {
                   role = "ipsec-gateway"
                 }
@@ -391,357 +395,17 @@ resource "helm_release" "monitoring" {
                 auth   = ["asa_v2"]
               }
               static_configs = [{
-                targets = ["10.0.X.X"] # NL ASA only - GR cluster scrapes its own ASA
+                targets = [var.snmp_asa_target] # local ASA only - each cluster scrapes its own ASA
               }]
               relabel_configs = [
                 { source_labels = ["__address__"], target_label = "__param_target" },
                 { source_labels = ["__param_target"], target_label = "instance" },
-                { target_label = "device", replacement = "nlfw01" },
-                { target_label = "site", replacement = "nl" },
+                { target_label = "device", replacement = var.snmp_asa_device },
+                { target_label = "site", replacement = var.site },
                 { target_label = "__address__", replacement = "snmp-exporter.monitoring.svc:9116" },
               ]
             },
-            # Node Exporter - Edge/DMZ Hosts
-            {
-              job_name = "node-exporter-edge"
-              static_configs = [{
-                targets = [
-                  "10.0.X.X:9100", # nldmz01 - NL DMZ Docker host
-                  "10.0.X.X:9100",  # grdmz01 - GR DMZ Docker host
-                  "10.255.2.11:9100",    # chzrh01vps01 - CH VPS edge proxy
-                  "10.255.3.11:9100",    # notrf01vps01 - NO VPS edge proxy
-                  "10.255.6.11:9100",    # txhou01vps01 - TX VPS edge proxy
-                ]
-                labels = {
-                  role = "edge-host"
-                }
-              }]
-              relabel_configs = [
-                # Instance names
-                { source_labels = ["__address__"], regex = "192\\.168\\.192\\.10:.*", target_label = "instance", replacement = "nldmz01" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.15\\.10:.*", target_label = "instance", replacement = "grdmz01" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.2\\.11:.*", target_label = "instance", replacement = "chzrh01vps01" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.3\\.11:.*", target_label = "instance", replacement = "notrf01vps01" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.6\\.11:.*", target_label = "instance", replacement = "txhou01vps01" },
-                # Site labels
-                { source_labels = ["__address__"], regex = "192\\.168\\.192\\..*", target_label = "site", replacement = "nl" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.15\\..*", target_label = "site", replacement = "gr" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.2\\..*", target_label = "site", replacement = "ch" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.3\\..*", target_label = "site", replacement = "no" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.6\\..*", target_label = "site", replacement = "tx" },
-              ]
-            },
-            # =============================================================
-            # ChatOps Infrastructure - LXC Hosts (node_exporter)
-            # =============================================================
-            {
-              job_name = "chatops-node"
-              static_configs = [{
-                targets = [
-                  "10.0.X.X:9100", # nlclaude01 - Claude Code + n8n
-                  "10.0.X.X:9100", # nlgpu01 - Ollama + RTX 3090 Ti
-                ]
-                labels = {
-                  role = "chatops"
-                }
-              }]
-              relabel_configs = [
-                { source_labels = ["__address__"], regex = "192\\.168\\.181\\.111:.*", target_label = "instance", replacement = "nlclaude01" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.181\\.181:.*", target_label = "instance", replacement = "nlgpu01" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.181\\..*", target_label = "site", replacement = "nl" },
-              ]
-            },
-            {
-              # OMOIKANE-1153 — per-container CPU/memory from cAdvisor,
-              # deployed as a sidecar on each DMZ host (daemon repo
-              # `cadvisor/compose.yml`, bound on the mesh IP at :8098).
-              #
-              # Targets and labels MIRROR the `omoikane-node` job below on
-              # purpose: the production-only alert rules select on
-              # role="omoikane-production", and a cAdvisor job carrying
-              # different labels would sit outside every one of them.
-              #
-              # The bench host is deliberately ABSENT. cAdvisor is not
-              # deployed there — nlomktst01 still runs the containerd
-              # snapshotter, under which cAdvisor cannot identify containers
-              # at all (one unlabelled series). A target for it would scrape
-              # a port with nothing behind it and read as permanently down.
-              job_name = "omoikane-cadvisor"
-              static_configs = [
-                {
-                  targets = [
-                    "10.255.4.11:8098", # notrf01dmz01 — app NL primary
-                    "10.255.5.11:8098", # notrf01dmz02 — app NL peer
-                    "10.255.7.11:8098", # notrf01dmz03 — YB primary
-                    "10.255.8.11:8098", # notrf01dmz04 — YB peer
-                  ]
-                  labels = {
-                    role = "omoikane-production"
-                  }
-                },
-              ]
-              relabel_configs = [
-                { source_labels = ["__address__"], regex = "10\\.255\\.4\\.11:.*", target_label = "instance", replacement = "notrf01dmz01" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.5\\.11:.*", target_label = "instance", replacement = "notrf01dmz02" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.7\\.11:.*", target_label = "instance", replacement = "notrf01dmz03" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.8\\.11:.*", target_label = "instance", replacement = "notrf01dmz04" },
-                { source_labels = ["__address__"], regex = "10\\.255\\..*", target_label = "site", replacement = "no" },
-              ]
-            },
-            {
-              job_name = "omoikane-node"
-              static_configs = [
-                {
-                  targets = [
-                    "10.255.4.11:9100",    # notrf01dmz01 — app NL primary
-                    "10.255.5.11:9100",    # notrf01dmz02 — app NL peer
-                    "10.255.7.11:9100",    # notrf01dmz03 — YB primary
-                    "10.255.8.11:9100",    # notrf01dmz04 — YB peer + current LEADER
-                    "10.0.X.X:9100", # nldmz01 — YB arbitrator (NL)
-                  ]
-                  labels = {
-                    role = "omoikane-production"
-                  }
-                },
-                {
-                  targets = [
-                    "10.0.X.X:9100", # nlomktst01 — benchmark host
-                  ]
-                  labels = {
-                    role = "omoikane-benchmark"
-                  }
-                },
-              ]
-              relabel_configs = [
-                { source_labels = ["__address__"], regex = "10\\.255\\.4\\.11:.*", target_label = "instance", replacement = "notrf01dmz01" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.5\\.11:.*", target_label = "instance", replacement = "notrf01dmz02" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.7\\.11:.*", target_label = "instance", replacement = "notrf01dmz03" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.8\\.11:.*", target_label = "instance", replacement = "notrf01dmz04" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.192\\.10:.*", target_label = "instance", replacement = "nldmz01" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.181\\.30:.*", target_label = "instance", replacement = "nlomktst01" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.4\\..*", target_label = "site", replacement = "no" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.5\\..*", target_label = "site", replacement = "no" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.7\\..*", target_label = "site", replacement = "no" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.8\\..*", target_label = "site", replacement = "no" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.192\\..*", target_label = "site", replacement = "nl" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.181\\..*", target_label = "site", replacement = "nl" },
-              ]
-            },
-            # =============================================================
-            # omoikane-daemon — the APPLICATION's own metrics.
-            #
-            # OMOIKANE-1486 (2026-07-26). The daemon has exposed /metrics on
-            # container port 8080 (host 8459) since it was built, and this
-            # Prometheus has never scraped it. Only `omoikane-node` existed,
-            # which is node_exporter — host CPU/RAM, not the application.
-            #
-            # The consequence was not theoretical. On 2026-07-25 the
-            # embedding backend died and ran ~20 hours with no alert. Part of
-            # that was missing instrumentation (fixed in daemon !3155/!3157),
-            # but the rest was this: nothing collected what the daemon
-            # emitted, so no rule could evaluate and nothing could page.
-            # `daemon/monitoring/prometheus-rules-omoikane-daemon.yaml` has
-            # been in the repo for months and is loaded by neither cluster.
-            #
-            # Reachability was verified before adding this, from inside
-            # prometheus-REDACTED_6dfbe9fc-0:
-            #   wget -qO- http://10.255.4.11:8459/metrics -> 314 omoikane_* series
-            #   wget -qO- http://10.255.5.11:8459/metrics -> 314 omoikane_* series
-            # Same hosts already scraped on :9100 by omoikane-node, so no
-            # firewall change is required.
-            #
-            # Collection only. No alert rules are activated by this change —
-            # see the MR for why those are deliberately separate.
-            #
-            # 30s interval: the daemon's status prober refreshes every 60s by
-            # default (OMOIKANE_STATUS_REFRESH_SECS), so 30s gives two samples
-            # per prober pass and keeps `for:` windows meaningful.
-            # =============================================================
-            {
-              job_name        = "omoikane-daemon"
-              scrape_interval = "30s"
-              metrics_path    = "/metrics"
-              static_configs = [
-                {
-                  targets = [
-                    "10.255.4.11:8459", # notrf01dmz01 — app NL primary
-                    "10.255.5.11:8459", # notrf01dmz02 — app NL peer
-                  ]
-                  labels = {
-                    role = "omoikane-production"
-                  }
-                },
-              ]
-              relabel_configs = [
-                { source_labels = ["__address__"], regex = "10\\.255\\.4\\.11:.*", target_label = "instance", replacement = "notrf01dmz01" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.5\\.11:.*", target_label = "instance", replacement = "notrf01dmz02" },
-                { source_labels = ["__address__"], regex = "10\\.255\\..*", target_label = "site", replacement = "no" },
-              ]
-            },
-            # ChatOps Infrastructure - GPU Metrics (nvidia_gpu_exporter)
-            {
-              job_name = "chatops-nvidia"
-              static_configs = [{
-                targets = ["10.0.X.X:9835"]
-                labels = {
-                  role = "gpu"
-                }
-              }]
-              relabel_configs = [
-                { target_label = "instance", replacement = "nlgpu01" },
-                { target_label = "site", replacement = "nl" },
-              ]
-            },
-            # ChatOps Infrastructure - HTTP Service Probes (blackbox_exporter)
-            {
-              job_name        = "chatops-blackbox"
-              scrape_interval = "60s"
-              scrape_timeout  = "30s"
-              metrics_path    = "/probe"
-              params = {
-                module = ["http_2xx"]
-              }
-              static_configs = [{
-                targets = [
-                  "https://matrix.example.net/_matrix/client/versions",
-                  "https://gitlab.example.net/explore",
-                  "https://youtrack.example.net/api/config",
-                  "https://n8n.example.net/healthz",
-                  "https://ollama.example.net/api/tags",
-                  "https://grafana.example.net/api/health",
-                  "https://nl-prometheus.example.net/-/healthy",
-                ]
-              }]
-              relabel_configs = [
-                { source_labels = ["__address__"], target_label = "__param_target" },
-                { source_labels = ["__param_target"], target_label = "instance" },
-                { target_label = "__address__", replacement = "10.0.X.X:9115" },
-              ]
-            },
-
-            # Omoikane public surfaces — OUTSIDE-IN availability (OMOIKANE-8).
-            # Every other omoikane check watches an INTERNAL mesh IP or the
-            # daemon's own /metrics; an edge or DMZ outage with a healthy daemon
-            # alerts nothing today. This probes the full public path
-            # (edge -> DMZ -> daemon) from the blackbox exporter on
-            # nlclaude01, egressing to the internet like a real user, so a
-            # broken edge trips probe_success even while the daemon is fine.
-            # http_2xx follows redirects, so www (301 -> apex) and cv
-            # (302 -> login) both resolve to 200. Deliberately NOT wired to the
-            # tier=1 SMS surface — these route via Alertmanager -> n8n ->
-            # Matrix/YT like the rest of the omoikane rules (page-free).
-            {
-              job_name        = "omoikane-public"
-              scrape_interval = "60s"
-              scrape_timeout  = "30s"
-              metrics_path    = "/probe"
-              params = {
-                module = ["http_2xx"]
-              }
-              static_configs = [
-                {
-                  targets = [
-                    "https://omoikane.coach",
-                    "https://www.omoikane.coach",
-                    "https://app.omoikane.coach",
-                    "https://cv.omoikane.coach",
-                  ]
-                  labels = {
-                    service = "omoikane"
-                    env     = "production"
-                    site    = "nl"
-                  }
-                },
-                {
-                  targets = ["https://beta.omoikane.coach"]
-                  labels = {
-                    service = "omoikane"
-                    env     = "staging"
-                    site    = "nl"
-                  }
-                },
-              ]
-              relabel_configs = [
-                { source_labels = ["__address__"], target_label = "__param_target" },
-                { source_labels = ["__param_target"], target_label = "instance" },
-                { target_label = "__address__", replacement = "10.0.X.X:9115" },
-              ]
-            },
-
-            # CrowdSec Security Metrics
-            {
-              job_name = "crowdsec"
-              static_configs = [{
-                targets = [
-                  "10.0.X.X:6060", # nldmz01
-                  "10.0.X.X:6060",  # grdmz01
-                  "10.255.2.11:6060",    # chzrh01vps01
-                  "10.255.3.11:6060",    # notrf01vps01
-                  "10.255.6.11:6060",    # txhou01vps01
-                ]
-                labels = {
-                  role = "security"
-                }
-              }]
-              relabel_configs = [
-                { source_labels = ["__address__"], regex = "192\\.168\\.192\\.10:.*", target_label = "instance", replacement = "nldmz01" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.15\\.10:.*", target_label = "instance", replacement = "grdmz01" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.2\\.11:.*", target_label = "instance", replacement = "chzrh01vps01" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.3\\.11:.*", target_label = "instance", replacement = "notrf01vps01" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.6\\.11:.*", target_label = "instance", replacement = "txhou01vps01" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.192\\..*", target_label = "site", replacement = "nl" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.15\\..*", target_label = "site", replacement = "gr" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.2\\..*", target_label = "site", replacement = "ch" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.3\\..*", target_label = "site", replacement = "no" },
-                { source_labels = ["__address__"], regex = "10\\.255\\.6\\..*", target_label = "site", replacement = "tx" },
-              ]
-            },
-
-            # FISHA NFS Stale-FH Exporter — counts NFS4ERR_STALE responses.
-            # Per IFRNLLEI01PRD-805. Healthy nfsd should report 0 forever.
-            # Service code: native/fisha/nlcl01file{01,02}/scripts/nfs-stale-fh-exporter.py
-            {
-              job_name = "fisha-nfs-stale-fh"
-              static_configs = [{
-                targets = [
-                  "10.0.X.X:9101", # nlcl01file01
-                  "10.0.X.X:9101", # nlcl01file02
-                ]
-                labels = {
-                  role = "nfs-server"
-                  site = "nl"
-                }
-              }]
-              relabel_configs = [
-                { source_labels = ["__address__"], regex = "192\\.168\\.181\\.155:.*", target_label = "instance", replacement = "nlcl01file01" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.181\\.156:.*", target_label = "instance", replacement = "nlcl01file02" },
-              ]
-            },
-
-            # HAHA (IoT) Pacemaker Cluster — node_exporter + pacemaker_node_standby
-            # textfile metric (native/haha/pacemaker-standby-exporter/). Feeds the
-            # REDACTED_2aa4f351 alert so we don't lose another 16h to a
-            # forgotten "crm node standby" the next time the weekly playbook fails.
-            {
-              job_name = "REDACTED_84f96d5e"
-              static_configs = [{
-                targets = [
-                  "10.0.X.X:9100", # nlcl01iot01 — primary (active/standby)
-                  "10.0.X.X:9100", # nlcl01iot02 — primary (active/standby)
-                  "10.0.X.X:9100", # nlcl01iotarb01 — arbiter (Synology VMM)
-                ]
-                labels = {
-                  role = "iot-cluster"
-                  site = "nl"
-                }
-              }]
-              relabel_configs = [
-                { source_labels = ["__address__"], regex = "192\\.168\\.181\\.175:.*", target_label = "instance", replacement = "nlcl01iot01" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.181\\.176:.*", target_label = "instance", replacement = "nlcl01iot02" },
-                { source_labels = ["__address__"], regex = "192\\.168\\.181\\.174:.*", target_label = "instance", replacement = "nlcl01iotarb01" },
-              ]
-            },
-          ]
+          ], local.estate_scrape_configs)
         }
 
         service = {
@@ -774,75 +438,105 @@ resource "helm_release" "monitoring" {
               target_matchers = ["severity = info"]
             }
           ]
-          receivers = [
-            { name = "null" },
-            {
-              name = "webhook-n8n"
-              webhook_configs = [{
-                url           = "https://n8n.example.net/webhook/prometheus-alert"
-                send_resolved = true
-                max_alerts    = 10
-              }]
-            },
+          receivers = concat(
+            [
+              { name = "null" },
+              {
+                name = "webhook-n8n"
+                webhook_configs = [{
+                  url           = var.alert_webhook_url
+                  send_resolved = true
+                  max_alerts    = 10
+                }]
+              },
+            ],
             # Tier-1 SMS path. Bridge runs on nlclaude01:9106 as a user
             # systemd service, transforms Alertmanager JSON -> Twilio API
             # form-urlencoded with API-Key auth (same pattern as
             # claude-gateway/scripts/freedom-qos-toggle.sh). Refs IFRNLLEI01PRD-802.
-            {
-              name = "twilio-tier1"
-              webhook_configs = [{
-                url           = "http://10.0.X.X:9106/alert"
-                send_resolved = true
-                max_alerts    = 5
-              }]
-            },
+            var.twilio_bridge_url != "" ? [
+              {
+                name = "twilio-tier1"
+                webhook_configs = [{
+                  url           = var.twilio_bridge_url
+                  send_resolved = true
+                  max_alerts    = 5
+                }]
+              },
+            ] : [],
             # Territory Grounder — governed-autonomy SRE agent. Parallel to webhook-n8n (n8n untouched).
             # Posted over HTTPS to the stable ingress hostname (valid Let's Encrypt *.example.net
             # cert — no tls_config needed), which TLS-protects the bearer in transit. Bearer auth: TG's
             # /v1/ingest can't verify an HMAC from Alertmanager, so a per-source static token (OpenBao
             # secret/REDACTED_d7c66005 -> ExternalSecret tg-ingest-token, mounted via
             # alertmanagerSpec.secrets) is presented as a Bearer credentials_file. TG runs mutation OFF —
-            # it triages + proposes only.
-            {
-              name = "webhook-tg"
-              webhook_configs = [{
-                url           = "https://territory-grounder.example.net/api/v1/ingest/prometheus-alertmanager"
-                send_resolved = true
-                max_alerts    = 10
-                http_config = {
-                  authorization = {
-                    type             = "Bearer"
-                    credentials_file = "REDACTED_0edcce58"
+            # it triages + proposes only. Single NL-estate instance: gated on tg_webhook_url.
+            var.tg_webhook_url != "" ? [
+              {
+                name = "webhook-tg"
+                webhook_configs = [{
+                  url           = var.tg_webhook_url
+                  send_resolved = true
+                  max_alerts    = 10
+                  http_config = {
+                    authorization = {
+                      type             = "Bearer"
+                      credentials_file = "REDACTED_0edcce58"
+                    }
                   }
-                }
-              }]
-            }
-          ]
+                }]
+              },
+            ] : [],
+            # WAL healer — n8n self-heal hook for PrometheusTSDBCompactionsFailing.
+            var.wal_healer_webhook_url != "" ? [
+              {
+                name = "webhook-wal-healer"
+                webhook_configs = [{
+                  url           = var.wal_healer_webhook_url
+                  send_resolved = false
+                  max_alerts    = 1
+                }]
+              },
+            ] : [],
+          )
           route = {
             receiver        = "webhook-n8n"
             group_by        = ["namespace", "alertname"]
             group_wait      = "30s"
             group_interval  = "5m"
             repeat_interval = "4h"
-            routes = [
-              {
-                matchers = ["alertname = Watchdog"]
-                receiver = "null"
-              },
-              {
-                matchers = ["alertname = InfoInhibitor"]
-                receiver = "null"
-              },
-              # KubeAPIErrorBudgetBurn — silenced 2026-04-30 (IFRNLLEI01PRD-768).
-              # Root cause is nlk8s-ctrl01 etcd fsync stalls under pve01
-              # CPU pressure (load avg 25); IFRNLLEI01PRD-704 addressed memory
-              # pressure but CPU overcommit is the new bottleneck. No remediation
-              # plan in flight — the alert was creating YT/Matrix noise without
-              # actionable diagnostics. Re-enable once a remediation plan exists.
-              {
-                matchers = ["alertname = KubeAPIErrorBudgetBurn"]
-                receiver = "null"
-              },
+            routes = concat(
+              [
+                {
+                  matchers = ["alertname = Watchdog"]
+                  receiver = "null"
+                },
+                {
+                  matchers = ["alertname = InfoInhibitor"]
+                  receiver = "null"
+                },
+                # KubeAPIErrorBudgetBurn — silenced 2026-04-30 (IFRNLLEI01PRD-768).
+                # Root cause is nlk8s-ctrl01 etcd fsync stalls under pve01
+                # CPU pressure (load avg 25); IFRNLLEI01PRD-704 addressed memory
+                # pressure but CPU overcommit is the new bottleneck. No remediation
+                # plan in flight — the alert was creating YT/Matrix noise without
+                # actionable diagnostics. Re-enable once a remediation plan exists.
+                {
+                  matchers = ["alertname = KubeAPIErrorBudgetBurn"]
+                  receiver = "null"
+                },
+              ],
+              # WAL healer route — fires the self-heal webhook fast, then continues so the
+              # alert still reaches the chat/triage legs below.
+              var.wal_healer_webhook_url != "" ? [
+                {
+                  matchers        = ["alertname = PrometheusTSDBCompactionsFailing"]
+                  receiver        = "webhook-wal-healer"
+                  group_wait      = "10s"
+                  repeat_interval = "6h"
+                  continue        = true
+                },
+              ] : [],
               # Territory Grounder — fan actionable alerts to TG in parallel with n8n. Placed AFTER the
               # null routes so Watchdog/InfoInhibitor/KubeAPIErrorBudgetBurn are consumed first and never
               # reach TG.
@@ -862,33 +556,39 @@ resource "helm_release" "monitoring" {
               #
               # The explicit webhook-n8n sibling at the END of this list is what actually implements the
               # "parallel to n8n" intent. Do NOT delete it believing the default receiver covers it.
-              {
-                matchers = ["severity =~ \"warning|critical\""]
-                receiver = "webhook-tg"
-                continue = true
-              },
+              var.tg_webhook_url != "" ? [
+                {
+                  matchers = ["severity =~ \"warning|critical\""]
+                  receiver = "webhook-tg"
+                  continue = true
+                },
+              ] : [],
               # Tier-1 critical alerts → Twilio SMS. `continue = true` here lets evaluation reach the
               # explicit webhook-n8n sibling below (NOT the parent default — see the correction above),
               # so a tier-1 critical still reaches Matrix/YouTrack as well as the phone.
-              {
-                matchers = ["tier = 1", "severity = critical"]
-                receiver = "twilio-tier1"
-                continue = true
-                # Independent timing — escalate fast, don't wait for the
-                # 30s/5m group_wait/group_interval used by the chat path.
-                group_wait      = "10s"
-                group_interval  = "1m"
-                repeat_interval = "1h"
-              },
+              var.twilio_bridge_url != "" ? [
+                {
+                  matchers = ["tier = 1", "severity = critical"]
+                  receiver = "twilio-tier1"
+                  continue = true
+                  # Independent timing — escalate fast, don't wait for the
+                  # 30s/5m group_wait/group_interval used by the chat path.
+                  group_wait      = "10s"
+                  group_interval  = "1m"
+                  repeat_interval = "1h"
+                },
+              ] : [],
               # The EXPLICIT n8n leg of the fan-out. Terminal (no `continue`) — anything that should also
               # page or reach TG has already matched a sibling above. This route is the ONLY thing that
               # delivers warning/critical alerts to n8n → Matrix → YouTrack triage; it is not redundant
               # with the parent `receiver = "webhook-n8n"`, which is unreachable for these alerts.
-              {
-                matchers = ["severity =~ \"warning|critical\""]
-                receiver = "webhook-n8n"
-              }
-            ]
+              [
+                {
+                  matchers = ["severity =~ \"warning|critical\""]
+                  receiver = "webhook-n8n"
+                },
+              ],
+            )
           }
         }
         alertmanagerSpec = {
@@ -896,7 +596,7 @@ resource "helm_release" "monitoring" {
 
           # Mount the TG ingest bearer token (ExternalSecret tg-ingest-token) at
           # REDACTED_0edcce58 for the webhook-tg receiver's credentials_file.
-          secrets = ["tg-ingest-token"]
+          secrets = var.tg_webhook_url != "" ? ["tg-ingest-token"] : []
 
           # Scrape all ServiceMonitors and PodMonitors (not just release=monitoring)
           serviceMonitorSelector                  = {}
@@ -914,7 +614,7 @@ resource "helm_release" "monitoring" {
           storage = {
             volumeClaimTemplate = {
               spec = {
-                storageClassName = "REDACTED_4f3da73d"
+                storageClassName = var.alertmanager_storage_class
                 accessModes      = ["ReadWriteOnce"]
                 resources = {
                   requests = {
@@ -1044,12 +744,18 @@ resource "helm_release" "monitoring" {
 
         tolerations = []
 
-        # Mount the finops read-only DB password (from ExternalSecret) for the mysql datasource
+        # Mount datasource credentials (from ExternalSecrets) for $__file references
         extraSecretMounts = [
           {
             name       = "finops-db-ro"
             secretName = "monitoring-finops-db-ro"
             mountPath  = "REDACTED_c7ec4346"
+            readOnly   = true
+          },
+          {
+            name       = "openobserve-ro"
+            secretName = "monitoring-openobserve-ro"
+            mountPath  = "/etc/secrets/openobserve-ro"
             readOnly   = true
           }
         ]
@@ -1105,7 +811,7 @@ resource "helm_release" "monitoring" {
             basicAuth     = true
             basicAuthUser = "chatops@mail.example.net"
             secureJsonData = {
-              basicAuthPassword = "D8WY74ulgxGRTVJU"
+              basicAuthPassword = "$__file{/etc/secrets/openobserve-ro/password}"
             }
             jsonData = {
               httpMethod   = "POST"
@@ -1211,7 +917,7 @@ resource "helm_release" "monitoring" {
       # kubeEtcd also pulls in the upstream etcd alert rules.
       kubeEtcd = {
         enabled   = true
-        endpoints = ["10.0.X.X", "10.0.X.X", "10.0.X.X"]
+        endpoints = var.etcd_endpoints
         service = {
           enabled    = true
           port       = 2379
@@ -1261,12 +967,9 @@ resource "kubernetes_ingress_v1" "prometheus" {
   metadata {
     name      = "prometheus"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name" = "prometheus"
-      environment              = "production"
-      "managed-by"             = "opentofu"
-      site                     = "nl"
-    }
+    })
   }
 
   spec {
@@ -1282,6 +985,45 @@ resource "kubernetes_ingress_v1" "prometheus" {
               name = "REDACTED_6dfbe9fc"
               port {
                 number = 9090
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+# -----------------------------------------------------------------------------
+# Grafana Ingress
+# -----------------------------------------------------------------------------
+resource "kubernetes_ingress_v1" "grafana" {
+  count = var.grafana_ingress_enabled ? 1 : 0
+
+  metadata {
+    name      = "grafana"
+    namespace = "monitoring"
+    labels = merge(var.common_labels, {
+      "app.kubernetes.io/name" = "grafana"
+    })
+  }
+
+  spec {
+    ingress_class_name = "nginx"
+
+    rule {
+      host = var.grafana_hostname
+
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+
+          backend {
+            service {
+              name = "monitoring-grafana"
+              port {
+                number = 80
               }
             }
           }
