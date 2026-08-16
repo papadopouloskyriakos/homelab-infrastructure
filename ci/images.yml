@@ -102,7 +102,7 @@ build_k8s_runner:
   script:
     - |
       cd images/k8s-runner
-      docker build -t $IMAGE_REGISTRY/k8s-runner:latest .
+      docker build --pull -t $IMAGE_REGISTRY/k8s-runner:latest .
       docker push $IMAGE_REGISTRY/k8s-runner:latest
 
 # ===========================================================================

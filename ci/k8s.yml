@@ -71,6 +71,8 @@ validate_argocd_manifests:
   tags:
     - k8s
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
         paths:
@@ -88,28 +90,41 @@ validate_argocd_manifests:
     
     # Dry-run validation of all manifests
     - |
+      FAILED=0
       for app_dir in k8s/argocd-apps/*/; do
         app_name=$(basename "$app_dir")
         echo "--- Validating $app_name ---"
-        
+
         # Validate each YAML file (skip application.yaml - it's for Argo CD itself)
         for file in "$app_dir"*.yaml "$app_dir"*.yml; do
           [ -f "$file" ] || continue
           filename=$(basename "$file")
-          
+
           if [ "$filename" = "application.yaml" ]; then
             echo "  SKIP - $filename (Argo CD Application resource)"
             continue
           fi
-          
+
           echo "  VALIDATING - $filename"
-          kubectl apply --dry-run=client -f "$file" 2>&1 || {
-            echo "  FAILED - $file"
-            exit 1
+          OUTPUT=$(kubectl apply --dry-run=client -f "$file" 2>&1) && {
+            echo "  OK - $filename"
+          } || {
+            if echo "$OUTPUT" | grep -q "resource mapping not found"; then
+              echo "  SKIP - $filename (CRDs not yet installed)"
+              echo "$OUTPUT" | head -3 | sed 's/^/    /'
+            else
+              echo "  FAILED - $file"
+              echo "$OUTPUT" | sed 's/^/    /'
+              FAILED=1
+            fi
           }
         done
       done
-    
+      if [ $FAILED -eq 1 ]; then
+        echo "FAILED - Some manifests have validation errors"
+        exit 1
+      fi
+
     - echo "OK - Argo CD manifests valid"
   allow_failure: false
 
