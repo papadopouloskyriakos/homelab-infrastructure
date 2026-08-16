@@ -1,18 +1,22 @@
 # =============================================================================
 # Variables for Gatus Module
 # =============================================================================
+# Canonical NL<->GR mirror module (2026-08-16 campaign). Defaults are the NL
+# values; the GR root call overrides every site-specific input. Do NOT
+# hardcode a site-specific value in main.tf — parameterize it here.
+# =============================================================================
 
 # -----------------------------------------------------------------------------
 # Site Configuration
 # -----------------------------------------------------------------------------
 variable "site_code" {
-  description = "Short site identifier (nl or gr)"
+  description = "Short site identifier (nl or gr). Reserved for site labeling; not currently referenced by resources — kept per mirror-campaign variable surface."
   type        = string
   default     = "nl"
 }
 
 variable "site_name" {
-  description = "Human-readable site name for X-Served-By header"
+  description = "Human-readable site name shown in the status-page UI description"
   type        = string
   default     = "Netherlands"
 }
@@ -29,7 +33,7 @@ variable "timezone" {
 variable "gatus_version" {
   description = "Gatus container image version"
   type        = string
-  default     = "v5.33.0"
+  default     = "v5.36.0" # mirror-campaign contract exception: adopt v5.36.0 on both sites
 }
 
 # -----------------------------------------------------------------------------
@@ -57,57 +61,33 @@ variable "gatus_ui_link" {
 # Hostname Configuration
 # -----------------------------------------------------------------------------
 variable "gatus_hostname" {
-  description = "Hostname for Gatus ingress (BGP anycast)"
+  description = "Hostname for Gatus ingress (NL: nl-gatus.*, GR: gr-gatus.*)"
   type        = string
   default     = "nl-gatus.example.net"
-}
-
-variable "portfolio_hostname" {
-  description = "Portfolio site hostname for health checks"
-  type        = string
-  default     = "kyriakos.papadopoulos.tech"
-}
-
-variable "gitlab_hostname" {
-  description = "GitLab hostname"
-  type        = string
-  default     = "gitlab.example.net"
-}
-
-variable "argocd_hostname" {
-  description = "ArgoCD hostname"
-  type        = string
-  default     = "argocd.example.net"
-}
-
-variable "grafana_hostname" {
-  description = "Grafana hostname"
-  type        = string
-  default     = "grafana.example.net"
 }
 
 # -----------------------------------------------------------------------------
 # Prometheus Configuration (for network checks)
 # -----------------------------------------------------------------------------
 variable "prometheus_hostname" {
-  description = "Prometheus hostname for API queries"
+  description = "Prometheus hostname for API queries (NL: nl-prometheus.*, GR: gr-prometheus.*)"
   type        = string
   default     = "nl-prometheus.example.net"
 }
 
 # -----------------------------------------------------------------------------
-# Network Monitoring Thresholds
+# Network Monitoring Thresholds (site-specific — GR overrides in root call)
 # -----------------------------------------------------------------------------
 variable "REDACTED_9246ffd6" {
-  description = "Minimum expected FRR BGP sessions (established)"
+  description = "Minimum expected FRR BGP sessions (established) as seen from this site's Prometheus"
   type        = number
-  default     = 35 # Alert if fewer than 35 of ~39 sessions
+  default     = 35 # NL: alert if fewer than 35 of ~39 sessions. GR root passes 12.
 }
 
 variable "REDACTED_1c1562d0" {
-  description = "Minimum expected Cilium BGP sessions (established)"
+  description = "Minimum expected Cilium BGP sessions (established) as seen from this site's Prometheus"
   type        = number
-  default     = 4
+  default     = 4 # NL: 4. GR root passes 3.
 }
 
 variable "expected_ipsec_tunnels" {
@@ -117,40 +97,10 @@ variable "expected_ipsec_tunnels" {
 }
 
 # -----------------------------------------------------------------------------
-# Netherlands Site IPs
-# -----------------------------------------------------------------------------
-variable "nl_ingress_ip" {
-  description = "Netherlands ingress controller IP"
-  type        = string
-  default     = "10.0.X.X"
-}
-
-variable "nl_k8s_api_ip" {
-  description = "Netherlands Kubernetes API IP"
-  type        = string
-  default     = "10.0.X.X"
-}
-
-# -----------------------------------------------------------------------------
-# Greece Site IPs
-# -----------------------------------------------------------------------------
-variable "gr_ingress_ip" {
-  description = "Greece ingress controller IP"
-  type        = string
-  default     = "10.0.X.X"
-}
-
-variable "gr_k8s_api_ip" {
-  description = "Greece Kubernetes API IP"
-  type        = string
-  default     = "10.0.X.X"
-}
-
-# -----------------------------------------------------------------------------
 # Storage Configuration
 # -----------------------------------------------------------------------------
-variable "storage_class" {
-  description = "Storage class for Gatus PVC"
+variable "storage_class_delete" {
+  description = "Delete-reclaim storage class for the Gatus PVC (ephemeral stateful data). NL: REDACTED_4f3da73d, GR: iscsi-ssd-delete."
   type        = string
   default     = "REDACTED_4f3da73d"
 }
@@ -189,10 +139,20 @@ variable "gatus_memory_limit" {
 }
 
 # -----------------------------------------------------------------------------
-# Certificate Configuration
+# Certificate / TLS Configuration
 # -----------------------------------------------------------------------------
+# NL runs cert-manager with a per-host ACME Certificate ("gatus-tls").
+# GR consumes the wildcard secret synced from NL (via OpenBao PushSecret) and
+# runs NO ACME issuance for this host — so the Certificate resource and the
+# cert-manager Prometheus endpoint are both gated on acme_issuer_enabled.
+variable "acme_issuer_enabled" {
+  description = "Whether cert-manager ACME issuance is active on this cluster (NL true, GR false). Gates the gatus-tls Certificate resource and the cert-manager status endpoint."
+  type        = bool
+  default     = true
+}
+
 variable "cert_issuer_name" {
-  description = "cert-manager issuer name"
+  description = "cert-manager issuer name (only used when acme_issuer_enabled)"
   type        = string
   default     = "letsencrypt-prod"
 }
@@ -201,6 +161,12 @@ variable "cert_issuer_kind" {
   description = "cert-manager issuer kind (Issuer or ClusterIssuer)"
   type        = string
   default     = "ClusterIssuer"
+}
+
+variable "tls_secret_name" {
+  description = "TLS secret name for the ingress. NL: gatus-tls (issued by the gated Certificate). GR: REDACTED_0d82b4df-tls."
+  type        = string
+  default     = "gatus-tls"
 }
 
 # -----------------------------------------------------------------------------
@@ -241,7 +207,7 @@ variable "gitlab_portfolio_project_id" {
 # HAProxy Edge Node Authentication
 # -----------------------------------------------------------------------------
 variable "haproxy_stats_auth" {
-  description = "Base64 encoded HAProxy stats REDACTED_6fa691d2 (user:pass)"
+  description = "Base64 encoded HAProxy stats REDACTED_6fa691d2 (user:pass). MUST be supplied by the root (tfvars) — an empty value breaks the two Edge endpoint checks."
   type        = string
   default     = ""
   sensitive   = true
@@ -250,7 +216,15 @@ variable "haproxy_stats_auth" {
 # -----------------------------------------------------------------------------
 # Twilio SMS — for tier-1 service alerts via Gatus custom provider.
 # Closes IFRNLLEI01PRD-802. Empty values disable Twilio alerting.
+# Paging additionally gates on twilio_bridge_url (mirror-campaign contract):
+# a site with no SMS bridge wired keeps paging off even if creds leak in.
 # -----------------------------------------------------------------------------
+variable "twilio_bridge_url" {
+  description = "Site SMS bridge URL (Alertmanager->Twilio bridge). Used only as the site-level 'paging is wired here' gate for Gatus Twilio alerting — Gatus itself posts to api.twilio.com directly. NL: http://10.0.X.X:9106/alert, GR: http://10.0.X.X:9106/alert. Empty string = paging off."
+  type        = string
+  default     = "http://10.0.X.X:9106/alert"
+}
+
 variable "twilio_account_sid" {
   description = "Twilio Account SID"
   type        = string

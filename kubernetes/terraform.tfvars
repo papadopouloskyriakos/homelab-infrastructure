@@ -18,3 +18,6 @@ gatus_gitlab_pipeline_trigger_token = ""
 # env vars apply, locals.twilio_enabled = true, gatus-twilio Secret is
 # created, and Gatus's custom alerting provider routes to Twilio.
 # -----------------------------------------------------------------------------
+
+# Basic-auth for the Gatus Edge HAProxy stats checks (was inlined in main.tf pre-canonical)
+haproxy_stats_auth = "REDACTED_38a2053f"

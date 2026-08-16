@@ -3,7 +3,17 @@
 # =============================================================================
 # Provides declarative GitOps for Kubernetes applications
 # UI accessible via NodePort or Ingress
+#
+# NOTE (NL, 2026-03-15): a runtime patch created the `argocd-secret`
+# server.secretkey on NL — it is generated at install and lives outside this
+# module; do not "adopt" or rotate it via TF (rotating invalidates sessions).
 # =============================================================================
+
+locals {
+  # Notifier/template/trigger blocks only render when notifications are on AND
+  # a Matrix token is present — an empty token would ship a dead webhook.
+  argocd_notifications_active = var.REDACTED_035cbec1 && var.argocd_matrix_token != ""
+}
 
 # -----------------------------------------------------------------------------
 # Namespace
@@ -20,20 +30,28 @@ resource "kubernetes_namespace" "argocd" {
 }
 
 # -----------------------------------------------------------------------------
-# ExternalSecret for GitLab Repository Credentials
+# ExternalSecrets for GitLab Repository Credentials (one per map entry)
 # -----------------------------------------------------------------------------
-# Creates the repository secret BEFORE Helm release
-# ArgoCD auto-discovers secrets with the repository label
+# Creates the repository secrets BEFORE the Helm release. ArgoCD auto-discovers
+# secrets carrying the argocd.argoproj.io/secret-type=repository label and
+# matches them to applications by EXACT repo URL — hence url_override for
+# entries whose OpenBao-stored url points at a different repo (found 2026-08-16
+# deploying velero on GR: apps sourcing gr-gitlab.../gr/production.git
+# failed "REDACTED_6fa691d2 required" because the shared secret's url resolved to
+# the NL repo; IFRNLLEI01PRD-2374).
 # -----------------------------------------------------------------------------
-resource "kubernetes_manifest" "gitlab_repo_creds" {
+resource "kubernetes_manifest" "repo_credentials" {
+  for_each = var.REDACTED_9360424f
+
   manifest = {
     apiVersion = "external-secrets.io/v1"
     kind       = "ExternalSecret"
     metadata = {
-      name      = "gitlab-repo-creds"
+      name      = each.key
       namespace = kubernetes_namespace.argocd.metadata[0].name
       labels = {
         environment  = "production"
+        site         = var.site
         "managed-by" = "opentofu"
       }
     }
@@ -43,8 +61,10 @@ resource "kubernetes_manifest" "gitlab_repo_creds" {
         name = "openbao"
         kind = "ClusterSecretStore"
       }
-      target = {
-        name           = "gitlab-repo-creds"
+      # The two target shapes have inconsistent object types, which a bare HCL
+      # ternary rejects — each branch goes through jsonencode/jsondecode.
+      target = jsondecode(each.value.url_override == null ? jsonencode({
+        name           = each.key
         creationPolicy = "Owner"
         deletionPolicy = "Retain"
         template = {
@@ -55,34 +75,31 @@ resource "kubernetes_manifest" "gitlab_repo_creds" {
             }
           }
         }
-      }
+        }) : jsonencode({
+        name           = each.key
+        creationPolicy = "Owner"
+        deletionPolicy = "Retain"
+        template = {
+          engineVersion = "v2"
+          metadata = {
+            labels = {
+              "argocd.argoproj.io/secret-type" = "repository"
+            }
+          }
+          data = {
+            username = "{{ .username }}"
+            password = "{{ .password }}"
+            url      = each.value.url_override
+            type     = "git"
+          }
+        }
+      }))
       data = [
-        {
-          secretKey = "username"
+        for property in(each.value.url_override == null ? ["username", "password", "url", "type"] : ["username", "password"]) : {
+          secretKey = property
           remoteRef = {
-            key      = "REDACTED_79b33008"
-            property = "username"
-          }
-        },
-        {
-          secretKey = "password"
-          remoteRef = {
-            key      = "REDACTED_79b33008"
-            property = "password"
-          }
-        },
-        {
-          secretKey = "url"
-          remoteRef = {
-            key      = "REDACTED_79b33008"
-            property = "url"
-          }
-        },
-        {
-          secretKey = "type"
-          remoteRef = {
-            key      = "REDACTED_79b33008"
-            property = "type"
+            key      = each.value.openbao_path
+            property = property
           }
         }
       ]
@@ -104,22 +121,22 @@ resource "helm_release" "argocd" {
   timeout    = 600
   wait       = true
 
-  # Ensure ExternalSecret creates the repo credentials first
+  # Ensure ExternalSecrets create the repo credentials first
   depends_on = [
     kubernetes_namespace.argocd,
-    kubernetes_manifest.gitlab_repo_creds
+    kubernetes_manifest.repo_credentials
   ]
 
   values = [
     yamlencode({
       global = {
-        domain = "argocd.${var.domain}"
+        domain = var.argocd_hostname
         # Force Helm upgrade to deploy notifications controller (2026-03-14)
         revisionHistoryLimit = 3
       }
 
       server = {
-        replicas = 2
+        replicas = var.REDACTED_7ce225ce
 
         pdb = {
           enabled      = true
@@ -134,7 +151,7 @@ resource "helm_release" "argocd" {
         ingress = {
           enabled          = var.REDACTED_84146aee
           ingressClassName = "nginx"
-          hostname         = "argocd.${var.domain}"
+          hostname         = var.argocd_hostname
           annotations = {
             "nginx.ingress.kubernetes.io/ssl-passthrough"  = "true"
             "nginx.ingress.kubernetes.io/backend-protocol" = "HTTPS"
@@ -177,7 +194,7 @@ resource "helm_release" "argocd" {
       }
 
       repoServer = {
-        replicas = 2
+        replicas = var.argocd_repo_server_replicas
 
         pdb = {
           enabled      = true
@@ -238,7 +255,7 @@ resource "helm_release" "argocd" {
       notifications = {
         enabled = var.REDACTED_035cbec1
 
-        notifiers = {
+        notifiers = local.argocd_notifications_active ? {
           "service.webhook.matrix-alerts" = <<-EOT
             url: https://matrix.example.net/_matrix/client/v3/rooms/!xeNxtpScJWCmaFjeCL:matrix.example.net/send/m.room.message/argocd-$${time.Now.Unix}
             headers:
@@ -247,47 +264,47 @@ resource "helm_release" "argocd" {
             - name: Content-Type
               value: application/json
           EOT
-        }
+        } : {}
 
-        subscriptions = [
+        subscriptions = local.argocd_notifications_active ? [
           {
             recipients = ["webhook:matrix-alerts"]
             triggers   = ["on-health-degraded", "on-sync-failed", "on-sync-status-unknown"]
           }
-        ]
+        ] : []
 
-        templates = {
+        templates = local.argocd_notifications_active ? {
           "template.app-health-degraded"     = <<-EOT
             webhook:
               matrix-alerts:
                 method: PUT
                 body: |
-                  {"msgtype":"m.text","body":"[ArgoCD] {{.app.metadata.name}} health DEGRADED\nStatus: {{.app.status.health.status}}\nSync: {{.app.status.sync.status}}\nURL: https://argocd.example.net/applications/{{.app.metadata.name}}"}
+                  {"msgtype":"m.text","body":"${var.REDACTED_2f84acaa} {{.app.metadata.name}} health DEGRADED\nStatus: {{.app.status.health.status}}\nSync: {{.app.status.sync.status}}\nURL: https://${var.argocd_hostname}/applications/{{.app.metadata.name}}"}
           EOT
           "template.app-sync-failed"         = <<-EOT
             webhook:
               matrix-alerts:
                 method: PUT
                 body: |
-                  {"msgtype":"m.text","body":"[ArgoCD] {{.app.metadata.name}} sync FAILED\nError: {{.app.status.operationState.message}}\nURL: https://argocd.example.net/applications/{{.app.metadata.name}}"}
+                  {"msgtype":"m.text","body":"${var.REDACTED_2f84acaa} {{.app.metadata.name}} sync FAILED\nError: {{.app.status.operationState.message}}\nURL: https://${var.argocd_hostname}/applications/{{.app.metadata.name}}"}
           EOT
           "template.app-sync-status-unknown" = <<-EOT
             webhook:
               matrix-alerts:
                 method: PUT
                 body: |
-                  {"msgtype":"m.text","body":"[ArgoCD] {{.app.metadata.name}} sync status UNKNOWN\nURL: https://argocd.example.net/applications/{{.app.metadata.name}}"}
+                  {"msgtype":"m.text","body":"${var.REDACTED_2f84acaa} {{.app.metadata.name}} sync status UNKNOWN\nURL: https://${var.argocd_hostname}/applications/{{.app.metadata.name}}"}
           EOT
           "template.app-sync-succeeded"      = <<-EOT
             webhook:
               matrix-alerts:
                 method: PUT
                 body: |
-                  {"msgtype":"m.text","body":"[ArgoCD] {{.app.metadata.name}} synced successfully\nRevision: {{.app.status.sync.revision}}\nURL: https://argocd.example.net/applications/{{.app.metadata.name}}"}
+                  {"msgtype":"m.text","body":"${var.REDACTED_2f84acaa} {{.app.metadata.name}} synced successfully\nRevision: {{.app.status.sync.revision}}\nURL: https://${var.argocd_hostname}/applications/{{.app.metadata.name}}"}
           EOT
-        }
+        } : {}
 
-        triggers = {
+        triggers = local.argocd_notifications_active ? {
           "trigger.on-health-degraded"     = <<-EOT
             - description: Application health degraded
               send:
@@ -313,7 +330,7 @@ resource "helm_release" "argocd" {
               - app-sync-succeeded
               when: app.status.operationState != nil and app.status.operationState.phase in ['Succeeded'] and app.status.health.status == 'Healthy'
           EOT
-        }
+        } : {}
       }
 
       dex = {
@@ -343,6 +360,8 @@ resource "helm_release" "argocd" {
         }
 
         cm = {
+          # Velero CRs churn constantly (backups/restores) — excluding them
+          # fixed the chronic velero app OutOfSync (NL MR !230)
           "resource.exclusions" = yamlencode([
             {
               apiGroups = ["velero.io"]
@@ -370,6 +389,7 @@ resource "kubernetes_manifest" "argocd_redis_secret" {
       namespace = kubernetes_namespace.argocd.metadata[0].name
       labels = {
         environment  = "production"
+        site         = var.site
         "managed-by" = "opentofu"
       }
     }
