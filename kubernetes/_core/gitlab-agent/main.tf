@@ -2,21 +2,16 @@
 # GitLab Kubernetes Agent
 # =============================================================================
 # Provides secure cluster connectivity to GitLab for kubectl access
+# Token passed via TF_VAR_* from Atlantis start script (site-specific root var)
 # =============================================================================
 
-variable "REDACTED_b6136a28" {
-  description = "GitLab Agent token for k8s-agent"
-  type        = string
-  sensitive   = true
-}
-
 resource "helm_release" "gitlab_agent_k8s" {
-  count = REDACTED_305df36d != "" ? 1 : 0
+  count = var.gitlab_agent_token != "" ? 1 : 0
 
-  name             = "k8s-agent"
+  name             = var.agent_name
   repository       = "https://charts.gitlab.io"
   chart            = "gitlab-agent"
-  namespace        = "REDACTED_01b50c5d"
+  namespace        = "gitlab-agent-${var.agent_name}"
   create_namespace = true
   version          = "2.28.0"
 
@@ -30,12 +25,19 @@ resource "helm_release" "gitlab_agent_k8s" {
       }
 
       config = {
-        token      = REDACTED_305df36d
-        kasAddress = "wss://gitlab.example.net/-/kubernetes-agent/"
+        token      = var.gitlab_agent_token
+        kasAddress = var.kas_address
       }
 
       image = {
         tag = "v18.6.0"
+      }
+
+      resources = {
+        requests = {
+          cpu    = "50m"
+          memory = "64Mi"
+        }
       }
     })
   ]

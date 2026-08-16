@@ -2,18 +2,22 @@
 # NFS Subdir External Provisioner
 # =============================================================================
 # Provides dynamic NFS-based storage provisioning
-# StorageClass: nfs-client
+# StorageClass: nfs-client — chart-managed on BOTH sites since the 2026-08
+# NL<->GR mirror campaign. NL's live SC was created out-of-band on 2025-11-25
+# (kubectl apply) and was ADOPTED into this Helm release: it carries
+# meta.helm.sh/release-name/-namespace annotations + the
+# app.kubernetes.io/managed-by=Helm label. Do not remove those, and do not
+# flip storageClass.create back to false — Helm would then delete the SC on
+# upgrade.
+#
+# ⚠ StorageClass `parameters` are IMMUTABLE in the Kubernetes API.
+# archiveOnDelete differs per site for historical reasons (NL "false",
+# GR "true" — the chart default at GR install time). It is parameterized via
+# var.archive_on_delete and MUST match each cluster's live SC, otherwise the
+# helm upgrade fails trying to patch an immutable field. Converging the two
+# sites would require deleting + recreating one SC (safe for existing bound
+# PVs, but deliberately deferred — see the mirror-campaign report).
 # =============================================================================
-
-variable "nfs_server" {
-  description = "NFS server address"
-  type        = string
-}
-
-variable "nfs_path" {
-  description = "NFS export path"
-  type        = string
-}
 
 resource "helm_release" "nfs_provisioner" {
   name             = "nfs-provisioner"
@@ -31,7 +35,12 @@ resource "helm_release" "nfs_provisioner" {
       }
 
       storageClass = {
-        create = false
+        create               = true
+        name                 = "nfs-client"
+        defaultClass         = false
+        allowVolumeExpansion = true
+        reclaimPolicy        = "Delete"
+        archiveOnDelete      = var.archive_on_delete
       }
 
       replicaCount = 1
@@ -39,6 +48,13 @@ resource "helm_release" "nfs_provisioner" {
       podDisruptionBudget = {
         enabled      = true
         minAvailable = 1
+      }
+
+      resources = {
+        requests = {
+          cpu    = "50m"
+          memory = "64Mi"
+        }
       }
     })
   ]
