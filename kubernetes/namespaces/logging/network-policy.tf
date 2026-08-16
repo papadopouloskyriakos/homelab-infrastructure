@@ -106,7 +106,7 @@ resource "kubernetes_manifest" "REDACTED_46f7c9ba" {
             }
           ]
         },
-        # Allow Loki to reach SeaweedFS S3 (new storage backend)
+        # Allow Loki to reach SeaweedFS S3 (storage backend)
         {
           toEndpoints = [
             {

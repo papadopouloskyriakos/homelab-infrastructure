@@ -1,6 +1,9 @@
 # =============================================================================
 # Variables for Ingress NGINX Controller
 # =============================================================================
-# Currently using hardcoded values for security configuration.
-# Variables can be added here if customization is needed per-environment.
-# =============================================================================
+
+variable "REDACTED_3b82c3d6" {
+  description = "Default SSL certificate for ingress (namespace/secret-name)"
+  type        = string
+  default     = "REDACTED_f89271df"
+}

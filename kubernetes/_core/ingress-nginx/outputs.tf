@@ -12,3 +12,8 @@ output "release_name" {
   description = "Helm release name"
   value       = helm_release.ingress_nginx.name
 }
+
+output "external_ip" {
+  description = "External IP of the ingress-nginx LoadBalancer"
+  value       = try(data.kubernetes_service.ingress_nginx.status[0].load_balancer[0].ingress[0].ip, "pending")
+}
