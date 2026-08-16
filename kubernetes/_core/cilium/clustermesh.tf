@@ -1,77 +1,24 @@
 # ========================================================================
-# Cilium Cluster Mesh - GR Cluster Connection
+# Cilium Cluster Mesh - remote cluster connection
 # ========================================================================
-# Connects NL cluster (ID: 1) to GR cluster (ID: 2) via clustermesh
-# Certificates stored in OpenBao, fetched via External Secrets
+# REMOVED: ExternalSecret for cilium-clustermesh
+#
+# With KVStoreMesh enabled, Cilium agents connect to the LOCAL
+# clustermesh-apiserver (clustermesh-apiserver.kube-system.svc:2379),
+# NOT directly to the remote cluster.
+#
+# Architecture:
+#   - cilium-clustermesh secret: Managed by Helm, points to LOCAL service
+#   - cilium-kvstoremesh secret: Managed by Helm, contains remote cluster config
+#   - hostAliases in clustermesh-apiserver: Resolves remote hostnames for KVStoreMesh
+#
+# The OpenBao secrets (secret/k8s/cilium/clustermesh-*) are NOT needed for
+# the KVStoreMesh architecture. Remote cluster config is handled via Helm
+# values in main.tf, fed from var.clustermesh_remote_cluster_name and
+# var.REDACTED_9b1272d3:
+#   clustermesh.config.clusters[].name
+#   clustermesh.config.clusters[].ips
+#   clustermesh.config.domain
 # ========================================================================
 
-# -----------------------------------------------------------------------------
-# ExternalSecret creates cilium-clustermesh directly with template
-# -----------------------------------------------------------------------------
-resource "kubernetes_manifest" "cilium_clustermesh_external_secret" {
-  count = var.clustermesh_gr_enabled ? 1 : 0
-
-  manifest = {
-    apiVersion = "external-secrets.io/v1"
-    kind       = "ExternalSecret"
-    metadata = {
-      name      = "cilium-clustermesh"
-      namespace = "kube-system"
-      labels = {
-        "app.kubernetes.io/name"       = "cilium-clustermesh"
-        "app.kubernetes.io/component"  = "clustermesh"
-        "app.kubernetes.io/managed-by" = "opentofu"
-      }
-    }
-    spec = {
-      refreshInterval = "1h"
-      secretStoreRef = {
-        name = "openbao"
-        kind = "ClusterSecretStore"
-      }
-      target = {
-        name           = "cilium-clustermesh"
-        creationPolicy = "Owner"
-        deletionPolicy = "Retain"
-        template = {
-          engineVersion = "v2"
-          data = {
-            "grcl01k8s"        = <<-EOT
-              endpoints:
-              - ${var.clustermesh_gr_endpoint}
-              ca-file: /var/lib/cilium/clustermesh/grcl01k8s-ca.crt
-              key-file: /var/lib/cilium/clustermesh/grcl01k8s.key
-              cert-file: /var/lib/cilium/clustermesh/grcl01k8s.crt
-            EOT
-            "grcl01k8s-ca.crt" = "{{ .ca_crt }}"
-            "grcl01k8s.crt"    = "{{ .tls_crt }}"
-            "grcl01k8s.key"    = "{{ .tls_key }}"
-          }
-        }
-      }
-      data = [
-        {
-          secretKey = "ca_crt"
-          remoteRef = {
-            key      = "secret/k8s/cilium/clustermesh-gr"
-            property = "ca_crt"
-          }
-        },
-        {
-          secretKey = "tls_crt"
-          remoteRef = {
-            key      = "secret/k8s/cilium/clustermesh-gr"
-            property = "tls_crt"
-          }
-        },
-        {
-          secretKey = "tls_key"
-          remoteRef = {
-            key      = "secret/k8s/cilium/clustermesh-gr"
-            property = "tls_key"
-          }
-        }
-      ]
-    }
-  }
-}
+# No resources needed - Helm manages all clustermesh secrets with KVStoreMesh

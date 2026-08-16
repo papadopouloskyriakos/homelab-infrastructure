@@ -16,8 +16,3 @@ output "lb_pool_range" {
   description = "LoadBalancer IP pool range"
   value       = "${var.lb_pool_start}-${var.lb_pool_stop}"
 }
-
-output "clustermesh_gr_enabled" {
-  description = "Whether GR cluster mesh is enabled"
-  value       = var.clustermesh_gr_enabled
-}
