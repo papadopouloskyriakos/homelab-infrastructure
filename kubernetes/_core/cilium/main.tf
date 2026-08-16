@@ -21,7 +21,7 @@ resource "helm_release" "cilium" {
   namespace        = "kube-system"
   repository       = "https://helm.cilium.io/"
   chart            = "cilium"
-  version          = "1.19.5"
+  version          = "1.20.0"
   create_namespace = false
 
   # Canary-safe: don't block apply on the full DaemonSet roll (monitored externally)
@@ -302,10 +302,16 @@ resource "helm_release" "cilium" {
       name  = "clustermesh.config.clusters[0].port"
       value = "2379"
     },
-    # 1.19 upgrade safety: preserve pre-1.19 defaults (research: #44430 + clustermesh)
+    # 1.20 upgrade safety (IFRNLLEI01PRD-2373): REDACTED_d95cbb1b = outgoing minor;
+    # pin datapathMode=veth — 1.20's new default "auto" probes netkit (present on our 7.0 kernels)
+    # and an in-place upgrade must not switch datapath modes.
     {
       name  = "REDACTED_d95cbb1b"
-      value = "1.18"
+      value = "1.19"
+    },
+    {
+      name  = "bpf.datapathMode"
+      value = "veth"
     },
     {
       name  = "REDACTED_08ead801"
