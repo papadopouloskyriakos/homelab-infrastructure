@@ -84,7 +84,7 @@ module "ingress_nginx" {
 module "gitlab_agent" {
   source = "./_core/gitlab-agent"
 
-  REDACTED_b6136a28 = REDACTED_305df36d
+  gitlab_agent_token = REDACTED_305df36d
 }
 
 module "REDACTED_279a43a7" {
