@@ -39,19 +39,15 @@
 #  D) If the velero deployment is removed or its ServiceMonitor breaks there are no series
 #     left to be 0, so every `== 0` rule goes quiet. VeleroMetricsMissing uses absent().
 #
-# ⚠ RELATIONSHIP TO custom-alerts.tf — READ BEFORE ADDING MORE VELERO RULES.
-# custom-alerts.tf already carries VeleroBackupPartiallyFailed, VeleroBackupFailed and
-# VeleroBackupStale. Those are NOT redundant with these, but the first two are
-# counter-based (`increase(velero_backup_partial_failure_total[1h]) > 0`) and are exactly
-# what trap A describes: the counters reset on every velero pod restart, so
-# `max_over_time(...[7d])` for partial_failure is **0** across a week in which ~35
-# PartiallyFailed backups exist. That rule cannot see the steady-state degradation it was
-# written for — it only catches a NEW failure that happens to land in a scrape window with
-# no restart. This file's gauge-based rules cover the steady state instead.
-# Deliberate de-duplication: our staleness rule was dropped (custom-alerts.tf's
-# VeleroBackupStale is equivalent and already has the `or absent()` guard), and our
-# hard-failure rule is named REDACTED_59968a02 so it does not collide with the
-# counter-based VeleroBackupFailed.
+# ⚠ RELATIONSHIP TO custom-alerts.tf (updated 2026-08-16, canonical split).
+# custom-alerts.tf used to carry three legacy Velero rules (VeleroBackupPartiallyFailed,
+# VeleroBackupFailed, VeleroBackupStale). The first two were counter-based
+# (`increase(velero_backup_partial_failure_total[1h]) > 0`) and exactly what trap A
+# describes: counters reset on every velero pod restart, so `max_over_time(...[7d])`
+# measured **0** across a week holding ~35 PartiallyFailed backups. All three were
+# DELETED in the 2026-08-16 custom-alerts split — this file is now the single home of
+# Velero alerting. Staleness/absence coverage here: REDACTED_8cdf02da
+# (gauge timestamp) + VeleroMetricsMissing (absent()).
 #
 # tier="1" + severity="critical" is the Twilio SMS route (main.tf alertmanager route ->
 # 10.0.X.X:9106). Applied to VeleroBackupFailed and REDACTED_8cdf02da:
