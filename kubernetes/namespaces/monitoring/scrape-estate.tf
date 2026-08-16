@@ -161,6 +161,15 @@ locals {
             role = "omoikane-benchmark"
           }
         },
+        {
+          targets = [
+            "10.255.9.11:9100",  # notrf01dmz05 — baseline mesh member (no services yet)
+            "10.255.10.11:9100", # notrf01dmz06 — baseline mesh member (no services yet)
+          ]
+          labels = {
+            role = "edge-baseline"
+          }
+        },
       ]
       relabel_configs = [
         { source_labels = ["__address__"], regex = "10\\.255\\.4\\.11:.*", target_label = "instance", replacement = "notrf01dmz01" },
@@ -169,10 +178,14 @@ locals {
         { source_labels = ["__address__"], regex = "10\\.255\\.8\\.11:.*", target_label = "instance", replacement = "notrf01dmz04" },
         { source_labels = ["__address__"], regex = "192\\.168\\.192\\.10:.*", target_label = "instance", replacement = "nldmz01" },
         { source_labels = ["__address__"], regex = "192\\.168\\.181\\.30:.*", target_label = "instance", replacement = "nlomktst01" },
+        { source_labels = ["__address__"], regex = "10\\.255\\.9\\.11:.*", target_label = "instance", replacement = "notrf01dmz05" },
+        { source_labels = ["__address__"], regex = "10\\.255\\.10\\.11:.*", target_label = "instance", replacement = "notrf01dmz06" },
         { source_labels = ["__address__"], regex = "10\\.255\\.4\\..*", target_label = "site", replacement = "no" },
         { source_labels = ["__address__"], regex = "10\\.255\\.5\\..*", target_label = "site", replacement = "no" },
         { source_labels = ["__address__"], regex = "10\\.255\\.7\\..*", target_label = "site", replacement = "no" },
         { source_labels = ["__address__"], regex = "10\\.255\\.8\\..*", target_label = "site", replacement = "no" },
+        { source_labels = ["__address__"], regex = "10\\.255\\.9\\..*", target_label = "site", replacement = "no" },
+        { source_labels = ["__address__"], regex = "10\\.255\\.10\\..*", target_label = "site", replacement = "no" },
         { source_labels = ["__address__"], regex = "192\\.168\\.192\\..*", target_label = "site", replacement = "nl" },
         { source_labels = ["__address__"], regex = "192\\.168\\.181\\..*", target_label = "site", replacement = "nl" },
       ]
