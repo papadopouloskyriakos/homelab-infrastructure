@@ -21,8 +21,9 @@ output "prometheus_nodeport" {
   description = "Prometheus NodePort"
   value       = 30090
 }
+
 # =============================================================================
-# Thanos Outputs (add to existing outputs.tf)
+# Thanos Outputs
 # =============================================================================
 
 output "REDACTED_ae9917e5" {

@@ -3,21 +3,57 @@
 # =============================================================================
 
 variable "common_labels" {
-  description = "Common labels to apply to resources"
+  description = "Common labels to apply to resources (root supplies environment/managed-by/repository/site)"
   type        = map(string)
   default     = {}
 }
 
-variable "prometheus_retention" {
-  description = "Prometheus data retention period"
+# -----------------------------------------------------------------------------
+# Site Identity
+# -----------------------------------------------------------------------------
+variable "site" {
+  description = "Short site identifier for metric labels (nl or gr)"
   type        = string
-  default     = "1095d"
+  default     = "nl"
+}
+
+variable "cluster_name" {
+  description = "Cluster name for Prometheus externalLabels (Thanos deduplication)"
+  type        = string
+  default     = "nl"
+}
+
+variable "node_region" {
+  description = "topology.kubernetes.io/region value for node selection (nl-lei or gr-skg)"
+  type        = string
+  default     = "nl-lei"
+}
+
+# -----------------------------------------------------------------------------
+# Prometheus / Alertmanager / Grafana
+# -----------------------------------------------------------------------------
+variable "prometheus_retention" {
+  description = "Prometheus LOCAL TSDB retention. Long-term storage is Thanos's job, not Prometheus's (see k8s/CLAUDE.md — the old 1095d default here was never true of the local TSDB and misled a capacity investigation on 2026-07-30)."
+  type        = string
+  default     = "24h"
 }
 
 variable "REDACTED_6a2724e6" {
   description = "Prometheus PVC size"
   type        = string
   default     = "200Gi"
+}
+
+variable "REDACTED_cdb3d821" {
+  description = "StorageClass for the Prometheus volumeClaimTemplate. MUST match the live StatefulSet template per side — volumeClaimTemplates are immutable, so a mismatch fails the helm upgrade rather than resizing/reclassing."
+  type        = string
+  default     = "REDACTED_4f3da73d"
+}
+
+variable "alertmanager_storage_class" {
+  description = "StorageClass for the Alertmanager volumeClaimTemplate (same immutability caveat as REDACTED_cdb3d821)."
+  type        = string
+  default     = "REDACTED_4f3da73d"
 }
 
 # NOTE: grafana_admin_password removed - now sourced from OpenBao via ExternalSecret
@@ -27,24 +63,48 @@ variable "grafana_storage_size" {
   type        = string
   default     = "20Gi"
 }
-# =============================================================================
-# Thanos Variables (add to existing variables.tf)
-# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Alertmanager Receivers (site-gated: empty string disables the receiver+route)
+# -----------------------------------------------------------------------------
+variable "alert_webhook_url" {
+  description = "n8n Prometheus Alert Receiver webhook URL (default receiver webhook-n8n)"
+  type        = string
+  default     = "https://n8n.example.net/webhook/prometheus-alert"
+}
+
+variable "twilio_bridge_url" {
+  description = "Twilio SMS bridge URL for the tier-1 paging path. Empty string disables the twilio-tier1 receiver and route."
+  type        = string
+  default     = "http://10.0.X.X:9106/alert"
+}
+
+variable "tg_webhook_url" {
+  description = "Territory Grounder ingest URL (NL-estate single instance). Empty string disables the webhook-tg receiver/route AND the tg-ingest-token ExternalSecret + Alertmanager secret mount."
+  type        = string
+  default     = "https://territory-grounder.example.net/api/v1/ingest/prometheus-alertmanager"
+}
+
+variable "wal_healer_webhook_url" {
+  description = "n8n WAL-healer webhook URL for PrometheusTSDBCompactionsFailing self-heal. Empty string disables the webhook-wal-healer receiver and route."
+  type        = string
+  default     = ""
+}
 
 # -----------------------------------------------------------------------------
 # Thanos Version & Image
 # -----------------------------------------------------------------------------
 variable "thanos_version" {
-  description = "Thanos container image version"
+  description = "Thanos container image version (also used by the Prometheus sidecar)"
   type        = string
-  default     = "v0.37.2"
+  default     = "v0.42.4"
 }
 
 # -----------------------------------------------------------------------------
 # Site Configuration (for Cluster Mesh)
 # -----------------------------------------------------------------------------
 variable "site_code" {
-  description = "Short site identifier (nl or gr)"
+  description = "Short site identifier (nl or gr) — used in cross-site Thanos service NAMES; do not change on a live cluster"
   type        = string
   default     = "nl"
 }
@@ -59,15 +119,15 @@ variable "remote_site_code" {
 # S3 Object Storage Configuration
 # -----------------------------------------------------------------------------
 variable "thanos_bucket_name" {
-  description = "SeaweedFS bucket name for Thanos blocks"
+  description = "SeaweedFS bucket name for Thanos blocks (thanos-nl / thanos-gr)"
   type        = string
-  default     = "thanos-nl" # GR site uses "thanos-gr"
+  default     = "thanos-nl"
 }
 
 variable "thanos_s3_endpoint" {
   description = "SeaweedFS S3 endpoint"
   type        = string
-  default     = "seaweedfs-filer.seaweedfs.svc.cluster.local:8333"
+  default     = "seaweedfs-s3.seaweedfs.svc.cluster.local:8333"
 }
 
 variable "thanos_openbao_secret_path" {
@@ -243,8 +303,39 @@ variable "REDACTED_928c2d3a" {
   type        = string
   default     = "nl-thanos.example.net"
 }
+
+variable "REDACTED_4c06acbb" {
+  description = "Enable ingress for Prometheus"
+  type        = bool
+  default     = true
+}
+
+variable "prometheus_hostname" {
+  description = "Hostname for Prometheus ingress"
+  type        = string
+  default     = "nl-prometheus.example.net"
+}
+
+variable "grafana_ingress_enabled" {
+  description = "Enable ingress for Grafana"
+  type        = bool
+  default     = true
+}
+
+variable "grafana_hostname" {
+  description = "Hostname for Grafana ingress"
+  type        = string
+  default     = "grafana.example.net"
+}
+
+variable "goldpinger_hostname" {
+  description = "Hostname for Goldpinger ingress"
+  type        = string
+  default     = "goldpinger.example.net"
+}
+
 # =============================================================================
-# Network Monitoring - ADD TO variables.tf
+# Network Monitoring
 # =============================================================================
 
 variable "snmp_community" {
@@ -253,8 +344,20 @@ variable "snmp_community" {
   sensitive   = true
 }
 
+variable "snmp_asa_target" {
+  description = "Local-site ASA firewall SNMP target IP (each cluster scrapes ONLY its own ASA)"
+  type        = string
+  default     = "10.0.X.X"
+}
+
+variable "snmp_asa_device" {
+  description = "Device label for the local-site ASA SNMP scrape job"
+  type        = string
+  default     = "nlfw01"
+}
+
 # =============================================================================
-# FRR Exporter Targets
+# FRR / IPsec Exporter Targets
 # =============================================================================
 
 variable "frr_route_reflector_targets" {
@@ -274,12 +377,9 @@ variable "frr_edge_targets" {
   default = [
     "10.255.2.11:9342", # CH Edge
     "10.255.3.11:9342", # NO Edge
+    "10.255.6.11:9342", # TX Edge
   ]
 }
-
-# =============================================================================
-# IPsec Exporter Targets
-# =============================================================================
 
 variable "ipsec_edge_targets" {
   description = "IPsec exporter targets for edge nodes"
@@ -287,34 +387,26 @@ variable "ipsec_edge_targets" {
   default = [
     "10.255.2.11:9536", # CH Edge
     "10.255.3.11:9536", # NO Edge
+    "10.255.6.11:9536", # TX Edge
   ]
 }
 
 # =============================================================================
-# SNMP Targets
+# Estate Scrape Jobs (NL-only estate targets — see scrape-estate.tf)
 # =============================================================================
 
-variable "snmp_asa_targets" {
-  description = "ASA firewall SNMP targets"
-  type        = list(string)
-  default = [
-    "10.0.X.X", # NL ASA
-    "10.0.X.X", # GR ASA
-  ]
-}
-
-# =============================================================================
-# Prometheus Ingress
-# =============================================================================
-
-variable "REDACTED_4c06acbb" {
-  description = "Enable ingress for Prometheus"
+variable "estate_scrape_enabled" {
+  description = "Emit the NL-estate additionalScrapeConfigs jobs (chatops, omoikane, crowdsec, fisha, iot, edge node_exporter, frr-dmz). Exactly one cluster (NL) scrapes these targets; enabling on both would double-scrape the estate."
   type        = bool
   default     = true
 }
 
-variable "prometheus_hostname" {
-  description = "Hostname for Prometheus ingress"
-  type        = string
-  default     = "nl-prometheus.example.net"
+# =============================================================================
+# etcd Scrape Endpoints (control-plane node IPs)
+# =============================================================================
+
+variable "etcd_endpoints" {
+  description = "Control-plane node IPs for the kubeEtcd scrape (client port :2379, mTLS)"
+  type        = list(string)
+  default     = ["10.0.X.X", "10.0.X.X", "10.0.X.X"]
 }

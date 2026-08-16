@@ -12,11 +12,9 @@ resource "REDACTED_4ad9fc99_v1" "goldpinger" {
   metadata {
     name      = "goldpinger"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name" = "goldpinger"
-      environment              = "production"
-      "managed-by"             = "opentofu"
-    }
+    })
   }
 
   depends_on = [helm_release.monitoring]
@@ -28,11 +26,9 @@ resource "REDACTED_4ad9fc99_v1" "goldpinger" {
 resource "REDACTED_1f297da4" "goldpinger" {
   metadata {
     name = "goldpinger"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name" = "goldpinger"
-      environment              = "production"
-      "managed-by"             = "opentofu"
-    }
+    })
   }
 
   rule {
@@ -48,11 +44,9 @@ resource "REDACTED_1f297da4" "goldpinger" {
 resource "REDACTED_2b73dc4c_v1" "goldpinger" {
   metadata {
     name = "goldpinger"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name" = "goldpinger"
-      environment              = "production"
-      "managed-by"             = "opentofu"
-    }
+    })
   }
 
   role_ref {
@@ -75,11 +69,9 @@ resource "REDACTED_9bcb792e" "goldpinger" {
   metadata {
     name      = "goldpinger"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name" = "goldpinger"
-      environment              = "production"
-      "managed-by"             = "opentofu"
-    }
+    })
   }
 
   spec {
@@ -91,11 +83,9 @@ resource "REDACTED_9bcb792e" "goldpinger" {
 
     template {
       metadata {
-        labels = {
+        labels = merge(var.common_labels, {
           "app.kubernetes.io/name" = "goldpinger"
-          environment              = "production"
-          "managed-by"             = "opentofu"
-        }
+        })
       }
 
       spec {
@@ -221,11 +211,9 @@ resource "kubernetes_service_v1" "goldpinger" {
   metadata {
     name      = "goldpinger"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name" = "goldpinger"
-      environment              = "production"
-      "managed-by"             = "opentofu"
-    }
+    })
   }
 
   spec {
@@ -254,12 +242,10 @@ resource "kubernetes_manifest" "REDACTED_96a5dfcb" {
     metadata = {
       name      = "goldpinger"
       namespace = "monitoring"
-      labels = {
+      labels = merge(var.common_labels, {
         "app.kubernetes.io/name" = "goldpinger"
-        environment              = "production"
-        "managed-by"             = "opentofu"
         release                  = "monitoring"
-      }
+      })
     }
     spec = {
       selector = {
@@ -289,18 +275,16 @@ resource "kubernetes_ingress_v1" "goldpinger" {
   metadata {
     name      = "goldpinger"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name" = "goldpinger"
-      environment              = "production"
-      "managed-by"             = "opentofu"
-    }
+    })
   }
 
   spec {
     ingress_class_name = "nginx"
 
     rule {
-      host = "goldpinger.example.net"
+      host = var.goldpinger_hostname
 
       http {
         path {

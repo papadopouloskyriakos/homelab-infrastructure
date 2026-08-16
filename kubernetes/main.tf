@@ -27,6 +27,7 @@ locals {
     environment = "production"
     managed-by  = "opentofu"
     repository  = "REDACTED_25022d4e"
+    site        = "nl"
   }
 }
 
@@ -104,6 +105,8 @@ module "nl-nas01_csi" {
 
 module "cert_manager" {
   source = "./_core/cert-manager"
+
+  depends_on = [module.external_secrets]
 }
 
 # ========================================================================
@@ -115,7 +118,6 @@ module "monitoring" {
 
   common_labels = local.common_labels
 
-  prometheus_retention    = var.prometheus_retention
   REDACTED_6a2724e6 = var.REDACTED_6a2724e6
   grafana_storage_size    = var.grafana_storage_size
 

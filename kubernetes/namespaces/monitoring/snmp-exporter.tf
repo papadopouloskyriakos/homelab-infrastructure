@@ -1,9 +1,9 @@
 # =============================================================================
-# SNMP Exporter - Cisco ASA Monitoring (NL Cluster)
+# SNMP Exporter - Cisco ASA Monitoring
 # =============================================================================
-# Scrapes BGP and IPsec metrics from local ASA firewall via SNMP v2c
-# Target: NL ASA (10.0.X.X / nlfw01)
-# Note: GR cluster will have its own snmp-exporter scraping grfw01
+# Scrapes BGP and IPsec metrics from the LOCAL site's ASA firewall via SNMP v2c
+# Target: var.snmp_asa_target / var.snmp_asa_device (each cluster scrapes only
+# its own ASA — NL: 10.0.X.X/nlfw01, GR: 10.0.X.X/grfw01)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -13,12 +13,10 @@ resource "REDACTED_a9df2e77_v1" "REDACTED_2b0aa899" {
   metadata {
     name      = "REDACTED_c70333e5"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "snmp-exporter"
       "app.kubernetes.io/component" = "config"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
   }
 
   data = {
@@ -174,12 +172,10 @@ resource "REDACTED_08d34ae1" "snmp_exporter" {
   metadata {
     name      = "snmp-exporter"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "snmp-exporter"
       "app.kubernetes.io/component" = "exporter"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
   }
 
   spec {
@@ -194,12 +190,10 @@ resource "REDACTED_08d34ae1" "snmp_exporter" {
 
     template {
       metadata {
-        labels = {
+        labels = merge(var.common_labels, {
           "app.kubernetes.io/name"      = "snmp-exporter"
           "app.kubernetes.io/component" = "exporter"
-          environment                   = "production"
-          "managed-by"                  = "opentofu"
-        }
+        })
         annotations = {
           "checksum/config" = sha256(REDACTED_a9df2e77_v1.REDACTED_2b0aa899.data["snmp.yml"])
         }
@@ -300,12 +294,10 @@ resource "kubernetes_service_v1" "snmp_exporter" {
   metadata {
     name      = "snmp-exporter"
     namespace = "monitoring"
-    labels = {
+    labels = merge(var.common_labels, {
       "app.kubernetes.io/name"      = "snmp-exporter"
       "app.kubernetes.io/component" = "exporter"
-      environment                   = "production"
-      "managed-by"                  = "opentofu"
-    }
+    })
   }
 
   spec {
@@ -335,12 +327,10 @@ resource "kubernetes_manifest" "REDACTED_6b7ed15a" {
     metadata = {
       name      = "snmp-exporter"
       namespace = "monitoring"
-      labels = {
+      labels = merge(var.common_labels, {
         "app.kubernetes.io/name" = "snmp-exporter"
-        environment              = "production"
-        "managed-by"             = "opentofu"
         release                  = "monitoring"
-      }
+      })
     }
     spec = {
       selector = {
