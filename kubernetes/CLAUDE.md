@@ -43,43 +43,126 @@ python3 /home/claude-runner/scripts/tf-graph-indexer.py /home/claude-runner/gitl
 
 - **OpenTofu** manages all K8s resources. Never use `kubectl apply` directly for Atlantis-managed resources.
 - **Atlantis** handles plan/apply via MR comments. Always create MRs for `.tf` changes.
-- **Argo CD** manages 4 apps (bentopdf, pihole, velero, echo-server) from `argocd-apps/`. These auto-sync — push YAML to main.
+- **Argo CD** manages 4 apps (bentopdf, pihole, velero, echo-server) from `argocd-apps/`. These auto-sync — push YAML to main. `argocd-apps/velero/` is canonical (byte-identical with GR, incl. the 13-CRD `crds.yaml` pinned v1.17.1); the other three are NL-only (mirror-exempt).
 - **State**: GitLab Terraform HTTP backend. Never run `tofu apply` locally.
+- **The root is tfvars-driven since 2026-08-16 (mirror campaign):** `main.tf`/`variables.tf`/`providers.tf`/`outputs.tf` are canonical (byte-identical with GR, zero site literals); ALL site values live in `terraform.tfvars` (77 keys, key-set parity with GR asserted by the mirror check); `site-storage.tf` holds the per-site CSI module call (nl-nas01-csi) and is the only mirror-exempt root `.tf` file. `moved.tf`/`imports.tf` were spent and deleted. Secrets stay in Atlantis `TF_VAR_*` env — tfvars values would override them.
 - Run `tofu fmt -recursive` before committing — the pipeline enforces formatting.
+
+## Mirror contract
+
+The NL and GR `k8s/` trees — `infrastructure/nl/production` (gitlab.example.net, project 7) and `infrastructure/gr/production` (gr-gitlab.example.net, project 5) — are a **character-perfect mirror** since the 2026-08-16 campaign: byte-identical except site-unique identifiers. This section is IDENTICAL in both repos' `k8s/CLAUDE.md`. Every `k8s/` edit falls into exactly one of the four file classes below; know which one before you touch a file.
+
+### File classes
+
+| Class | Files | Rule |
+|-------|-------|------|
+| **Canonical (byte-identical)** | Every `.tf` under `_core/*` (except the CSI module dirs) and `namespaces/*`; root `main.tf` / `variables.tf` / `providers.tf` / `outputs.tf`; `argocd-apps/velero/*`; `ci/k8s.yml`; `atlantis.yaml`; `.githooks/pre-commit`; `scripts/k8s-mirror-*` | NO site identifiers in file content — every site value is `var.*` fed from tfvars. Edits MUST be ported to the twin (see THE RULE). |
+| **Site values** | root `terraform.tfvars` | The ONLY home of site-unique values (77 keys). The diff job asserts the two files carry the **same key set**; values differ per the identifier dictionary. Secrets stay in the Atlantis `TF_VAR_*` env — never in tfvars (tfvars values OVERRIDE env vars). Adding a key on one side without the twin fails the key-set gate. |
+| **Site structural (same name, per-site content)** | root `site-storage.tf` (the per-site CSI module call: NL = synology-csi against nl-nas01, GR = democratic-csi against the gr-pve02 ZFS pool); `namespaces/monitoring/scrape-estate.tf` (NL = the estate-wide scrape jobs, GR = a stub defining `estate_scrape_configs = []`) | Deliberately different content behind an identical filename, so `main.tf` (root and monitoring) stays byte-identical. Both are on the exemption manifest. Do not "align" them. |
+| **Exempt** | Everything listed in `scripts/k8s-mirror-exempt.txt`: the two CSI module dirs, `terraform.tfvars` (key-set-checked instead), the estate/NL-subsystem alert files (`estate-alerts.tf`, `host-pressure-alerts.tf`, `infrastructure-integrity-alerts.tf`, the omoikane/edge/intersite/agentic `*-alerts.tf` set), `dashboards.tf` + `dashboards/`, NL-only `argocd-apps/{bentopdf,echo-server,pihole}`, `CLAUDE.md`, `README.md`, `cluster-snapshots/`, `secrets/`, lock/terraform dirs | Every entry MUST carry a reason comment. Removing an entry = claiming the path is now canonical. |
+
+### Tooling
+
+- `scripts/k8s-mirror-diff.sh` + `scripts/k8s-mirror-map.txt` (identifier dictionary; GR→NL normalization, longest-match-first) + `scripts/k8s-mirror-exempt.txt` — all three are themselves canonical and identical in both repos.
+- Run locally on the claude-runner host (defaults to the two standard checkouts): `scripts/k8s-mirror-diff.sh`. Exit 0 = mirror holds; exit 1 prints the divergence; exit 2 = setup error.
+- How it works: prune exempt paths → normalize GR-form identifiers to NL form **only in files that already differ** (canonical files legitimately mention both sites' values in comments and the gatus endpoint union — rewriting them would manufacture divergence) → guard: any GR-form token surviving normalization in a differing file is itself a failure (dictionary gap) → assert tfvars key-set equality → byte-diff.
+- CI job `k8s_mirror_check` (stage verify, scheduled + on main k8s changes, both instances) is **pending**: it needs `ci/mirror` OpenBao tokens for the cross-instance clone. Until wired, local runs are the proof.
+
+### THE RULE
+
+> **Any edit to a canonical file must be ported to the twin repo the same day, and `k8s-mirror-diff.sh` must exit 0 before the second merge.**
+
+Corollaries:
+- Never introduce a site identifier into a canonical file — hoist it to a variable and put the value in both tfvars files.
+- Pair the MRs: NL-first, GR same day (the campaign convention). One open k8s MR per repo at a time (Atlantis lock).
+- A key added to one `terraform.tfvars` must be added to the twin the same day.
+- Changes to this section, the map, or the exempt manifest are themselves canonical edits — port them too.
+- During an NL↔GR partition, GR CI cannot authenticate to OpenBao (GR raft minority) — don't merge k8s MRs during tunnel instability.
+
+### Identifier dictionary (NL ↔ GR)
+
+The authoritative machine-readable pairs live in `terraform.tfvars` (both files, same keys) and `scripts/k8s-mirror-map.txt`. Human summary:
+
+| Concept | NL | GR |
+|---------|----|----|
+| Cluster name / ID | `nlcl01k8s` / 1 | `grcl01k8s` / 2 |
+| site / site_code / node_region | `nl` / `nl` / `nl-lei` | `gr` / `gr` / `gr-skg` |
+| Node subnet / pod CIDR | 192.168.85.x / 10.0.0.0/16 | 192.168.58.x / 10.1.0.0/16 |
+| API endpoint | api-k8s.example.net (VIP .85.5) | gr-api-k8s.example.net (VIP .58.5) |
+| LB pool / BGP peer | .85.64–.126 / ASA 10.0.X.X | .58.64–.126 / ASA 10.0.X.X |
+| BGP ASNs | 65001 (k8s) / 65000 (ASA) — **identical both sites, NOT site-unique** | same |
+| ClusterMesh endpoint (own) | 10.0.X.X:2379 | 10.0.X.X:2379 |
+| Service FQDNs | unprefixed / `nl-*` (grafana., argocd., nl-prometheus., nl-s3., …) | `gr-*` (gr-grafana., gr-argocd., gr-prometheus., gr-s3., …) |
+| GitLab / project id / Atlantis | gitlab.example.net / 7 / project `k8s` | gr-gitlab.example.net / 5 / project `k8s` |
+| TF state name | `k8s-production-state` | `k8s-gr-production-state` |
+| OpenBao CI role / JWT mount / prefix | `gitlab-ci` / `jwt` / `ci/` | `gitlab-ci-gr` / `jwt-gr` / `ci-gr/` |
+| ESO auth mount | `kubernetes` | `kubernetes-gr` |
+| NFS | 10.0.X.X:/volume1/k8s | 10.0.X.X:/exports/nfs/k8s |
+| iSCSI SCs (CSI backend) | `synology-csi-nl-nas01-iscsi-{retain,delete}` (Synology DS1621+) | `iscsi-ssd-{retain,delete}` (democratic-csi, ZFS on gr-pve02) |
+| S3 buckets | `loki` / `thanos-nl` / `velero` | `loki-gr` / `thanos-gr` / `velero-gr` |
+| cert-manager role | issuer (`acme_issuer_enabled = true`: ACME + 18 Certificates + PushSecret) | consumer (`false`: ExternalSecret pulls `REDACTED_2812d784`) |
+| Estate scrapes / estate alerts | `estate_scrape_enabled = true` + the estate alert files | `false` + stub / exempt (see below) |
+| Twilio bridge | http://10.0.X.X:9106/alert (nlclaude01) | http://10.0.X.X:9106/alert (grclaude01) |
+| Alertmanager n8n webhook | …/webhook/prometheus-alert | …/webhook/prometheus-alert-gr |
+| Timezone / site name | Europe/Amsterdam / Netherlands | Europe/Athens / Greece |
+
+### Adding a new module — canonical from day one
+
+1. Author the module byte-identical in BOTH repos (`_core/<name>/` or `namespaces/<name>/`) with `main.tf`, `variables.tf`, `outputs.tf`. No site literals — anything site-specific is a module variable.
+2. Wire it in the canonical root `main.tf` passing `common_labels` and `var.*` only; declare the vars once in the canonical `variables.tf`; put the per-site values in BOTH `terraform.tfvars` files (same key set).
+3. If it can only ever run on one site (an estate subsystem), do NOT half-mirror it: give it its own file, add that file to `scripts/k8s-mirror-exempt.txt` with a reason, and give the other site a stub only if a canonical file references it (the `scrape-estate.tf` pattern).
+4. Run `scripts/k8s-mirror-diff.sh` before either merge; NL MR first, GR MR same day.
+
+### The estate-alerts / scrape-estate NL-only pattern (why: double-fire)
+
+Estate-wide subsystems (edge VPS, omoikane, PVE hosts, DMZ, chatops, agentic platform, …) are scraped and alerted from exactly **one** Prometheus — NL's. Mirroring those scrape jobs or alert rules to GR would fire every estate alert twice: two YT issues, two Matrix posts, two pages per event. Therefore:
+
+- `namespaces/monitoring/scrape-estate.tf` is site-structural: NL's copy defines `local.estate_scrape_configs` (the estate jobs); GR's copy defines `[]`. `namespaces/monitoring/main.tf` concatenates it unconditionally and stays byte-identical.
+- The estate/NL-subsystem alert files (`estate-alerts.tf` + the omoikane/edge/intersite/agentic/etc. `*-alerts.tf` set) exist only in the NL repo and are on the exemption manifest.
+- `host-pressure-alerts.tf` and `infrastructure-integrity-alerts.tf` are ALSO exempt for a different reason: they key on PVE `node_exporter` / `pve_wedge` / `asa_binding` series that GR's Prometheus does not scrape — on GR they would be can-never-fire rules (worse than absent). If GR PVE exporters ever land, revisit with var-driven targets.
+- Cluster-local alerts ARE mirrored and canonical: `custom-alerts.tf` (14 rules), `seaweedfs-write-path-alerts.tf` (3), `velero-backup-alerts.tf` (6) — byte-identical, firing per-site against each cluster's own Prometheus.
 
 ## Module Structure
 
 ```
 k8s/
-├── main.tf              # Root orchestrator — calls all modules
-├── variables.tf         # All input variables (connection, sizing, feature flags)
-├── providers.tf         # Kubernetes + Helm providers
-├── outputs.tf           # Deployment summary
-├── terraform.tfvars     # Variable overrides (SNMP community, Gatus token)
-├── _core/               # Platform infrastructure modules
+├── main.tf              # Root orchestrator — CANONICAL, all module calls var-driven
+├── variables.tf         # CANONICAL union var set (122 vars, declared once each)
+├── providers.tf         # CANONICAL — Kubernetes + Helm providers (~> 3.2.0 both)
+├── outputs.tf           # CANONICAL — var-driven deployment summary
+├── site-storage.tf      # SITE FILE — nl-nas01-csi module call (GR: democratic-csi)
+├── terraform.tfvars     # SITE FILE — ALL site values (77 keys, key-set parity with GR)
+├── _core/               # Platform infrastructure modules (all canonical except the CSI dir)
 │   ├── cilium/          # CNI, BGP, ClusterMesh, SPIRE mTLS, Hubble
-│   ├── tetragon/        # eBPF security monitoring (5 TracingPolicies, observe-only)
-│   ├── ingress-nginx/   # Hardened ingress (ModSecurity WAF, HSTS, security headers)
-│   ├── cert-manager/    # Let's Encrypt DNS-01 via Cloudflare, 4 wildcard certs
-│   ├── external-secrets/# ClusterSecretStore "openbao" with Kubernetes auth
-│   ├── nfs-provisioner/ # StorageClass "nfs-client" → 10.0.X.X:/volume1/k8s
-│   ├── nl-nas01-csi/ # Synology DS1621+ iSCSI CSI (retain + delete classes)
-│   ├── gitlab-agent/    # GitLab K8s agent (2 replicas)
+│   ├── tetragon/        # eBPF security monitoring (observe-only)
+│   ├── ingress-nginx/   # Hardened ingress 4.15.1 (ModSecurity WAF → stdout, HSTS, headers)
+│   ├── cert-manager/    # ONE canonical module, role-gated: NL = issuer (acme_issuer_enabled=true —
+│   │                    #   ACME DNS-01/Cloudflare, the Certificate fleet, PushSecret to OpenBao)
+│   ├── external-secrets/# ClusterSecretStore "openbao" (inline caBundle), auth mount "kubernetes"
+│   ├── nfs-provisioner/ # StorageClass "nfs-client" → 10.0.X.X:/volume1/k8s — SC chart-managed
+│   │                    #   (helm-adopted 2026-08-16; do NOT flip storageClass.create back to false)
+│   ├── nl-nas01-csi/ # SITE MODULE — Synology DS1621+ iSCSI CSI (retain + delete classes)
+│   ├── gitlab-agent/    # GitLab K8s agent 2.28.0
 │   ├── REDACTED_d97cef76/ # Vendored chart (upstream archived)
-│   └── pod-disruption-budgets/ # CoreDNS + Metrics Server PDBs
-├── namespaces/          # Application namespace modules
-│   ├── monitoring/      # REDACTED_d8074874, Thanos, Goldpinger, BGPalerter, SNMP
-│   ├── logging/         # Loki (single-binary, SeaweedFS S3 backend) + Promtail (syslog)
-│   ├── seaweedfs/       # S3 storage, filer.sync for NL↔GR active-active replication
-│   ├── argocd/          # Argo CD (2 replica server + repo-server)
-│   ├── awx/             # AWX Operator (Postgres on iSCSI, projects on NFS)
-│   ├── gatus/           # Status page with BGP/IPsec/network health monitoring
-│   └── well-known/      # RFC 8615 security.txt, multi-domain
+│   └── pod-disruption-budgets/ # CoreDNS + Metrics Server PDBs (selector per-site var)
+├── namespaces/          # Application namespace modules (all canonical)
+│   ├── monitoring/      # REDACTED_d8074874 79.12.0, Thanos v0.42.4, Goldpinger, BGPalerter, SNMP
+│   │                    #   canonical rules: custom-alerts.tf + seaweedfs-write-path + velero-backup
+│   │                    #   NL-ONLY (mirror-exempt): estate-alerts.tf + the estate/omoikane/edge
+│   │                    #   *-alerts.tf set, dashboards.tf; scrape-estate.tf = NL estate scrape jobs
+│   │                    #   (GR carries an empty stub of the same file)
+│   ├── logging/         # Loki 6.55.0 (single-binary, SeaweedFS S3) + Promtail (syslog)
+│   ├── seaweedfs/       # S3 storage; NL runs the single bidirectional filer.sync (NL↔GR replication)
+│   ├── argocd/          # Argo CD chart 7.7.10 (2 server + 2 repo-server replicas on NL)
+│   ├── awx/             # AWX Operator (Postgres on iSCSI static PV, projects on NFS "projects")
+│   ├── gatus/           # Status page v5.36.0 (endpoint union — monitors BOTH sites' services)
+│   └── well-known/      # RFC 8615 security.txt, multi-domain, Certificate + CNP
 └── argocd-apps/         # Argo CD application manifests (YAML, not OpenTofu)
-    ├── bentopdf/        # PDF converter
-    ├── echo-server/     # HTTP echo at echo.example.net
-    ├── pihole/          # DNS ad-blocker with Cilium network policy
-    └── velero/          # Backup (daily 2AM + weekly Sunday 3AM, SeaweedFS S3)
+    ├── bentopdf/        # PDF converter (NL-only, mirror-exempt)
+    ├── echo-server/     # HTTP echo at echo.example.net (NL-only, mirror-exempt)
+    ├── pihole/          # DNS ad-blocker with Cilium network policy (NL-only, mirror-exempt)
+    └── velero/          # CANONICAL — backup (daily 2AM TTL 336h + weekly Sun 3AM TTL 1440h,
+                         #   excludedNamespaces incl. seaweedfs; crds.yaml 13 CRDs pinned v1.17.1)
 ```
 
 ## Key Conventions
@@ -116,16 +199,16 @@ k8s/
 
 ## Security Stack (all observe/detect-only, not blocking)
 
-- **Tetragon**: 5 TracingPolicies — process exec, sensitive file access, privilege escalation, kubectl exec, network connections (disabled due to noise)
+- **Tetragon**: 5 TracingPolicies defined, 3 enabled (sensitive file access, privilege escalation, kubectl exec); process exec + network connections disabled (noise) — flags identical on both sites (canonical module + root call)
 - **ModSecurity WAF**: DetectionOnly mode with OWASP CRS on ingress-nginx
 - **SPIRE mTLS**: Cilium mutual TLS for pod-to-pod REDACTED_6fa691d2
 - **Cilium Network Policies**: Applied to pihole, logging, gatus, well-known namespaces
 
 ## Monitoring & Observability
 
-- **Prometheus**: 2 replicas, 200Gi each, site label `nl`. **Retention is `24h` / `50GB` locally** (verified live 2026-07-30) — long-term storage is Thanos's job, not Prometheus's. The "1095-day retention" this line used to claim was never true of the local TSDB and misled a capacity investigation on 2026-07-30: a growth query against `prometheus-operated` returned nothing beyond 24h and had to be re-run against `thanos-query:9090`. **For any history older than a day, query Thanos.**
-- **Thanos**: Query (2 replicas) + Store (2 replicas, SeaweedFS S3) + Compactor. GR store reached via ClusterMesh.
-- **Grafana**: 2 replicas, NFS-backed (20Gi). Datasources: Prometheus (local), Thanos (cross-site), Loki (logs). 10 custom dashboards provisioned via sidecar ConfigMaps (`grafana_dashboard=1` label) — 6 managed by OpenTofu in `dashboards.tf`, 4 via kubectl. Dashboard JSON source files in `namespaces/monitoring/dashboards/`. Never import dashboards via Grafana UI — they don't survive pod restarts.
+- **Prometheus**: 2 replicas, 200Gi each, site label `nl`. **Retention is `24h` / `50GB` locally** (verified live 2026-07-30) — long-term storage is Thanos's job, not Prometheus's. The multi-year retention this line used to claim was never true of the local TSDB and misled a capacity investigation on 2026-07-30: a growth query against `prometheus-operated` returned nothing beyond 24h and had to be re-run against `thanos-query:9090`. **For any history older than a day, query Thanos.**
+- **Thanos**: **v0.42.4** (bumped from v0.37.2 in the 2026-08-16 mirror campaign, batch 3c) — Query (2 replicas) + Store (2 replicas, SeaweedFS S3, now with a startupProbe: a v0.42 index re-sync got probe-killed on GR without it) + Compactor. Bucket `thanos-nl`. GR store reached via ClusterMesh.
+- **Grafana**: 2 replicas, NFS-backed (20Gi). Datasources: Prometheus (local), Thanos (cross-site), Loki (logs), OpenObserve (read-only; credential via ExternalSecret `monitoring-openobserve-ro` ← OpenBao `secret/REDACTED_17ddacf8` + Grafana `$__file` provider — the plaintext password that sat in `monitoring/main.tf` left git in the 2026-08-16 campaign, D28; rotation of the credential itself is a pending follow-up). 10 custom dashboards provisioned via sidecar ConfigMaps (`grafana_dashboard=1` label) — 6 managed by OpenTofu in `dashboards.tf`, 4 via kubectl. Dashboard JSON source files in `namespaces/monitoring/dashboards/`. Never import dashboards via Grafana UI — they don't survive pod restarts.
 - **Loki**: Single-binary, 100Gi iSCSI, 30-day retention, SeaweedFS S3 for chunks
 - **Promtail**: Syslog receiver on LB .68:514 — all Docker containers send logs here
 - **BGPalerter**: Monitors AS214304 prefix for hijacks, route leaks, RPKI invalidity
@@ -143,7 +226,7 @@ k8s/
 
 ## Alert Pipeline
 
-Prometheus alerts (163 rules: 150 REDACTED_d8074874 + 13 custom in `namespaces/monitoring/custom-alerts.tf`) are routed via:
+Prometheus alerts (391 rules across 65 groups live 2026-07-30 — the old "163/13 custom" figure is stale; custom rules live in `namespaces/monitoring/*.tf`) are routed via:
 
 ```
 Prometheus → Alertmanager → webhook POST to n8n
@@ -157,7 +240,10 @@ OpenClaw k8s-triage.sh (creates YT issue, kubectl investigation, posts findings)
 Claude Code L3 (reads YT comments, plans fix, waits for human approval)
 ```
 
-**Custom alert rules** (`custom-alerts.tf`): ContainerOOMKilled, REDACTED_879bd353, REDACTED_02123891, REDACTED_a8a7eee8, REDACTED_67797f17, CiliumAgentNotReady, REDACTED_b94e0389, REDACTED_e52ce3d8, NFSMountStale, NFSMountHighLatency, ArgocdAppDegraded, ArgocdAppOutOfSync, HighPodRestartRate.
+**Custom alert rules — split in the 2026-08-16 mirror campaign (batch 3a, MR !469):**
+- `custom-alerts.tf` (CANONICAL, byte-identical with GR, 14 rules): ContainerOOMKilled, REDACTED_879bd353, REDACTED_02123891, REDACTED_a8a7eee8, REDACTED_67797f17, CiliumAgentNotReady, REDACTED_b94e0389, REDACTED_e52ce3d8, NFSMountStale, NFSMountHighLatency, ArgocdAppDegraded, ArgocdAppOutOfSync, HighPodRestartRate, PodCrashLoopBackOff (adopted from GR).
+- `estate-alerts.tf` (NL-ONLY, mirror-exempt, 7 rules): Pacemaker×2, OmoikaneClamav×2, OmoikaneRestic×2, REDACTED_febdf887 — moved out of custom-alerts.tf so the latter could go canonical.
+- The 3 legacy counter-based Velero rules were DELETED (documented-broken: `increase(velero_backup_partial_failure_total[1h])` resets on pod restart and measured 0 across a week of PartiallyFailed backups). Velero coverage = the 6 gauge-based rules in `velero-backup-alerts.tf` (canonical).
 
 **Triage policy:** All non-info alerts trigger triage (no whitelist). Dedup by `alertname:namespace` prevents duplicate YT issues. Noisy alerts should be silenced in Alertmanager, not filtered in the receiver.
 
@@ -169,6 +255,8 @@ Claude Code L3 (reads YT comments, plans fix, waits for human approval)
 
 1. **Alertmanager → Twilio bridge** (`http://10.0.X.X:9106/alert`, `nlclaude01:9106`). The route matches **`tier = 1` AND `severity = critical`** only (`group_wait 10s`, `repeat 1h`, `continue = true` so it still reaches Matrix/YT). Stock kube-prometheus rules carry **no `tier` label**, so none of them can SMS — only the custom `namespaces/monitoring/*.tf` rules that set `tier = "1"`.
 2. **Gatus → Twilio directly** (`gatus/main.tf`, `alerts = local.twilio_enabled ? [...]`), bypassing Alertmanager. Enabled live via `TF_VAR_gatus_twilio_*` in Atlantis's env (source of the harmless "gatus_twilio will be destroyed" phantom in the drift job — ignore it).
+
+Since 2026-08-16 GR has its own mirror of path 1 (bridge on grclaude01, http://10.0.X.X:9106/alert, gated on `twilio_bridge_url` in GR tfvars) — GR tier-1 criticals page independently. Gatus→Twilio (path 2) stays NL-only.
 
 **Current SMS surface = 12** (operator triage 2026-08-01, MR !447):
 
