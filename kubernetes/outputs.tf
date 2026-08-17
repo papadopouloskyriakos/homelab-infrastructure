@@ -11,8 +11,8 @@ output "ingress_nginx_external_ip" {
 
 # Storage
 output "nfs_storage_class" {
-  description = "NFS storage class name"
-  value       = module.nfs_provisioner.storage_class_name
+  description = "NFS storage class name (null when nfs_enabled = false)"
+  value       = one(module.nfs_provisioner[*].storage_class_name)
 }
 
 output "storage_class_retain" {

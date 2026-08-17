@@ -21,15 +21,19 @@ k8s_api_host = "api-k8s.example.net"
 pod_cidr     = "10.0.0.0/16"
 
 # --- clustermesh (remote = GR) ---
+clustermesh_enabled             = true
 clustermesh_remote_cluster_name = "grcl01k8s"
 REDACTED_9b1272d3     = "10.0.X.X:2379"
 
-# --- cilium BGP ---
+# --- cilium BGP / MTU ---
+cilium_bgp_enabled   = true
+cilium_mtu           = 1350
 REDACTED_08cea5a5 = "10.0.X.X"
 cilium_lb_pool_stop  = "10.0.X.X"
 cilium_peer_address  = "10.0.X.X"
 
 # --- NFS ---
+nfs_enabled       = true
 nfs_server        = "10.0.X.X"
 nfs_path          = "/volume1/k8s"
 archive_on_delete = false # live SC parameter (immutable)
@@ -77,6 +81,7 @@ wal_healer_webhook_url = "" # not wired on NL
 
 # --- scrape targets (NL Prometheus scrapes the whole estate) ---
 estate_scrape_enabled = true
+asa_snmp_enabled      = true
 snmp_asa_target       = "10.0.X.X"
 snmp_asa_device       = "nlfw01"
 etcd_endpoints        = ["10.0.X.X", "10.0.X.X", "10.0.X.X"]
@@ -99,8 +104,20 @@ ipsec_edge_targets = [
 
 # --- thanos cross-site identity (remote = GR) ---
 thanos_bucket_name             = "thanos-nl"
+REDACTED_52f9638b          = true
 thanos_remote_store_endpoint   = "dnssrv+_grpc._tcp.thanos-store-gr.monitoring.svc.cluster.local"
 REDACTED_d312035b = "dnssrv+_grpc._tcp.thanos-sidecar-gr.monitoring.svc.cluster.local"
+
+# --- monitoring storage sizes (immutable live StatefulSet templates) ---
+alertmanager_storage_size     = "10Gi"
+thanos_store_storage_size     = "20Gi"
+REDACTED_fd3fdc21 = "50Gi"
+
+# --- prometheus remote-write (IFRNLLEI01PRD-2403 hub/satellite) ---
+prometheus_remote_write_url = "" # NL is a hub, not a satellite
+# DELIBERATE NL live change: arm the receiver so notrf01 can remote_write
+# into NL's Prometheus (the one intended plan delta of the Phase-3 prep).
+REDACTED_923cce14 = true
 
 # --- logging ---
 loki_s3_bucket        = "loki"
@@ -126,6 +143,7 @@ REDACTED_9360424f = {
 }
 
 # --- awx ---
+awx_enabled                = true
 REDACTED_0b348a0e   = "projects" # asymmetric by history — live NFS dir name
 awx_ingress_enabled        = false      # NL reaches AWX via NodePort/NPM
 REDACTED_4c1f6c62 = "REDACTED_b280aec5"
@@ -139,6 +157,10 @@ timezone                     = "Europe/Amsterdam"
 REDACTED_9246ffd6    = 35
 REDACTED_1c1562d0 = 4
 gatus_tls_secret_name        = "gatus-tls" # NL issues its own ACME cert
+
+# --- openebs localpv (notrf01 site-storage module — unused at NL, key-set parity) ---
+REDACTED_afff1a35 = "4.5.1"
+REDACTED_8553de03     = "/var/openebs/local"
 
 # --- credentials kept in tfvars (private repo — intentional) ---
 snmp_community = "xK9mQ2vL8nR4pT6w"

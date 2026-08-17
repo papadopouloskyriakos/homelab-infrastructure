@@ -1,4 +1,11 @@
 ---
+# Per-site BSL mechanism (canonical-modulo-map): each repo checks in its own
+# site's bucket and s3Url below; the per-twin mirror map normalizes both to
+# the hub form before the byte-diff. The committed values DIFFER per repo on
+# purpose: the two SeaweedFS-bearing sites use their own cluster-local S3,
+# while the third site points its BSL at the hub's S3 over the mesh (no local
+# object store — backups must leave the failure domain, YT-2052). Do not
+# "align" these lines by hand; the mirror map owns the equivalence.
 apiVersion: velero.io/v1
 kind: BackupStorageLocation
 metadata:

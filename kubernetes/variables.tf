@@ -97,9 +97,15 @@ variable "clustermesh_remote_cluster_name" {
 }
 
 variable "REDACTED_9b1272d3" {
-  description = "Remote clustermesh-apiserver endpoint (NL -> GR 10.0.X.X:2379, GR -> NL 10.0.X.X:2379)"
+  description = "Remote clustermesh-apiserver endpoint (NL -> GR 10.0.X.X:2379, GR -> NL 10.0.X.X:2379). Ignored when clustermesh_enabled = false (a standalone site passes \"\")."
   type        = string
   default     = "10.0.X.X:2379"
+}
+
+variable "clustermesh_enabled" {
+  description = "Deploy the Cilium ClusterMesh apiserver + remote-cluster config (NL/GR true — meshed pair; a standalone third site starts false). false omits every clustermesh.* Helm value so the chart runs its standalone defaults."
+  type        = bool
+  default     = true
 }
 
 # =============================================================================
@@ -136,6 +142,18 @@ variable "cilium_peer_address" {
   default     = "10.0.X.X"
 }
 
+variable "cilium_bgp_enabled" {
+  description = "Deploy the Cilium BGP control plane objects (LB-IPAM pool, peer/cluster config, advertisement) and enable bgpControlPlane in Helm (NL/GR true — ASA peering; a site without a BGP peer passes false)."
+  type        = bool
+  default     = true
+}
+
+variable "cilium_mtu" {
+  description = "Cilium MTU Helm value (NL/GR 1350 — VXLAN over the site LAN; notrf01 needs 1300 for the overlay path)"
+  type        = number
+  default     = 1350
+}
+
 # =============================================================================
 # NFS Storage
 # =============================================================================
@@ -156,6 +174,12 @@ variable "archive_on_delete" {
   description = "nfs-client StorageClass archiveOnDelete parameter. IMMUTABLE on the live SC — NL false, GR true; do NOT \"align\"."
   type        = bool
   default     = false
+}
+
+variable "nfs_enabled" {
+  description = "Deploy the nfs-provisioner module (NL/GR true — site NAS present; a site without NFS passes false and must supply non-NFS classes wherever nfs-client is used)."
+  type        = bool
+  default     = true
 }
 
 # =============================================================================
@@ -402,6 +426,12 @@ variable "estate_scrape_enabled" {
   default     = true
 }
 
+variable "asa_snmp_enabled" {
+  description = "Deploy the ASA SNMP exporter (config map, deployment, service, ServiceMonitor) and the snmp-asa scrape job (NL/GR true — one ASA per site; a site without an ASA passes false)."
+  type        = bool
+  default     = true
+}
+
 variable "snmp_asa_target" {
   description = "SNMP exporter target ASA (NL 10.0.X.X, GR 10.0.X.X)"
   type        = string
@@ -458,15 +488,51 @@ variable "thanos_bucket_name" {
 }
 
 variable "thanos_remote_store_endpoint" {
-  description = "Remote site's thanos-store dnssrv endpoint (via ClusterMesh)"
+  description = "Remote site's thanos-store dnssrv endpoint (via ClusterMesh). Ignored when REDACTED_52f9638b = false."
   type        = string
   default     = "dnssrv+_grpc._tcp.thanos-store-gr.monitoring.svc.cluster.local"
 }
 
 variable "REDACTED_d312035b" {
-  description = "Remote site's thanos-sidecar dnssrv endpoint (via ClusterMesh)"
+  description = "Remote site's thanos-sidecar dnssrv endpoint (via ClusterMesh). Ignored when REDACTED_52f9638b = false."
   type        = string
   default     = "dnssrv+_grpc._tcp.thanos-sidecar-gr.monitoring.svc.cluster.local"
+}
+
+variable "REDACTED_52f9638b" {
+  description = "Add the remote site's Thanos store + sidecar endpoints to Thanos Query (NL/GR true — cross-site federation via ClusterMesh; a site without ClusterMesh passes false and queries only its own components)."
+  type        = bool
+  default     = true
+}
+
+variable "alertmanager_storage_size" {
+  description = "Alertmanager PVC size (StatefulSet volumeClaimTemplate — immutable live; keep matching the deployed value)"
+  type        = string
+  default     = "10Gi"
+}
+
+variable "thanos_store_storage_size" {
+  description = "Thanos Store Gateway cache PVC size (StatefulSet volumeClaimTemplate — immutable live; keep matching the deployed value)"
+  type        = string
+  default     = "20Gi"
+}
+
+variable "REDACTED_fd3fdc21" {
+  description = "Thanos Compactor working-dir PVC size (StatefulSet volumeClaimTemplate — immutable live; keep matching the deployed value)"
+  type        = string
+  default     = "50Gi"
+}
+
+variable "prometheus_remote_write_url" {
+  description = "Prometheus remote_write target URL. \"\" (default) = no remoteWrite key rendered at all — today's NL/GR behavior. A satellite site (notrf01) sets its hub receiver URL here."
+  type        = string
+  default     = ""
+}
+
+variable "REDACTED_923cce14" {
+  description = "Enable Prometheus's remote-write receiver endpoint (prometheusSpec.enableRemoteWriteReceiver). false (default) omits the key entirely — today's behavior; NL flips true to receive notrf01's remote_write stream."
+  type        = bool
+  default     = false
 }
 
 # =============================================================================
@@ -657,6 +723,12 @@ variable "REDACTED_9360424f" {
 # =============================================================================
 # AWX
 # =============================================================================
+
+variable "awx_enabled" {
+  description = "Deploy the AWX namespace module (NL/GR true; a site without AWX passes false)."
+  type        = bool
+  default     = true
+}
 
 variable "REDACTED_3e5e811f" {
   description = "AWX PostgreSQL PVC size"
@@ -859,4 +931,22 @@ variable "REDACTED_529ede8c" {
   description = "ZFS dataset parent path (GR only)"
   type        = string
   default     = "ssd-pool/k8s-iscsi"
+}
+
+# =============================================================================
+# OpenEBS LocalPV - hostpath storage
+# Consumed ONLY by notrf01's site-storage.tf (module "openebs_localpv").
+# Declared in all repos so variables.tf stays byte-identical; unused on NL/GR.
+# =============================================================================
+
+variable "REDACTED_afff1a35" {
+  description = "openebs/localpv-provisioner Helm chart version (notrf01 only; 4.5.1 = latest stable per the dynamic-localpv-provisioner repo index, verified 2026-08-17)"
+  type        = string
+  default     = "4.5.1"
+}
+
+variable "REDACTED_8553de03" {
+  description = "Host base path for OpenEBS LocalPV hostpath volumes (notrf01 only — 160G shared roots)"
+  type        = string
+  default     = "/var/openebs/local"
 }

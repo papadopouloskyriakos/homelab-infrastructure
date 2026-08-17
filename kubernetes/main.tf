@@ -41,7 +41,15 @@ locals {
 # CORE INFRASTRUCTURE MODULES
 # ========================================================================
 
+# Gated for third-site readiness (IFRNLLEI01PRD-2403): a site without a NAS
+# passes nfs_enabled = false. moved{} keeps NL/GR state on the new [0] address.
+moved {
+  from = module.nfs_provisioner
+  to   = module.nfs_provisioner[0]
+}
+
 module "nfs_provisioner" {
+  count  = var.nfs_enabled ? 1 : 0
   source = "./_core/nfs-provisioner"
 
   nfs_server        = var.nfs_server
@@ -71,6 +79,12 @@ module "cilium_bgp" {
   # ClusterMesh - remote cluster connection
   clustermesh_remote_cluster_name = var.clustermesh_remote_cluster_name
   REDACTED_9b1272d3     = var.REDACTED_9b1272d3
+
+  # Third-site gates (IFRNLLEI01PRD-2403) — NL/GR pass true/true/1350,
+  # preserving the historical rendering byte-for-byte.
+  clustermesh_enabled = var.clustermesh_enabled
+  cilium_bgp_enabled  = var.cilium_bgp_enabled
+  cilium_mtu          = var.cilium_mtu
 
   # Hubble UI
   hubble_hostname = var.hubble_hostname
@@ -142,9 +156,12 @@ module "monitoring" {
 
   common_labels = local.common_labels
 
-  REDACTED_6a2724e6 = var.REDACTED_6a2724e6
-  grafana_storage_size    = var.grafana_storage_size
-  snmp_community          = var.snmp_community
+  REDACTED_6a2724e6       = var.REDACTED_6a2724e6
+  grafana_storage_size          = var.grafana_storage_size
+  alertmanager_storage_size     = var.alertmanager_storage_size
+  thanos_store_storage_size     = var.thanos_store_storage_size
+  REDACTED_fd3fdc21 = var.REDACTED_fd3fdc21
+  snmp_community                = var.snmp_community
 
   # --- site identity ---
   # monitoring's cluster_name is the SHORT site code (nl/gr),
@@ -168,6 +185,7 @@ module "monitoring" {
   # estate_scrape_enabled must be true on exactly ONE Prometheus (NL) —
   # see namespaces/monitoring/scrape-estate.tf (mirror-exempt, GR stub).
   estate_scrape_enabled       = var.estate_scrape_enabled
+  asa_snmp_enabled            = var.asa_snmp_enabled
   snmp_asa_target             = var.snmp_asa_target
   snmp_asa_device             = var.snmp_asa_device
   etcd_endpoints              = var.etcd_endpoints
@@ -179,9 +197,14 @@ module "monitoring" {
   site_code                      = var.site_code
   remote_site_code               = var.remote_site_code
   thanos_bucket_name             = var.thanos_bucket_name
+  REDACTED_52f9638b          = var.REDACTED_52f9638b
   thanos_remote_store_endpoint   = var.thanos_remote_store_endpoint
   REDACTED_d312035b = var.REDACTED_d312035b
   REDACTED_928c2d3a          = var.REDACTED_928c2d3a
+
+  # --- prometheus remote-write (third-site hub/satellite; defaults render nothing) ---
+  prometheus_remote_write_url              = var.prometheus_remote_write_url
+  REDACTED_923cce14 = var.REDACTED_923cce14
 
   # --- ingress hostnames ---
   prometheus_hostname = var.prometheus_hostname
@@ -218,7 +241,15 @@ module "argocd" {
   depends_on = [module.external_secrets, module.ingress_nginx]
 }
 
+# Gated for third-site readiness (IFRNLLEI01PRD-2403): a site without AWX
+# passes awx_enabled = false. moved{} keeps NL/GR state on the new [0] address.
+moved {
+  from = module.awx
+  to   = module.awx[0]
+}
+
 module "awx" {
+  count  = var.awx_enabled ? 1 : 0
   source = "./namespaces/awx"
 
   common_labels = local.common_labels

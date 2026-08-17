@@ -4,12 +4,24 @@
 # Scrapes BGP and IPsec metrics from the LOCAL site's ASA firewall via SNMP v2c
 # Target: var.snmp_asa_target / var.snmp_asa_device (each cluster scrapes only
 # its own ASA — NL: 10.0.X.X/nlfw01, GR: 10.0.X.X/grfw01)
+#
+# Every resource here is gated on var.asa_snmp_enabled (count) — a site
+# without an ASA deploys none of it (the matching snmp-asa scrape job in
+# main.tf is gated on the same var). moved{} blocks map the historical
+# unindexed state addresses onto [0].
 # =============================================================================
 
 # -----------------------------------------------------------------------------
 # ConfigMap - SNMP Exporter Configuration for Cisco ASA
 # -----------------------------------------------------------------------------
+moved {
+  from = REDACTED_a9df2e77_v1.REDACTED_2b0aa899
+  to   = REDACTED_a9df2e77_v1.REDACTED_2b0aa899[0]
+}
+
 resource "REDACTED_a9df2e77_v1" "REDACTED_2b0aa899" {
+  count = var.asa_snmp_enabled ? 1 : 0
+
   metadata {
     name      = "REDACTED_c70333e5"
     namespace = "monitoring"
@@ -168,7 +180,14 @@ EOT
 # -----------------------------------------------------------------------------
 # Deployment - SNMP Exporter
 # -----------------------------------------------------------------------------
+moved {
+  from = REDACTED_08d34ae1.snmp_exporter
+  to   = REDACTED_08d34ae1.snmp_exporter[0]
+}
+
 resource "REDACTED_08d34ae1" "snmp_exporter" {
+  count = var.asa_snmp_enabled ? 1 : 0
+
   metadata {
     name      = "snmp-exporter"
     namespace = "monitoring"
@@ -195,7 +214,7 @@ resource "REDACTED_08d34ae1" "snmp_exporter" {
           "app.kubernetes.io/component" = "exporter"
         })
         annotations = {
-          "checksum/config" = sha256(REDACTED_a9df2e77_v1.REDACTED_2b0aa899.data["snmp.yml"])
+          "checksum/config" = sha256(REDACTED_a9df2e77_v1.REDACTED_2b0aa899[0].data["snmp.yml"])
         }
       }
 
@@ -277,7 +296,7 @@ resource "REDACTED_08d34ae1" "snmp_exporter" {
         volume {
           name = "config"
           config_map {
-            name = REDACTED_a9df2e77_v1.REDACTED_2b0aa899.metadata[0].name
+            name = REDACTED_a9df2e77_v1.REDACTED_2b0aa899[0].metadata[0].name
           }
         }
       }
@@ -290,7 +309,14 @@ resource "REDACTED_08d34ae1" "snmp_exporter" {
 # -----------------------------------------------------------------------------
 # Service - SNMP Exporter
 # -----------------------------------------------------------------------------
+moved {
+  from = kubernetes_service_v1.snmp_exporter
+  to   = kubernetes_service_v1.snmp_exporter[0]
+}
+
 resource "kubernetes_service_v1" "snmp_exporter" {
+  count = var.asa_snmp_enabled ? 1 : 0
+
   metadata {
     name      = "snmp-exporter"
     namespace = "monitoring"
@@ -320,7 +346,14 @@ resource "kubernetes_service_v1" "snmp_exporter" {
 # -----------------------------------------------------------------------------
 # ServiceMonitor - SNMP Exporter self-metrics
 # -----------------------------------------------------------------------------
+moved {
+  from = kubernetes_manifest.REDACTED_6b7ed15a
+  to   = kubernetes_manifest.REDACTED_6b7ed15a[0]
+}
+
 resource "kubernetes_manifest" "REDACTED_6b7ed15a" {
+  count = var.asa_snmp_enabled ? 1 : 0
+
   manifest = {
     apiVersion = "monitoring.coreos.com/v1"
     kind       = "ServiceMonitor"
