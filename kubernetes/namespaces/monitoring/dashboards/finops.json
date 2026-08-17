@@ -2244,7 +2244,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## 🧰 eBay — 20 years of buying\nFrom eBay's official data export (loaded 2026-08-17). Since 2021 the amounts are what was **really charged** — shipping and import fees included; older years come from the order emails (2018 kept no totals). Refunded and cancelled orders don't count as spend."
+        "content": "## 🧰 eBay — 20 years of buying\nFrom eBay's own data export — amounts since 2021 are what was really charged, shipping included (2018 kept no totals; refunds don't count as spend)."
       }
     },
     {

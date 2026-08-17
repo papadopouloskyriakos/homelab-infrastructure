@@ -197,7 +197,7 @@ resource "REDACTED_a9df2e77" "REDACTED_4c4c1a1a" {
 # finops: 🛍️ Online orders section (v_orders: Amazon/Thuisbezorgd/eBay/bol/AH/AliExpress/Flink from email receipts) — 2026-06-22
 # finops: spend panels now read v_spend_canonical / v_income_canonical (ledger migration 016) — 2026-07-27
 # finops: 🏷️ staples-on-bonus table (retail_offers × product_match, ledger migration 017 Bonusradar; AH mobile API weekly feed; '—' price = multi-buy mechanism) — 2026-07-29
-# finops: 🧰 eBay deep-dive sub-section (9 panels: all-time/refunds/night-checkout stats, per-year bars, top buys, sellers, checkout-hour histogram; reads ebay_orders + ebay_export_payments, ledger migration 020 eBay data export) — 2026-08-17
+# finops: 🧰 eBay deep-dive sub-section (9 panels: all-time/refunds/night-checkout stats, per-year bars, top buys, sellers, checkout-hour histogram; reads ebay_orders + ebay_export_payments, ledger migration 020 eBay data export; divider text fits h=2) — 2026-08-17
 # finops: finops.json re-normalized to indent=2 (the 2026-07-29 panel commit accidentally rewrote the whole file at indent=1, poisoning diffs) — 2026-07-29
 #   Health audit P0 #3 / P1 #6: 9 copies of an "exclude the ING credit-card bill" clause plus four
 #   inconsistent account scopes meant this dashboard reported EUR 1.790,34 for July while the weekly
