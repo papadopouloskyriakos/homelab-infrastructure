@@ -2232,6 +2232,436 @@
           "refId": "A"
         }
       ]
+    },
+    {
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 138
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## 🧰 eBay — 20 years of buying\nFrom eBay's official data export (loaded 2026-08-17). Since 2021 the amounts are what was **really charged** — shipping and import fees included; older years come from the order emails (2018 kept no totals). Refunded and cancelled orders don't count as spend."
+      }
+    },
+    {
+      "type": "stat",
+      "title": "🧰 Spent on eBay — all time  (€)",
+      "description": "",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 140
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3F6196"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 30,
+          "titleSize": 12
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT CONCAT('€ ', FORMAT(SUM(spend_eur),2,'de_DE')) AS v FROM v_orders WHERE merchant='eBay'",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "📦 eBay orders — all time",
+      "description": "",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 140
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3F6196"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 30,
+          "titleSize": 12
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT CONCAT(COUNT(*), '  ·  since ', YEAR(MIN(ordered_at))) AS v FROM v_orders WHERE merchant='eBay'",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "↩️ Money that came back — refunds  (€, since 2021)",
+      "description": "Refunds + one won chargeback, converted to € at approx rates.",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 140
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3F6196"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 30,
+          "titleSize": 12
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT CONCAT('€ ', FORMAT(SUM(amount * CASE currency WHEN 'GBP' THEN 1.157 WHEN 'USD' THEN 0.90 ELSE 1.0 END),2,'de_DE')) AS v FROM ebay_export_payments WHERE txn_type<>'Payment'",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "🌙 Checkouts before 08:00",
+      "description": "Share of eBay checkouts stamped 00:00–07:59 (eBay's clock, UTC).",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 140
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#3F6196"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 30,
+          "titleSize": 12
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT CONCAT(ROUND(100*SUM(HOUR(txn_at)<8)/COUNT(*)),'%') AS v FROM ebay_export_payments WHERE txn_type='Payment' AND order_no NOT IN (SELECT order_no FROM ebay_export_payments WHERE txn_type<>'Payment')",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "barchart",
+      "title": "📊 eBay per year — what I spent  (€)",
+      "description": "2018 shows empty — those 7 orders kept no totals. 2024 is the peak: the homelab era.",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 144
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "locale",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#6E8FB8"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "auto",
+        "showValue": "never",
+        "legend": {
+          "showLegend": false
+        },
+        "xTickLabelRotation": -45
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT CAST(YEAR(ordered_at) AS CHAR) AS `year`, ROUND(SUM(spend_eur),2) AS `spent` FROM v_orders WHERE merchant='eBay' GROUP BY 1 ORDER BY 1",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "🏆 Biggest eBay buys — ever",
+      "description": "Kept purchases only (returns excluded). 7 of 10 are Cisco.",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 144
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "When"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Paid (€)"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "right"
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT DATE_FORMAT(ordered_at,'%b %Y') AS `When`, COALESCE(LEFT(title,58), CONCAT(seller,' — 2nd unit, no title in export')) AS `What`, CONCAT('€ ', FORMAT(base_amount,2,'de_DE')) AS `Paid (€)` FROM ebay_orders WHERE base_amount IS NOT NULL AND status NOT IN ('cancelled','refunded','returned') ORDER BY base_amount DESC LIMIT 10",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "🤝 Favourite sellers — since 2021  (payment truth)",
+      "description": "What was actually paid per seller (GBP/USD converted at approx rates).",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 152
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Buys"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "right"
+              },
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Paid (≈€)"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "right"
+              },
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT seller AS `Seller`, COUNT(*) AS `Buys`, CONCAT('€ ', FORMAT(SUM(amount * CASE currency WHEN 'GBP' THEN 1.157 WHEN 'USD' THEN 0.90 ELSE 1.0 END),2,'de_DE')) AS `Paid (≈€)` FROM ebay_export_payments WHERE txn_type='Payment' GROUP BY seller ORDER BY SUM(amount * CASE currency WHEN 'GBP' THEN 1.157 WHEN 'USD' THEN 0.90 ELSE 1.0 END) DESC LIMIT 10",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "barchart",
+      "title": "🕐 The hours I hit Buy  (eBay's clock, UTC)",
+      "description": "Checkout times of dispute-free payments since 2021. The 02:00–06:00 block is real.",
+      "datasource": {
+        "type": "mysql",
+        "uid": "finops-ledger"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 152
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "locale",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#6E8FB8"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "auto",
+        "showValue": "never",
+        "legend": {
+          "showLegend": false
+        },
+        "xTickLabelRotation": -45
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT CAST(HOUR(txn_at) AS CHAR) AS `hour`, COUNT(*) AS `checkouts` FROM ebay_export_payments WHERE txn_type='Payment' AND order_no NOT IN (SELECT order_no FROM ebay_export_payments WHERE txn_type<>'Payment') GROUP BY 1 ORDER BY HOUR(txn_at)",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
     }
   ]
 }
