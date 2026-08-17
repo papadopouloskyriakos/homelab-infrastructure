@@ -82,9 +82,11 @@ module "cilium_bgp" {
 
   # Third-site gates (IFRNLLEI01PRD-2403) — NL/GR pass true/true/1350,
   # preserving the historical rendering byte-for-byte.
-  clustermesh_enabled = var.clustermesh_enabled
-  cilium_bgp_enabled  = var.cilium_bgp_enabled
-  cilium_mtu          = var.cilium_mtu
+  clustermesh_enabled          = var.clustermesh_enabled
+  cilium_bgp_enabled           = var.cilium_bgp_enabled
+  cilium_mtu                   = var.cilium_mtu
+  cilium_devices               = var.cilium_devices
+  REDACTED_9c9808e4 = var.REDACTED_9c9808e4
 
   # Hubble UI
   hubble_hostname = var.hubble_hostname

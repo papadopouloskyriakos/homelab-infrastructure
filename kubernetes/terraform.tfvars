@@ -192,3 +192,7 @@ haproxy_stats_auth = "REDACTED_38a2053f"
 REDACTED_6a2724e6 = "200Gi"
 grafana_storage_size    = "20Gi"
 loki_storage_size       = "100Gi"
+
+# --- cilium device overrides (loopback-node-IP sites only; "" = auto) ---
+cilium_devices               = ""
+REDACTED_9c9808e4 = ""
