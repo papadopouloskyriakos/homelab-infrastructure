@@ -404,7 +404,10 @@ moved {
 }
 
 resource "kubernetes_manifest" "cilium_lb_pool" {
-  count = var.cilium_bgp_enabled ? 1 : 0
+  # Gated separately from BGP: LB-IPAM ADDRESS ASSIGNMENT must work even where
+  # BGP advertisement is off (notrf01) — otherwise every LoadBalancer Service
+  # waits forever for an IP and provider applies deadline out.
+  count = var.cilium_lb_ipam_enabled ? 1 : 0
 
   manifest = {
     apiVersion = "cilium.io/v2"

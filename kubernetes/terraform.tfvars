@@ -196,3 +196,7 @@ loki_storage_size       = "100Gi"
 # --- cilium device overrides (loopback-node-IP sites only; "" = auto) ---
 cilium_devices               = ""
 REDACTED_9c9808e4 = ""
+
+# --- LB-IPAM (assignment) + SPIRE storage (3-way parity keys) ---
+cilium_lb_ipam_enabled = true
+spire_storage_class    = "nfs-client"

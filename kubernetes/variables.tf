@@ -962,3 +962,15 @@ variable "REDACTED_9c9808e4" {
   type        = string
   default     = ""
 }
+
+variable "cilium_lb_ipam_enabled" {
+  description = "LB-IPAM pool gate (assignment; BGP advertisement is cilium_bgp_enabled)"
+  type        = bool
+  default     = true
+}
+
+variable "spire_storage_class" {
+  description = "Storage class for SPIRE server data (site CSI-dependent)"
+  type        = string
+  default     = "nfs-client"
+}
