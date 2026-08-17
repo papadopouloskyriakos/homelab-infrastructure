@@ -54,7 +54,9 @@ resource "helm_release" "cilium" {
     ] : [],
     var.REDACTED_9c9808e4 != "" ? [
       {
-        name  = "directRoutingDevice"
+        # Top-level directRoutingDevice was removed from the chart in 1.15 —
+        # the agent option survives via extraConfig (cilium-config CM key).
+        name  = "extraConfig.direct-routing-device"
         value = var.REDACTED_9c9808e4
       },
       ] : [], [
