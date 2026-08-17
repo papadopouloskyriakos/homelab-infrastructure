@@ -186,3 +186,9 @@ haproxy_stats_auth = "REDACTED_38a2053f"
 # env vars apply, locals.twilio_enabled = true, gatus-twilio Secret is
 # created, and Gatus's custom alerting provider routes to Twilio.
 # -----------------------------------------------------------------------------
+
+# --- primary PVC sizes (explicit = the historical defaults; keys exist for the
+# --- 3-way tfvars key-set parity with the small-disk notrf01 site, YT-2403) ---
+REDACTED_6a2724e6 = "200Gi"
+grafana_storage_size    = "20Gi"
+loki_storage_size       = "100Gi"
