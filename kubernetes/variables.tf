@@ -950,3 +950,15 @@ variable "REDACTED_8553de03" {
   type        = string
   default     = "/var/openebs/local"
 }
+
+variable "cilium_devices" {
+  description = "Cilium devices override for loopback-node-IP sites (\"\" = auto-detect)"
+  type        = string
+  default     = ""
+}
+
+variable "REDACTED_9c9808e4" {
+  description = "Cilium directRoutingDevice override (\"\" = auto)"
+  type        = string
+  default     = ""
+}
