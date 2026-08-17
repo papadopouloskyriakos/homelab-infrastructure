@@ -3,107 +3,70 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-08-16 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-08-17 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
-## Health: CRITICAL ⚠️
+## Health: DEGRADED ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 19 |
+| Unhealthy Pods | 3 |
 | Pending PVCs | 0 |
-| Total Restarts | 1440 |
+| Total Restarts | 411 |
 
 ## Topology
 
-- **K8s:** v1.34.2 | **CNI:** Cilium 1.19.5
+- **K8s:** v1.36.3 | **CNI:** Cilium 1.20.0
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 194
+- **Pods:** 179
 
 ### Nodes
-- **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8005928Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
+- **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8002696Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-ctrl02** (control-plane) 10.0.X.X | CPU:4 Mem:8092Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-ctrl03** (control-plane) 10.0.X.X | CPU:4 Mem:8003704Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
-- **nlk8s-node01** (worker) 10.0.X.X | CPU:8 Mem:8005712Ki | Taints:none
-- **nlk8s-node02** (worker) 10.0.X.X | CPU:8 Mem:8006716Ki | Taints:none
-- **nlk8s-node03** (worker) 10.0.X.X | CPU:8 Mem:8006728Ki | Taints:none
-- **nlk8s-node04** (worker) 10.0.X.X | CPU:8 Mem:8006716Ki | Taints:none
+- **nlk8s-node01** (worker) 10.0.X.X | CPU:8 Mem:8001304Ki | Taints:none
+- **nlk8s-node02** (worker) 10.0.X.X | CPU:8 Mem:8002312Ki | Taints:none
+- **nlk8s-node03** (worker) 10.0.X.X | CPU:8 Mem:8002312Ki | Taints:none
+- **nlk8s-node04** (worker) 10.0.X.X | CPU:8 Mem:8002308Ki | Taints:none
 
 ## Anomalies
 
 ### Unhealthy Pods
 ```
-velero                   monitoring-default-kopia-maintain-job-1786848640188-rsdsn         0/1   Error       0                10m
-velero                   monitoring-default-kopia-maintain-job-1786848960431-76p75         0/1   Error       0                5m
-velero                   monitoring-default-kopia-maintain-job-1786849248231-brb87         0/1   Error       0                12s
-velero                   nfs-provisioner-default-kopia-maintain-job-1786040876571-6bjxq    0/1   Error       0                9d
-velero                   nfs-provisioner-default-kopia-maintain-job-1786041167440-x8kbw    0/1   Error       0                9d
-velero                   nfs-provisioner-default-kopia-maintain-job-1786041455209-5bhtz    0/1   Error       0                9d
-velero                   pihole-default-kopia-maintain-job-1786040852187-99d5q             0/1   Error       0                9d
-velero                   pihole-default-kopia-maintain-job-1786041143027-7bfsl             0/1   Error       0                9d
-velero                   pihole-default-kopia-maintain-job-1786041487800-cm7xb             0/1   Error       0                9d
-velero                   REDACTED_00313366-maintain-job-1786040856243-5mlk6          0/1   Error       0                9d
-velero                   REDACTED_00313366-maintain-job-1786041147068-szc9f          0/1   Error       0                9d
-velero                   REDACTED_00313366-maintain-job-1786041434895-5md9m          0/1   Error       0                9d
-velero                   velero-resttest-default-kopia-maintain-job-1786040860311-rq69r    0/1   Error       0                9d
-velero                   velero-resttest-default-kopia-maintain-job-1786041151140-k7b4s    0/1   Error       0                9d
-velero                   velero-resttest-default-kopia-maintain-job-1786041438983-fdkgv    0/1   Error       0                9d
-velero                   velero-rt-default-kopia-maintain-job-1786040864370-kv498          0/1   Error       0                9d
-velero                   velero-rt-default-kopia-maintain-job-1786041155220-whvtw          0/1   Error       0                9d
-velero                   velero-rt-default-kopia-maintain-job-1786041443052-pvhfv          0/1   Error       0                9d
+velero                   monitoring-default-kopia-maintain-job-1786934894863-mhqbk         0/1   Error       0               12m
+velero                   monitoring-default-kopia-maintain-job-1786935194864-rbd5d         0/1   Error       0               7m36s
+velero                   monitoring-default-kopia-maintain-job-1786935494864-h7p77         0/1   Error       0               2m36s
 ```
 
 ### High Restart Pods (>3)
-awx/awx-operator-controller-manager-6ffdf98f6-2k2jd: 7 restarts
-awx/my-awx-web-55ccb47b58-m95v8: 122 restarts
-cilium-spire/spire-agent-44qs8: 129 restarts
-cilium-spire/spire-agent-49g4h: 29 restarts
-cilium-spire/spire-agent-6lc7n: 130 restarts
-cilium-spire/spire-agent-mdslp: 133 restarts
-ingress-nginx/ingress-nginx-controller-8445475547-52656: 42 restarts
-ingress-nginx/ingress-nginx-controller-8445475547-lk4fg: 45 restarts
-kube-system/cilium-operator-6cdbfb68d7-z6v2x: 16 restarts
-kube-system/clustermesh-apiserver-6c96779765-f9j6x: 26 restarts
-kube-system/etcd-nlk8s-ctrl01: 64 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 110 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl02: 40 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl03: 96 restarts
-kube-system/kube-scheduler-nlk8s-ctrl01: 40 restarts
-kube-system/kube-scheduler-nlk8s-ctrl02: 36 restarts
-kube-system/kube-scheduler-nlk8s-ctrl03: 42 restarts
-kube-system/tetragon-5gk99: 5 restarts
-kube-system/tetragon-75hdg: 6 restarts
-kube-system/tetragon-878gv: 6 restarts
-kube-system/tetragon-jz2b6: 4 restarts
-kube-system/tetragon-mdsn9: 18 restarts
-kube-system/tetragon-tbcc7: 6 restarts
-kube-system/tetragon-vbs6v: 14 restarts
-logging/promtail-hp5sc: 7 restarts
-logging/promtail-ng69s: 4 restarts
-monitoring/goldpinger-25hf5: 47 restarts
-monitoring/goldpinger-6dj9l: 25 restarts
-monitoring/goldpinger-n2fzm: 9 restarts
-monitoring/goldpinger-zxtb9: 6 restarts
-monitoring/monitoring-prometheus-node-exporter-6dl8r: 174 restarts
-monitoring/monitoring-prometheus-node-exporter-6sc8j: 8 restarts
-monitoring/monitoring-prometheus-node-exporter-wmcb8: 45 restarts
-monitoring/prometheus-REDACTED_6dfbe9fc-1: 4 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-84888b4956ccdmf: 4 restarts
-seaweedfs/seaweedfs-filer-sync-f7489458c-tgvcj: 5 restarts
-synology-csi/synology-csi-node-4nxcz: 4 restarts
-synology-csi/synology-csi-node-577mq: 10 restarts
-synology-csi/synology-csi-node-kxrjb: 14 restarts
-synology-csi/synology-csi-node-l72f8: 6 restarts
-synology-csi/synology-csi-node-ptwb8: 6 restarts
-synology-csi/synology-csi-node-sfdmg: 4 restarts
-synology-csi/synology-csi-node-zch7n: 18 restarts
+kube-system/tetragon-5gk99: 7 restarts
+kube-system/tetragon-75hdg: 8 restarts
+kube-system/tetragon-878gv: 8 restarts
+kube-system/tetragon-jz2b6: 6 restarts
+kube-system/tetragon-mdsn9: 23 restarts
+kube-system/tetragon-tbcc7: 8 restarts
+kube-system/tetragon-vbs6v: 16 restarts
+logging/promtail-5jr9j: 4 restarts
+logging/promtail-hp5sc: 8 restarts
+logging/promtail-ng69s: 5 restarts
+monitoring/monitoring-prometheus-node-exporter-6dl8r: 175 restarts
+monitoring/monitoring-prometheus-node-exporter-6sc8j: 9 restarts
+monitoring/monitoring-prometheus-node-exporter-vgp6b: 4 restarts
+monitoring/monitoring-prometheus-node-exporter-wmcb8: 46 restarts
+synology-csi/synology-csi-node-4nxcz: 6 restarts
+synology-csi/synology-csi-node-577mq: 12 restarts
+synology-csi/synology-csi-node-kxrjb: 17 restarts
+synology-csi/synology-csi-node-l72f8: 9 restarts
+synology-csi/synology-csi-node-ptwb8: 8 restarts
+synology-csi/synology-csi-node-sfdmg: 6 restarts
+synology-csi/synology-csi-node-zch7n: 24 restarts
 
 ### Recent Warnings (5)
 ```
-velero        15m         Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786848340093   Job has reached the specified backoff limit
-velero        10m         Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786848640188   Job has reached the specified backoff limit
-velero        4m56s       Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786848960431   Job has reached the specified backoff limit
-kube-system   24s         Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl01                     Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system   14s         Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl01                     Readiness probe failed: HTTP probe failed with statuscode: 500
+velero      27m         Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786933994860   Job has reached the specified backoff limit
+velero      22m         Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786934294860   Job has reached the specified backoff limit
+velero      17m         Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786934594860   Job has reached the specified backoff limit
+velero      12m         Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786934894863   Job has reached the specified backoff limit
+velero      7m32s       Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1786935194864   Job has reached the specified backoff limit
 ```
 
 ## Key Resources
@@ -139,7 +102,7 @@ pihole/pihole-dns-tcp-lb: 10.0.X.X -> 53:30438/TCP
 ### Helm Releases
 - argocd (argo-cd-7.7.10) in argocd
 - cert-manager (cert-manager-v1.17.1) in cert-manager
-- cilium (cilium-1.19.5) in kube-system
+- cilium (cilium-1.20.0) in kube-system
 - external-secrets (external-secrets-1.1.1) in external-secrets
 - ingress-nginx (ingress-nginx-4.15.1) in ingress-nginx
 - k8s-agent (gitlab-agent-2.28.0) in REDACTED_01b50c5d
