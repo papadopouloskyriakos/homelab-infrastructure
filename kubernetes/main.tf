@@ -84,6 +84,8 @@ module "cilium_bgp" {
   # preserving the historical rendering byte-for-byte.
   clustermesh_enabled          = var.clustermesh_enabled
   cilium_bgp_enabled           = var.cilium_bgp_enabled
+  cilium_lb_ipam_enabled       = var.cilium_lb_ipam_enabled
+  spire_storage_class          = var.spire_storage_class
   cilium_mtu                   = var.cilium_mtu
   cilium_devices               = var.cilium_devices
   REDACTED_9c9808e4 = var.REDACTED_9c9808e4

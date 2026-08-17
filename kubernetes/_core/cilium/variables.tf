@@ -145,3 +145,9 @@ variable "REDACTED_9c9808e4" {
   type        = string
   default     = ""
 }
+
+variable "cilium_lb_ipam_enabled" {
+  description = "Gate the LB-IPAM pool (address assignment). Separate from cilium_bgp_enabled (advertisement)."
+  type        = bool
+  default     = true
+}
