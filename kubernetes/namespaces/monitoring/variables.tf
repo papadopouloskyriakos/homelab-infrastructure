@@ -56,6 +56,24 @@ variable "alertmanager_storage_class" {
   default     = "REDACTED_4f3da73d"
 }
 
+variable "alertmanager_storage_size" {
+  description = "Alertmanager PVC size (volumeClaimTemplate — immutable live; keep matching the deployed value)"
+  type        = string
+  default     = "10Gi"
+}
+
+variable "prometheus_remote_write_url" {
+  description = "Prometheus remote_write target URL. \"\" (default) omits the remoteWrite key from the rendered Helm values entirely — the historical behavior."
+  type        = string
+  default     = ""
+}
+
+variable "REDACTED_923cce14" {
+  description = "Enable prometheusSpec.enableRemoteWriteReceiver. false (default) omits the key from the rendered Helm values entirely — the historical behavior."
+  type        = bool
+  default     = false
+}
+
 # NOTE: grafana_admin_password removed - now sourced from OpenBao via ExternalSecret
 
 variable "grafana_storage_size" {
@@ -277,6 +295,12 @@ variable "REDACTED_7479c0fd" {
 # -----------------------------------------------------------------------------
 # Remote Site Configuration
 # -----------------------------------------------------------------------------
+variable "REDACTED_52f9638b" {
+  description = "Include the remote site's store + sidecar endpoints in Thanos Query args (requires ClusterMesh). false omits the two --endpoint args; true renders the historical arg list byte-identically."
+  type        = bool
+  default     = true
+}
+
 variable "thanos_remote_store_endpoint" {
   description = "Remote site's Thanos Store Gateway endpoint"
   type        = string
@@ -342,6 +366,12 @@ variable "snmp_community" {
   description = "SNMP community string for ASA firewalls"
   type        = string
   sensitive   = true
+}
+
+variable "asa_snmp_enabled" {
+  description = "Deploy the ASA SNMP exporter resources (snmp-exporter.tf) and emit the snmp-asa scrape job. false = site has no ASA; true renders the historical config byte-identically."
+  type        = bool
+  default     = true
 }
 
 variable "snmp_asa_target" {

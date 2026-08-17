@@ -206,7 +206,14 @@ resource "helm_release" "monitoring" {
     kubernetes_manifest.grafana_openobserve_ro,
   ]
 
-  values = [
+  # The values list is a concat(): the base document is followed by two
+  # OPTIONAL overlay documents (Helm deep-merges later entries over earlier
+  # ones). With the defaults (url = "", receiver = false) both overlays are
+  # absent and the rendered values are byte-identical to the historical
+  # single-document list — remoteWrite / enableRemoteWriteReceiver are only
+  # ever ADDED as keys, never emitted empty (an explicit empty key would
+  # diff the release against today's state for nothing).
+  values = concat([
     yamlencode({
       # =========================================================================
       # PROMETHEUS CONFIGURATION
@@ -384,28 +391,33 @@ resource "helm_release" "monitoring" {
                 { source_labels = ["__address__"], regex = "10\\.255\\.6\\.11:.*", target_label = "site", replacement = "tx" },
               ]
             },
-            # SNMP Exporter - Cisco ASA Firewall (local site only)
-            {
-              job_name        = "snmp-asa"
-              scrape_interval = "60s"
-              scrape_timeout  = "55s"
-              metrics_path    = "/snmp"
-              params = {
-                module = ["cisco_asa"]
-                auth   = ["asa_v2"]
-              }
-              static_configs = [{
-                targets = [var.snmp_asa_target] # local ASA only - each cluster scrapes its own ASA
-              }]
-              relabel_configs = [
-                { source_labels = ["__address__"], target_label = "__param_target" },
-                { source_labels = ["__param_target"], target_label = "instance" },
-                { target_label = "device", replacement = var.snmp_asa_device },
-                { target_label = "site", replacement = var.site },
-                { target_label = "__address__", replacement = "snmp-exporter.monitoring.svc:9116" },
-              ]
-            },
-          ], local.estate_scrape_configs)
+            ],
+            # SNMP Exporter - Cisco ASA Firewall (local site only). Gated on
+            # var.asa_snmp_enabled together with the snmp-exporter.tf
+            # resources — a site without an ASA emits neither the job nor
+            # the exporter. true renders the historical list byte-identically.
+            var.asa_snmp_enabled ? [
+              {
+                job_name        = "snmp-asa"
+                scrape_interval = "60s"
+                scrape_timeout  = "55s"
+                metrics_path    = "/snmp"
+                params = {
+                  module = ["cisco_asa"]
+                  auth   = ["asa_v2"]
+                }
+                static_configs = [{
+                  targets = [var.snmp_asa_target] # local ASA only - each cluster scrapes its own ASA
+                }]
+                relabel_configs = [
+                  { source_labels = ["__address__"], target_label = "__param_target" },
+                  { source_labels = ["__param_target"], target_label = "instance" },
+                  { target_label = "device", replacement = var.snmp_asa_device },
+                  { target_label = "site", replacement = var.site },
+                  { target_label = "__address__", replacement = "snmp-exporter.monitoring.svc:9116" },
+                ]
+              },
+          ] : [], local.estate_scrape_configs)
         }
 
         service = {
@@ -618,7 +630,7 @@ resource "helm_release" "monitoring" {
                 accessModes      = ["ReadWriteOnce"]
                 resources = {
                   requests = {
-                    storage = "10Gi"
+                    storage = var.alertmanager_storage_size
                   }
                 }
               }
@@ -955,7 +967,32 @@ resource "helm_release" "monitoring" {
         }
       }
     })
-  ]
+    ],
+    # Overlay 1 — satellite mode: ship every scraped sample to a hub
+    # Prometheus via remote_write (notrf01 -> NL). "" = overlay absent.
+    var.prometheus_remote_write_url != "" ? [
+      yamlencode({
+        prometheus = {
+          prometheusSpec = {
+            remoteWrite = [
+              { url = var.prometheus_remote_write_url }
+            ]
+          }
+        }
+      })
+    ] : [],
+    # Overlay 2 — hub mode: accept remote_write streams on
+    # /api/v1/write (NL receives notrf01). false = overlay absent.
+    var.REDACTED_923cce14 ? [
+      yamlencode({
+        prometheus = {
+          prometheusSpec = {
+            enableRemoteWriteReceiver = true
+          }
+        }
+      })
+    ] : [],
+  )
 }
 
 # -----------------------------------------------------------------------------

@@ -50,74 +50,76 @@ python3 /home/claude-runner/scripts/tf-graph-indexer.py /home/claude-runner/gitl
 
 ## Mirror contract
 
-The NL and GR `k8s/` trees — `infrastructure/nl/production` (gitlab.example.net, project 7) and `infrastructure/gr/production` (gr-gitlab.example.net, project 5) — are a **character-perfect mirror** since the 2026-08-16 campaign: byte-identical except site-unique identifiers. This section is IDENTICAL in both repos' `k8s/CLAUDE.md`. Every `k8s/` edit falls into exactly one of the four file classes below; know which one before you touch a file.
+THREE `k8s/` trees are a **character-perfect mirror** of one hub form: **NL (the hub)** `infrastructure/nl/production` (gitlab.example.net, project 7), **GR** `infrastructure/gr/production` (gr-gitlab.example.net, project 5), and **NO** `infrastructure/notrf01/production` (gitlab.example.net, project 58, Atlantis instance `Atlantis-no`) — byte-identical except site-unique identifiers, checked hub-pairwise (NL↔GR, NL↔NO). This section is IDENTICAL in all three repos' `k8s/CLAUDE.md`. Every `k8s/` edit falls into exactly one of the four file classes below; know which one before you touch a file.
 
 ### File classes
 
 | Class | Files | Rule |
 |-------|-------|------|
-| **Canonical (byte-identical)** | Every `.tf` under `_core/*` (except the CSI module dirs) and `namespaces/*`; root `main.tf` / `variables.tf` / `providers.tf` / `outputs.tf`; `argocd-apps/velero/*`; `ci/k8s.yml`; `atlantis.yaml`; `.githooks/pre-commit`; `scripts/k8s-mirror-*` | NO site identifiers in file content — every site value is `var.*` fed from tfvars. Edits MUST be ported to the twin (see THE RULE). |
-| **Site values** | root `terraform.tfvars` | The ONLY home of site-unique values (77 keys). The diff job asserts the two files carry the **same key set**; values differ per the identifier dictionary. Secrets stay in the Atlantis `TF_VAR_*` env — never in tfvars (tfvars values OVERRIDE env vars). Adding a key on one side without the twin fails the key-set gate. |
-| **Site structural (same name, per-site content)** | root `site-storage.tf` (the per-site CSI module call: NL = synology-csi against nl-nas01, GR = democratic-csi against the gr-pve02 ZFS pool); `namespaces/monitoring/scrape-estate.tf` (NL = the estate-wide scrape jobs, GR = a stub defining `estate_scrape_configs = []`) | Deliberately different content behind an identical filename, so `main.tf` (root and monitoring) stays byte-identical. Both are on the exemption manifest. Do not "align" them. |
-| **Exempt** | Everything listed in `scripts/k8s-mirror-exempt.txt`: the two CSI module dirs, `terraform.tfvars` (key-set-checked instead), the estate/NL-subsystem alert files (`estate-alerts.tf`, `host-pressure-alerts.tf`, `infrastructure-integrity-alerts.tf`, the omoikane/edge/intersite/agentic `*-alerts.tf` set), `dashboards.tf` + `dashboards/`, NL-only `argocd-apps/{bentopdf,echo-server,pihole}`, `CLAUDE.md`, `README.md`, `cluster-snapshots/`, `secrets/`, lock/terraform dirs | Every entry MUST carry a reason comment. Removing an entry = claiming the path is now canonical. |
+| **Canonical (byte-identical)** | Every `.tf` under `_core/*` (except the site storage module dirs) and `namespaces/*`; root `main.tf` / `variables.tf` / `providers.tf` / `outputs.tf`; `argocd-apps/velero/*`; `ci/k8s.yml`; `atlantis.yaml`; `.githooks/pre-commit`; `scripts/k8s-mirror-*` | NO site identifiers in file content — every site value is `var.*` fed from tfvars. Edits MUST be ported to BOTH twins (see THE RULE). |
+| **Site values** | root `terraform.tfvars` | The ONLY home of site-unique values. The diff asserts all files carry the **same key set**; values differ per the identifier dictionary. Secrets stay in the Atlantis `TF_VAR_*` env — never in tfvars (tfvars values OVERRIDE env vars). Adding a key in one repo without the twins fails the key-set gate. |
+| **Site structural (same name, per-site content)** | root `site-storage.tf` (the per-site storage module call: NL = synology-csi against nl-nas01, GR = democratic-csi against the gr-pve02 ZFS pool, NO = openebs-localpv hostpath on the 160G shared roots); `namespaces/monitoring/scrape-estate.tf` (NL = the estate-wide scrape jobs, GR and NO = stubs defining `estate_scrape_configs = []`) | Deliberately different content behind an identical filename, so `main.tf` (root and monitoring) stays byte-identical. All are on the exemption manifest. Do not "align" them. |
+| **Exempt** | Everything listed in `scripts/k8s-mirror-exempt.txt`: the three site storage module dirs, `terraform.tfvars` (key-set-checked instead), the estate/NL-subsystem alert files (`estate-alerts.tf`, `host-pressure-alerts.tf`, `infrastructure-integrity-alerts.tf`, the omoikane/edge/intersite/agentic `*-alerts.tf` set), `dashboards.tf` + `dashboards/`, NL-only `argocd-apps/{bentopdf,echo-server,pihole}`, `CLAUDE.md`, `README.md`, `cluster-snapshots/`, `secrets/`, lock/terraform dirs | Every entry MUST carry a reason comment. Removing an entry = claiming the path is now canonical. |
 
 ### Tooling
 
-- `scripts/k8s-mirror-diff.sh` + `scripts/k8s-mirror-map.txt` (identifier dictionary; GR→NL normalization, longest-match-first) + `scripts/k8s-mirror-exempt.txt` — all three are themselves canonical and identical in both repos.
-- Run locally on the claude-runner host (defaults to the two standard checkouts): `scripts/k8s-mirror-diff.sh`. Exit 0 = mirror holds; exit 1 prints the divergence; exit 2 = setup error.
-- How it works: prune exempt paths → normalize GR-form identifiers to NL form **only in files that already differ** (canonical files legitimately mention both sites' values in comments and the gatus endpoint union — rewriting them would manufacture divergence) → guard: any GR-form token surviving normalization in a differing file is itself a failure (dictionary gap) → assert tfvars key-set equality → byte-diff.
-- CI job `k8s_mirror_check` (stage verify, scheduled + on main k8s changes, both instances) is **pending**: it needs `ci/mirror` OpenBao tokens for the cross-instance clone. Until wired, local runs are the proof.
+- `scripts/k8s-mirror-diff.sh` (v2, hub-pairwise) + the per-twin identifier maps `scripts/k8s-mirror-map-gr.txt` / `scripts/k8s-mirror-map-no.txt` (twin→NL normalization, longest-match-first) + `scripts/k8s-mirror-exempt.txt` — all of them are themselves canonical and identical in all three repos.
+- The script carries a twin table SITE → (checkout path, map file, guard regex). Run locally on the claude-runner host: `scripts/k8s-mirror-diff.sh` (no args = every configured twin whose checkout exists; a missing checkout — e.g. the NO repo before provisioning — is skipped WITH a warning); `scripts/k8s-mirror-diff.sh gr` / `... no` checks one twin. Exit 0 = mirror holds for every twin checked; exit 1 prints the divergence; exit 2 = setup error.
+- How it works, per twin: prune exempt paths → normalize twin-form identifiers to NL hub form **only in files that already differ** (canonical files legitimately mention other sites' values in comments and the gatus endpoint union — rewriting them would manufacture divergence) → guard: any twin-form token surviving normalization in a differing file is itself a failure (dictionary gap) → assert tfvars key-set equality → byte-diff.
+- CI job `k8s_mirror_check` (stage verify, scheduled + on main k8s changes) is **pending**: it needs `ci/mirror` OpenBao tokens for the cross-instance clone. Until wired, local runs are the proof.
 
 ### THE RULE
 
-> **Any edit to a canonical file must be ported to the twin repo the same day, and `k8s-mirror-diff.sh` must exit 0 before the second merge.**
+> **Any edit to a canonical file must be ported to BOTH twin repos the same day, and `k8s-mirror-diff.sh` must exit 0 for every present twin before the LAST merge.**
 
 Corollaries:
-- Never introduce a site identifier into a canonical file — hoist it to a variable and put the value in both tfvars files.
-- Pair the MRs: NL-first, GR same day (the campaign convention). One open k8s MR per repo at a time (Atlantis lock).
-- A key added to one `terraform.tfvars` must be added to the twin the same day.
-- Changes to this section, the map, or the exempt manifest are themselves canonical edits — port them too.
-- During an NL↔GR partition, GR CI cannot authenticate to OpenBao (GR raft minority) — don't merge k8s MRs during tunnel instability.
+- Never introduce a site identifier into a canonical file — hoist it to a variable and put the value in all three tfvars files.
+- Pair the MRs: NL-first, twins same day (the campaign convention). One open k8s MR per repo at a time (Atlantis lock).
+- A key added to one `terraform.tfvars` must be added to the twins the same day.
+- Changes to this section, the maps, or the exempt manifest are themselves canonical edits — port them too.
+- During an NL↔GR partition, GR CI cannot authenticate to OpenBao (GR raft minority) — don't merge k8s MRs during tunnel instability. (The NO repo lives on the NL GitLab, so NL↔GR partitions do not block it — but a NO-site overlay outage blocks its Atlantis apply reaching the NO cluster.)
 
-### Identifier dictionary (NL ↔ GR)
+### Identifier dictionary (NL ↔ GR ↔ NO)
 
-The authoritative machine-readable pairs live in `terraform.tfvars` (both files, same keys) and `scripts/k8s-mirror-map.txt`. Human summary:
+The authoritative machine-readable pairs live in `terraform.tfvars` (all three files, same keys) and `scripts/k8s-mirror-map-{gr,no}.txt`. Human summary (NO values are the IFRNLLEI01PRD-2403 plan; the NO repo/cluster is being provisioned):
 
-| Concept | NL | GR |
-|---------|----|----|
-| Cluster name / ID | `nlcl01k8s` / 1 | `grcl01k8s` / 2 |
-| site / site_code / node_region | `nl` / `nl` / `nl-lei` | `gr` / `gr` / `gr-skg` |
-| Node subnet / pod CIDR | 192.168.85.x / 10.0.0.0/16 | 192.168.58.x / 10.1.0.0/16 |
-| API endpoint | api-k8s.example.net (VIP .85.5) | gr-api-k8s.example.net (VIP .58.5) |
-| LB pool / BGP peer | .85.64–.126 / ASA 10.0.X.X | .58.64–.126 / ASA 10.0.X.X |
-| BGP ASNs | 65001 (k8s) / 65000 (ASA) — **identical both sites, NOT site-unique** | same |
-| ClusterMesh endpoint (own) | 10.0.X.X:2379 | 10.0.X.X:2379 |
-| Service FQDNs | unprefixed / `nl-*` (grafana., argocd., nl-prometheus., nl-s3., …) | `gr-*` (gr-grafana., gr-argocd., gr-prometheus., gr-s3., …) |
-| GitLab / project id / Atlantis | gitlab.example.net / 7 / project `k8s` | gr-gitlab.example.net / 5 / project `k8s` |
-| TF state name | `k8s-production-state` | `k8s-gr-production-state` |
-| OpenBao CI role / JWT mount / prefix | `gitlab-ci` / `jwt` / `ci/` | `gitlab-ci-gr` / `jwt-gr` / `ci-gr/` |
-| ESO auth mount | `kubernetes` | `kubernetes-gr` |
-| NFS | 10.0.X.X:/volume1/k8s | 10.0.X.X:/exports/nfs/k8s |
-| iSCSI SCs (CSI backend) | `synology-csi-nl-nas01-iscsi-{retain,delete}` (Synology DS1621+) | `iscsi-ssd-{retain,delete}` (democratic-csi, ZFS on gr-pve02) |
-| S3 buckets | `loki` / `thanos-nl` / `velero` | `loki-gr` / `thanos-gr` / `velero-gr` |
-| cert-manager role | issuer (`acme_issuer_enabled = true`: ACME + 18 Certificates + PushSecret) | consumer (`false`: ExternalSecret pulls `REDACTED_2812d784`) |
-| Estate scrapes / estate alerts | `estate_scrape_enabled = true` + the estate alert files | `false` + stub / exempt (see below) |
-| Twilio bridge | http://10.0.X.X:9106/alert (nlclaude01) | http://10.0.X.X:9106/alert (grclaude01) |
-| Alertmanager n8n webhook | …/webhook/prometheus-alert | …/webhook/prometheus-alert-gr |
-| Timezone / site name | Europe/Amsterdam / Netherlands | Europe/Athens / Greece |
+| Concept | NL | GR | NO |
+|---------|----|----|----|
+| Cluster name / ID | `nlcl01k8s` / 1 | `grcl01k8s` / 2 | `notrf01cl01k8s` / 3 |
+| site / site_code / node_region | `nl` / `nl` / `nl-lei` | `gr` / `gr` / `gr-skg` | `no` / `notrf01` / `no-trf` |
+| Node subnet / pod CIDR | 192.168.85.x / 10.0.0.0/16 | 192.168.58.x / 10.1.0.0/16 | overlay loopbacks 10.255.{4,5,7,8,9,10}.11 / 10.2.0.0/16 |
+| API endpoint | api-k8s.example.net (VIP .85.5) | gr-api-k8s.example.net (VIP .58.5) | no-api-k8s.example.net (VIP 10.255.11.5) |
+| LB pool / BGP peer | .85.64–.126 / ASA 10.0.X.X | .58.64–.126 / ASA 10.0.X.X | none — no ASA (`cilium_bgp_enabled = false`) |
+| BGP ASNs | 65001 (k8s) / 65000 (ASA) — **identical NL+GR, NOT site-unique** | same | n/a (BGP gate off) |
+| ClusterMesh endpoint (own) | 10.0.X.X:2379 | 10.0.X.X:2379 | none initially (`clustermesh_enabled = false`) |
+| Cilium MTU | 1350 | 1350 | 1300 (overlay path) |
+| Service FQDNs | unprefixed / `nl-*` (grafana., argocd., nl-prometheus., nl-s3., …) | `gr-*` (gr-grafana., gr-argocd., gr-prometheus., gr-s3., …) | `no-*` (no-grafana., no-argocd., no-prometheus., …) |
+| GitLab / project id / Atlantis | gitlab.example.net / 7 / project `k8s` | gr-gitlab.example.net / 5 / project `k8s` | gitlab.example.net / 58 / project `k8s` (Atlantis-no) |
+| TF state name | `k8s-production-state` | `k8s-gr-production-state` | `k8s-no-production-state` |
+| OpenBao CI role / JWT mount / prefix | `gitlab-ci` / `jwt` / `ci/` | `gitlab-ci-gr` / `jwt-gr` / `ci-gr/` | `gitlab-ci-no` / `jwt` (same NL GitLab issuer) / `ci-no/` |
+| ESO auth mount | `kubernetes` | `kubernetes-gr` | `kubernetes-notrf01` |
+| NFS | 10.0.X.X:/volume1/k8s | 10.0.X.X:/exports/nfs/k8s | none (`nfs_enabled = false`) |
+| Storage classes (backend) | `synology-csi-nl-nas01-iscsi-{retain,delete}` (Synology DS1621+) | `iscsi-ssd-{retain,delete}` (democratic-csi, ZFS on gr-pve02) | `local-hostpath-{retain,delete}` (OpenEBS LocalPV, 160G shared roots) |
+| S3 buckets | `loki` / `thanos-nl` / `velero` | `loki-gr` / `thanos-gr` / `velero-gr` | `loki-no` / `thanos-no` / `velero-no` — **all on NL S3** (no local SeaweedFS; velero BSL s3Url = https://nl-s3.example.net) |
+| cert-manager role | issuer (`acme_issuer_enabled = true`: ACME + 18 Certificates + PushSecret) | consumer (`false`: ExternalSecret pulls `REDACTED_2812d784`) | consumer (`false`) |
+| Estate scrapes / estate alerts | `estate_scrape_enabled = true` + the estate alert files | `false` + stub / exempt (see below) | `false` + stub |
+| Gating vars (2403) | clustermesh/bgp/nfs/asa_snmp/thanos_remote/awx all `true`; remote-write receiver `true` (hub) | all `true`; receiver `false` | **all `false`**; `prometheus_remote_write_url` → NL receiver (satellite) |
+| Twilio bridge | http://10.0.X.X:9106/alert (nlclaude01) | http://10.0.X.X:9106/alert (grclaude01) | NL bridge over the overlay (http://10.0.X.X:9106/alert) |
+| Alertmanager n8n webhook | …/webhook/prometheus-alert | …/webhook/prometheus-alert-gr | …/webhook/prometheus-alert-no |
+| Timezone / site name | Europe/Amsterdam / Netherlands | Europe/Athens / Greece | Europe/Oslo / Norway |
 
 ### Adding a new module — canonical from day one
 
-1. Author the module byte-identical in BOTH repos (`_core/<name>/` or `namespaces/<name>/`) with `main.tf`, `variables.tf`, `outputs.tf`. No site literals — anything site-specific is a module variable.
-2. Wire it in the canonical root `main.tf` passing `common_labels` and `var.*` only; declare the vars once in the canonical `variables.tf`; put the per-site values in BOTH `terraform.tfvars` files (same key set).
-3. If it can only ever run on one site (an estate subsystem), do NOT half-mirror it: give it its own file, add that file to `scripts/k8s-mirror-exempt.txt` with a reason, and give the other site a stub only if a canonical file references it (the `scrape-estate.tf` pattern).
-4. Run `scripts/k8s-mirror-diff.sh` before either merge; NL MR first, GR MR same day.
+1. Author the module byte-identical in ALL repos (`_core/<name>/` or `namespaces/<name>/`) with `main.tf`, `variables.tf`, `outputs.tf`. No site literals — anything site-specific is a module variable.
+2. Wire it in the canonical root `main.tf` passing `common_labels` and `var.*` only; declare the vars once in the canonical `variables.tf`; put the per-site values in ALL `terraform.tfvars` files (same key set). If a site cannot run it at all, gate the module call with a `count` on a `*_enabled` var (defaults preserving NL/GR) plus a `moved {}` block so existing state maps to `[0]` — the nfs_provisioner/awx pattern.
+3. If it can only ever run on one site (an estate subsystem), do NOT half-mirror it: give it its own file, add that file to `scripts/k8s-mirror-exempt.txt` with a reason, and give the other sites a stub only if a canonical file references it (the `scrape-estate.tf` pattern).
+4. Run `scripts/k8s-mirror-diff.sh` before any merge; NL MR first, twin MRs same day.
 
 ### The estate-alerts / scrape-estate NL-only pattern (why: double-fire)
 
 Estate-wide subsystems (edge VPS, omoikane, PVE hosts, DMZ, chatops, agentic platform, …) are scraped and alerted from exactly **one** Prometheus — NL's. Mirroring those scrape jobs or alert rules to GR would fire every estate alert twice: two YT issues, two Matrix posts, two pages per event. Therefore:
 
-- `namespaces/monitoring/scrape-estate.tf` is site-structural: NL's copy defines `local.estate_scrape_configs` (the estate jobs); GR's copy defines `[]`. `namespaces/monitoring/main.tf` concatenates it unconditionally and stays byte-identical.
+- `namespaces/monitoring/scrape-estate.tf` is site-structural: NL's copy defines `local.estate_scrape_configs` (the estate jobs); GR's and NO's copies define `[]`. `namespaces/monitoring/main.tf` concatenates it unconditionally and stays byte-identical.
 - The estate/NL-subsystem alert files (`estate-alerts.tf` + the omoikane/edge/intersite/agentic/etc. `*-alerts.tf` set) exist only in the NL repo and are on the exemption manifest.
 - `host-pressure-alerts.tf` and `infrastructure-integrity-alerts.tf` are ALSO exempt for a different reason: they key on PVE `node_exporter` / `pve_wedge` / `asa_binding` series that GR's Prometheus does not scrape — on GR they would be can-never-fire rules (worse than absent). If GR PVE exporters ever land, revisit with var-driven targets.
 - Cluster-local alerts ARE mirrored and canonical: `custom-alerts.tf` (14 rules), `seaweedfs-write-path-alerts.tf` (3), `velero-backup-alerts.tf` (6) — byte-identical, firing per-site against each cluster's own Prometheus.

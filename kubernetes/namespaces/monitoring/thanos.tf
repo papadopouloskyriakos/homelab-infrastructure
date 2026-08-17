@@ -147,7 +147,10 @@ resource "REDACTED_08d34ae1" "thanos_query" {
           name  = "thanos-query"
           image = "quay.io/thanos/thanos:${var.thanos_version}"
 
-          args = [
+          # Remote-site endpoints are gated on var.REDACTED_52f9638b
+          # (value-level concat — no resource churn). true renders the
+          # historical arg list byte-identically; false queries local only.
+          args = concat([
             "query",
             "--log.level=info",
             "--log.format=logfmt",
@@ -159,12 +162,14 @@ resource "REDACTED_08d34ae1" "thanos_query" {
             "--endpoint=dnssrv+_grpc._tcp.REDACTED_e135e9ed.monitoring.svc.cluster.local",
             # Local Store Gateway
             "--endpoint=dnssrv+_grpc._tcp.thanos-store.monitoring.svc.cluster.local",
+            ], var.REDACTED_52f9638b ? [
             # Remote site Store Gateway (via Cluster Mesh)
             "--endpoint=${var.thanos_remote_store_endpoint}",
             # Remote site Sidecar (via Cluster Mesh) - real-time metrics from remote Prometheus
             "--endpoint=${var.REDACTED_d312035b}",
+            ] : [], [
             "--query.auto-downsampling",
-          ]
+          ])
 
           port {
             name           = "http"

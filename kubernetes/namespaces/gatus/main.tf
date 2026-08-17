@@ -177,6 +177,21 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             ]
             alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
           },
+          # notrf01 dead-man (IFRNLLEI01PRD-2403) — pre-wired DISABLED; armed
+          # in Phase 7 once the NO cluster serves its API. No Twilio entry.
+          {
+            name     = "NO Kubernetes API"
+            group    = "🔧 Core Platform"
+            enabled  = false
+            url      = "https://no-api-k8s.example.net:6443/healthz"
+            client   = { insecure = true }
+            interval = "30s"
+            conditions = [
+              "[STATUS] == 200",
+              "[BODY] == ok"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
           {
             name     = "Cilium CNI (NL)"
             group    = "🔧 Core Platform"
@@ -414,6 +429,22 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             name     = "Prometheus (GR)"
             group    = "📊 Observability"
             url      = "https://gr-prometheus.example.net"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.REDACTED_4f32e8a8 != "" ? [{ type = "custom" }] : []
+          },
+          # notrf01 monitoring dead-man (IFRNLLEI01PRD-2403) — pre-wired
+          # DISABLED; armed in Phase 7. No existing Alertmanager check to
+          # mirror, so this follows the Prometheus (NL)/(GR) pair — the
+          # closest sane counterpart for "is the NO monitoring stack alive".
+          {
+            name     = "Prometheus (NO)"
+            group    = "📊 Observability"
+            enabled  = false
+            url      = "https://no-prometheus.example.net"
             interval = "60s"
             conditions = [
               "[STATUS] == 200",

@@ -36,9 +36,21 @@ variable "pod_cidr" {
   default     = "10.0.0.0/16"
 }
 
+variable "cilium_mtu" {
+  description = "Cilium MTU Helm value (NL/GR 1350; notrf01 1300 — overlay path)"
+  type        = number
+  default     = 1350
+}
+
 # ------------------------------------------------------------------------
 # BGP Configuration
 # ------------------------------------------------------------------------
+
+variable "cilium_bgp_enabled" {
+  description = "Deploy the BGP control plane objects (LB-IPAM pool, peer/cluster config, advertisement) and set bgpControlPlane.enabled. true renders exactly the historical config; false omits the objects and disables the control plane."
+  type        = bool
+  default     = true
+}
 
 variable "lb_pool_start" {
   description = "Start IP of LoadBalancer IP pool"
@@ -73,6 +85,12 @@ variable "peer_address" {
 # ------------------------------------------------------------------------
 # Cluster Mesh - remote cluster connection
 # ------------------------------------------------------------------------
+
+variable "clustermesh_enabled" {
+  description = "Render the clustermesh.* Helm values (apiserver + remote-cluster config). true renders exactly the historical byte-identical value set; false omits every clustermesh.* key so the chart runs its standalone defaults."
+  type        = bool
+  default     = true
+}
 
 variable "clustermesh_remote_cluster_name" {
   description = "Remote cluster name in ClusterMesh (NL peers with GR and vice versa)"
