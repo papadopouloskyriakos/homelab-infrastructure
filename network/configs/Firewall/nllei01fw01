@@ -727,6 +727,8 @@ object network NET_no_dmz05
  subnet 10.255.9.0 255.255.255.0
 object network NET_no_dmz06
  subnet 10.255.10.0 255.255.255.0
+object network NET_no_k8s
+ subnet 10.255.11.0 255.255.255.0
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -928,6 +930,7 @@ object-group network ALL_VPS_OVERLAY
  network-object host 193.200.238.241
  network-object 10.255.9.0 255.255.255.0
  network-object 10.255.10.0 255.255.255.0
+ network-object 10.255.11.0 255.255.255.0
  network-object host 185.125.169.183
  network-object host 185.125.169.184
 object-group network whitelist_shun_nlgr_all_subnets
@@ -1482,6 +1485,16 @@ nat (inside_nfs,outside_budget) source static any any destination static NET_no_
 nat (dmz_servers02,outside_freedom) source static any any destination static NET_no_dmz06 NET_no_dmz06 no-proxy-arp route-lookup
 nat (inside_mgmt,outside_freedom) source static any any destination static NET_no_dmz06 NET_no_dmz06 no-proxy-arp route-lookup
 nat (inside_k8s,outside_freedom) source static any any destination static NET_no_dmz06 NET_no_dmz06 no-proxy-arp route-lookup
+nat (dmz_servers02,outside_budget) source static any any destination static NET_no_k8s NET_no_k8s no-proxy-arp route-lookup
+nat (inside_mgmt,outside_budget) source static any any destination static NET_no_k8s NET_no_k8s no-proxy-arp route-lookup
+nat (inside_k8s,outside_budget) source static any any destination static NET_no_k8s NET_no_k8s no-proxy-arp route-lookup
+nat (inside_servers01,outside_budget) source static any any destination static NET_no_k8s NET_no_k8s no-proxy-arp route-lookup
+nat (inside_servers02,outside_budget) source static any any destination static NET_no_k8s NET_no_k8s no-proxy-arp route-lookup
+nat (inside_corosync,outside_budget) source static any any destination static NET_no_k8s NET_no_k8s no-proxy-arp route-lookup
+nat (inside_nfs,outside_budget) source static any any destination static NET_no_k8s NET_no_k8s no-proxy-arp route-lookup
+nat (dmz_servers02,outside_freedom) source static any any destination static NET_no_k8s NET_no_k8s no-proxy-arp route-lookup
+nat (inside_mgmt,outside_freedom) source static any any destination static NET_no_k8s NET_no_k8s no-proxy-arp route-lookup
+nat (inside_k8s,outside_freedom) source static any any destination static NET_no_k8s NET_no_k8s no-proxy-arp route-lookup
 !
 object network NAT_dmz_servers01
  nat (dmz_servers01,outside_freedom) dynamic PUBLIC_dmz_servers01
