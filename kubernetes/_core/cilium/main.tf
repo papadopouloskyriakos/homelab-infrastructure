@@ -43,130 +43,144 @@ resource "helm_release" "cilium" {
   # included) byte-identical to the historical flat list. When disabled the
   # clustermesh.* keys are OMITTED entirely (chart defaults = standalone) —
   # explicit "false" entries would churn the release for no reason.
-  set = concat([
-    # Cluster settings
-    {
-      name  = "cluster.name"
-      value = var.cluster_name
-    },
-    {
-      name  = "cluster.id"
-      value = var.cluster_id
-    },
-    {
-      name  = "k8sServiceHost"
-      value = var.k8s_api_host
-    },
-    {
-      name  = "k8sServicePort"
-      value = "6443"
-    },
-    # =========================================================================
-    # IPAM Configuration - CRITICAL FOR CLUSTERMESH
-    # NL Cluster uses 10.0.0.0/16, GR Cluster uses 10.1.0.0/16 (var.pod_cidr)
-    # This prevents pod CIDR collisions across clusters
-    # =========================================================================
-    {
-      name  = "ipam.mode"
-      value = "cluster-pool"
-    },
-    {
-      name  = "ipam.operator.clusterPoolIPv4PodCIDRList"
-      value = var.pod_cidr
-    },
-    {
-      name  = "ipam.operator.clusterPoolIPv4MaskSize"
-      value = "24"
-    },
-    # Networking
-    {
-      name  = "REDACTED_fd61d0fe"
-      value = "true"
-    },
-    {
-      name  = "routingMode"
-      value = "tunnel"
-    },
-    {
-      name  = "tunnelProtocol"
-      value = "vxlan"
-    },
-    {
-      name  = "MTU"
-      value = tostring(var.cilium_mtu)
-    },
-    # Operator
-    {
-      name  = "operator.replicas"
-      value = "1"
-    },
-    # ========================================================================
-    # Hubble Observability
-    # ========================================================================
-    {
-      name  = "hubble.enabled"
-      value = "true"
-    },
-    {
-      name  = "hubble.relay.enabled"
-      value = "true"
-    },
-    {
-      name  = "hubble.ui.enabled"
-      value = "true"
-    },
-    # Hubble Metrics
-    {
-      name  = "hubble.metrics.enableOpenMetrics"
-      value = "true"
-    },
-    {
-      name  = "hubble.metrics.enabled"
-      value = "{dns,drop,tcp,flow,icmp,http}"
-    },
-    {
-      name  = "hubble.metrics.serviceMonitor.enabled"
-      value = var.REDACTED_46d876c8
-    },
-    # ========================================================================
-    # Hubble TLS Configuration
-    # Explicit config to force cert regeneration with cluster-specific SANs
-    # SAN pattern: *.{cluster.name}.hubble-grpc.cilium.io
-    # ========================================================================
-    {
-      name  = "hubble.tls.auto.enabled"
-      value = "true"
-    },
-    {
-      name  = "hubble.tls.auto.method"
-      value = "helm"
-    },
-    # Force Hubble relay pod recreation to pick up new certs
-    # ⚠ Value must stay BYTE-IDENTICAL — changing it regenerates clustermesh
-    # certs and blips the mesh.
-    {
-      name  = "hubble.relay.podAnnotations.cert-regen-trigger"
-      value = "REDACTED_a36086b6"
-    },
-    # ========================================================================
-    # Prometheus Metrics
-    # ========================================================================
-    {
-      name  = "prometheus.enabled"
-      value = "true"
-    },
-    {
-      name  = "prometheus.serviceMonitor.enabled"
-      value = var.REDACTED_46d876c8
-    },
-    {
-      name  = "operator.prometheus.enabled"
-      value = "true"
-    },
-    {
-      name  = "operator.prometheus.serviceMonitor.enabled"
-      value = var.REDACTED_46d876c8
-    },
+  set = concat(
+    # Device selection — only rendered when set (sites whose node IPs live on
+    # loopback, where auto-detection cannot find a direct routing device).
+    var.cilium_devices != "" ? [
+      {
+        name  = "devices"
+        value = var.cilium_devices
+      },
+    ] : [],
+    var.REDACTED_9c9808e4 != "" ? [
+      {
+        name  = "directRoutingDevice"
+        value = var.REDACTED_9c9808e4
+      },
+      ] : [], [
+      # Cluster settings
+      {
+        name  = "cluster.name"
+        value = var.cluster_name
+      },
+      {
+        name  = "cluster.id"
+        value = var.cluster_id
+      },
+      {
+        name  = "k8sServiceHost"
+        value = var.k8s_api_host
+      },
+      {
+        name  = "k8sServicePort"
+        value = "6443"
+      },
+      # =========================================================================
+      # IPAM Configuration - CRITICAL FOR CLUSTERMESH
+      # NL Cluster uses 10.0.0.0/16, GR Cluster uses 10.1.0.0/16 (var.pod_cidr)
+      # This prevents pod CIDR collisions across clusters
+      # =========================================================================
+      {
+        name  = "ipam.mode"
+        value = "cluster-pool"
+      },
+      {
+        name  = "ipam.operator.clusterPoolIPv4PodCIDRList"
+        value = var.pod_cidr
+      },
+      {
+        name  = "ipam.operator.clusterPoolIPv4MaskSize"
+        value = "24"
+      },
+      # Networking
+      {
+        name  = "REDACTED_fd61d0fe"
+        value = "true"
+      },
+      {
+        name  = "routingMode"
+        value = "tunnel"
+      },
+      {
+        name  = "tunnelProtocol"
+        value = "vxlan"
+      },
+      {
+        name  = "MTU"
+        value = tostring(var.cilium_mtu)
+      },
+      # Operator
+      {
+        name  = "operator.replicas"
+        value = "1"
+      },
+      # ========================================================================
+      # Hubble Observability
+      # ========================================================================
+      {
+        name  = "hubble.enabled"
+        value = "true"
+      },
+      {
+        name  = "hubble.relay.enabled"
+        value = "true"
+      },
+      {
+        name  = "hubble.ui.enabled"
+        value = "true"
+      },
+      # Hubble Metrics
+      {
+        name  = "hubble.metrics.enableOpenMetrics"
+        value = "true"
+      },
+      {
+        name  = "hubble.metrics.enabled"
+        value = "{dns,drop,tcp,flow,icmp,http}"
+      },
+      {
+        name  = "hubble.metrics.serviceMonitor.enabled"
+        value = var.REDACTED_46d876c8
+      },
+      # ========================================================================
+      # Hubble TLS Configuration
+      # Explicit config to force cert regeneration with cluster-specific SANs
+      # SAN pattern: *.{cluster.name}.hubble-grpc.cilium.io
+      # ========================================================================
+      {
+        name  = "hubble.tls.auto.enabled"
+        value = "true"
+      },
+      {
+        name  = "hubble.tls.auto.method"
+        value = "helm"
+      },
+      # Force Hubble relay pod recreation to pick up new certs
+      # ⚠ Value must stay BYTE-IDENTICAL — changing it regenerates clustermesh
+      # certs and blips the mesh.
+      {
+        name  = "hubble.relay.podAnnotations.cert-regen-trigger"
+        value = "REDACTED_a36086b6"
+      },
+      # ========================================================================
+      # Prometheus Metrics
+      # ========================================================================
+      {
+        name  = "prometheus.enabled"
+        value = "true"
+      },
+      {
+        name  = "prometheus.serviceMonitor.enabled"
+        value = var.REDACTED_46d876c8
+      },
+      {
+        name  = "operator.prometheus.enabled"
+        value = "true"
+      },
+      {
+        name  = "operator.prometheus.serviceMonitor.enabled"
+        value = var.REDACTED_46d876c8
+      },
     ],
     # ========================================================================
     # ClusterMesh Metrics (gated with the mesh — no apiserver, no monitor)

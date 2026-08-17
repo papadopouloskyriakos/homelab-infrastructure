@@ -133,3 +133,15 @@ variable "hubble_hostname" {
   type        = string
   default     = "nl-hubble.example.net"
 }
+
+variable "cilium_devices" {
+  description = "Explicit Cilium `devices` value (e.g. \"xfrm-+\" at notrf01 where node IPs live on lo and auto-detection fails). \"\" = omit (auto-detect — NL/GR)."
+  type        = string
+  default     = ""
+}
+
+variable "REDACTED_9c9808e4" {
+  description = "Explicit directRoutingDevice (notrf01: \"xfrm-pair\" — exists on every node). \"\" = omit (NL/GR auto)."
+  type        = string
+  default     = ""
+}
