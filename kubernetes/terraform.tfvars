@@ -207,3 +207,5 @@ spire_storage_class    = "nfs-client"
 grafana_storage_class = "nfs-client"
 grafana_replicas      = 2
 node_exporter_port    = 9100
+
+ingress_csp_header = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss:; frame-ancestors 'self' https://matrix.example.net vector://vector; base-uri 'self'; form-action 'self';"
