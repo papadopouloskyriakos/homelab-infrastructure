@@ -128,17 +128,13 @@ resource "helm_release" "ingress_nginx" {
         # as they may break embedded content in apps like Grafana, ArgoCD.
         # Add per-ingress annotation for apps needing strict isolation.
         # =====================================================================
-        addHeaders = {
+        addHeaders = merge({
           # HIGH: Prevents clickjacking attacks
           X-Frame-Options = "SAMEORIGIN"
 
           # HIGH: Prevents MIME-type sniffing attacks
           X-Content-Type-Options = "nosniff"
 
-          # HIGH: Content Security Policy - Prevents XSS and data injection
-          # frame-ancestors includes matrix.example.net to allow Grafana embedding
-          # (matrix is a single estate-wide instance - intentionally identical on both sites)
-          Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss:; frame-ancestors 'self' https://matrix.example.net vector://vector; base-uri 'self'; form-action 'self';"
 
           # MEDIUM: Controls referrer information sent with requests
           Referrer-Policy = "strict-origin-when-cross-origin"
@@ -148,7 +144,12 @@ resource "helm_release" "ingress_nginx" {
 
           # MEDIUM: Cross-domain policy for Flash/PDF plugins
           X-Permitted-Cross-Domain-Policies = "none"
-        }
+          }, var.csp_header == "" ? {} : {
+          # HIGH: Content Security Policy - Prevents XSS and data injection
+          # (site-tunable: an empty csp_header omits the header entirely —
+          # sites whose apps set their own CSP must not get a second one)
+          Content-Security-Policy = var.csp_header
+        })
 
         # =====================================================================
         # Pod Disruption Budget
