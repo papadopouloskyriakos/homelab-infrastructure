@@ -122,7 +122,7 @@ Estate-wide subsystems (edge VPS, omoikane, PVE hosts, DMZ, chatops, agentic pla
 - `namespaces/monitoring/scrape-estate.tf` is site-structural: NL's copy defines `local.estate_scrape_configs` (the estate jobs); GR's and NO's copies define `[]`. `namespaces/monitoring/main.tf` concatenates it unconditionally and stays byte-identical.
 - The estate/NL-subsystem alert files (`estate-alerts.tf` + the omoikane/edge/intersite/agentic/etc. `*-alerts.tf` set) exist only in the NL repo and are on the exemption manifest.
 - `host-pressure-alerts.tf` and `infrastructure-integrity-alerts.tf` are ALSO exempt for a different reason: they key on PVE `node_exporter` / `pve_wedge` / `asa_binding` series that GR's Prometheus does not scrape — on GR they would be can-never-fire rules (worse than absent). If GR PVE exporters ever land, revisit with var-driven targets.
-- Cluster-local alerts ARE mirrored and canonical: `custom-alerts.tf` (14 rules), `seaweedfs-write-path-alerts.tf` (3), `velero-backup-alerts.tf` (6) — byte-identical, firing per-site against each cluster's own Prometheus.
+- Cluster-local alerts ARE mirrored and canonical: `custom-alerts.tf` (15 rules), `seaweedfs-write-path-alerts.tf` (3), `velero-backup-alerts.tf` (6) — byte-identical, firing per-site against each cluster's own Prometheus.
 
 ## Module Structure
 
@@ -141,6 +141,8 @@ k8s/
 │   ├── cert-manager/    # ONE canonical module, role-gated: NL = issuer (acme_issuer_enabled=true —
 │   │                    #   ACME DNS-01/Cloudflare, the Certificate fleet, PushSecret to OpenBao)
 │   ├── external-secrets/# ClusterSecretStore "openbao" (inline caBundle), auth mount "kubernetes"
+│   ├── cnpg-operator/   # CloudNativePG DB-tier operator — canonical, gated `cnpg_enabled`
+│   │                    #   (notrf01 true; NL/GR count=0 no-op). Operator+CRDs only; Cluster CRs app-tier
 │   ├── nfs-provisioner/ # StorageClass "nfs-client" → 10.0.X.X:/volume1/k8s — SC chart-managed
 │   │                    #   (helm-adopted 2026-08-16; do NOT flip storageClass.create back to false)
 │   ├── nl-nas01-csi/ # SITE MODULE — Synology DS1621+ iSCSI CSI (retain + delete classes)
@@ -243,7 +245,7 @@ Claude Code L3 (reads YT comments, plans fix, waits for human approval)
 ```
 
 **Custom alert rules — split in the 2026-08-16 mirror campaign (batch 3a, MR !469):**
-- `custom-alerts.tf` (CANONICAL, byte-identical with GR, 14 rules): ContainerOOMKilled, REDACTED_879bd353, REDACTED_02123891, REDACTED_a8a7eee8, REDACTED_67797f17, CiliumAgentNotReady, REDACTED_b94e0389, REDACTED_e52ce3d8, NFSMountStale, NFSMountHighLatency, ArgocdAppDegraded, ArgocdAppOutOfSync, HighPodRestartRate, PodCrashLoopBackOff (adopted from GR).
+- `custom-alerts.tf` (CANONICAL, byte-identical with GR, 15 rules): ContainerOOMKilled, REDACTED_879bd353, REDACTED_02123891, REDACTED_a8a7eee8, REDACTED_67797f17, CiliumAgentNotReady, REDACTED_b94e0389, REDACTED_e52ce3d8, NFSMountStale, NFSMountHighLatency, ArgocdAppDegraded, ArgocdAppOutOfSync, HighPodRestartRate, PodCrashLoopBackOff (adopted from GR), NodeOOMKill (host-level kernel OOM — catches non-pod/compose OOMs, IFRNLLEI01PRD-2414).
 - `estate-alerts.tf` (NL-ONLY, mirror-exempt, 7 rules): Pacemaker×2, OmoikaneClamav×2, OmoikaneRestic×2, REDACTED_febdf887 — moved out of custom-alerts.tf so the latter could go canonical.
 - The 3 legacy counter-based Velero rules were DELETED (documented-broken: `increase(velero_backup_partial_failure_total[1h])` resets on pod restart and measured 0 across a week of PartiallyFailed backups). Velero coverage = the 6 gauge-based rules in `velero-backup-alerts.tf` (canonical).
 
