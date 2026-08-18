@@ -53,6 +53,18 @@ resource "kubernetes_manifest" "custom_alert_rules" {
                 summary     = "Container {{ $labels.container }} in {{ $labels.pod }} ({{ $labels.namespace }}) using >90% memory limit"
                 description = "Container {{ $labels.container }} is using {{ $value | humanizePercentage }} of its memory limit. OOM kill is imminent."
               }
+            },
+            {
+              alert = "NodeOOMKill"
+              expr  = "increase(node_vmstat_oom_kill[10m]) > 0"
+              for   = "0m"
+              labels = {
+                severity = "warning"
+              }
+              annotations = {
+                summary     = "Kernel OOM kill on node {{ $labels.instance }}"
+                description = "The kernel OOM-killed a process on {{ $labels.instance }} in the last 10m ({{ $value | printf \"%.0f\" }} kills). Unlike ContainerOOMKilled this also catches non-Kubernetes processes (e.g. a colocated compose fleet on the notrf01 workers) — check whether kubelet system-reserved is sized to cover the co-resident load."
+              }
             }
           ]
         },
