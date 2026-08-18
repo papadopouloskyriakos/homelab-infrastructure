@@ -730,6 +730,18 @@ variable "awx_enabled" {
   default     = true
 }
 
+variable "cnpg_enabled" {
+  description = "Deploy the CloudNativePG operator (DB tier). notrf01 true (omoikane); NL/GR false."
+  type        = bool
+  default     = false
+}
+
+variable "REDACTED_6b820d0e" {
+  description = "Enable the CNPG PodMonitor (requires the kube-prometheus PodMonitor CRD)."
+  type        = bool
+  default     = true
+}
+
 variable "REDACTED_3e5e811f" {
   description = "AWX PostgreSQL PVC size"
   type        = string
