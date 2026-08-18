@@ -182,7 +182,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
           {
             name     = "NO Kubernetes API"
             group    = "🔧 Core Platform"
-            enabled  = false
+            enabled  = true
             url      = "https://no-api-k8s.example.net:6443/healthz"
             client   = { insecure = true }
             interval = "30s"
