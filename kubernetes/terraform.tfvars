@@ -200,3 +200,8 @@ REDACTED_9c9808e4 = ""
 # --- LB-IPAM (assignment) + SPIRE storage (3-way parity keys) ---
 cilium_lb_ipam_enabled = true
 spire_storage_class    = "nfs-client"
+
+# --- grafana storage/replicas + node-exporter port (3-way parity; NL keeps defaults) ---
+grafana_storage_class = "nfs-client"
+grafana_replicas      = 2
+node_exporter_port    = 9100
