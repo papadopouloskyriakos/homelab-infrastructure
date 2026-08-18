@@ -162,6 +162,9 @@ module "monitoring" {
 
   REDACTED_6a2724e6       = var.REDACTED_6a2724e6
   grafana_storage_size          = var.grafana_storage_size
+  grafana_storage_class         = var.grafana_storage_class
+  grafana_replicas              = var.grafana_replicas
+  node_exporter_port            = var.node_exporter_port
   alertmanager_storage_size     = var.alertmanager_storage_size
   thanos_store_storage_size     = var.thanos_store_storage_size
   REDACTED_fd3fdc21 = var.REDACTED_fd3fdc21
