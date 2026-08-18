@@ -974,3 +974,21 @@ variable "spire_storage_class" {
   type        = string
   default     = "nfs-client"
 }
+
+variable "grafana_storage_class" {
+  description = "Grafana PVC storage class"
+  type        = string
+  default     = "nfs-client"
+}
+
+variable "grafana_replicas" {
+  description = "Grafana replica count"
+  type        = number
+  default     = 2
+}
+
+variable "node_exporter_port" {
+  description = "In-cluster node-exporter port (host-exporter collision avoidance)"
+  type        = number
+  default     = 9100
+}
