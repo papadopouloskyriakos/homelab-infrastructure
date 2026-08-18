@@ -669,6 +669,63 @@ resource "kubernetes_manifest" "REDACTED_13c92cba" {
   }
 }
 
+# OMOIKANE-1623 (2026-08-18): the omoikane platform now runs on the notrf01 k8s
+# cluster; its ingress-nginx consumes *.omoikane.coach via an ExternalSecret
+# reading REDACTED_a359c22f. This PushSecret closes the
+# renewal loop: NL cert-manager renews -> OpenBao -> notrf01 ESO -> ingress.
+# (The AWX daily cert distribution still feeds the edge VPS HAProxy files.)
+resource "kubernetes_manifest" "REDACTED_2663285d" {
+  count      = var.acme_issuer_enabled ? 1 : 0
+  depends_on = [kubernetes_manifest.wildcard_cert]
+
+  manifest = {
+    apiVersion = "external-secrets.io/v1alpha1"
+    kind       = "PushSecret"
+    metadata = {
+      name      = "REDACTED_207ca5bf"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+      labels = {
+        "app.kubernetes.io/component"  = "cert-sync"
+        "app.kubernetes.io/managed-by" = "opentofu"
+      }
+    }
+    spec = {
+      refreshInterval = "1h"
+      secretStoreRefs = [
+        {
+          name = "openbao"
+          kind = "ClusterSecretStore"
+        }
+      ]
+      selector = {
+        secret = {
+          name = "REDACTED_eb368cbd-tls"
+        }
+      }
+      data = [
+        {
+          match = {
+            secretKey = "tls.crt"
+            remoteRef = {
+              remoteKey = "REDACTED_a359c22f"
+              property  = "tls.crt"
+            }
+          }
+        },
+        {
+          match = {
+            secretKey = "tls.key"
+            remoteRef = {
+              remoteKey = "REDACTED_a359c22f"
+              property  = "tls.key"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
 resource "kubernetes_manifest" "REDACTED_8ca647ff" {
   count      = var.acme_issuer_enabled ? 1 : 0
   depends_on = [kubernetes_manifest.letsencrypt_prod]
