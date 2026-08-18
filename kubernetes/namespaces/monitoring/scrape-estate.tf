@@ -101,43 +101,9 @@ locals {
         { source_labels = ["__address__"], regex = "192\\.168\\.181\\..*", target_label = "site", replacement = "nl" },
       ]
     },
-    {
-      # OMOIKANE-1153 — per-container CPU/memory from cAdvisor,
-      # deployed as a sidecar on each DMZ host (daemon repo
-      # `cadvisor/compose.yml`, bound on the mesh IP at :8098).
-      #
-      # Targets and labels MIRROR the `omoikane-node` job below on
-      # purpose: the production-only alert rules select on
-      # role="omoikane-production", and a cAdvisor job carrying
-      # different labels would sit outside every one of them.
-      #
-      # The bench host is deliberately ABSENT. cAdvisor is not
-      # deployed there — nlomktst01 still runs the containerd
-      # snapshotter, under which cAdvisor cannot identify containers
-      # at all (one unlabelled series). A target for it would scrape
-      # a port with nothing behind it and read as permanently down.
-      job_name = "omoikane-cadvisor"
-      static_configs = [
-        {
-          targets = [
-            "10.255.4.11:8098", # notrf01dmz01 — app NL primary
-            "10.255.5.11:8098", # notrf01dmz02 — app NL peer
-            "10.255.7.11:8098", # notrf01dmz03 — YB primary
-            "10.255.8.11:8098", # notrf01dmz04 — YB peer
-          ]
-          labels = {
-            role = "omoikane-production"
-          }
-        },
-      ]
-      relabel_configs = [
-        { source_labels = ["__address__"], regex = "10\\.255\\.4\\.11:.*", target_label = "instance", replacement = "notrf01dmz01" },
-        { source_labels = ["__address__"], regex = "10\\.255\\.5\\.11:.*", target_label = "instance", replacement = "notrf01dmz02" },
-        { source_labels = ["__address__"], regex = "10\\.255\\.7\\.11:.*", target_label = "instance", replacement = "notrf01dmz03" },
-        { source_labels = ["__address__"], regex = "10\\.255\\.8\\.11:.*", target_label = "instance", replacement = "notrf01dmz04" },
-        { source_labels = ["__address__"], regex = "10\\.255\\..*", target_label = "site", replacement = "no" },
-      ]
-    },
+    # (omoikane-cadvisor job REMOVED 2026-08-18, OMOIKANE-1623: cAdvisor was
+    # dropped in the k8s migration; per-container metrics come from the NO
+    # cluster kubelet cadvisor via REDACTED_d8074874.)
     {
       job_name = "omoikane-node"
       static_configs = [
@@ -190,57 +156,12 @@ locals {
         { source_labels = ["__address__"], regex = "192\\.168\\.181\\..*", target_label = "site", replacement = "nl" },
       ]
     },
-    # =============================================================
-    # omoikane-daemon — the APPLICATION's own metrics.
-    #
-    # OMOIKANE-1486 (2026-07-26). The daemon has exposed /metrics on
-    # container port 8080 (host 8459) since it was built, and this
-    # Prometheus has never scraped it. Only `omoikane-node` existed,
-    # which is node_exporter — host CPU/RAM, not the application.
-    #
-    # The consequence was not theoretical. On 2026-07-25 the
-    # embedding backend died and ran ~20 hours with no alert. Part of
-    # that was missing instrumentation (fixed in daemon !3155/!3157),
-    # but the rest was this: nothing collected what the daemon
-    # emitted, so no rule could evaluate and nothing could page.
-    # `daemon/monitoring/prometheus-rules-omoikane-daemon.yaml` has
-    # been in the repo for months and is loaded by neither cluster.
-    #
-    # Reachability was verified before adding this, from inside
-    # prometheus-REDACTED_6dfbe9fc-0:
-    #   wget -qO- http://10.255.4.11:8459/metrics -> 314 omoikane_* series
-    #   wget -qO- http://10.255.5.11:8459/metrics -> 314 omoikane_* series
-    # Same hosts already scraped on :9100 by omoikane-node, so no
-    # firewall change is required.
-    #
-    # Collection only. No alert rules are activated by this change —
-    # see the MR for why those are deliberately separate.
-    #
-    # 30s interval: the daemon's status prober refreshes every 60s by
-    # default (OMOIKANE_STATUS_REFRESH_SECS), so 30s gives two samples
-    # per prober pass and keeps `for:` windows meaningful.
-    # =============================================================
-    {
-      job_name        = "omoikane-daemon"
-      scrape_interval = "30s"
-      metrics_path    = "/metrics"
-      static_configs = [
-        {
-          targets = [
-            "10.255.4.11:8459", # notrf01dmz01 — app NL primary
-            "10.255.5.11:8459", # notrf01dmz02 — app NL peer
-          ]
-          labels = {
-            role = "omoikane-production"
-          }
-        },
-      ]
-      relabel_configs = [
-        { source_labels = ["__address__"], regex = "10\\.255\\.4\\.11:.*", target_label = "instance", replacement = "notrf01dmz01" },
-        { source_labels = ["__address__"], regex = "10\\.255\\.5\\.11:.*", target_label = "instance", replacement = "notrf01dmz02" },
-        { source_labels = ["__address__"], regex = "10\\.255\\..*", target_label = "site", replacement = "no" },
-      ]
-    },
+    # (omoikane-daemon mesh scrape REMOVED 2026-08-18, OMOIKANE-1623: the
+    # compose pair is retired; the app metrics arrive via the NO cluster
+    # ServiceMonitor + remote-write as job="daemon", namespace="omoikane",
+    # site="no" — the omoikane_* alert exprs are job-agnostic and kept firing
+    # correctly through the cutover, which is how the writing_drafts RED was
+    # caught on 2026-08-18.)
     # ChatOps Infrastructure - GPU Metrics (nvidia_gpu_exporter)
     {
       job_name = "chatops-nvidia"
