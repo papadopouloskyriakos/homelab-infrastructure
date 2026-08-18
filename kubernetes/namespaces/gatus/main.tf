@@ -765,6 +765,10 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
 # PersistentVolumeClaim - SQLite storage for history
 # -----------------------------------------------------------------------------
 resource "REDACTED_912a6d18_claim_v1" "gatus_data" {
+  # WaitForFirstConsumer storage (local-PV sites) binds only when the pod
+  # schedules — waiting for Bound here deadlocks the greenfield apply.
+  wait_until_bound = false
+
   metadata {
     name      = "gatus-data"
     namespace = REDACTED_46569c16.gatus.metadata[0].name
