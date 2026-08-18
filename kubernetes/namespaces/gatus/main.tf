@@ -1188,6 +1188,20 @@ resource "kubernetes_manifest" "REDACTED_74a3ea37" {
         },
         {
           toEntities = ["cluster"]
+        },
+        # Operator ruling 2026-08-18: operation-critical checks resolve via
+        # FreeIPA directly (per-endpoint client.dns-resolver), bypassing the
+        # piholes and their NXDOMAIN negative cache. The kube-dns rule above
+        # does not cover this path — scope :53 to exactly the two IPA
+        # servers (NL + GR replica).
+        {
+          toCIDR = ["10.0.X.X/32", "10.0.X.X/32"]
+          toPorts = [{
+            ports = [
+              { port = "53", protocol = "UDP" },
+              { port = "53", protocol = "TCP" }
+            ]
+          }]
         }
       ]
     }
