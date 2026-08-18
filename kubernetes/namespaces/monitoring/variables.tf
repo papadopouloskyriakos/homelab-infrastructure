@@ -440,3 +440,21 @@ variable "etcd_endpoints" {
   type        = list(string)
   default     = ["10.0.X.X", "10.0.X.X", "10.0.X.X"]
 }
+
+variable "grafana_storage_class" {
+  description = "Grafana PVC storage class (RWX-capable for 2 replicas; single-replica sites can use a local RWO class)"
+  type        = string
+  default     = "nfs-client"
+}
+
+variable "grafana_replicas" {
+  description = "Grafana replica count (2 with RWX storage; 1 on RWO/local-PV sites)"
+  type        = number
+  default     = 2
+}
+
+variable "node_exporter_port" {
+  description = "In-cluster node-exporter port (9100 = chart default, rendered only when different — for hosts already serving 9100)"
+  type        = number
+  default     = 9100
+}

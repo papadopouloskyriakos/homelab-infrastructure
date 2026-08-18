@@ -680,7 +680,7 @@ resource "helm_release" "monitoring" {
       # GRAFANA CONFIGURATION (NFS for RWX multi-replica support)
       # =========================================================================
       grafana = {
-        replicas = 2
+        replicas = var.grafana_replicas
 
         # Scrape all ServiceMonitors and PodMonitors (not just release=monitoring)
         serviceMonitorSelector                  = {}
@@ -704,7 +704,7 @@ resource "helm_release" "monitoring" {
 
         persistence = {
           enabled          = true
-          storageClassName = "nfs-client"
+          storageClassName = var.grafana_storage_class
           size             = var.grafana_storage_size
         }
 
@@ -904,13 +904,19 @@ resource "helm_release" "monitoring" {
       # =========================================================================
       # NODE EXPORTER - DaemonSet (runs on ALL nodes including control plane)
       # =========================================================================
-      prometheus-node-exporter = {
+      prometheus-node-exporter = merge({
         tolerations = [{
           key      = "node-role.kubernetes.io/control-plane"
           operator = "Exists"
           effect   = "NoSchedule"
         }]
-      }
+        }, var.node_exporter_port == 9100 ? {} : {
+        # Sites whose HOSTS already run a node-exporter on 9100 (the edge DMZ
+        # baseline) move the in-cluster DS off the default port.
+        service = {
+          port = var.node_exporter_port
+        }
+      })
 
       # =========================================================================
       # ADDITIONAL SETTINGS
