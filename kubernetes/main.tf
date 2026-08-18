@@ -117,6 +117,7 @@ module "ingress_nginx" {
   source = "./_core/ingress-nginx"
 
   REDACTED_3b82c3d6 = var.REDACTED_af8c15ba
+  csp_header              = var.ingress_csp_header
 
   depends_on = [module.cilium_bgp]
 }

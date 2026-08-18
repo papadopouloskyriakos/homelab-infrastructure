@@ -1004,3 +1004,9 @@ variable "node_exporter_port" {
   type        = number
   default     = 9100
 }
+
+variable "ingress_csp_header" {
+  description = "Content-Security-Policy for ingress-nginx addHeaders; empty = header omitted (site apps own their CSP)."
+  type        = string
+  default     = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss:; frame-ancestors 'self' https://matrix.example.net vector://vector; base-uri 'self'; form-action 'self';"
+}
