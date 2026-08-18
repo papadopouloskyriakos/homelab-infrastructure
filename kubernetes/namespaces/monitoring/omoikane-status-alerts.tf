@@ -142,46 +142,11 @@ resource "kubernetes_manifest" "REDACTED_84ac6bca" {
             },
           ]
         },
-        {
-          name     = "omoikane-backups"
-          interval = "5m"
-          rules = [
-            {
-              # OMOIKANE-1489: omoikane-backup.service failed on both app
-              # hosts for three days and nothing said so. The cause was an
-              # unreadable restic lock object plus an 81-day-old exclusive
-              # lock; both are fixed, but the silence is the part worth
-              # alerting on. node_exporter already exports this — the metric
-              # was there the whole time, unqueried.
-              alert = "OmoikaneBackupFailed"
-              expr  = "node_systemd_unit_state{name=\"omoikane-backup.service\",state=\"failed\"} == 1"
-              for   = "30m"
-              labels = {
-                severity = "critical"
-                service  = "omoikane-backup"
-              }
-              annotations = {
-                summary     = "omoikane-backup.service has been failed for 30m on {{ $labels.instance }}"
-                description = "Backups are not running on {{ $labels.instance }}. Check `journalctl -u omoikane-backup.service`. Common cause is a stale restic lock: `restic unlock --remove-all` removes locks by id without reading them, which plain `unlock` cannot do for a corrupt lock object. Note restic can only judge staleness of a lock naming the host it runs on, so a lock held by a dead PID on the OTHER host must be cleared from that host."
-              }
-            },
-            {
-              # A timer that stops firing is as bad as a service that fails,
-              # and looks like nothing at all.
-              alert = "OmoikaneBackupTimerInactive"
-              expr  = "node_systemd_unit_state{name=\"omoikane-backup.timer\",state=\"active\"} == 0"
-              for   = "1h"
-              labels = {
-                severity = "warning"
-                service  = "omoikane-backup"
-              }
-              annotations = {
-                summary     = "omoikane-backup.timer is not active on {{ $labels.instance }}"
-                description = "The daily backup timer is not armed. No failure will ever be reported because nothing will run."
-              }
-            },
-          ]
-        },
+        # (omoikane-backups group REMOVED 2026-08-18, OMOIKANE-1623: the
+        # omoikane-backup.service/.timer host units were retired with the
+        # compose estate — DB backup is CNPG barman + WAL to s3://cnpg-omoikane
+        # (ScheduledBackup omoikane-main-daily) plus Velero, each with their
+        # own monitoring.)
         {
           name     = "REDACTED_6360e2dd"
           interval = "1m"
@@ -202,18 +167,26 @@ resource "kubernetes_manifest" "REDACTED_84ac6bca" {
               }
             },
             {
-              # Absence of the whole job. `up` is synthesised by Prometheus,
-              # so this fires even when the daemon emits nothing at all.
-              alert = "OmoikaneDaemonScrapeDown"
-              expr  = "up{job=\"omoikane-daemon\"} == 0"
+              # OMOIKANE-1623 (2026-08-18): was `up{job="omoikane-daemon"} == 0`
+              # against the retired mesh scrape. The daemon's series now arrive
+              # via NO-cluster remote-write, and `up` for a remote-written
+              # series does not exist on THIS Prometheus — absence of the
+              # stream is the only NL-observable failure. This is the guard
+              # that keeps every other omoikane_* rule in this file honest: if
+              # remote-write breaks, their exprs silently evaluate over
+              # nothing, which is the estate's certified-by-silence defect
+              # class. The NO cluster pages for its own scrape failures; the
+              # Gatus "Prometheus (NO)" dead-man pages for NO monitoring death.
+              alert = "REDACTED_f3ab62b3"
+              expr  = "absent(omoikane_status_overall{job=\"daemon\", site=\"no\"})"
               for   = "10m"
               labels = {
                 severity = "critical"
                 service  = "omoikane-daemon"
               }
               annotations = {
-                summary     = "Prometheus cannot scrape omoikane-daemon on {{ $labels.instance }}"
-                description = "Either the daemon is down or /metrics is unreachable. Until 2026-07-27 this job did not exist at all and every daemon alert was dormant."
+                summary     = "No omoikane daemon series arriving over remote-write"
+                description = "NL Prometheus has stopped receiving the daemon's status series from the NO cluster. Either the daemon is down, the NO Prometheus scrape broke, or remote-write NO->NL broke. Check no-prometheus.example.net:8443 targets and the NO remote-write config. While this fires, EVERY other omoikane_* rule on this Prometheus is evaluating over absent data."
               }
             },
           ]

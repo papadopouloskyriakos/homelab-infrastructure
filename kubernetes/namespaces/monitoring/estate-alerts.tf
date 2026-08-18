@@ -124,7 +124,7 @@ resource "kubernetes_manifest" "estate_alert_rules" {
               }
               annotations = {
                 summary     = "omoikane-daemon on {{ $labels.instance }} is fail-closed with no malware scanner"
-                description = "The malware gate is in block mode but no CLAMAV_URL is configured on {{ $labels.instance }}, so EVERY file upload will 503 — CVs, offer contracts and inbound mail attachments alike. Users see a broken uploader, not a security message. Check CLAUDE_/CLAMAV_URL in that host's /srv/omoikane-daemon/app/.env and 'curl -s https://app.omoikane.coach/readyz | jq .subsystems.clamav'. Either point it at a reachable clamd or set the gate to log mode deliberately; leaving it here means the product is down for uploads."
+                description = "The malware gate is in block mode but no CLAMAV_URL is configured on {{ $labels.instance }}, so EVERY file upload will 503 — CVs, offer contracts and inbound mail attachments alike. Users see a broken uploader, not a security message. Check CLAMAV_URL in the daemon-config ConfigMap (daemon repo k8s/daemon/configmap.yaml) and 'curl -s https://app.omoikane.coach/readyz | jq .subsystems.clamav'. Either point it at a reachable clamd or set the gate to log mode deliberately; leaving it here means the product is down for uploads."
               }
             },
             {
@@ -152,68 +152,12 @@ resource "kubernetes_manifest" "estate_alert_rules" {
         {
           name = "custom-backup"
           rules = [
-            {
-              # OMOIKANE-1526 — restic retention is pinned to ONE host
-              # (OMOIKANE-1510 item 2), because `restic forget --prune` needs an
-              # exclusive repo lock and two hosts contending for it is what
-              # produced the stale lock in OMOIKANE-1489.
-              #
-              # The failure mode that pinning leaves behind: lose the designated
-              # host and the other keeps capturing, writes `ok-capture-only` and
-              # reports GREEN, while pruning never runs again anywhere and the
-              # bucket grows until it fills. That is exactly how OMOIKANE-1489
-              # ran 81 days unnoticed.
-              #
-              # Staleness + absence, never failure. A failure rule cannot fire
-              # here because nothing fails — the host is simply gone. And it is
-              # deliberately aggregated with max() and NO host label: scoped to
-              # one instance, losing that instance loses the series and the rule
-              # silently stops evaluating at the exact moment it is needed.
-              # Only the retention host ever reaches state=ok, so max() across
-              # the estate is the correct reading of "has retention run at all".
-              #
-              # 3d, against a daily timer: two consecutive misses plus slack.
-              alert = "OmoikaneResticRetentionStale"
-              expr  = "(time() - max(omoikane_backup_retention_last_success_seconds) > 259200) or absent(omoikane_backup_retention_last_success_seconds)"
-              for   = "30m"
-              labels = {
-                severity = "warning"
-              }
-              annotations = {
-                summary     = "restic retention has not succeeded anywhere in over 3 days"
-                description = "No host has completed `restic forget --prune` for the shared omoikane-backups repo in more than 3 days, or the heartbeat metric has vanished entirely. Backups may still be CAPTURING fine — this is specifically about pruning, which is pinned to one host (OMOIKANE_RETENTION_HOST, default notrf01dmz01). If that host is down or was rebuilt, fail retention over by setting OMOIKANE_RETENTION_HOST in /etc/restic/omoikane.env on both hosts and restarting omoikane-backup.timer. Left alone, the repo grows until the bucket fills. See daemon backup/README.md and OMOIKANE-1489."
-              }
-            },
-            {
-              # OMOIKANE-1534 — the restic repo's SECOND copy. The primary lives
-              # on SeaweedFS, and SeaweedFS's own PVCs are protected by Velero
-              # writing to the SAME object storage, so losing that cluster
-              # plausibly loses both the backups and the backup of the backups.
-              # The mirror is written to /srv/yb-backups/restic-mirror and then
-              # pulled to the Synology, which shares no fate with SeaweedFS.
-              #
-              # A second copy that silently stops is WORSE than none, because it
-              # is counted on. So: staleness + absence, never failure — the same
-              # shape as OmoikaneResticRetentionStale above and for the same
-              # reason (a failure rule cannot fire when the producer is gone).
-              #
-              # This one is real: the first offsite pull left a 24 KB directory
-              # with no config, no snapshots and no data — an empty shell that
-              # read as "present" — because restic writes the repo 2700
-              # root-owned and the NAS pulls as a different user.
-              #
-              # 3d against a daily 06:40 timer: two consecutive misses plus slack.
-              alert = "OmoikaneResticMirrorStale"
-              expr  = "(time() - max(omoikane_restic_mirror_last_success_seconds) > 259200) or absent(omoikane_restic_mirror_last_success_seconds)"
-              for   = "30m"
-              labels = {
-                severity = "warning"
-              }
-              annotations = {
-                summary     = "restic second copy has not succeeded in over 3 days"
-                description = "The second copy of the restic repository (/srv/yb-backups/restic-mirror on the retention host, mirrored to the Synology by the nightly pull) has not completed for more than 3 days, or its heartbeat has vanished. The PRIMARY backup may be perfectly healthy — this is specifically about the offsite duplicate, which exists because the primary repo lives inside SeaweedFS alongside Velero's own target. Check 'systemctl status omoikane-restic-mirror.service' on notrf01dmz01 and 'journalctl -u omoikane-restic-mirror'. See daemon backup/README.md and OMOIKANE-1534."
-              }
-            },
+            # (OmoikaneResticRetentionStale + OmoikaneResticMirrorStale REMOVED
+            # 2026-08-18, OMOIKANE-1623: the host restic/backup machinery was
+            # retired with the compose estate — DB backup is CNPG barman to
+            # s3://cnpg-omoikane with WAL archiving, plus Velero. Their
+            # absent()-armed exprs would have fired forever on the vanished
+            # heartbeat series.)
             {
               # The estate had ten omoikane timer-driven units and not one had
               # OnFailure=. node_systemd_unit_state is ALREADY scraped (1125
