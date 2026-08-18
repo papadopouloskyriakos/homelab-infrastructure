@@ -290,6 +290,18 @@ module "external_secrets" {
   eso_auth_mount_path = var.eso_auth_mount_path
 }
 
+# CloudNativePG operator — DB tier (platform-only: operator + CRDs; Cluster CRs
+# are app-tier). Gated: only sites running an in-cluster Postgres tier enable it
+# (notrf01 = true for the omoikane migration; NL/GR = false). New module, so no
+# moved{} block is needed — count=0 sites simply never create it.
+module "cnpg_operator" {
+  count  = var.cnpg_enabled ? 1 : 0
+  source = "./_core/cnpg-operator"
+
+  common_labels           = local.common_labels
+  REDACTED_46d876c8 = var.REDACTED_6b820d0e
+}
+
 # =============================================================================
 # Logging Stack
 # =============================================================================
