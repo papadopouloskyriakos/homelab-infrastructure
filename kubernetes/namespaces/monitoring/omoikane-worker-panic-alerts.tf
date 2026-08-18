@@ -79,7 +79,7 @@ resource "kubernetes_manifest" "REDACTED_04da320e" {
                   supposed to do did not happen.
 
                   Find the panic site:
-                    docker logs --since 1h omoikane-daemon 2>&1 | grep -A2 'PANICKED'
+                    kubectl -n omoikane logs deploy/daemon --since=1h | grep -A2 'PANICKED'
                   The line immediately after names the file:line.
 
                   Do NOT resolve this by restarting. The counter is cumulative and
