@@ -1181,7 +1181,8 @@ resource "kubernetes_manifest" "REDACTED_74a3ea37" {
               { port = "80", protocol = "TCP" },
               { port = "6443", protocol = "TCP" },
               { port = "8404", protocol = "TCP" }, # HAProxy stats
-              { port = "9101", protocol = "TCP" }  # nfs-stale-fh-exporter on FISHA file01/02
+              { port = "9101", protocol = "TCP" }, # nfs-stale-fh-exporter on FISHA file01/02
+              { port = "8443", protocol = "TCP" }  # notrf01 omoikane edge-relay (Prometheus (NO) dead-man path, OMOIKANE-1623)
             ]
           }]
         },
