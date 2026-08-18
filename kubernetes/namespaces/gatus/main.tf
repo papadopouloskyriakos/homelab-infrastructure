@@ -436,16 +436,27 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             ]
             alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
           },
-          # notrf01 monitoring dead-man (IFRNLLEI01PRD-2403) — pre-wired
-          # DISABLED; armed in Phase 7. No existing Alertmanager check to
-          # mirror, so this follows the Prometheus (NL)/(GR) pair — the
-          # closest sane counterpart for "is the NO monitoring stack alive".
+          # notrf01 monitoring dead-man (IFRNLLEI01PRD-2413) — ARMED 2026-08-18
+          # (OMOIKANE-1623 cutover complete). Path: FreeIPA A records
+          # no-prometheus -> the three NO worker mesh IPs (round-robin) ->
+          # the omoikane edge-relay hostNetwork :8443 (the ONLY route into
+          # the NO ingress from xfrm sources — Cilium NodePort RSTs them) ->
+          # ingress-nginx (valid *.example.net default cert) ->
+          # /-/healthy. Shared-fate caveat: this also fails if ALL THREE
+          # edge-relay pods die — a broader outage worth paging for anyway.
           {
             name     = "Prometheus (NO)"
             group    = "📊 Observability"
-            enabled  = false
-            url      = "https://no-prometheus.example.net"
+            enabled  = true
+            url      = "https://no-prometheus.example.net:8443/-/healthy"
             interval = "60s"
+            # Operator ruling 2026-08-18: operation-critical checks resolve
+            # via FreeIPA DIRECTLY (the zone authority), not the piholes —
+            # kills the pihole dependency + its NXDOMAIN negative-cache
+            # class. Gatus takes exactly one resolver: the NL IPA (same
+            # site); if that dies this check false-fires, which is itself
+            # page-worthy.
+            client = { "dns-resolver" = "udp://10.0.X.X:53" }
             conditions = [
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
