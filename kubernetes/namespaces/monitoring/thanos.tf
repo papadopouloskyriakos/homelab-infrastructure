@@ -547,6 +547,15 @@ resource "REDACTED_2f6bdfa2" "thanos_compactor" {
           "app.kubernetes.io/name"      = "thanos"
           "app.kubernetes.io/component" = "compactor"
         })
+        annotations = {
+          # Velero fs-backup opt-out (2026-08-20, IFRNLLEI01PRD-2424): the
+          # compactor data volume is ephemeral scratch — real state lives in
+          # object storage, so backing it up has zero restore value. On GR the
+          # kopia walker also raced the compactor churn into readdirent
+          # EBADMSG, cancelling the PVB and marking EVERY daily PartiallyFailed
+          # (5/5 since 08-17), which kept REDACTED_8cdf02da firing.
+          "backup.velero.io/backup-volumes-excludes" = "data"
+        }
       }
 
       spec {
