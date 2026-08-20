@@ -981,7 +981,25 @@ resource "helm_release" "monitoring" {
         prometheus = {
           prometheusSpec = {
             remoteWrite = [
-              { url = var.prometheus_remote_write_url }
+              {
+                url = var.prometheus_remote_write_url
+                # Satellite cardinality guard (2026-08-20, IFRNLLEI01PRD-2423/-2427):
+                # the unfiltered notrf01 stream put ~545k series into the NL hub's
+                # Prometheus (902k head total on 8 GB nodes) and OOM-looped both hub
+                # replicas at their 6.5Gi limit within a day of hub-mode cutover.
+                # Histogram buckets were 256k of those series. Drop them at the
+                # sender: the satellite's local Prometheus keeps full resolution
+                # (buckets included), the hub keeps _sum/_count so cross-site rates
+                # and means still work — only cross-site quantiles are lost. The
+                # operator's config-reloader hot-reloads this (no pod restart).
+                writeRelabelConfigs = [
+                  {
+                    sourceLabels = ["__name__"]
+                    regex        = ".+_bucket"
+                    action       = "drop"
+                  }
+                ]
+              }
             ]
           }
         }
