@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-08-19 03:00:02 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-08-20 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: CRITICAL ⚠️
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 24 |
 | Pending PVCs | 0 |
-| Total Restarts | 476 |
+| Total Restarts | 503 |
 
 ## Topology
 
@@ -32,36 +32,36 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-velero                   argocd-default-kopia-maintain-job-1787107794068-7qg22             0/1   Error       0                 11m
-velero                   argocd-default-kopia-maintain-job-1787107995426-869gr             0/1   Error       0                 7m47s
-velero                   argocd-default-kopia-maintain-job-1787108295427-gxm9p             0/1   Error       0                 2m47s
-velero                   awx-default-kopia-maintain-job-1787107733770-g2rng                0/1   Error       0                 12m
-velero                   awx-default-kopia-maintain-job-1787108049716-rcv99                0/1   Error       0                 6m53s
-velero                   awx-default-kopia-maintain-job-1787108347807-5n2nk                0/1   Error       0                 115s
-velero                   cilium-spire-default-kopia-maintain-job-1787107695425-xt9vf       0/1   Error       0                 12m
-velero                   cilium-spire-default-kopia-maintain-job-1787108013506-rmq92       0/1   Error       0                 7m29s
-velero                   cilium-spire-default-kopia-maintain-job-1787108313479-j7v4q       0/1   Error       0                 2m29s
-velero                   gatus-default-kopia-maintain-job-1787107702505-6p6vh              0/1   Error       0                 12m
-velero                   gatus-default-kopia-maintain-job-1787108020542-ftdz9              0/1   Error       0                 7m22s
-velero                   gatus-default-kopia-maintain-job-1787108319528-n2pbm              0/1   Error       0                 2m23s
-velero                   REDACTED_d97cef76-default-kopia-maintain-job-17871077558dvps   0/1   Error       0                 11m
-velero                   REDACTED_d97cef76-default-kopia-maintain-job-1787108068khz7x   0/1   Error       0                 6m34s
-velero                   REDACTED_d97cef76-default-kopia-maintain-job-1787108365bxjvp   0/1   Error       0                 97s
-velero                   logging-default-kopia-maintain-job-1787107708542-r6jwn            0/1   Error       0                 12m
-velero                   logging-default-kopia-maintain-job-1787108025589-smx5g            0/1   Error       0                 7m17s
-velero                   logging-default-kopia-maintain-job-1787108325647-8s5vj            0/1   Error       0                 2m17s
-velero                   monitoring-default-kopia-maintain-job-1787107726604-kht58         0/1   Error       0                 12m
-velero                   monitoring-default-kopia-maintain-job-1787108043630-pmc4f         0/1   Error       0                 6m59s
-velero                   monitoring-default-kopia-maintain-job-1787108342704-xttfn         0/1   Error       0                 2m
-velero                   well-known-default-kopia-maintain-job-1787107775979-p2gd4         0/1   Error       0                 11m
-velero                   well-known-default-kopia-maintain-job-1787108088784-99hth         0/1   Error       0                 6m14s
-velero                   well-known-default-kopia-maintain-job-1787108382897-whskp         0/1   Error       0                 80s
+velero                   argocd-default-kopia-maintain-job-1787194151012-7f9hn             0/1   Error       0                 11m
+velero                   argocd-default-kopia-maintain-job-1787194447840-sv2vj             0/1   Error       0                 6m52s
+velero                   argocd-default-kopia-maintain-job-1787194751946-z2l65             0/1   Error       0                 108s
+velero                   awx-default-kopia-maintain-job-1787194101824-4x2c5                0/1   Error       0                 12m
+velero                   awx-default-kopia-maintain-job-1787194395680-68bk9                0/1   Error       0                 7m44s
+velero                   awx-default-kopia-maintain-job-1787194700821-87x9q                0/1   Error       0                 2m39s
+velero                   cilium-spire-default-kopia-maintain-job-1787194169045-6kx54       0/1   Error       0                 11m
+velero                   cilium-spire-default-kopia-maintain-job-1787194465918-nzfxz       0/1   Error       0                 6m33s
+velero                   cilium-spire-default-kopia-maintain-job-1787194769006-wfb59       0/1   Error       0                 90s
+velero                   gatus-default-kopia-maintain-job-1787194174087-h5smr              0/1   Error       0                 11m
+velero                   gatus-default-kopia-maintain-job-1787194471960-t9tdb              0/1   Error       0                 6m28s
+velero                   gatus-default-kopia-maintain-job-1787194774040-nbgvp              0/1   Error       0                 85s
+velero                   REDACTED_d97cef76-default-kopia-maintain-job-1787194118pksf2   0/1   Error       0                 12m
+velero                   REDACTED_d97cef76-default-kopia-maintain-job-1787194413mzz64   0/1   Error       0                 7m26s
+velero                   REDACTED_d97cef76-default-kopia-maintain-job-1787194717bm5cz   0/1   Error       0                 2m22s
+velero                   logging-default-kopia-maintain-job-1787194179137-dl7gm            0/1   Error       0                 11m
+velero                   logging-default-kopia-maintain-job-1787194477008-7fbgd            0/1   Error       0                 6m22s
+velero                   logging-default-kopia-maintain-job-1787194779077-qdcnn            0/1   Error       0                 80s
+velero                   monitoring-default-kopia-maintain-job-1787194095680-8pffm         0/1   Error       0                 12m
+velero                   monitoring-default-kopia-maintain-job-1787194493079-whkn7         0/1   Error       0                 6m6s
+velero                   monitoring-default-kopia-maintain-job-1787194695681-gvspx         0/1   Error       0                 2m44s
+velero                   well-known-default-kopia-maintain-job-1787194134917-gqz7s         0/1   Error       0                 12m
+velero                   well-known-default-kopia-maintain-job-1787194430784-j59p4         0/1   Error       0                 7m9s
+velero                   well-known-default-kopia-maintain-job-1787194734881-rkjsd         0/1   Error       0                 2m5s
 ```
 
 ### High Restart Pods (>3)
-ingress-nginx/ingress-nginx-controller-8445475547-6zqqc: 14 restarts
-ingress-nginx/ingress-nginx-controller-8445475547-kr7kz: 17 restarts
-kube-system/clustermesh-apiserver-6c8cd7bb6f-ctst4: 23 restarts
+ingress-nginx/ingress-nginx-controller-8445475547-6zqqc: 19 restarts
+ingress-nginx/ingress-nginx-controller-8445475547-kr7kz: 20 restarts
+kube-system/clustermesh-apiserver-6c8cd7bb6f-ctst4: 33 restarts
 kube-system/tetragon-5gk99: 7 restarts
 kube-system/tetragon-75hdg: 8 restarts
 kube-system/tetragon-878gv: 8 restarts
@@ -69,17 +69,18 @@ kube-system/tetragon-jz2b6: 6 restarts
 kube-system/tetragon-mdsn9: 23 restarts
 kube-system/tetragon-tbcc7: 8 restarts
 kube-system/tetragon-vbs6v: 16 restarts
-logging/promtail-5jr9j: 4 restarts
+logging/promtail-5jr9j: 5 restarts
 logging/promtail-hp5sc: 8 restarts
 logging/promtail-ng69s: 5 restarts
-monitoring/monitoring-grafana-6c7c5dfd7b-xfrlh: 14 restarts
-monitoring/monitoring-kube-prometheus-operator-67d8d4c647-vwbbr: 4 restarts
-monitoring/monitoring-kube-state-metrics-75f9fff55b-4vfg6: 8 restarts
+monitoring/monitoring-grafana-6c7c5dfd7b-xfrlh: 24 restarts
+monitoring/monitoring-kube-prometheus-operator-67d8d4c647-vwbbr: 5 restarts
+monitoring/monitoring-kube-state-metrics-75f9fff55b-4vfg6: 14 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 175 restarts
 monitoring/monitoring-prometheus-node-exporter-6sc8j: 9 restarts
 monitoring/monitoring-prometheus-node-exporter-vgp6b: 4 restarts
 monitoring/monitoring-prometheus-node-exporter-wmcb8: 46 restarts
-monitoring/prometheus-REDACTED_6dfbe9fc-0: 17 restarts
+monitoring/prometheus-REDACTED_6dfbe9fc-0: 41 restarts
+monitoring/prometheus-REDACTED_6dfbe9fc-1: 10 restarts
 synology-csi/synology-csi-node-4nxcz: 6 restarts
 synology-csi/synology-csi-node-577mq: 12 restarts
 synology-csi/synology-csi-node-kxrjb: 17 restarts
@@ -90,11 +91,11 @@ synology-csi/synology-csi-node-zch7n: 24 restarts
 
 ### Recent Warnings (5)
 ```
-velero                   116s        Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1787108342704             Job has reached the specified backoff limit
-velero                   98s         Warning   BackoffLimitExceeded   job/awx-default-kopia-maintain-job-1787108347807                    Job has reached the specified backoff limit
-velero                   81s         Warning   BackoffLimitExceeded   job/REDACTED_d97cef76-default-kopia-maintain-job-1787108365843   Job has reached the specified backoff limit
-velero                   64s         Warning   BackoffLimitExceeded   job/well-known-default-kopia-maintain-job-1787108382897             Job has reached the specified backoff limit
-monitoring               4s          Warning   Unhealthy              pod/prometheus-REDACTED_6dfbe9fc-0              Liveness probe failed: Get "http://10.0.0.82:9090/-/healthy": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+velero          2m6s        Warning   BackoffLimitExceeded   job/REDACTED_d97cef76-default-kopia-maintain-job-1787194717850   Job has reached the specified backoff limit
+velero          109s        Warning   BackoffLimitExceeded   job/well-known-default-kopia-maintain-job-1787194734881             Job has reached the specified backoff limit
+velero          91s         Warning   BackoffLimitExceeded   job/argocd-default-kopia-maintain-job-1787194751946                 Job has reached the specified backoff limit
+velero          86s         Warning   BackoffLimitExceeded   job/cilium-spire-default-kopia-maintain-job-1787194769006           Job has reached the specified backoff limit
+velero          81s         Warning   BackoffLimitExceeded   job/gatus-default-kopia-maintain-job-1787194774040                  Job has reached the specified backoff limit
 ```
 
 ## Key Resources
