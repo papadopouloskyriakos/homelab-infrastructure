@@ -719,6 +719,12 @@ object network NET_no_dmz06
  subnet 10.255.10.0 255.255.255.0
 object network NET_no_k8s
  subnet 10.255.11.0 255.255.255.0
+object network nlwg01
+ host 10.0.X.X
+ description WireGuard road-warrior gateway
+object network nlwg01-wg
+ host 10.0.X.X
+ description WireGuard 51820 NAT
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -1078,6 +1084,9 @@ access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX]
 access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX] 10.0.X.X 255.255.255.0 
 access-list dmz_vpn01_access_in extended permit udp object-group nloasXX object nlpihole02 eq domain 
 access-list dmz_vpn01_access_in extended permit udp object-group nloasXX object grpihole01 eq domain 
+access-list dmz_vpn01_access_in extended permit udp object nlwg01 object nlpihole02 eq domain 
+access-list dmz_vpn01_access_in extended permit udp object nlwg01 object grpihole01 eq domain 
+access-list dmz_vpn01_access_in extended permit udp object nlwg01 object nlsyslogng01 eq syslog 
 access-list dmz_vpn01_access_in extended deny ip any object-group nl_all_subnets 
 access-list dmz_vpn01_access_in extended deny icmp any object-group nl_all_subnets 
 access-list dmz_vpn01_access_in extended deny ip any object-group gr_all_subnets 
@@ -1194,6 +1203,7 @@ access-list outside_freedom_access_in extended permit tcp object-group META_AS32
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_OAS object nloas01-443-tcp eq https 
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_OAS object nloas02-888-tcp eq 888 
 access-list outside_freedom_access_in extended permit udp object-group WHITELIST_OAS object nloas03-999-udp eq 999 
+access-list outside_freedom_access_in extended permit udp any object nlwg01-wg eq 51820 
 access-list outside_freedom_access_in extended permit udp host 91.211.213.72 host 203.0.113.X eq isakmp 
 access-list outside_freedom_access_in extended permit udp host 91.211.213.72 host 203.0.113.X eq 4500 
 access-list outside_freedom_access_in extended permit esp host 91.211.213.72 host 203.0.113.X 
@@ -1500,6 +1510,8 @@ object network nlhpb01-3478-tcp
  nat (inside_mgmt,outside_freedom) static interface service tcp 3478 3478 
 object network nlhpb01-3478-udp
  nat (inside_mgmt,outside_freedom) static interface service udp 3478 3478 
+object network nlwg01-wg
+ nat (dmz_vpn01,outside_freedom) static PUBLIC_dmz_vpn01 service udp 51820 51820 
 !
 nat (inside_mgmt,outside_freedom) after-auto source dynamic any interface
 nat (inside_k8s,outside_freedom) after-auto source dynamic any interface
