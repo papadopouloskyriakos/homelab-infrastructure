@@ -207,6 +207,27 @@ resource "kubernetes_manifest" "custom_alert_rules" {
               }
             },
             {
+              # OMOIKANE-1657 — the 2026-08-22 incident detector. An app
+              # whose syncPolicy.automated block is removed reads
+              # Synced/Healthy while merges silently stop deploying; the
+              # OutOfSync rule above is structurally blind to that until
+              # the next merge. The autosync_enabled label was verified
+              # LIVE on the controller's :8082/metrics (argo-cd 7.7.10)
+              # before this rule was written — never author a selector
+              # against an unverified label. 15m 'for': a deliberate
+              # minutes-long pause stays quiet, a forgotten one pages.
+              alert = "REDACTED_50666b71"
+              expr  = "argocd_app_info{autosync_enabled=\"false\"} == 1"
+              for   = "15m"
+              labels = {
+                severity = "warning"
+              }
+              annotations = {
+                summary     = "ArgoCD app {{ $labels.name }} has auto-sync DISABLED"
+                description = "ArgoCD application {{ $labels.name }} has had automated sync disabled for more than 15 minutes. Merges build and pin-bump but nothing deploys, while the app still reads Synced/Healthy. If the pause was deliberate, finish it: kubectl apply -f the app's git manifest restores the declared syncPolicy (OMOIKANE-1657)."
+              }
+            },
+            {
               alert = "HighPodRestartRate"
               expr  = "increase(kube_pod_container_status_restarts_total[1h]) > 5"
               for   = "0m"
