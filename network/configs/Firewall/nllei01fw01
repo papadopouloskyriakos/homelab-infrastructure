@@ -668,19 +668,9 @@ object network UNKNOWN_DEVICE_01
 object network notrf01k8s-node01_PUBLIC
  host 198.51.100.X
  description Gigahost Norway VPS
-object network nlstrongswan01
- host 10.0.X.X
- description StrongSwan IKEv2 VPN Server
 object network nl_strongswan_vpn_pool_01
  subnet 10.0.X.X 255.255.255.240
  description StrongSwan VPN Client Pool
-object network PUBLIC_dmz_vpn01_strongswan
- host 203.0.113.X
- description Public IP for StrongSwan
-object network nlstrongswan01-ike
- host 10.0.X.X
-object network nlstrongswan01-natt
- host 10.0.X.X
 object network chzrh01k8s-node01_PUBLIC
  host 198.51.100.X
  description iFog Zurich VPS
@@ -1062,20 +1052,8 @@ access-list outside_freedom_tv_access_in extended deny ip object-group BLACKLIST
 access-list outside_freedom_tv_access_in extended deny icmp object-group BLACKLIST_FAIL2BAN any 
 access-list outside_freedom_tv_access_in extended deny ip any any 
 access-list outside_freedom_tv_access_in extended deny icmp any any 
-access-list dmz_vpn01_access_in extended permit icmp object nlstrongswan01 object nlfreeipa01 
-access-list dmz_vpn01_access_in extended permit tcp object nlstrongswan01 object nlfreeipa01 eq https 
-access-list dmz_vpn01_access_in extended permit tcp object nlstrongswan01 object nlfreeipa01 eq www 
-access-list dmz_vpn01_access_in extended permit tcp object nlstrongswan01 object nlfreeipa01 eq 88 
-access-list dmz_vpn01_access_in extended permit udp object nlstrongswan01 object nlfreeipa01 eq 88 
-access-list dmz_vpn01_access_in extended permit tcp object nlstrongswan01 object nlfreeipa01 eq 464 
-access-list dmz_vpn01_access_in extended permit udp object nlstrongswan01 object nlfreeipa01 eq 464 
-access-list dmz_vpn01_access_in extended permit tcp object nlstrongswan01 object nlfreeipa01 eq ldap 
-access-list dmz_vpn01_access_in extended permit tcp object nlstrongswan01 object nlfreeipa01 eq ldaps 
 access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_LEI_GRP_inside_mgmt 
-access-list dmz_vpn01_access_in extended permit tcp object nlstrongswan01 object nlfreeipa01 eq domain 
-access-list dmz_vpn01_access_in extended permit tcp object nlstrongswan01 object grfreeipa01 eq ldaps 
 access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_LEI_GRP_inside_k8s 
-access-list dmz_vpn01_access_in extended permit udp object nlstrongswan01 object nlsyslogng01 eq syslog 
 access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_SKG_GRP_inside_mgmt 
 access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_SKG_GRP_inside_servers01 
 access-list dmz_vpn01_access_in extended permit udp object nl_strongswan_vpn_pool_01 object nlpihole02 eq domain 
@@ -1098,8 +1076,6 @@ access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX]
 access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX] object-group S2S_SKG_GRP_inside_servers01 
 access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX] object-group S2S_SKG_GRP_dmz_vpn01 
 access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX] 10.0.X.X 255.255.255.0 
-access-list dmz_vpn01_access_in extended permit udp object nlstrongswan01 object nlfreeipa01 eq domain 
-access-list dmz_vpn01_access_in extended permit udp object nlstrongswan01 object grfreeipa01 eq domain 
 access-list dmz_vpn01_access_in extended permit udp object-group nloasXX object nlpihole02 eq domain 
 access-list dmz_vpn01_access_in extended permit udp object-group nloasXX object grpihole01 eq domain 
 access-list dmz_vpn01_access_in extended deny ip any object-group nl_all_subnets 
@@ -1215,8 +1191,6 @@ access-list outside_freedom_access_in extended permit tcp object-group WHITELIST
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_PLEX object nlnpm01-443-tcp eq https 
 access-list outside_freedom_access_in remark [Postiz - Meta AS32934 media-fetch via NPM:443]
 access-list outside_freedom_access_in extended permit tcp object-group META_AS32934 object nlnpm01-443-tcp eq https 
-access-list outside_freedom_access_in extended permit udp object-group WHITELIST_OAS object nlstrongswan01 eq 4500 
-access-list outside_freedom_access_in extended permit udp object-group WHITELIST_OAS object nlstrongswan01 eq isakmp 
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_OAS object nloas01-443-tcp eq https 
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_OAS object nloas02-888-tcp eq 888 
 access-list outside_freedom_access_in extended permit udp object-group WHITELIST_OAS object nloas03-999-udp eq 999 
@@ -1526,10 +1500,6 @@ object network nlhpb01-3478-tcp
  nat (inside_mgmt,outside_freedom) static interface service tcp 3478 3478 
 object network nlhpb01-3478-udp
  nat (inside_mgmt,outside_freedom) static interface service udp 3478 3478 
-object network nlstrongswan01-ike
- nat (dmz_vpn01,outside_freedom) static 203.0.113.X service udp isakmp isakmp 
-object network nlstrongswan01-natt
- nat (dmz_vpn01,outside_freedom) static 203.0.113.X service udp 4500 4500 
 !
 nat (inside_mgmt,outside_freedom) after-auto source dynamic any interface
 nat (inside_k8s,outside_freedom) after-auto source dynamic any interface
