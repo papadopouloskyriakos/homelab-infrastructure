@@ -1,0 +1,242 @@
+---
+# Sync cert-manager wildcard certificate to the Protonmail Bridge stunnel proxies
+# Flow: K8s cert-manager secret -> combined key+fullchain stunnel.pem for each of
+#       the three bridge instances -> docker restart of the changed proxies only
+# Idempotent: copy is checksum-based; unchanged pem means no restart, no blip.
+#
+# Hosts group required: protonmail_bridge
+#   nlprotonmail-bridge01   (root, ED25519 one_key - AWX credential 24)
+#
+# Three stunnel proxies serve IMAPS on the host:
+#   :993  protonmail-proxy-01  /srv/protonmail-bridge-01/protonmail-proxy/data/stunnel.pem
+#   :2993 protonmail-proxy-02  /srv/protonmail-bridge-02/protonmail-proxy/data/stunnel.pem
+#   :3993 protonmail-proxy-03  /srv/protonmail-bridge-03/protonmail-proxy/data/stunnel.pem
+#
+# stunnel.pem format: private key FIRST, then fullchain (same as the compose
+# auto-generation and the HAProxy convention). The compose files only generate a
+# SELF-SIGNED pem when the file is missing, so the synced cert is never fought.
+# The plaintext/STARTTLS ports (143/2143/3143) are served by the bridge binary's
+# own self-signed cert and are NOT touched here - clients wanting a valid chain
+# must use the IMAPS ports with the FQDN nlprotonmail-bridge01.example.net.
+#
+# Restart: docker restart <proxy> (single container by NAME, never compose - the
+# bridge container shares each compose project and must not be recreated).
+# After restart the play VERIFIES each proxy serves the deployed fingerprint and
+# that the cert is in date - a restart that silently keeps the old cert must fail
+# the play, not pass it (lesson from IFRNLLEI01PRD-2266 / meshsat-nats).
+#
+# Credentials from AWX custom credentials:
+#   K8s API: K8S_HOST, K8S_TOKEN, K8S_CA_CERT
+
+- name: Fetch certificate from Kubernetes
+  hosts: localhost
+  gather_facts: false
+  vars:
+    k8s_secret_name: REDACTED_0d82b4df-tls
+    k8s_secret_namespace: cert-manager
+    temp_dir: REDACTED_88f47687
+
+  tasks:
+    - name: Create temp directory
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: directory
+        mode: '0700'
+
+    - name: Set credentials from environment
+      ansible.builtin.set_fact:
+        k8s_host: "{{ lookup('env', 'K8S_HOST') }}"
+        k8s_token: "{{ lookup('env', 'K8S_TOKEN') }}"
+        k8s_ca_cert: "{{ lookup('env', 'K8S_CA_CERT') }}"
+      no_log: true
+
+    - name: Write CA cert to temp file
+      ansible.builtin.copy:
+        content: "{{ k8s_ca_cert }}"
+        dest: "{{ temp_dir }}/ca.crt"
+        mode: '0600'
+
+    - name: Get TLS secret from K8s API
+      ansible.builtin.uri:
+        url: "{{ k8s_host }}/api/v1/namespaces/{{ k8s_secret_namespace }}/secrets/{{ k8s_secret_name }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ k8s_token }}"
+        ca_path: "{{ temp_dir }}/ca.crt"
+        validate_certs: true
+        return_content: true
+      register: k8s_secret
+      no_log: true
+
+    - name: Build combined key plus fullchain PEM for stunnel
+      ansible.builtin.copy:
+        content: "{{ k8s_secret.json.data['tls.key'] | b64decode }}{{ k8s_secret.json.data['tls.crt'] | b64decode }}"
+        dest: "{{ temp_dir }}/stunnel-combined.pem"
+        mode: '0600'
+      no_log: true
+
+    - name: Save fullchain separately for fingerprint checks
+      ansible.builtin.copy:
+        content: "{{ k8s_secret.json.data['tls.crt'] | b64decode }}"
+        dest: "{{ temp_dir }}/fullchain.pem"
+        mode: '0600'
+      no_log: true
+
+    - name: Verify the fetched key matches the fetched certificate
+      ansible.builtin.shell:
+        cmd: |
+          CERT_PUB=$(openssl x509 -noout -pubkey -in "{{ temp_dir }}/fullchain.pem")
+          KEY_PUB=$(openssl pkey -pubout -in "{{ temp_dir }}/stunnel-combined.pem")
+          [ "$CERT_PUB" = "$KEY_PUB" ] && echo MATCH
+      register: key_cert_match
+      changed_when: false
+      failed_when: "'MATCH' not in key_cert_match.stdout"
+
+    - name: Get K8s certificate fingerprint
+      ansible.builtin.shell:
+        cmd: openssl x509 -noout -fingerprint -sha256 -in "{{ temp_dir }}/fullchain.pem" | cut -d= -f2
+      register: REDACTED_aa2efaca
+      changed_when: false
+
+    - name: Get K8s certificate expiry
+      ansible.builtin.command:
+        cmd: openssl x509 -enddate -noout -in "{{ temp_dir }}/fullchain.pem"
+      register: k8s_cert_expiry
+      changed_when: false
+
+    - name: Display K8s certificate expiry
+      ansible.builtin.debug:
+        msg: "K8s certificate: {{ k8s_cert_expiry.stdout }}"
+
+
+- name: Deploy certificate to Protonmail Bridge stunnel proxies
+  hosts: protonmail_bridge
+  gather_facts: false
+  vars:
+    temp_dir: REDACTED_88f47687
+    REDACTED_aa2efaca: "{{ hostvars['localhost']['REDACTED_aa2efaca']['stdout'] }}"
+    bridge_instances:
+      - name: '01'
+        pem: /srv/protonmail-bridge-01/protonmail-proxy/data/stunnel.pem
+        container: protonmail-proxy-01
+        imaps_port: 993
+      - name: '02'
+        pem: /srv/protonmail-bridge-02/protonmail-proxy/data/stunnel.pem
+        container: protonmail-proxy-02
+        imaps_port: 2993
+      - name: '03'
+        pem: /srv/protonmail-bridge-03/protonmail-proxy/data/stunnel.pem
+        container: protonmail-proxy-03
+        imaps_port: 3993
+
+  tasks:
+    - name: Deploy combined stunnel.pem to each instance
+      ansible.builtin.copy:
+        src: "{{ temp_dir }}/stunnel-combined.pem"
+        dest: "{{ item.pem }}"
+        mode: '0600'
+        owner: root
+        group: root
+        backup: true
+      loop: "{{ bridge_instances }}"
+      loop_control:
+        label: "instance {{ item.name }}"
+      register: pem_deploy
+      no_log: true
+
+    - name: Display sync decision per instance
+      ansible.builtin.debug:
+        msg: >-
+          instance {{ item.item.name }}: {{
+            'pem changed - restarting ' + item.item.container
+            if item.changed else
+            'pem already current - no restart'
+          }}
+      loop: "{{ pem_deploy.results }}"
+      loop_control:
+        label: "instance {{ item.item.name }}"
+
+    - name: Restart the proxies whose pem changed (single container by name, never compose)
+      ansible.builtin.command:
+        argv:
+          - docker
+          - restart
+          - "{{ item.item.container }}"
+      loop: "{{ pem_deploy.results }}"
+      loop_control:
+        label: "{{ item.item.container }}"
+      when: item.changed
+
+    - name: Wait for the IMAPS ports to listen again
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ item.item.imaps_port }}"
+        timeout: 60
+      loop: "{{ pem_deploy.results }}"
+      loop_control:
+        label: "port {{ item.item.imaps_port }}"
+      when: item.changed
+
+    - name: Capture the certificate each proxy is actually serving
+      ansible.builtin.shell:
+        cmd: |
+          echo | openssl s_client -connect 127.0.0.1:{{ item.item.imaps_port }} 2>/dev/null \
+            | openssl x509 -outform PEM > /tmp/served-{{ item.item.name }}.pem
+          openssl x509 -noout -fingerprint -sha256 -in /tmp/served-{{ item.item.name }}.pem | cut -d= -f2
+      register: served_fingerprint
+      changed_when: false
+      retries: 3
+      delay: 5
+      until: served_fingerprint.stdout | length > 0
+      loop: "{{ pem_deploy.results }}"
+      loop_control:
+        label: "port {{ item.item.imaps_port }}"
+      when: item.changed
+
+    - name: Fail if a proxy serves the wrong certificate or an expired one
+      ansible.builtin.command:
+        argv:
+          - openssl
+          - x509
+          - -checkend
+          - '0'
+          - -noout
+          - -in
+          - "/tmp/served-{{ item.item.item.name }}.pem"
+      register: checkend
+      changed_when: false
+      failed_when: checkend.rc != 0 or item.stdout != REDACTED_aa2efaca
+      loop: "{{ served_fingerprint.results }}"
+      loop_control:
+        label: "instance {{ item.item.item.name }}"
+      when: item is not skipped
+
+    - name: Clean up served-cert scratch files
+      ansible.builtin.file:
+        path: "/tmp/served-{{ item.name }}.pem"
+        state: absent
+      loop: "{{ bridge_instances }}"
+      loop_control:
+        label: "instance {{ item.name }}"
+
+    - name: Final status
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}: {{
+            'Deployed and verified instances: ' + (pem_deploy.results | selectattr('changed') | map(attribute='item.name') | join(', '))
+            if pem_deploy.results | selectattr('changed') | list | length > 0 else
+            'All three stunnel certs already current - nothing restarted.'
+          }}
+
+
+- name: Cleanup temp directory
+  hosts: localhost
+  gather_facts: false
+  vars:
+    temp_dir: REDACTED_88f47687
+
+  tasks:
+    - name: Remove temp directory
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: absent
