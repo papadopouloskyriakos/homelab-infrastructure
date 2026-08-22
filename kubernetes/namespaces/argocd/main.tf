@@ -138,6 +138,14 @@ resource "helm_release" "argocd" {
       server = {
         replicas = var.REDACTED_7ce225ce
 
+        # OMOIKANE-1657 — see the controller block.
+        metrics = {
+          enabled = true
+          serviceMonitor = {
+            enabled = true
+          }
+        }
+
         pdb = {
           enabled      = true
           minAvailable = 1
@@ -176,6 +184,20 @@ resource "helm_release" "argocd" {
       controller = {
         replicas = 1
 
+        # OMOIKANE-1657 — the controller ALWAYS serves /metrics on :8082;
+        # what was missing estate-wide is the Service + ServiceMonitor, so
+        # Prometheus held ZERO argocd_* series and every argocd_app_info
+        # alert in custom-alerts.tf was decorative. REDACTED_d8074874
+        # scrapes all ServiceMonitors (nil selector in monitoring/main.tf),
+        # so enabling these is the whole fix. Keys verified against chart
+        # argo-cd 7.7.10 values (metrics.enabled + metrics.serviceMonitor).
+        metrics = {
+          enabled = true
+          serviceMonitor = {
+            enabled = true
+          }
+        }
+
         pdb = {
           enabled      = true
           minAvailable = 1
@@ -195,6 +217,14 @@ resource "helm_release" "argocd" {
 
       repoServer = {
         replicas = var.argocd_repo_server_replicas
+
+        # OMOIKANE-1657 — see the controller block.
+        metrics = {
+          enabled = true
+          serviceMonitor = {
+            enabled = true
+          }
+        }
 
         pdb = {
           enabled      = true
