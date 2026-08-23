@@ -75,6 +75,59 @@ resource "kubernetes_manifest" "estate_alert_rules" {
           ]
         },
         {
+          # OMOIKANE-1485 follow-up, 2026-08-23.
+          #
+          # Generalises REDACTED_d78e0784 above, which guards ONE
+          # file. A textfile-collector gauge has no staleness of its own:
+          # node_exporter re-serves a .prom file forever, so Prometheus keeps
+          # reporting a month-old value with a fresh timestamp. That is worse
+          # than a missing metric — a missing metric reads as absent, a frozen
+          # one reads as healthy.
+          #
+          # Found the hard way: scripts/yt-untriaged-report.sh (written
+          # 2026-07-26 precisely so the 831-issue YouTrack backlog could not
+          # regrow) was never scheduled. It ran once, and for 28 days
+          # Prometheus served omoikane_yt_open=433 / omoikane_yt_untriaged=429
+          # while the truth was 85 / 14 — a 31x error on a gauge whose entire
+          # job was to be believed. The producer is now on cron; this rule is
+          # the guard that would have caught it without anyone looking.
+          #
+          # node_textfile_mtime_seconds is exported per file by node_exporter
+          # itself, so the freshness signal already existed and was already
+          # scraped — nothing consumed it. Verified present on all five estate
+          # jobs (chatops-node, omoikane-node, node-exporter,
+          # node-exporter-edge, REDACTED_84f96d5e) before this rule was
+          # written; do not author a selector against an unverified label.
+          #
+          # 7d is deliberately generous: it must not fire on legitimately slow
+          # producers (weekly rebuilds). EXPECT 8 immediate firings on first
+          # apply (measured against live Prometheus, not estimated; omoikane_yt
+          # would have been the 9th until its producer was put on cron today) —
+          # plan_adherence_gate (44d), infra (42d),
+          # renovate_autonomy_audit (41d), chaos_findings_autoverify (37d),
+          # freedom_ont (37d), renovate_autonomy_metrics (37d),
+          # prompt_refinement + eval_flywheel (22d). Those are real: each is a
+          # producer that stopped and left its last numbers on display. Retire
+          # the file or restore the producer; do not raise the threshold.
+          # pacemaker_standby.prom is excluded — the 10-minute rule above owns
+          # it and would double-fire.
+          name = "REDACTED_bd8993e7"
+          rules = [
+            {
+              alert = "REDACTED_50695a0e"
+              expr  = "(time() - node_textfile_mtime_seconds{file!~\".*pacemaker_standby.prom\"}) > 604800"
+              for   = "1h"
+              labels = {
+                severity = "warning"
+              }
+              annotations = {
+                summary     = "textfile exporter {{ $labels.file }} on {{ $labels.instance }} is >7d stale"
+                description = "{{ $labels.file }} on {{ $labels.instance }} has not been rewritten in over 7 days, but node_exporter still exports its contents, so every gauge in it is being served to Prometheus as if current. Any dashboard or rule reading those series is reading frozen numbers. Fix the producer (cron/systemd timer that writes the file) or delete the file — absent data is honest, stale data is not."
+              }
+            }
+          ]
+        },
+        {
           # OMOIKANE-1527 / OMOIKANE-1520.
           #
           # Velero ran for 244 days and never once produced a Completed backup.
