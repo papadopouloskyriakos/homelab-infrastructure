@@ -708,6 +708,13 @@ resource "helm_release" "monitoring" {
           size             = var.grafana_storage_size
         }
 
+        # Velero opt-in fs-backup (IFRNLLEI01PRD-2605): hand-authored dashboards/
+        # orgs beyond the IaC-provisioned set live only on this volume. The
+        # annotation value is the pod-spec VOLUME name ("storage"), not the PVC.
+        podAnnotations = {
+          "backup.velero.io/backup-volumes" = "storage"
+        }
+
         service = {
           type     = "NodePort"
           nodePort = 30000
