@@ -254,6 +254,19 @@ resource "kubernetes_ingress_v1" "seaweedfs_s3" {
     annotations = {
       "kubernetes.io/ingress.class"                 = "nginx"
       "nginx.ingress.kubernetes.io/proxy-body-size" = "0"
+      # IFRNLLEI01PRD-2605 — stream S3 bodies, do not spool them in nginx.
+      # With default response buffering, GETs of large objects (the 2GB barman
+      # base tars) were spooled to nginx temp files and TRUNCATED at variable
+      # power-of-two-ish offsets with a clean EOF — the barman restore drill
+      # failed on it from both sides while direct-to-filer streamed the full
+      # object. Request buffering off likewise takes nginx temp spooling out
+      # of the upload path (barman/velero/etcd-snapshot writers ride this
+      # hostname). Timeouts sized for slow cross-site WAN restores.
+      "nginx.ingress.kubernetes.io/proxy-buffering"          = "off"
+      "nginx.ingress.kubernetes.io/proxy-request-buffering"  = "off"
+      "nginx.ingress.kubernetes.io/proxy-max-temp-file-size" = "0"
+      "nginx.ingress.kubernetes.io/proxy-read-timeout"       = "1800"
+      "nginx.ingress.kubernetes.io/proxy-send-timeout"       = "1800"
       # OMOIKANE-1510 — pin every s3 request to ONE filer replica.
       #
       # seaweedfs-filer fronts filer-0 and filer-1, which keep their own leveldb2
