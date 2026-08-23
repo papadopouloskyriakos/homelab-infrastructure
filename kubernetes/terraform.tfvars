@@ -125,6 +125,9 @@ REDACTED_337e6630 = "10.0.X.X"
 
 # --- seaweedfs ---
 REDACTED_a8217c41 = "1000Gi"
+# Staged 4.44 rollout (IFRNLLEI01PRD-2605): NO first, then NL, then GR.
+REDACTED_c1342204       = "4.0.401"
+REDACTED_a4f42897       = "4.01"
 REDACTED_4bbaa453 = true # NL runs the single bidirectional filer.sync
 # Stale-checkpoint recovery floors (2026-05-05 incident) — see the flag-semantics
 # comment block on the seaweedfs module call in main.tf.

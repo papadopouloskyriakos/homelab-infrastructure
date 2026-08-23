@@ -331,6 +331,7 @@ module "seaweedfs" {
 
   storage_class_retain          = var.storage_class_retain
   REDACTED_c1342204       = var.REDACTED_c1342204
+  REDACTED_a4f42897       = var.REDACTED_a4f42897
   volume_storage_size           = var.REDACTED_a8217c41
   REDACTED_0a7b20f8 = var.REDACTED_6930756b
   master_storage_size           = var.seaweedfs_master_storage_size

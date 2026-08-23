@@ -585,6 +585,12 @@ variable "REDACTED_c1342204" {
   default     = "4.0.401"
 }
 
+variable "REDACTED_a4f42897" {
+  description = "SeaweedFS container image version (filer.sync; keep in lockstep with REDACTED_c1342204)"
+  type        = string
+  default     = "4.01"
+}
+
 variable "REDACTED_a8217c41" {
   description = "Storage size per volume server (NL 1000Gi, GR 500Gi)"
   type        = string
