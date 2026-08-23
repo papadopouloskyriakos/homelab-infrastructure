@@ -150,6 +150,32 @@ filer:
   # GROWTH (whack-a-mole 2Gi->4Gi->4.5Gi); the 4.5Gi limit stays as the true safety ceiling.
   extraEnvironmentVars:
     GOMEMLIMIT: "3686MiB"
+%{ if filer_store == "postgres2" ~}
+    # Shared transactional filer store (IFRNLLEI01PRD-2605). The explicit
+    # leveldb2 "false" is REQUIRED: Helm deep-merges these keys over the
+    # chart defaults, which carry WEED_LEVELDB2_ENABLED "true".
+    WEED_LEVELDB2_ENABLED: "false"
+    WEED_POSTGRES2_ENABLED: "true"
+    WEED_POSTGRES2_HOSTNAME: "seaweedfs-filer-meta-rw.seaweedfs.svc.cluster.local"
+    WEED_POSTGRES2_PORT: "5432"
+    WEED_POSTGRES2_DATABASE: "seaweedfs_filer"
+    WEED_POSTGRES2_SSLMODE: "require"
+    WEED_POSTGRES2_CONNECTION_MAX_IDLE: "10"
+    WEED_POSTGRES2_CONNECTION_MAX_OPEN: "50"
+    WEED_POSTGRES2_CONNECTION_MAX_LIFETIME_SECONDS: "300"
+  # createTable/upsertQuery: weed 4.44 falls back to built-in defaults when
+  # unset (postgres2_store.go initialize) — no DDL env needed. The CNPG app
+  # user owns the database, so per-bucket CREATE TABLE works.
+  secretExtraEnvironmentVars:
+    WEED_POSTGRES2_USERNAME:
+      REDACTED_5dfff400:
+        name: seaweedfs-filer-meta-app
+        key: username
+    WEED_POSTGRES2_PASSWORD:
+      REDACTED_5dfff400:
+        name: seaweedfs-filer-meta-app
+        key: password
+%{ endif ~}
   # Affinity as STRING
   affinity: |
     nodeAffinity:

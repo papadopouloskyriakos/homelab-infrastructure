@@ -181,3 +181,40 @@ variable "REDACTED_88d37e0b" {
   type        = number
   default     = 0
 }
+
+# -----------------------------------------------------------------------------
+# Filer metadata store selection (IFRNLLEI01PRD-2605)
+#
+# "leveldb2" = the chart-default per-pod embedded store. "postgres2" = the
+# shared CNPG cluster below (values.yaml.tpl wires WEED_POSTGRES2_* env).
+# The per-pod leveldb2 topology (2 filers + async meta-aggregator) is
+# upstream-documented as unsupported for shared-truth HA and is the root
+# enabler of the 2026 object-corruption class (IFRNLLEI01PRD-2090).
+# -----------------------------------------------------------------------------
+variable "filer_store" {
+  description = "Filer metadata store: leveldb2 (embedded per pod) or postgres2 (shared CNPG cluster)"
+  type        = string
+  default     = "leveldb2"
+  validation {
+    condition     = contains(["leveldb2", "postgres2"], var.filer_store)
+    error_message = "filer_store must be leveldb2 or postgres2."
+  }
+}
+
+variable "filer_meta_db_enabled" {
+  description = "Create the seaweedfs-filer-meta CNPG cluster (requires cnpg_enabled CRDs; enable BEFORE flipping filer_store)"
+  type        = bool
+  default     = false
+}
+
+variable "REDACTED_5c69828e" {
+  description = "S3 endpoint for filer-meta barman backups — MUST be the OTHER site's S3 (never the S3 this DB serves); empty disables backup"
+  type        = string
+  default     = ""
+}
+
+variable "REDACTED_5514fdd1" {
+  description = "Bucket on REDACTED_5c69828e for barman base+WAL"
+  type        = string
+  default     = ""
+}
