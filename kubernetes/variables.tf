@@ -609,6 +609,12 @@ variable "REDACTED_8bee20b3" {
   default     = ""
 }
 
+variable "REDACTED_b3642cef" {
+  description = "S3 endpoint the seaweedfs read canary exercises (site consumer path) — IFRNLLEI01PRD-2605"
+  type        = string
+  default     = "http://seaweedfs-s3.seaweedfs.svc.cluster.local:8333"
+}
+
 variable "REDACTED_0bd01d17" {
   description = "Bucket for filer-meta barman base+WAL on the cross-site endpoint"
   type        = string

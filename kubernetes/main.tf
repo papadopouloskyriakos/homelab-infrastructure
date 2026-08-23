@@ -336,6 +336,7 @@ module "seaweedfs" {
   filer_meta_db_enabled         = var.seaweedfs_filer_meta_db_enabled
   REDACTED_5c69828e    = var.REDACTED_8bee20b3
   REDACTED_5514fdd1      = var.REDACTED_0bd01d17
+  canary_s3_endpoint            = var.REDACTED_b3642cef
   volume_storage_size           = var.REDACTED_a8217c41
   REDACTED_0a7b20f8 = var.REDACTED_6930756b
   master_storage_size           = var.seaweedfs_master_storage_size
