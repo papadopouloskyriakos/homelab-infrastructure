@@ -715,6 +715,19 @@ resource "helm_release" "monitoring" {
           "backup.velero.io/backup-volumes" = "storage"
         }
 
+        # IFRNLLEI01PRD-2605: the chart's init-chown-data runs chown -R as root
+        # with capabilities [drop ALL, add CHOWN] — no DAC_OVERRIDE — so on a
+        # LIVED-IN volume it cannot traverse grafana's own 0700 png/csv/pdf
+        # dirs and crash-loops (reproduced on notrf01; three kps applies
+        # rolled back on it). It only ever succeeds against a fresh empty
+        # volume. Ownership is already guaranteed by pod fsGroup=472 (kubelet
+        # applies fsGroup on local/iSCSI PVs; the NL/GR NFS volumes are
+        # long-established). If a brand-new NFS grafana volume ever appears,
+        # chown it once by hand.
+        initChownData = {
+          enabled = false
+        }
+
         service = {
           type     = "NodePort"
           nodePort = 30000
