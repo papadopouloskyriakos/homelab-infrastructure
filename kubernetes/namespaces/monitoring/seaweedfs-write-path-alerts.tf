@@ -141,6 +141,50 @@ resource "kubernetes_manifest" "REDACTED_78d971a7" {
             },
           ]
         },
+        {
+          # READ-path canary rules (IFRNLLEI01PRD-2605). The canary CronJob in
+          # namespaces/seaweedfs/read-canary.tf writes+reads a roundtrip object
+          # and streams the 1GiB sentinel every 6h through the site's real
+          # consumer path. Rules key on kube_job metrics (kube-state-metrics).
+          # Stale rule includes absent() — a canary that has NEVER run must
+          # alert, not read as healthy (the frozen-gauge lesson, 2026-08-23).
+          name     = "seaweedfs-read-path"
+          interval = "1m"
+          rules = [
+            {
+              alert = "SeaweedFSReadCanaryFailed"
+              expr  = "max(kube_job_status_failed{namespace=\"seaweedfs\", job_name=~\"seaweedfs-read-canary-.+\"}) > 0"
+              for   = "5m"
+              labels = {
+                severity  = "critical"
+                category  = "storage-read-path"
+                service   = "seaweedfs"
+                namespace = "seaweedfs"
+              }
+              annotations = {
+                summary     = "SeaweedFS read canary FAILED — objects are not coming back intact"
+                description = "The read canary could not round-trip a small object or could not stream the 1GiB sentinel with the correct length+SHA256 through this site's consumer S3 path. This is the corruption/truncation class that broke barman restores on 2026-08-23 (ModSecurity cut a 2GB GET at exactly 512MiB with a clean EOF). Read the failed job log: kubectl -n seaweedfs logs job/<latest seaweedfs-read-canary job>."
+                impact      = "Backups/restores and any large-object consumer on this path may be silently receiving truncated or corrupt data. Treat as a data-integrity incident, not an availability blip."
+              }
+            },
+            {
+              alert = "SeaweedFSReadCanaryStale"
+              expr  = "(time() - max(kube_job_status_completion_time{namespace=\"seaweedfs\", job_name=~\"seaweedfs-read-canary-.+\"}) > 28800) or absent(kube_job_status_completion_time{namespace=\"seaweedfs\", job_name=~\"seaweedfs-read-canary-.+\"})"
+              for   = "30m"
+              labels = {
+                severity  = "warning"
+                category  = "storage-read-path"
+                service   = "seaweedfs"
+                namespace = "seaweedfs"
+              }
+              annotations = {
+                summary     = "SeaweedFS read canary has not completed in >8h (or has never run)"
+                description = "No seaweedfs-read-canary job completion in over 8 hours (schedule is every 6h), or the metric is entirely absent. A canary that is not running certifies nothing — restore the CronJob or fix what blocks it; do not silence this."
+                impact      = "The read path is unmonitored while this fires; corruption/truncation would go unseen exactly as it did before 2026-08-23."
+              }
+            },
+          ]
+        },
       ]
     }
   }
