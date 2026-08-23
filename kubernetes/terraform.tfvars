@@ -147,7 +147,7 @@ REDACTED_9360424f = {
 
 # --- awx ---
 awx_enabled                  = true
-cnpg_enabled                 = false
+cnpg_enabled                 = true
 REDACTED_6b820d0e = true
 REDACTED_0b348a0e     = "projects" # asymmetric by history — live NFS dir name
 awx_ingress_enabled          = false      # NL reaches AWX via NodePort/NPM
