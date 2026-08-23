@@ -591,6 +591,30 @@ variable "REDACTED_a4f42897" {
   default     = "4.01"
 }
 
+variable "seaweedfs_filer_store" {
+  description = "Filer metadata store: leveldb2 (embedded) or postgres2 (shared CNPG) — IFRNLLEI01PRD-2605"
+  type        = string
+  default     = "leveldb2"
+}
+
+variable "seaweedfs_filer_meta_db_enabled" {
+  description = "Create the seaweedfs-filer-meta CNPG cluster (needs cnpg_enabled; enable before flipping the store)"
+  type        = bool
+  default     = false
+}
+
+variable "REDACTED_8bee20b3" {
+  description = "S3 endpoint for filer-meta barman backups — the OTHER site's S3; empty disables"
+  type        = string
+  default     = ""
+}
+
+variable "REDACTED_0bd01d17" {
+  description = "Bucket for filer-meta barman base+WAL on the cross-site endpoint"
+  type        = string
+  default     = ""
+}
+
 variable "REDACTED_a8217c41" {
   description = "Storage size per volume server (NL 1000Gi, GR 500Gi)"
   type        = string
