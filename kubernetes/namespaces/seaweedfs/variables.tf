@@ -218,3 +218,9 @@ variable "REDACTED_5514fdd1" {
   type        = string
   default     = ""
 }
+
+variable "canary_s3_endpoint" {
+  description = "S3 endpoint the read canary tests — the path this site's real consumers use (NL/GR: the public ingress; notrf01: the cluster-local service, no-s3 has no DNS)"
+  type        = string
+  default     = "http://seaweedfs-s3.seaweedfs.svc.cluster.local:8333"
+}
