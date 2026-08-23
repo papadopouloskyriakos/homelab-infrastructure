@@ -38,7 +38,13 @@ spec:
     storageLocation: default
     volumeSnapshotLocations:
     - default
-    defaultVolumesToFsBackup: true
+    # Opt-IN since IFRNLLEI01PRD-2605 phase 5: full-cluster fs-backup was the
+    # nightly I/O storm provoking the SeaweedFS stall/corruption chain, and it
+    # kopia-copied rebuildable telemetry (TSDBs, caches, sidecar emptyDirs)
+    # while structurally failing on tainted nodes. Precious volumes now carry
+    # backup.velero.io/backup-volumes pod annotations (grafana, pihole NL,
+    # awx-projects, bridge-state x2 + qdrant storage in the omoikane app repo).
+    defaultVolumesToFsBackup: false
 ---
 apiVersion: velero.io/v1
 kind: Schedule
@@ -64,4 +70,10 @@ spec:
     storageLocation: default
     volumeSnapshotLocations:
     - default
-    defaultVolumesToFsBackup: true
+    # Opt-IN since IFRNLLEI01PRD-2605 phase 5: full-cluster fs-backup was the
+    # nightly I/O storm provoking the SeaweedFS stall/corruption chain, and it
+    # kopia-copied rebuildable telemetry (TSDBs, caches, sidecar emptyDirs)
+    # while structurally failing on tainted nodes. Precious volumes now carry
+    # backup.velero.io/backup-volumes pod annotations (grafana, pihole NL,
+    # awx-projects, bridge-state x2 + qdrant storage in the omoikane app repo).
+    defaultVolumesToFsBackup: false

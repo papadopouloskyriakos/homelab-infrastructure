@@ -131,6 +131,13 @@ resource "kubernetes_manifest" "awx_cr" {
       {
         service_type = "nodeport"
 
+        # Velero opt-in fs-backup (IFRNLLEI01PRD-2605): the RWX projects volume
+        # is mounted by web+task; annotating only the web pods avoids duplicate
+        # PodVolumeBackups. Value = pod-spec volume name. The AWX postgres has
+        # NO declarative annotation path (CRD verified) — it is covered by the
+        # pg_dump CronJob in pg-dump.tf instead.
+        web_annotations = "backup.velero.io/backup-volumes: my-awx-projects"
+
         # Projects — NFS (RWX)
         projects_persistence         = true
         projects_existing_claim      = REDACTED_912a6d18_claim.awx_projects.metadata[0].name
