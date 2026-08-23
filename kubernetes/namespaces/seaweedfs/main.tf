@@ -262,6 +262,12 @@ resource "kubernetes_ingress_v1" "seaweedfs_s3" {
       # object. Request buffering off likewise takes nginx temp spooling out
       # of the upload path (barman/velero/etcd-snapshot writers ride this
       # hostname). Timeouts sized for slow cross-site WAN restores.
+      # ModSecurity's body filter TRUNCATES large streamed responses (proven
+      # 2026-08-23: the 2GB barman base tar cut at exactly 512MiB with ModSec
+      # on, complete in 43s with it off — "DetectionOnly" is not passive on
+      # the data plane). Its CRS web rules only produce noise on sigv4
+      # machine traffic; the WAF stays on for every other vhost.
+      "nginx.ingress.kubernetes.io/enable-modsecurity"       = "false"
       "nginx.ingress.kubernetes.io/proxy-buffering"          = "off"
       "nginx.ingress.kubernetes.io/proxy-request-buffering"  = "off"
       "nginx.ingress.kubernetes.io/proxy-max-temp-file-size" = "0"
