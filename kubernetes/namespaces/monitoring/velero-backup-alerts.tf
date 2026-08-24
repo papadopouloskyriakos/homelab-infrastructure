@@ -239,6 +239,35 @@ resource "kubernetes_manifest" "REDACTED_e981a6a4" {
                 EOT
               }
             },
+            {
+              # Wedged-controller trap (IFRNLLEI01PRD-2605 follow-up, 2026-08-24):
+              # the velero server sat with a created Backup CR at empty phase for
+              # 22+ min after an S3 flap — schedules kept "existing" but produced
+              # no attempts. attempt_total stops moving in exactly that state.
+              # {cluster=""} = local series only (remote-written twins carry a
+              # cluster label; without the guard this would double-evaluate).
+              alert = "REDACTED_45e7a03a"
+              expr  = "increase(velero_backup_attempt_total{schedule!=\"\",cluster=\"\"}[26h]) == 0"
+              for   = "30m"
+              labels = {
+                severity = "critical"
+                team     = "infra"
+                scope    = "backup"
+              }
+              annotations = {
+                summary     = "Velero schedule {{ $labels.schedule }} produced NO backup attempt in 26h"
+                description = <<-EOT
+                  The daily schedule should attempt at least once per 24h; zero attempts in 26h
+                  means the backup controller is wedged (seen 2026-08-24: BSL poller and backup
+                  controller both went silent after an S3 flap; a created Backup CR sat with no
+                  phase). This fires even when the LAST backup was green — success-age rules
+                  cannot see a controller that has stopped trying.
+
+                  Cure that worked: kubectl -n velero rollout restart deploy/velero
+                  (and ds/node-agent if PVB data paths sit at 0 bytes).
+                EOT
+              }
+            },
           ]
         },
       ]

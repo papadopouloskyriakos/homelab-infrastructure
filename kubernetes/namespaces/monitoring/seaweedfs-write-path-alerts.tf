@@ -185,6 +185,53 @@ resource "kubernetes_manifest" "REDACTED_78d971a7" {
             },
           ]
         },
+        {
+          # MASTER raft health (IFRNLLEI01PRD-2605 follow-up, 2026-08-24). The
+          # goraft election wedged leaderless TWICE in one day on peer churn:
+          # every master healthy/0-restarts, all logging `topo leader: <nil>`,
+          # filers cycling "raft.Server: Not current leader", every S3 PUT 500.
+          # The 6h read canary is far too slow for this class. Cure that worked
+          # both times: bounce all three masters; a leader emerged ~3min after
+          # a full restart. {cluster=""} scopes to LOCAL series only — remote-
+          # written twins carry a cluster label, and without the guard the NL
+          # aggregation would count another site's leader and miss a local wedge.
+          name     = "seaweedfs-master-raft"
+          interval = "1m"
+          rules = [
+            {
+              alert = "SeaweedFSMasterRaftLeaderless"
+              expr  = "sum(SeaweedFS_master_is_leader{cluster=\"\"}) == 0"
+              for   = "5m"
+              labels = {
+                severity  = "critical"
+                category  = "storage-control-plane"
+                service   = "seaweedfs"
+                namespace = "seaweedfs"
+              }
+              annotations = {
+                summary     = "SeaweedFS master raft has NO leader — S3 writes are failing"
+                description = "No master reports is_leader=1 for 5m. Filers cannot get volume assignments; every PUT returns 500. Known wedge (2x on 2026-08-24, after node cordon churn). Cure: bounce all three master pods (kubectl -n seaweedfs delete pod seaweedfs-master-{0,1,2}) and wait ~3min for the election; verify via /cluster/status Leader."
+                impact      = "The site's S3 is write-dead while this fires: velero backups, barman WAL archiving, uploads and filer.sync all fail."
+              }
+            },
+            {
+              alert = "REDACTED_d1cc5a68"
+              expr  = "absent(SeaweedFS_master_is_leader{cluster=\"\"})"
+              for   = "15m"
+              labels = {
+                severity  = "warning"
+                category  = "storage-control-plane"
+                service   = "seaweedfs"
+                namespace = "seaweedfs"
+              }
+              annotations = {
+                summary     = "SeaweedFS master leader metric is absent — the raft rule above is blind"
+                description = "SeaweedFS_master_is_leader has no local series. Master scrape broken or masters gone; the Leaderless rule cannot fire in this state (a check that cannot express the failure certifies it)."
+                impact      = "Master raft health is unmonitored while this fires."
+              }
+            },
+          ]
+        },
       ]
     }
   }

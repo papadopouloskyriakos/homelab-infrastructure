@@ -386,6 +386,18 @@ variable "snmp_asa_device" {
   default     = "nlfw01"
 }
 
+variable "snmp_syno_target" {
+  description = "Local-site Synology NAS SNMP target IP (IFRNLLEI01PRD-2605). Empty string = site has no NAS to scrape; the snmp-syno job is not emitted."
+  type        = string
+  default     = ""
+}
+
+variable "snmp_syno_device" {
+  description = "Device label for the local-site NAS SNMP scrape job"
+  type        = string
+  default     = "nl-nas01"
+}
+
 # =============================================================================
 # FRR / IPsec Exporter Targets
 # =============================================================================

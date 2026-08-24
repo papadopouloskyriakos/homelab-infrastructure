@@ -234,6 +234,66 @@ resource "kubernetes_manifest" "estate_alert_rules" {
             }
           ]
         },
+        {
+          # nl-nas01 NAS health (IFRNLLEI01PRD-2605 follow-up, 2026-08-24).
+          # The NAS ran memory-starved for MONTHS (a 16GB VMM guest left DSM+
+          # iSCSI ~3GB; kswapd thrash; iSCSI cmd stalls -> initiator aborts ->
+          # ext4 emergency_ro latches across the NL k8s estate) with zero
+          # estate visibility. These rules watch the UCD-SNMP series scraped by
+          # the snmp-syno job (module `synology` in snmp-exporter.tf).
+          # NOTE: SNMP must be ENABLED on DSM (Control Panel -> Terminal & SNMP,
+          # SNMPv2c, the estate community) — until then the Absent rule fires
+          # as the deliberate reminder.
+          name     = "syno-nas-health"
+          interval = "1m"
+          rules = [
+            {
+              alert = "SynoNasMemoryLow"
+              expr  = "synoMemAvailReal < 6291456"
+              for   = "10m"
+              labels = {
+                severity = "critical"
+                category = "storage-platform"
+                service  = "nl-nas01"
+              }
+              annotations = {
+                summary     = "nl-nas01 has <6GiB available memory — iSCSI RO-latch storm conditions"
+                description = "Available memory (UCD memAvailReal) under 6GiB for 10m. At ~3GiB the 2026-08-24 storm began: memory-starved iSCSI target stalls writes past the initiator timeout, aborts latch ext4 emergency_ro on whatever LUN writes next, and cures relatch until the pressure is removed. Check for new VMM guests first (standing rule: the two 4GB arbiters are the ceiling)."
+                impact      = "Every NL k8s PVC on synology-csi risks read-only latching; NL S3, prometheus, loki and velero all degraded within hours in the 2026-08-24 incident."
+              }
+            },
+            {
+              alert = "SynoNasLoadHigh"
+              expr  = "synoLaLoadInt{laIndex=\"2\"} > 2500"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                category = "storage-platform"
+                service  = "nl-nas01"
+              }
+              annotations = {
+                summary     = "nl-nas01 sustained 5-min load >25"
+                description = "UCD laLoadInt (5-min, x100) above 2500 for 30m. The 2026-08-24 storm ran at load 34-81. Sustained high load alone (memory healthy) marks heavy IO; combined with SynoNasMemoryLow it is the RO-latch signature."
+                impact      = "iSCSI/NFS latency for the whole NL estate; CSI mkfs/stage operations exceed their 2-min gRPC deadline above ~load 45."
+              }
+            },
+            {
+              alert = "SynoNasSnmpAbsent"
+              expr  = "absent(synoMemAvailReal)"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                category = "storage-platform"
+                service  = "nl-nas01"
+              }
+              annotations = {
+                summary     = "nl-nas01 SNMP metrics absent — NAS health is unmonitored"
+                description = "No synoMemAvailReal series. Either SNMP is not yet enabled on DSM (Control Panel -> Terminal & SNMP -> enable SNMPv2c with the estate community), the snmp-syno scrape target is wrong, or the exporter is down. The two NAS rules above are BLIND while this fires."
+                impact      = "A repeat of the 2026-08-24 memory-starvation disease would again be invisible until PVCs latch read-only."
+              }
+            },
+          ]
+        },
       ]
     }
   }
