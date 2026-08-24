@@ -247,7 +247,7 @@ resource "kubernetes_manifest" "REDACTED_e981a6a4" {
               # {cluster=""} = local series only (remote-written twins carry a
               # cluster label; without the guard this would double-evaluate).
               alert = "REDACTED_45e7a03a"
-              expr  = "increase(velero_backup_attempt_total{schedule!=\"\",cluster=\"\"}[26h]) == 0"
+              expr  = "sum by (schedule) (increase(velero_backup_attempt_total{schedule!=\"\",cluster=\"\"}[26h])) == 0"
               for   = "30m"
               labels = {
                 severity = "critical"
