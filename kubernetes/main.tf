@@ -196,6 +196,8 @@ module "monitoring" {
   asa_snmp_enabled            = var.asa_snmp_enabled
   snmp_asa_target             = var.snmp_asa_target
   snmp_asa_device             = var.snmp_asa_device
+  snmp_syno_target            = var.snmp_syno_target
+  snmp_syno_community         = var.snmp_syno_community
   etcd_endpoints              = var.etcd_endpoints
   frr_route_reflector_targets = var.frr_route_reflector_targets
   frr_edge_targets            = var.frr_edge_targets
