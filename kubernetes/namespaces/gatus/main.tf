@@ -653,6 +653,17 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
           },
           {
+            name     = "Zafeiridis Portfolio"
+            group    = "📱 Applications"
+            url      = "https://george.zafeiridis.com"
+            interval = "30s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+          },
+          {
             name     = "Nextcloud"
             group    = "📱 Applications"
             url      = "https://nextcloud.example.net"
