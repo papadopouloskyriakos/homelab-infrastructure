@@ -392,6 +392,13 @@ variable "snmp_syno_target" {
   default     = ""
 }
 
+variable "snmp_syno_community" {
+  description = "SNMP community for the local-site NAS (differs from the ASA community). Sensitive; only meaningful where snmp_syno_target is set."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "snmp_syno_device" {
   description = "Device label for the local-site NAS SNMP scrape job"
   type        = string

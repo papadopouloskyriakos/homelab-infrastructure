@@ -248,18 +248,18 @@ resource "kubernetes_manifest" "estate_alert_rules" {
           interval = "1m"
           rules = [
             {
-              alert = "SynoNasMemoryLow"
-              expr  = "synoMemAvailReal < 6291456"
-              for   = "10m"
+              alert = "SynoNasSwapPressure"
+              expr  = "(synoMemAvailSwap / synoMemTotalSwap) < 0.5"
+              for   = "15m"
               labels = {
                 severity = "critical"
                 category = "storage-platform"
                 service  = "nl-nas01"
               }
               annotations = {
-                summary     = "nl-nas01 has <6GiB available memory — iSCSI RO-latch storm conditions"
-                description = "Available memory (UCD memAvailReal) under 6GiB for 10m. At ~3GiB the 2026-08-24 storm began: memory-starved iSCSI target stalls writes past the initiator timeout, aborts latch ext4 emergency_ro on whatever LUN writes next, and cures relatch until the pressure is removed. Check for new VMM guests first (standing rule: the two 4GB arbiters are the ceiling)."
-                impact      = "Every NL k8s PVC on synology-csi risks read-only latching; NL S3, prometheus, loki and velero all degraded within hours in the 2026-08-24 incident."
+                summary     = "nl-nas01 swap more than half used — memory-pressure disease conditions"
+                description = "UCD memAvailSwap under 50% of memTotalSwap for 15m. During the 2026-08-24 RO-latch storm the NAS sat at 1100/2047 MB swap used with kswapd thrashing while page-cache accounting HID the pressure (free+cached read ~28G with only 3G truly available — which is why this rule keys on swap, not on memAvailReal). Check for oversized VMM guests first (the 16GB nested-PVE guest was the 2026-08-24 cause; the two 4GB arbiters are the standing ceiling)."
+                impact      = "Memory-starved iSCSI target stalls writes past initiator timeouts; ext4 emergency_ro latches across the NL k8s estate follow within hours."
               }
             },
             {
@@ -288,7 +288,7 @@ resource "kubernetes_manifest" "estate_alert_rules" {
               }
               annotations = {
                 summary     = "nl-nas01 SNMP metrics absent — NAS health is unmonitored"
-                description = "No synoMemAvailReal series. Either SNMP is not yet enabled on DSM (Control Panel -> Terminal & SNMP -> enable SNMPv2c with the estate community), the snmp-syno scrape target is wrong, or the exporter is down. The two NAS rules above are BLIND while this fires."
+                description = "No synoMemAvailReal series. Either SNMP is not yet enabled on DSM (Control Panel -> Terminal & SNMP -> enable SNMPv2c with the estate community), the snmp-syno scrape target is wrong, or the exporter is down. The NAS rules above are BLIND while this fires."
                 impact      = "A repeat of the 2026-08-24 memory-starvation disease would again be invisible until PVCs latch read-only."
               }
             },

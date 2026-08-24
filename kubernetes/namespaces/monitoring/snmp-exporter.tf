@@ -37,6 +37,9 @@ auths:
   asa_v2:
     community: ${var.snmp_community}
     version: 2
+  syno_v2:
+    community: '${var.snmp_syno_community}'
+    version: 2
 
 modules:
   cisco_asa:
@@ -184,7 +187,17 @@ modules:
       - name: synoMemAvailReal
         oid: 1.3.6.1.4.1.2021.4.6.0
         type: gauge
-        help: Available real memory (kB, UCD-SNMP memAvailReal)
+        help: FREE real memory (kB, UCD memAvailReal — free only, NOT MemAvailable; do not threshold on this)
+
+      - name: synoMemTotalSwap
+        oid: 1.3.6.1.4.1.2021.4.3.0
+        type: gauge
+        help: Total swap (kB, UCD memTotalSwap)
+
+      - name: synoMemAvailSwap
+        oid: 1.3.6.1.4.1.2021.4.4.0
+        type: gauge
+        help: Available swap (kB, UCD memAvailSwap)
 
       - name: synoLaLoadInt
         oid: 1.3.6.1.4.1.2021.10.1.5
