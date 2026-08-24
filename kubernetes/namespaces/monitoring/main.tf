@@ -417,6 +417,30 @@ resource "helm_release" "monitoring" {
                   { target_label = "__address__", replacement = "snmp-exporter.monitoring.svc:9116" },
                 ]
               },
+              ] : [], var.snmp_syno_target != "" ? [
+              # SNMP - local Synology NAS (IFRNLLEI01PRD-2605): UCD memory/load
+              # via the shared snmp-exporter, module `synology`. Gated on the
+              # per-site tfvars target — sites without a NAS emit nothing.
+              {
+                job_name        = "snmp-syno"
+                scrape_interval = "60s"
+                scrape_timeout  = "55s"
+                metrics_path    = "/snmp"
+                params = {
+                  module = ["synology"]
+                  auth   = ["asa_v2"]
+                }
+                static_configs = [{
+                  targets = [var.snmp_syno_target]
+                }]
+                relabel_configs = [
+                  { source_labels = ["__address__"], target_label = "__param_target" },
+                  { source_labels = ["__param_target"], target_label = "instance" },
+                  { target_label = "device", replacement = var.snmp_syno_device },
+                  { target_label = "site", replacement = var.site },
+                  { target_label = "__address__", replacement = "snmp-exporter.monitoring.svc:9116" },
+                ]
+              },
           ] : [], local.estate_scrape_configs)
         }
 

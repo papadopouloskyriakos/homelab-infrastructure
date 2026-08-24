@@ -171,6 +171,28 @@ modules:
         oid: 1.3.6.1.4.1.9.9.171.1.2.1.6.0
         type: counter
         help: Total IKE outbound bytes
+  synology:
+    walk:
+      - 1.3.6.1.4.1.2021.4                # UCD memory
+      - 1.3.6.1.4.1.2021.10.1.5           # UCD laLoadInt table
+    metrics:
+      - name: synoMemTotalReal
+        oid: 1.3.6.1.4.1.2021.4.5.0
+        type: gauge
+        help: Total real memory (kB, UCD-SNMP memTotalReal)
+
+      - name: synoMemAvailReal
+        oid: 1.3.6.1.4.1.2021.4.6.0
+        type: gauge
+        help: Available real memory (kB, UCD-SNMP memAvailReal)
+
+      - name: synoLaLoadInt
+        oid: 1.3.6.1.4.1.2021.10.1.5
+        type: gauge
+        help: Load average x100 (UCD-SNMP laLoadInt; laIndex 1=1min 2=5min 3=15min)
+        indexes:
+          - labelname: laIndex
+            type: gauge
 EOT
   }
 
