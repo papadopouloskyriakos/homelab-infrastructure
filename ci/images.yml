@@ -358,6 +358,28 @@ build_ellizg_nginx_base:
       docker push $IMAGE_REGISTRY/ellizg-nginx-base:latest
 
 # ===========================================================================
+# ZAFEIRIDIS NGINX BASE — hardened chainguard-nginx + george.zafeiridis.com CSP
+# ===========================================================================
+# Consumed by `websites/zafeiridis.com/george` CI as its FROM. Bakes the CSP
+# (self-hosted fonts + Umami analytics.cubeos.app) + TLS + server_name once so
+# the Hugo product repo stays minimal (just COPY public/ on top).
+
+build_zafeiridis_nginx_base:
+  extends: .image_build_base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - images/zafeiridis-nginx-base/**/*
+      when: manual
+  script:
+    - |
+      cd images/zafeiridis-nginx-base
+      docker build --pull -t $IMAGE_REGISTRY/zafeiridis-nginx-base:latest .
+      docker push $IMAGE_REGISTRY/zafeiridis-nginx-base:latest
+
+# ===========================================================================
 # TG NGINX BASE — territorygrounder.com + groundnet.net
 # ===========================================================================
 # Added 2026-07-29. This was the last *-nginx-base context with no CI job: it
