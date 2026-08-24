@@ -428,7 +428,7 @@ resource "helm_release" "monitoring" {
                 metrics_path    = "/snmp"
                 params = {
                   module = ["synology"]
-                  auth   = ["asa_v2"]
+                  auth   = ["syno_v2"]
                 }
                 static_configs = [{
                   targets = [var.snmp_syno_target]
