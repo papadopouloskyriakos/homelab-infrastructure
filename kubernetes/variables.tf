@@ -444,6 +444,19 @@ variable "snmp_asa_device" {
   default     = "nlfw01"
 }
 
+variable "snmp_syno_target" {
+  description = "Local-site Synology NAS SNMP target IP (IFRNLLEI01PRD-2605). Empty = site has no NAS; the snmp-syno scrape job is not emitted."
+  type        = string
+  default     = ""
+}
+
+variable "snmp_syno_community" {
+  description = "SNMP community for the local-site NAS (differs from the ASA community)."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "etcd_endpoints" {
   description = "Control-plane node IPs for the kubeEtcd scrape (client port :2379, mTLS)"
   type        = list(string)
