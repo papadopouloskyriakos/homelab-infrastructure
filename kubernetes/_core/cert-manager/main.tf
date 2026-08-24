@@ -801,6 +801,31 @@ resource "kubernetes_manifest" "REDACTED_7a64a702" {
   }
 }
 
+# Wildcard Certificate - zafeiridis.com (george.zafeiridis.com portfolio)
+resource "kubernetes_manifest" "REDACTED_b6fbec6d" {
+  count      = var.acme_issuer_enabled ? 1 : 0
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_04774445"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_04774445-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.zafeiridis.com",
+        "zafeiridis.com"
+      ]
+    }
+  }
+}
+
 # =============================================================================
 # ExternalSecret - consume wildcard cert from OpenBao — CONSUMER role only
 # =============================================================================
