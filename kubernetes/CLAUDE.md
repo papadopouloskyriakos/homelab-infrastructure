@@ -253,41 +253,34 @@ Claude Code L3 (reads YT comments, plans fix, waits for human approval)
 
 **YT custom fields set by k8s-triage.sh:** Hostname, Alert Rule, Severity, Namespace, Pod, Alert Source (`Prometheus`).
 
-### SMS (Twilio) surface — what actually pages a human
+### Paging surface — what actually reaches the phone (ntfy-first since 2026-08-25)
 
-**SMS is the only channel that pages.** Two independent paths reach the phone:
+**The phone channel is ntfy** (topic `alrt-tier1` on the Matrix-stack ntfy at nl-matrix01, real auth since infra !518); **Twilio SMS fires ONLY for the ULTRA-urgent allowlist** (`page = "sms"` label) + the bridge's own dead-men + a capped ntfy-down fail-over. Runbook: claude-gateway `docs/runbooks/paging-ntfy.md`.
 
-1. **Alertmanager → Twilio bridge** (`http://10.0.X.X:9106/alert`, `nlclaude01:9106`). The route matches **`tier = 1` AND `severity = critical`** only (`group_wait 10s`, `repeat 1h`, `continue = true` so it still reaches Matrix/YT). Stock kube-prometheus rules carry **no `tier` label**, so none of them can SMS — only the custom `namespaces/monitoring/*.tf` rules that set `tier = "1"`.
-2. **Gatus → Twilio directly** (`gatus/main.tf`, `alerts = local.twilio_enabled ? [...]`), bypassing Alertmanager. Enabled live via `TF_VAR_gatus_twilio_*` in Atlantis's env (source of the harmless "gatus_twilio will be destroyed" phantom in the drift job — ignore it).
+1. **Alertmanager → paging bridge** (`page-tier1` receiver → `http://10.0.X.X:9106/alert` on nlclaude01; GR mirror `http://10.0.X.X:9106/alert`). The route still matches **`tier = 1` AND `severity = critical`** (`group_wait 10s`, `repeat 1h`, `continue = true` so alerts also reach Matrix/YT). Every match → ntfy urgent push (edge-triggered, one push per firing episode); **SMS additionally iff the rule carries `page = "sms"`**. Stock kube-prometheus rules carry no `tier` label → never page.
+2. **Alertmanager `Watchdog` → `page-heartbeat`** (`/heartbeat`, repeat 2m) — feeds the bridge's per-site Prometheus dead-man (`PrometheusHeartbeatLost`: ntfy always, SMS only for the bridge's own site).
+3. **Gatus → ntfy natively** (`gatus/main.tf`, `alerts = local.ntfy_enabled ? [...]`, provider `ntfy`, token via the `gatus-ntfy` Secret from `TF_VAR_gatus_ntfy_*` in Atlantis's env / OpenBao `ci/gatus-ntfy`). **Twilio + the dead GitLab-pipeline provider are REMOVED** from Gatus. NL-only; GR/NO `alerting = null` (deliberate).
 
-Since 2026-08-16 GR has its own mirror of path 1 (bridge on grclaude01, http://10.0.X.X:9106/alert, gated on `twilio_bridge_url` in GR tfvars) — GR tier-1 criticals page independently. Gatus→Twilio (path 2) stays NL-only.
+**Current paging population:**
 
-**Current SMS surface = 12** (operator triage 2026-08-01, MR !447):
-
-| Path | Alerts |
+| Channel | Alerts |
 |------|--------|
-| Alertmanager (`tier=1`+`critical`) — **8** | `REDACTED_06ec64ac`, `REDACTED_c39c23d4`, `REDACTED_e67edccb`, `REDACTED_578414e4`, `EdgeWafNotEnforcing`, `EdgeWafNotWired`, `EdgeCrowdSecDown`, `REDACTED_22590886` |
-| Gatus — **4** | `NL Kubernetes API`, `FISHA file01`, `FISHA file02`, `Home Assistant` |
+| ntfy only (`tier=1`+`critical`) — **8** | `REDACTED_06ec64ac`, `REDACTED_c39c23d4`, `REDACTED_e67edccb`, `REDACTED_578414e4`, `EdgeWafNotEnforcing`, `EdgeWafNotWired`, `EdgeCrowdSecDown`, `REDACTED_22590886` |
+| ntfy + SMS (`page="sms"`) — **3** | `PVEPmxcfsWedged`, `REDACTED_57cdabcd` (both restored 2026-08-25), `IntersiteBGPPartition` (newly tiered — a total NL↔GR partition finally pages) |
+| Gatus → ntfy — **4** | `NL Kubernetes API`, `FISHA file01`, `FISHA file02`, `Home Assistant` |
+| Bridge-internal SMS | `PagingPushDown` (ntfy probe dead ×3), own-site `PrometheusHeartbeatLost`, fail-over (cap 3/h) |
 
-**31 alerts were removed from SMS on 2026-08-01** by commenting out their `tier = "1"` label
-(`# tier = "1"  # SMS-disabled 2026-08-01 …`). **`severity` stays `critical`** — every one still
-fires to Matrix + YouTrack triage; only the page is gone. **Reversible: uncomment the tier line.**
-Disabled set: the two SeaweedFS write-path lines; the omoikane/velero/YB-backup, PVE-pressure,
-pmxcfs and NFS-poisoning infra alerts; and all agentic-platform governance + dead-man alerts
-(`agentic-health-alerts.tf`, `renovate-autonomy-alerts.tf`, `scheduled-reboot-alerts.tf`, etc.).
+**26 alerts stay non-paging** (marker `# tier = "1"  # not tier-1 by operator decision 2026-08-25 …`): `severity` stays `critical` → Matrix + YouTrack triage only. The operator explicitly declined restoring them (2026-08-25). To promote one to ntfy paging: uncomment its `tier = "1"`; to make it ULTRA add `page = "sms"`. `severity = "critical"` alone does **not** page; the `tier` label is the gate.
 
-⚠ **To re-enable one, uncomment its `tier = "1"` — do NOT re-derive from severity.** `severity =
-"critical"` alone does **not** SMS; the `tier` label is the gate. And note `OmoikaneContainerMemoryCritical`
-was separately set to `tier = "2"` (not commented) by MR OMOIKANE-1493 with a "restore tier=1 at
-launch" note — a different mechanism, same effect (no SMS).
+Bridge self-monitoring: `PagingBridgeStale` + `PagingPushDown` in `agentic-health-alerts.tf` (critical, deliberately **untiered** — a dead bridge can't page through itself; NL-scoped because nothing scrapes the GR bridge's textfile metrics yet).
 
 ⚠ **`REDACTED_880627c0` is defined in two files** (`agentic-health-alerts.tf` +
 `scheduled-reboot-alerts.tf`) — change both or they drift. Alertmanager dedups by `alertname`,
 so a live duplicate pages once, but it is a config smell worth collapsing.
 
-To re-audit the SMS surface: grep the custom rule files for a `tier = "1"` label co-located with
-`severity = "critical"` in the same rule block (a header-comment mention of "tier" does not count),
-plus the `alerts = local.twilio_enabled` blocks in `gatus/main.tf`.
+To re-audit the paging surface: grep the custom rule files for `tier = "1"` co-located with
+`severity = "critical"` (a header-comment mention does not count) and for `page     = "sms"`,
+plus the `alerts = local.ntfy_enabled` blocks in `gatus/main.tf`.
 
 ## Known Issues
 
