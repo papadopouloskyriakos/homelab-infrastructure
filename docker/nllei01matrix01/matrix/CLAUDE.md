@@ -19,7 +19,9 @@ Internet → HAProxy (2 VPSes, BGP anycast) → nginx:443/6666 (TLS re-encryptio
   └── matrix.example.net
       ├── auth (login/logout/refresh) → MAS:9090
       ├── /_matrix/push/v1/notify     → ntfy:8880
-      ├── /ntfy/                       → ntfy:8880 (WebSocket)
+      ├── /ntfy/                       → ntfy:8880 (WebSocket, prefix-stripped)
+      ├── /up<10-16 chars>             → ntfy:8880 (UnifiedPush topics, root-level)
+      ├── /alrt-*                      → ntfy:8880 (tier-1 alert push topics, root-level, 2026-08-25)
       ├── /.well-known/*               → static JSON (includes rtc_foci for Element X)
       ├── /_matrix|/_synapse/*         → synapse:8008
       ├── /webhook/                    → hookshot:9000 (localhost only)
@@ -32,20 +34,32 @@ Internet → HAProxy (2 VPSes, BGP anycast) → nginx:443/6666 (TLS re-encryptio
 
 | Service | Image | Port | Status |
 |---|---|---|---|
-| postgres | postgres:15.13-alpine | 5432 | active |
+| postgres | postgres:15.18-alpine | 5432 | active |
 | synapse | element-hq/synapse:v1.157.2 | 8008 | active |
-| mas | element-hq/matrix-REDACTED_6fa691d2-service:1.13.0 | 9090 | active |
-| element-web | vectorim/element-web:v1.12.12 | 8088 | active |
-| nginx | nginx:1.29.6 | 443, 6666 | active |
+| mas | element-hq/matrix-REDACTED_6fa691d2-service:1.21.0 | 9090 | active |
+| element-web | vectorim/element-web:v1.12.24 | 8088 | active |
+| nginx | nginx:1.31.3 | 443, 6666 | active |
 | synapse-admin | synapse-admin:0.11.4 | 80 | active (localhost only) |
-| matrix-hookshot | matrix-hookshot:7.3.2 | 9993, 9000 | active |
-| hookshot-redis | redis:8.6.1-alpine | 6379 | active |
-| ntfy | ntfy:v2.18.0 | 8880 | active |
+| matrix-hookshot | matrix-hookshot:7.4.3 | 9993, 9000 | active |
+| hookshot-redis | redis:8.8.1-alpine | 6379 | active |
+| ntfy | ntfy:v2.26.3 | 8880 | active |
 | mautrix-signal | mautrix/signal:v0.2602.2 | 29328 | DISABLED 2026-06-29 |
 | mautrix-whatsapp | mautrix/whatsapp:v0.2602.0 | 29329 | DISABLED 2026-06-29 |
 | matrix-commander | matrix-commander | — | tools profile only |
 | matrix-bridge (MM) | custom Dockerfile | 9995 | DISABLED |
 | crowdsec | native (not Docker) v1.7.6 | — | active on host |
+
+## ntfy alert channel (2026-08-25)
+
+ntfy runs **real auth** since 2026-08-25 (`auth-file` + `auth-default-access: deny-all`; before that
+the yaml `access:`/`up-push-server:` keys were invalid ntfy options → every topic was world
+read/write). ACLs in `/srv/matrix/ntfy-data/user.db`:
+`everyone up* read-write` (UnifiedPush) · `alerts-pub alrt-* write-only` (publish token) ·
+`kyriakos alrt-* read-only` + `kyriakos up* read-write` (phone). Topic **`alrt-tier1`** carries
+tier-1 infra pages: published by the paging bridge on nlclaude01 (LAN, `http://10.0.X.X:8880`),
+the GR bridge + `gr-inalan-wan-monitor.py` (public URL), and Gatus (NL k8s). ⛔ Never change
+`NTFY_BASE_URL` — the live Synapse pushers hold absolute root-level `up…` pushkeys.
+Full runbook: `n8n/claude-gateway` → `docs/runbooks/paging-ntfy.md`.
 
 ## Key Accounts
 
@@ -127,7 +141,8 @@ matrix/
 ├── nginx-conf/
 │   └── nginx.conf                # Main reverse proxy config (well-known with rtc_foci)
 ├── ntfy-etc/
-│   └── server.yml                # UnifiedPush notification config
+│   └── server.yml                # ntfy config: real auth (deny-all + DB ACLs), UnifiedPush + alrt-* topics
+├── ntfy-data/                    # ntfy auth DB (user.db) — live-only, NOT in git
 ├── postgres-backup.sh            # Daily backup script (5 databases)
 └── synapse-data/
     └── homeserver.yaml           # Synapse main config

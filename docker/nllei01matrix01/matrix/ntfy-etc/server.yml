@@ -1,20 +1,24 @@
-# MUST have this to return {"unifiedpush":{"gateway":"matrix"}}
-up-push-server: true
+# ntfy server config — Matrix UnifiedPush relay + alert push channel (alrt-* topics)
+#
+# AUTH IS REAL since 2026-08-25: auth-file + deny-all. ACLs live in the user DB
+# (host: /srv/matrix/ntfy-data/user.db), managed via `docker exec ntfy ntfy user|access|token`.
+# Grants:
+#   everyone     up*     read-write   (Synapse UnifiedPush publish + phone anonymous subscribe)
+#   kyriakos     up*     read-write   (defensive: authenticated phone connections keep UP working)
+#   alerts-pub   alrt-*  write-only   (paging bridge / Gatus / WAN scripts publish via token)
+#   kyriakos     alrt-*  read-only    (phone subscription to alrt-tier1)
+# NOTE: the {"unifiedpush":{"gateway":"matrix"}} discovery response is BUILT-IN ntfy behavior —
+# the old `up-push-server:` and `access:` keys were invalid ntfy options and never applied
+# (which is why the pre-2026-08-25 config was effectively auth-less, world read-write).
+# Runbook: n8n/claude-gateway docs/runbooks/paging-ntfy.md
 
-# Remove auth-file completely – it breaks Synapse push (401)
-# auth-file: /var/lib/ntfy/user.db   ← DELETE THIS LINE
+auth-file: "/var/lib/ntfy/user.db"
+auth-default-access: "deny-all"
 
-# Deny everything by default
-auth-default-access: deny-all
-
-# Allow only UnifiedPush topics, write-only, no auth needed
-access:
-  - user: "*"
-    topic-pattern: "up*"
-    allow: read-write     # Synapse POSTs, ntfy app on phone subscribes (reads)
-
-# Optional but recommended
+# Rate limits are per VISITOR IP (no payment tiers configured). All Synapse pushes arrive
+# from one visitor (the site egress IP): at 100/day ~20% of Matrix pushes were being
+# 429-dropped (measured 2026-08-25: 99x200/25x429). 1000/day gives ample headroom.
 visitor-request-limit-burst: 60
 visitor-request-limit-replenish: "5s"
-visitor-message-daily-limit: 100
+visitor-message-daily-limit: 1000
 log-level: info

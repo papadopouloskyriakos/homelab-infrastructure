@@ -228,14 +228,11 @@ services:
       - NTFY_BEHIND_PROXY=true
       - NTFY_PROXY_FORWARDED_HEADER=X-Forwarded-For
       - NTFY_PROXY_TRUSTED_HOSTS=127.0.0.1,10.0.X.X,10.0.X.X
-#      - NTFY_AUTH_DEFAULT_ACCESS=deny-all
-#      - NTFY_VISITOR_REQUEST_LIMIT_BURST=60
-#      - NTFY_VISITOR_REQUEST_LIMIT_REPLENISH=5s
-#      - NTFY_VISITOR_MESSAGE_DAILY_LIMIT=100
 #    user: UID:GID # optional: replace with your own user/group or uid/gid
     volumes:
       - /var/cache/ntfy:/var/cache/ntfy
       - /srv/matrix/ntfy-etc:/etc/ntfy
+      - /srv/matrix/ntfy-data:/var/lib/ntfy   # auth DB (user.db) — real auth since 2026-08-25
     network_mode: host
 #    ports:
 #      - 80:80
