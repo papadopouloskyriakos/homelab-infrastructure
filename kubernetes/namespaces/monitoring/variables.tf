@@ -477,3 +477,12 @@ variable "node_exporter_port" {
   type        = number
   default     = 9100
 }
+
+variable "pve_hosts" {
+  description = "This site's PVE hosts running the native prometheus-pve-exporter (:9221) + node_exporter (:9100). Scraped PER-SITE since 2026-08-26 — each cluster scrapes its OWN hosts (partition-resilient; handover from the NL estate job when GR Prometheus returned, IFRGRSKG01PRD-313). instance = full site-prefixed hostname. Empty list = no PVE hosts at this site."
+  type = list(object({
+    instance = string
+    ip       = string
+  }))
+  default = []
+}
