@@ -300,15 +300,17 @@ detect_k8s_drift:
       export TF_VAR_pve_password=$(fetch_secret "ci/proxmox" "password")
       export TF_VAR_REDACTED_b6136a28=$(fetch_secret "ci/gitlab" "agent_k8s_token")
       export TF_VAR_argocd_matrix_token=$(fetch_secret "ci/argocd" "matrix_token")
-      # gatus twilio creds (added 2026-08-16): these lived ONLY in Atlantis's env
-      # (/srv/atlantis/twilio.env), so every drift run re-rendered the gatus
-      # config without its alerting block — the documented "gatus_twilio
-      # phantom". Fetching them here retires the phantom for good.
-      export TF_VAR_gatus_twilio_account_sid=$(fetch_secret "ci/gatus-twilio" "account_sid")
-      export TF_VAR_gatus_twilio_api_key_sid=$(fetch_secret "ci/gatus-twilio" "api_key_sid")
-      export TF_VAR_gatus_twilio_api_key_secret=$(fetch_secret "ci/gatus-twilio" "api_key_secret")
-      export TF_VAR_gatus_twilio_from_number=$(fetch_secret "ci/gatus-twilio" "from_number")
-      export TF_VAR_gatus_twilio_to_number=$(fetch_secret "ci/gatus-twilio" "to_number")
+      # gatus ntfy creds (2026-08-25 paging cutover; replaced ci/gatus-twilio —
+      # same phantom-avoidance rationale: these live in Atlantis's env
+      # (/srv/atlantis/ntfy.env), so the drift job must fetch them too or every
+      # drift run re-renders gatus without its alerting block.
+      # ⚠ ci/gatus-ntfy is NOT SEEDED YET (needs an OpenBao admin token —
+      # follow-up issue): until then fetch_secret returns empty and the drift
+      # job shows the known cosmetic "gatus alerting" phantom. The Atlantis
+      # APPLY path is unaffected (env file present there).
+      export TF_VAR_gatus_ntfy_url=$(fetch_secret "ci/gatus-ntfy" "url")
+      export TF_VAR_gatus_ntfy_topic=$(fetch_secret "ci/gatus-ntfy" "topic")
+      export TF_VAR_gatus_ntfy_token=$(fetch_secret "ci/gatus-ntfy" "token")
 
       # Static: OpenBao CA cert (base64 encoded, same as in Atlantis start script)
       export TF_VAR_openbao_ca_cert="REDACTED_ccb17433"
