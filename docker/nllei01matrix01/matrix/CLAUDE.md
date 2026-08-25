@@ -20,8 +20,9 @@ Internet → HAProxy (2 VPSes, BGP anycast) → nginx:443/6666 (TLS re-encryptio
       ├── auth (login/logout/refresh) → MAS:9090
       ├── /_matrix/push/v1/notify     → ntfy:8880
       ├── /ntfy/                       → ntfy:8880 (WebSocket, prefix-stripped)
-      ├── /up<10-16 chars>             → ntfy:8880 (UnifiedPush topics, root-level)
-      ├── /alrt-*                      → ntfy:8880 (tier-1 alert push topics, root-level, 2026-08-25)
+      ├── /<topic>[,<topic>…]          → ntfy:8880 (root-level topic route: up<10-16 chars> UnifiedPush
+      │                                  topics + alrt-* tier-1 alert topics, incl. the comma-joined
+      │                                  list form the Android app uses for its single WebSocket, !522)
       ├── /v1/*                        → ntfy:8880 (ntfy API: account/auth — the Android app's login check, 2026-08-26)
       ├── /.well-known/*               → static JSON (includes rtc_foci for Element X)
       ├── /_matrix|/_synapse/*         → synapse:8008
@@ -60,7 +61,10 @@ read/write). ACLs in `/srv/matrix/ntfy-data/user.db`:
 tier-1 infra pages: published by the paging bridge on nlclaude01 (LAN, `http://10.0.X.X:8880`),
 the GR bridge + `gr-inalan-wan-monitor.py` (public URL), and Gatus (NL k8s). ⛔ Never change
 `NTFY_BASE_URL` — the live Synapse pushers hold absolute root-level `up…` pushkeys.
-Full runbook: `n8n/claude-gateway` → `docs/runbooks/paging-ntfy.md`.
+The Android app needs BOTH `/v1/` (its login check hits `/v1/account`) and the topic-LIST route
+(it multiplexes all topics of a server over one WebSocket, `/alrt-tier1,upXXXX/ws`) — either missing
+= "login failed" / "websocket not supported" AND a dead UnifiedPush (learned live 2026-08-26).
+Full runbook: `n8n/claude-gateway` → `docs/runbooks/paging-ntfy.md` § Phone app.
 
 ## Key Accounts
 

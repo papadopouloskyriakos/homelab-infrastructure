@@ -304,10 +304,9 @@ detect_k8s_drift:
       # same phantom-avoidance rationale: these live in Atlantis's env
       # (/srv/atlantis/ntfy.env), so the drift job must fetch them too or every
       # drift run re-renders gatus without its alerting block.
-      # ⚠ ci/gatus-ntfy is NOT SEEDED YET (needs an OpenBao admin token —
-      # follow-up issue): until then fetch_secret returns empty and the drift
-      # job shows the known cosmetic "gatus alerting" phantom. The Atlantis
-      # APPLY path is unaffected (env file present there).
+      # ci/gatus-ntfy seeded 2026-08-25 (node root token via the auto-unseal
+      # container — see claude-gateway memory reference_openbao_admin_access);
+      # drift pipeline #50661 verified "No drift detected" afterwards.
       export TF_VAR_gatus_ntfy_url=$(fetch_secret "ci/gatus-ntfy" "url")
       export TF_VAR_gatus_ntfy_topic=$(fetch_secret "ci/gatus-ntfy" "topic")
       export TF_VAR_gatus_ntfy_token=$(fetch_secret "ci/gatus-ntfy" "token")
