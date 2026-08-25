@@ -560,6 +560,9 @@ resource "helm_release" "monitoring" {
               # NOT a plain edit: with paging_bridge_url == "" the receiver
               # page-heartbeat would not exist and prometheus-operator would
               # reject the whole Alertmanager config.
+              # (two separate ?:[] conditionals, not one ternary with both
+              # branches: HCL rejects branches whose object shapes differ —
+              # "Inconsistent conditional result types".)
               var.paging_bridge_url != "" ? [
                 {
                   matchers        = ["alertname = Watchdog"]
@@ -568,7 +571,8 @@ resource "helm_release" "monitoring" {
                   group_interval  = "1m"
                   repeat_interval = "2m"
                 },
-                ] : [
+              ] : [],
+              var.paging_bridge_url != "" ? [] : [
                 {
                   matchers = ["alertname = Watchdog"]
                   receiver = "null"
