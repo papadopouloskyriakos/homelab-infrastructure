@@ -22,6 +22,7 @@ Internet → HAProxy (2 VPSes, BGP anycast) → nginx:443/6666 (TLS re-encryptio
       ├── /ntfy/                       → ntfy:8880 (WebSocket, prefix-stripped)
       ├── /up<10-16 chars>             → ntfy:8880 (UnifiedPush topics, root-level)
       ├── /alrt-*                      → ntfy:8880 (tier-1 alert push topics, root-level, 2026-08-25)
+      ├── /v1/*                        → ntfy:8880 (ntfy API: account/auth — the Android app's login check, 2026-08-26)
       ├── /.well-known/*               → static JSON (includes rtc_foci for Element X)
       ├── /_matrix|/_synapse/*         → synapse:8008
       ├── /webhook/                    → hookshot:9000 (localhost only)
