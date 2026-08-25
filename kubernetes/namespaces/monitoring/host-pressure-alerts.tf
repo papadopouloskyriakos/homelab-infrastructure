@@ -57,8 +57,9 @@ resource "kubernetes_manifest" "host_pressure_alert_rules" {
               for   = "3m"
               labels = {
                 severity = "critical"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
-                service = "pve-host"
+                tier     = "1"   # restored 2026-08-25 (ntfy cutover)
+                page     = "sms" # ULTRA-urgent: the paging bridge also SMSes this one (operator decision 2026-08-25)
+                service  = "pve-host"
               }
               annotations = {
                 summary     = "{{ $labels.instance }} memory >95% used — HAHA + FISHA at risk"
@@ -143,8 +144,9 @@ resource "kubernetes_manifest" "host_pressure_alert_rules" {
               for   = "3m"
               labels = {
                 severity = "critical"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
-                service = "pve-host"
+                tier     = "1"   # restored 2026-08-25 (ntfy cutover)
+                page     = "sms" # ULTRA-urgent: the paging bridge also SMSes this one (operator decision 2026-08-25)
+                service  = "pve-host"
               }
               annotations = {
                 summary     = "{{ $labels.host }} pmxcfs WEDGED / unreachable — guests at risk (e.g. matrix CT 101201202)"

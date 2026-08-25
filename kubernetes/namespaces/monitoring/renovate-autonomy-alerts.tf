@@ -50,7 +50,7 @@ resource "kubernetes_manifest" "REDACTED_34afa039" {
               for   = "0m"
               labels = {
                 severity = "critical"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
               }
               annotations = {
                 summary     = "Renovate autonomy floor breach: a live AUTO-merge bypassed CI/review/snapshot"
@@ -64,7 +64,7 @@ resource "kubernetes_manifest" "REDACTED_34afa039" {
               for   = "0m"
               labels = {
                 severity = "critical"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
               }
               annotations = {
                 summary     = "Renovate autonomy audit hash chain BROKEN (ledger tampered)"
@@ -78,7 +78,7 @@ resource "kubernetes_manifest" "REDACTED_34afa039" {
               for   = "0m"
               labels = {
                 severity = "critical"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
               }
               annotations = {
                 summary     = "Renovate autonomy audit hash chain BROKEN (weekly cross-check)"
@@ -92,7 +92,7 @@ resource "kubernetes_manifest" "REDACTED_34afa039" {
               for   = "5m"
               labels = {
                 severity = "critical"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
               }
               annotations = {
                 summary     = "Renovate autonomy weekly invariant auditor FAILED"

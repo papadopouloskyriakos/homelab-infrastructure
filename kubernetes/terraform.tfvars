@@ -3,7 +3,7 @@
 # The mirror-diff asserts this file and GR's carry the SAME KEY SET;
 # only the values differ. Secrets stay in the Atlantis TF_VAR_* env
 # (k8s_*, openbao_ca_cert, REDACTED_b6136a28, argocd_matrix_token,
-# gatus_twilio_*, REDACTED_6177f7df/password) — do NOT add them
+# gatus_ntfy_*, REDACTED_6177f7df/password) — do NOT add them
 # here: tfvars values OVERRIDE env vars.
 # =============================================================================
 
@@ -75,7 +75,7 @@ gatus_hostname            = "nl-gatus.example.net"
 
 # --- alerting / webhooks ---
 alert_webhook_url      = "https://n8n.example.net/webhook/prometheus-alert"
-twilio_bridge_url      = "http://10.0.X.X:9106/alert"
+paging_bridge_url      = "http://10.0.X.X:9106/alert"
 tg_webhook_url         = "https://territory-grounder.example.net/api/v1/ingest/prometheus-alertmanager"
 wal_healer_webhook_url = "" # not wired on NL
 
@@ -183,7 +183,6 @@ snmp_community = "xK9mQ2vL8nR4pT6w"
 # (see namespaces/gatus/main.tf). Status page now relies on the 5-min schedule
 # plus client-side /api/mesh-stats and /api/service-health polling. See
 # kyriakos/AUDIT-2026-04-28.md for the post-mortem.
-gatus_gitlab_pipeline_trigger_token = ""
 
 # Basic-auth for the Gatus Edge HAProxy stats checks
 haproxy_stats_auth = "REDACTED_38a2053f"
@@ -192,11 +191,11 @@ haproxy_stats_auth = "REDACTED_38a2053f"
 # Gatus -> Twilio SMS (IFRNLLEI01PRD-802 replacement for the disabled GitLab
 # pipeline path).
 #
-# Variable values come from TF_VAR_gatus_twilio_* env vars on the Atlantis
-# runner (loaded via env_file: /srv/atlantis/twilio.env). They are NOT set
+# Variable values come from TF_VAR_gatus_ntfy_* env vars on the Atlantis
+# runner (loaded via env_file: /srv/atlantis/ntfy.env). They are NOT set
 # here because tfvars OVERRIDE env vars (precedence: tfvars > TF_VAR_* env).
 # Default values in variables.tf are empty strings; with no tfvars override,
-# env vars apply, locals.twilio_enabled = true, gatus-twilio Secret is
+# env vars apply, locals.ntfy_enabled = true, gatus-ntfy Secret is
 # created, and Gatus's custom alerting provider routes to Twilio.
 # -----------------------------------------------------------------------------
 

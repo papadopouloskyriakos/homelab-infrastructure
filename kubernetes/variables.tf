@@ -402,8 +402,8 @@ variable "alert_webhook_url" {
   default     = "https://n8n.example.net/webhook/prometheus-alert"
 }
 
-variable "twilio_bridge_url" {
-  description = "Twilio SMS bridge URL for tier-1 paging (NL http://10.0.X.X:9106/alert, GR http://10.0.X.X:9106/alert). Feeds monitoring AND gatus."
+variable "paging_bridge_url" {
+  description = "Paging bridge /alert URL (ntfy push + ULTRA-only SMS; NL http://10.0.X.X:9106/alert, GR http://10.0.X.X:9106/alert, NO -> NL over the overlay). Feeds the monitoring module (page-tier1 + page-heartbeat)."
   type        = string
   default     = "http://10.0.X.X:9106/alert"
 }
@@ -861,12 +861,6 @@ variable "gatus_tls_secret_name" {
   default     = "gatus-tls"
 }
 
-variable "gatus_gitlab_pipeline_trigger_token" {
-  description = "GitLab pipeline trigger token for portfolio status webhook (\"\" = alerting path disabled)"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
 
 variable "haproxy_stats_auth" {
   description = "Base64 encoded HAProxy stats REDACTED_6fa691d2 (user:pass) for the Gatus edge checks"
@@ -875,39 +869,22 @@ variable "haproxy_stats_auth" {
   sensitive   = true
 }
 
-# Twilio SMS — for tier-1 service alerts via Gatus custom provider.
-# Closes IFRNLLEI01PRD-802. Reuses the same API-Key-based auth pattern as
-# claude-gateway/scripts/freedom-qos-toggle.sh (proven in production for
-# Freedom-ISP outage SMS since 2026-04-22). API Key auth means we do NOT
-# need the operator's master Twilio Auth Token — only API Key SID + Secret.
-# Values come from TF_VAR_gatus_twilio_* in the NL Atlantis env; GR leaves
-# them empty (paging bridge is wired, credentials deliberately absent).
-variable "gatus_twilio_account_sid" {
-  description = "Twilio Account SID (AC...). Same value as TWILIO_ACCOUNT_SID in claude-gateway/.env."
+# Gatus paging — native ntfy provider (2026-08-25 cutover; replaced the Twilio
+# custom provider of IFRNLLEI01PRD-802). Values come from TF_VAR_gatus_ntfy_* in
+# the NL Atlantis env (/srv/atlantis/ntfy.env) + OpenBao ci/gatus-ntfy for the
+# drift-CI; GR/NO leave them empty (alerting = null, deliberately silent).
+variable "gatus_ntfy_url" {
+  description = "ntfy server URL for Gatus alerting (NL LAN: http://10.0.X.X:8880 — the Matrix-stack ntfy on nl-matrix01)."
   type        = string
   default     = ""
-  sensitive   = true
 }
-variable "gatus_twilio_api_key_sid" {
-  description = "Twilio API Key SID (SK...). Same value as TWILIO_API_KEY_SID in claude-gateway/.env."
+variable "gatus_ntfy_topic" {
+  description = "ntfy topic for Gatus alerts (alrt-tier1)."
   type        = string
   default     = ""
-  sensitive   = true
 }
-variable "gatus_twilio_api_key_secret" {
-  description = "Twilio API Key Secret. Same value as TWILIO_API_KEY_SECRET in claude-gateway/.env."
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-variable "gatus_twilio_from_number" {
-  description = "E.164 from-number, the Twilio-owned sender."
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-variable "gatus_twilio_to_number" {
-  description = "E.164 destination, the operator's mobile."
+variable "gatus_ntfy_token" {
+  description = "ntfy access token for user alerts-pub (write-only on alrt-*). Same value as NTFY_TOKEN in claude-gateway/.env."
   type        = string
   default     = ""
   sensitive   = true

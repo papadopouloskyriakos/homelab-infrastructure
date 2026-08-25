@@ -168,8 +168,8 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               # IFRNLLEI01PRD-1152 — control-plane dead-man's-switch. The
               # gateway-watchdog.sh cron (*/5 on nlclaude01) already watches
               # the 9 receivers + runner and auto-heals; this watches the WATCHDOG.
-              # tier=1+critical => twilio-tier1 SMS (the Matrix alerts the watchdog
-              # itself posts are muted by the operator — feedback_operator_does_not_watch_matrix_polls).
+              # NOT tier-1 since 2026-08-01/-25 (operator decisions): Matrix/YT only.
+              # Tier-1 = ntfy paging via the paging bridge; SMS only for page="sms".
               # The absent() clause is the crux: a plain staleness expr returns NO
               # series when node_exporter/claude01 is down ("no data = no alert"),
               # which is exactly the silent-dark failure this issue exists to kill.
@@ -180,7 +180,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               for   = "5m"
               labels = {
                 severity = "critical"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
                 category = "agentic-platform"
               }
               annotations = {
@@ -194,7 +194,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               for   = "15m"
               labels = {
                 severity = "critical"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
                 category = "agentic-platform"
               }
               annotations = {
@@ -211,7 +211,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               for   = "0m"
               labels = {
                 severity = "critical"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
                 category = "agentic-platform"
               }
               annotations = {
@@ -268,7 +268,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               for   = "15m"
               labels = {
                 severity = "critical"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
                 category = "agentic-platform"
               }
               annotations = {
@@ -298,7 +298,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               for   = "1h"
               labels = {
                 severity = "critical"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
                 category = "agentic-platform"
               }
               annotations = {
@@ -325,7 +325,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               for   = "5m"
               labels = {
                 severity = "critical"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
                 category = "agentic-platform"
               }
               annotations = {
@@ -353,7 +353,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               labels = {
                 severity = "critical"
                 category = "agentic-platform"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
               }
               annotations = {
                 summary     = "{{ $value }} CRITICAL registered component(s) went dark"
@@ -393,7 +393,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               labels = {
                 severity = "critical"
                 category = "agentic-platform"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
               }
               annotations = {
                 summary     = "{{ $value }} orchestration safety-composition failure(s) - an irreversible incident was auto-resolved"
@@ -420,7 +420,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               labels = {
                 severity = "critical"
                 category = "agentic-platform"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
               }
               annotations = {
                 summary     = "the Cronicle job scheduler is DOWN - the platform's cron scheduling has stopped"
@@ -460,7 +460,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               labels = {
                 severity = "critical"
                 category = "agentic-platform"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
               }
               annotations = {
                 summary     = "{{ $value }} platform target(s) the self-healer could not fix (heal cap hit)"
@@ -474,7 +474,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               labels = {
                 severity = "critical"
                 category = "agentic-platform"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
               }
               annotations = {
                 summary     = "the Plane-A platform self-healer is down (or metric absent)"
@@ -529,7 +529,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               labels = {
                 severity = "critical"
                 category = "agentic-platform"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
               }
               annotations = {
                 summary     = "the autonomy-forward decision log hash-chain is BROKEN (first break id {{ with query \"governance_chain_first_break_id\" }}{{ . | first | value }}{{ end }})"
@@ -543,7 +543,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               labels = {
                 severity = "critical"
                 category = "agentic-platform"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
               }
               annotations = {
                 summary     = "the governance-chain tamper-evidence check is not running (or metric absent)"
@@ -712,7 +712,7 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               for   = "1m"
               labels = {
                 severity = "critical"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
                 category = "agentic-platform"
               }
               annotations = {
@@ -770,6 +770,40 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               annotations = {
                 summary     = "workspace-guardrail health writer stale 30m+ (Global-Workspace guardrails unmonitored)"
                 description = "write-workspace-guardrail-metrics.py (piggybacked on write-governance-metrics.py */15) has stopped emitting prom:workspace_guardrail — the LIVE silent-cognition guard + prompt-patch feature states are no longer observed. Check the governance-metrics Cronicle job. Ref IFRNLLEI01PRD-1663."
+              }
+            },
+            {
+              # Paging channel self-monitoring (2026-08-25 ntfy cutover).
+              # Deliberately NO tier label: a dead bridge cannot page through
+              # itself — these reach Matrix/YT via webhook-n8n. The bridge ALSO
+              # SMSes PagingPushDown internally (edge-triggered) the moment its
+              # ntfy health probe fails 3x. NL-scoped: only nlclaude01's
+              # textfile collector is scraped today (the GR bridge writes
+              # metrics nobody scrapes). Twin: claude-gateway
+              # prometheus/alert-rules/agentic-health.yml group paging-bridge.
+              alert = "PagingBridgeStale"
+              expr  = "(time() - max by (site) (paging_bridge_heartbeat_timestamp_seconds{site=\"nl\"}) > 600) or absent(paging_bridge_heartbeat_timestamp_seconds{site=\"nl\"})"
+              for   = "10m"
+              labels = {
+                severity = "critical"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "paging bridge heartbeat stale — tier-1 pages may not be delivered"
+                description = "paging_bridge_heartbeat_timestamp_seconds{site=nl} is stale or absent. The paging bridge on nlclaude01:9106 (ntfy push + ULTRA SMS) is down or its metrics loop died. Alertmanager keeps retrying webhooks, but nothing is pushing to the phone. Check: XDG_RUNTIME_DIR=/run/user/1000 systemctl --user status paging-bridge; journal for OOM kills (user slice runs at oom_score_adj=200). Runbook: claude-gateway docs/runbooks/paging-ntfy.md."
+              }
+            },
+            {
+              alert = "PagingPushDown"
+              expr  = "max by (site) (paging_ntfy_up{site=\"nl\"}) == 0"
+              for   = "5m"
+              labels = {
+                severity = "critical"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "ntfy push channel down — bridge failing over to capped SMS"
+                description = "The paging bridge's ntfy health probe is failing (paging_ntfy_up 0 for 5m+). ntfy lives in the Matrix stack on nl-matrix01 (LXC on nl-pve01) — check that host/stack first. The bridge already sent an edge-triggered PagingPushDown SMS and fails tier-1 pages over to SMS (cap 3/h). Runbook: claude-gateway docs/runbooks/paging-ntfy.md."
               }
             },
           ]
