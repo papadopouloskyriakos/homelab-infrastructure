@@ -121,7 +121,7 @@ resource "kubernetes_manifest" "REDACTED_c209409f" {
               for   = "30m"
               labels = {
                 severity = "critical"
-                # tier = "1"  # SMS-disabled 2026-08-01 (operator SMS triage — uncomment to re-page)
+                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
                 category  = "edge-control"
                 service   = "edge"
                 namespace = "edge-firewall"

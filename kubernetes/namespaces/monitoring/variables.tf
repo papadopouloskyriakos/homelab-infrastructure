@@ -91,8 +91,8 @@ variable "alert_webhook_url" {
   default     = "https://n8n.example.net/webhook/prometheus-alert"
 }
 
-variable "twilio_bridge_url" {
-  description = "Twilio SMS bridge URL for the tier-1 paging path. Empty string disables the twilio-tier1 receiver and route."
+variable "paging_bridge_url" {
+  description = "Paging bridge /alert URL (ntfy push + ULTRA-only SMS, 2026-08-25 cutover; formerly the Twilio bridge). Empty string disables the page-tier1 + page-heartbeat receivers and routes."
   type        = string
   default     = "http://10.0.X.X:9106/alert"
 }

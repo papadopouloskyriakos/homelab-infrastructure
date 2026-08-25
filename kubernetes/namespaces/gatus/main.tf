@@ -1,4 +1,4 @@
-# Atlantis re-apply trigger 2026-04-30: pick up TF_VAR_gatus_twilio_* now that Atlantis env has them. See IFRNLLEI01PRD-802.
+# Alerting: native ntfy provider since 2026-08-25 (Twilio + GitLab-pipeline providers removed). See IFRNLLEI01PRD-802 history.
 # =============================================================================
 # Gatus - Status Page with Cross-Site Monitoring
 # =============================================================================
@@ -10,7 +10,7 @@
 # byte-identical in both repos. Site-specific values come in via variables
 # (NL defaults, GR overrides in the root call). The endpoint list is the
 # UNION of both sites' sets — both vantages monitor the shared estate; only
-# Twilio paging (NL-wired) and the cert-manager pieces are gated per site.
+# ntfy paging (NL-armed) and the cert-manager pieces are gated per site.
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -32,27 +32,23 @@ resource "REDACTED_46569c16" "gatus" {
 # Locals — derived values for alerting providers
 # -----------------------------------------------------------------------------
 locals {
-  # Twilio paging arms only when (a) this site's SMS bridge is wired
-  # (twilio_bridge_url != "" — mirror-campaign contract gate; GR passes its
-  # bridge URL once 10.0.X.X:9106 is live) AND (b) all Twilio credentials
-  # are present (on NL these arrive as TF_VAR_gatus_twilio_* in Atlantis's
-  # env — /srv/atlantis/twilio.env — which is also why the scheduled drift
-  # job, lacking them, plans the well-known phantom gatus_twilio destroy).
-  twilio_enabled = var.twilio_bridge_url != "" && var.twilio_account_sid != "" && var.twilio_api_key_sid != "" && var.twilio_api_key_secret != "" && var.twilio_to_number != ""
-  # Pre-compute Basic-auth header content. Twilio accepts API-Key auth as
-  # HTTP Basic where username=API_KEY_SID and password=API_KEY_SECRET.
-  # Computed at plan time (sensitive); injected into Gatus pod via Secret.
-  twilio_basic_auth = local.twilio_enabled ? base64encode("${var.twilio_api_key_sid}:${var.twilio_api_key_secret}") : ""
+  # ntfy paging (2026-08-25 cutover — replaced the Twilio custom provider and
+  # the long-dead GitLab-pipeline provider). Arms only when all three ntfy
+  # values are present; on NL these arrive as TF_VAR_gatus_ntfy_* in Atlantis's
+  # env (/srv/atlantis/ntfy.env) + OpenBao ci/gatus-ntfy for the drift job.
+  # GR/NO leave them empty -> alerting = null (deliberately silent).
+  ntfy_enabled = var.ntfy_url != "" && var.ntfy_topic != "" && var.ntfy_token != ""
 }
 
 # -----------------------------------------------------------------------------
-# Secret - Twilio credentials (mounted as env vars in Gatus pod)
+# Secret - ntfy publish token (mounted as env var in the Gatus pod; the config
+# references it as ${NTFY_TOKEN} via Gatus env substitution)
 # -----------------------------------------------------------------------------
-resource "kubernetes_secret_v1" "gatus_twilio" {
-  count = local.twilio_enabled ? 1 : 0
+resource "kubernetes_secret_v1" "gatus_ntfy" {
+  count = local.ntfy_enabled ? 1 : 0
 
   metadata {
-    name      = "gatus-twilio"
+    name      = "gatus-ntfy"
     namespace = REDACTED_46569c16.gatus.metadata[0].name
     labels = {
       "app.kubernetes.io/name" = "gatus"
@@ -63,10 +59,7 @@ resource "kubernetes_secret_v1" "gatus_twilio" {
 
   type = "Opaque"
   data = {
-    TWILIO_ACCOUNT_SID = var.twilio_account_sid
-    TWILIO_BASIC_AUTH  = local.twilio_basic_auth
-    TWILIO_FROM        = var.twilio_from_number
-    TWILIO_TO          = var.twilio_to_number
+    NTFY_TOKEN = var.ntfy_token
   }
 }
 
@@ -96,25 +89,17 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
         path = "/data/data.db"
       }
 
-      alerting = local.twilio_enabled ? {
-        # Twilio SMS for tier-1 endpoints. Uses Gatus's built-in twilio
-        # provider via custom-style HTTP POST so we can authenticate with
-        # API-Key auth (no master Auth Token required). Pre-computed Basic
-        # auth header is injected via Secret.
-        # Refs: IFRNLLEI01PRD-802; recipe matches scripts/freedom-qos-toggle.sh.
-        custom = {
-          url    = "https://api.twilio.com/2010-04-01/Accounts/$${TWILIO_ACCOUNT_SID}/Messages.json"
-          method = "POST"
-          headers = {
-            "Content-Type"  = "application/x-www-form-urlencoded"
-            "Authorization" = "Basic $${TWILIO_BASIC_AUTH}"
-          }
-          # [ALERT_DESCRIPTION] is the per-endpoint short description (URL-safe
-          # short slug like 'file01-down'; name the thing the check ACTUALLY
-          # probes — a URL-path check must not masquerade as the backing
-          # service). [ALERT_TRIGGERED_OR_RESOLVED] resolves
-          # to "TRIGGERED" or "RESOLVED" depending on event.
-          body = "From=$${TWILIO_FROM}&To=$${TWILIO_TO}&Body=Gatus+%5B[ALERT_TRIGGERED_OR_RESOLVED]%5D+%5B[ALERT_DESCRIPTION]%5D"
+      alerting = local.ntfy_enabled ? {
+        # Native ntfy provider (Gatus >= 5.3; token field supported; v5.36.0
+        # deployed). Publishes to the alrt-tier1 topic on the Matrix-stack ntfy —
+        # the same topic the paging bridge uses, so the phone has ONE
+        # subscription. ${NTFY_TOKEN} is Gatus env substitution from the
+        # gatus-ntfy Secret (HCL-escaped $${...} passes it through literally).
+        ntfy = {
+          url      = var.ntfy_url
+          topic    = var.ntfy_topic
+          token    = "$${NTFY_TOKEN}"
+          priority = 5
           default-alert = {
             enabled           = true
             send-on-resolved  = true
@@ -122,22 +107,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             success-threshold = 3
           }
         }
-        } : (var.gitlab_pipeline_trigger_token != "" ? {
-          custom = {
-            url    = "https://gitlab.example.net/api/v4/projects/${var.gitlab_portfolio_project_id}/trigger/pipeline"
-            method = "POST"
-            headers = {
-              "Content-Type" = "application/x-www-form-urlencoded"
-            }
-            body = "token=${var.gitlab_pipeline_trigger_token}&ref=main&variables[TRIGGER_SOURCE]=gatus"
-            default-alert = {
-              enabled           = true
-              send-on-resolved  = true
-              failure-threshold = 2
-              success-threshold = 3
-            }
-          }
-      } : null)
+      } : null
 
       ui = {
         title       = var.gatus_ui_title
@@ -162,10 +132,10 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[BODY] == ok"
             ]
-            alerts = local.twilio_enabled ? [{
-              type        = "custom"
+            alerts = local.ntfy_enabled ? [{
+              type        = "ntfy"
               description = "K8s-NL-API-down"
-            }] : (var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : [])
+            }] : []
           },
           {
             name     = "GR Kubernetes API"
@@ -177,7 +147,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[BODY] == ok"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           # notrf01 dead-man (IFRNLLEI01PRD-2403) — pre-wired DISABLED; armed
           # in Phase 7 once the NO cluster serves its API. No Twilio entry.
@@ -192,7 +162,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[BODY] == ok"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Cilium CNI (NL)"
@@ -203,7 +173,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 5000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Cilium CNI (GR)"
@@ -214,7 +184,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 5000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           }
         ],
 
@@ -233,7 +203,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[BODY].status == success",
               "[BODY].data.result[0].value[1] >= ${var.REDACTED_9246ffd6}"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Cilium BGP Sessions"
@@ -245,7 +215,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[BODY].status == success",
               "[BODY].data.result[0].value[1] >= ${var.REDACTED_1c1562d0}"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "IPsec Tunnels"
@@ -257,7 +227,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[BODY].status == success",
               "[BODY].data.result[0].value[1] >= ${var.expected_ipsec_tunnels}"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           # --- Edge Node Health ---
           # NOTE (GR vantage): the *-int hostnames resolve to the VPS overlay
@@ -277,7 +247,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[BODY] == pat(*,UP,*)"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Edge: Sandefjord (NO)"
@@ -291,7 +261,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[BODY] == pat(*,UP,*)"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           }
         ],
 
@@ -308,7 +278,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "GitLab (GR Mirror)"
@@ -319,7 +289,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "ArgoCD (NL)"
@@ -330,7 +300,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "ArgoCD (GR)"
@@ -341,7 +311,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Atlantis (NL)"
@@ -352,7 +322,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Atlantis (GR)"
@@ -363,7 +333,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "AWX"
@@ -374,7 +344,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 5000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           }
         ],
 
@@ -396,7 +366,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[BODY].status == success",
               "[BODY].data.result[0].value[1] >= 1"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           }
           # NOTE: OpenBao is internal-only, add when ingress/metrics are available
         ] : [],
@@ -414,7 +384,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Prometheus (NL)"
@@ -425,7 +395,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Prometheus (GR)"
@@ -436,7 +406,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           # notrf01 monitoring dead-man (IFRNLLEI01PRD-2413) — ARMED 2026-08-18
           # (OMOIKANE-1623 cutover complete). Path: FreeIPA A records
@@ -463,7 +433,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Thanos (NL)"
@@ -474,7 +444,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Thanos (GR)"
@@ -485,7 +455,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           # Loki health via Prometheus metric existence
           {
@@ -497,7 +467,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[BODY].status == success"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Hubble UI (NL)"
@@ -508,7 +478,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Hubble UI (GR)"
@@ -519,7 +489,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "K8s Dashboard (NL)"
@@ -530,7 +500,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "K8s Dashboard (GR)"
@@ -541,7 +511,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Goldpinger (NL)"
@@ -552,7 +522,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Goldpinger (GR)"
@@ -563,7 +533,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           }
         ],
 
@@ -580,7 +550,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "SeaweedFS Master (GR)"
@@ -591,7 +561,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "SeaweedFS S3 (NL)"
@@ -602,7 +572,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "SeaweedFS S3 (GR)"
@@ -613,7 +583,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] < 500",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Velero UI"
@@ -624,7 +594,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           }
         ],
 
@@ -641,7 +611,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 2000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Ellizg Portfolio"
@@ -652,7 +622,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Zafeiridis Portfolio"
@@ -663,7 +633,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Nextcloud"
@@ -674,7 +644,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 5000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name  = "Home Assistant"
@@ -693,10 +663,10 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = local.twilio_enabled ? [{
-              type        = "custom"
+            alerts = local.ntfy_enabled ? [{
+              type        = "ntfy"
               description = "HA-ext-URL-via-NPM-slow-or-down-from-${var.site_name}"
-            }] : (var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : [])
+            }] : []
           },
           {
             # FISHA file01 NFS server liveness — probes the stale-fh exporter
@@ -715,8 +685,8 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[BODY] == pat(*nfs_stale_fh_responses_total*)"
             ]
-            alerts = local.twilio_enabled ? [{
-              type        = "custom"
+            alerts = local.ntfy_enabled ? [{
+              type        = "ntfy"
               description = "file01-down"
             }] : []
           },
@@ -729,8 +699,8 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[BODY] == pat(*nfs_stale_fh_responses_total*)"
             ]
-            alerts = local.twilio_enabled ? [{
-              type        = "custom"
+            alerts = local.ntfy_enabled ? [{
+              type        = "ntfy"
               description = "file02-down"
             }] : []
           },
@@ -749,7 +719,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "MeshSat"
@@ -760,7 +730,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "MeshSat Hub"
@@ -771,7 +741,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           },
           {
             name     = "Mulecube"
@@ -782,7 +752,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
               "[STATUS] == 200",
               "[RESPONSE_TIME] < 3000"
             ]
-            alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
+            alerts = []
           }
         ],
 
@@ -898,16 +868,15 @@ resource "REDACTED_08d34ae1" "gatus" {
             value = "/config/config.yaml"
           }
 
-          # Twilio creds for the custom alerting provider — only injected
-          # when local.twilio_enabled. Each env block is conditional via
-          # a dynamic block keyed off twilio_enabled.
+          # ntfy publish token for the alerting provider — only injected
+          # when local.ntfy_enabled (Gatus substitutes ${NTFY_TOKEN} in config).
           dynamic "env" {
-            for_each = local.twilio_enabled ? toset(["TWILIO_ACCOUNT_SID", "TWILIO_BASIC_AUTH", "TWILIO_FROM", "TWILIO_TO"]) : toset([])
+            for_each = local.ntfy_enabled ? toset(["NTFY_TOKEN"]) : toset([])
             content {
               name = env.value
               value_from {
                 secret_key_ref {
-                  name = kubernetes_secret_v1.gatus_twilio[0].metadata[0].name
+                  name = kubernetes_secret_v1.gatus_ntfy[0].metadata[0].name
                   key  = env.value
                 }
               }

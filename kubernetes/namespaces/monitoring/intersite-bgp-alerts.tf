@@ -75,6 +75,8 @@ resource "kubernetes_manifest" "REDACTED_dc9f406e" {
               for   = "5m"
               labels = {
                 severity = "critical"
+                tier     = "1"   # 2026-08-25 ntfy cutover: total NL<->GR partition pages
+                page     = "sms" # ULTRA-urgent (operator decision 2026-08-25)
                 category = "bgp-intersite"
               }
               annotations = {

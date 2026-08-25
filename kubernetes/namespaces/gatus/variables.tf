@@ -190,19 +190,6 @@ variable "additional_endpoints" {
 # -----------------------------------------------------------------------------
 # Webhook Alerting Configuration
 # -----------------------------------------------------------------------------
-variable "gitlab_pipeline_trigger_token" {
-  description = "GitLab pipeline trigger token for portfolio status webhook"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "gitlab_portfolio_project_id" {
-  description = "GitLab project ID for portfolio site"
-  type        = string
-  default     = "9"
-}
-
 # -----------------------------------------------------------------------------
 # HAProxy Edge Node Authentication
 # -----------------------------------------------------------------------------
@@ -214,47 +201,23 @@ variable "haproxy_stats_auth" {
 }
 
 # -----------------------------------------------------------------------------
-# Twilio SMS — for tier-1 service alerts via Gatus custom provider.
-# Closes IFRNLLEI01PRD-802. Empty values disable Twilio alerting.
-# Paging additionally gates on twilio_bridge_url (mirror-campaign contract):
-# a site with no SMS bridge wired keeps paging off even if creds leak in.
+# ntfy paging (2026-08-25 cutover). Empty values disable Gatus alerting
+# entirely (alerting = null) — the deliberate GR/NO state.
 # -----------------------------------------------------------------------------
-variable "twilio_bridge_url" {
-  description = "Site SMS bridge URL (Alertmanager->Twilio bridge). Used only as the site-level 'paging is wired here' gate for Gatus Twilio alerting — Gatus itself posts to api.twilio.com directly. NL: http://10.0.X.X:9106/alert, GR: http://10.0.X.X:9106/alert. Empty string = paging off."
-  type        = string
-  default     = "http://10.0.X.X:9106/alert"
-}
-
-variable "twilio_account_sid" {
-  description = "Twilio Account SID"
+variable "ntfy_url" {
+  description = "ntfy server URL (NL LAN: http://10.0.X.X:8880, the Matrix-stack ntfy on nl-matrix01). Empty = alerting off."
   type        = string
   default     = ""
-  sensitive   = true
 }
 
-variable "twilio_api_key_sid" {
-  description = "Twilio API Key SID (used as basic-auth username)"
+variable "ntfy_topic" {
+  description = "ntfy topic for alerts (alrt-tier1 — shared with the paging bridge so the phone has one subscription)."
   type        = string
   default     = ""
-  sensitive   = true
 }
 
-variable "twilio_api_key_secret" {
-  description = "Twilio API Key Secret (used as basic-auth password)"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "twilio_from_number" {
-  description = "Twilio-owned sender phone number"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "twilio_to_number" {
-  description = "Operator destination phone number"
+variable "ntfy_token" {
+  description = "ntfy access token (user alerts-pub, write-only on alrt-*)."
   type        = string
   default     = ""
   sensitive   = true
