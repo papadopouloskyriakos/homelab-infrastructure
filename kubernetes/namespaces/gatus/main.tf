@@ -110,7 +110,9 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             "Authorization" = "Basic $${TWILIO_BASIC_AUTH}"
           }
           # [ALERT_DESCRIPTION] is the per-endpoint short description (URL-safe
-          # short slug like 'HA-down'). [ALERT_TRIGGERED_OR_RESOLVED] resolves
+          # short slug like 'file01-down'; name the thing the check ACTUALLY
+          # probes — a URL-path check must not masquerade as the backing
+          # service). [ALERT_TRIGGERED_OR_RESOLVED] resolves
           # to "TRIGGERED" or "RESOLVED" depending on event.
           body = "From=$${TWILIO_FROM}&To=$${TWILIO_TO}&Body=Gatus+%5B[ALERT_TRIGGERED_OR_RESOLVED]%5D+%5B[ALERT_DESCRIPTION]%5D"
           default-alert = {
@@ -675,8 +677,16 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             alerts = var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : []
           },
           {
-            name     = "Home Assistant"
-            group    = "📱 Applications"
+            name  = "Home Assistant"
+            group = "📱 Applications"
+            # NOTE: homeassistant.example.net resolves to TWO A-records
+            # (nlnpm01 10.0.X.X + grnpm01 10.0.X.X), so this
+            # check transitively tests DNS + BOTH NPMs + the intersite path + HA
+            # itself. When either NPM is dark the probe burns ~6-8 s failing over
+            # to the live one and trips RESPONSE_TIME while HA is healthy (seen
+            # 2026-08-25: gr-pve01 hang → grnpm01 dark → "HA-down" SMS
+            # with HAHA fully up). Hence the alert label names the URL path, not
+            # "HA", and carries the reporting site.
             url      = "https://homeassistant.example.net"
             interval = "60s"
             conditions = [
@@ -685,7 +695,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             ]
             alerts = local.twilio_enabled ? [{
               type        = "custom"
-              description = "HA-down"
+              description = "HA-ext-URL-via-NPM-slow-or-down-from-${var.site_name}"
             }] : (var.gitlab_pipeline_trigger_token != "" ? [{ type = "custom" }] : [])
           },
           {
