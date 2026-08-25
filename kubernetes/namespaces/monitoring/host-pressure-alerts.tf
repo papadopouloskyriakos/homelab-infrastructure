@@ -9,9 +9,12 @@
 # an HA outage. Memory pressure is the primary indicator (per IFRNLLEI01PRD-704
 # repeated re-drift on pve01).
 #
-# These alerts inherit the existing node-exporter scrape from k8s monitoring
-# stack; the pve* hosts must already be node-exporter targets. Verify with:
-#   curl -s 'http://nl-prometheus.example.net/api/v1/query?query=up{instance=~"nlpve.*"}'
+# Since 2026-08-25 all 5 LIVE PVE hosts run a host-native node_exporter
+# (scrape-estate.tf job `pve-node-exporter`, installed by claude-gateway
+# scripts/pve-host-exporters-install.sh) — these rules are live for the first
+# time, widened to NL+GR (nl-pve02 is POWERED OFF by design and excluded).
+# Verify with:
+#   curl -s 'http://nl-prometheus.example.net/api/v1/query?query=up{job="pve-node-exporter"}'
 # =============================================================================
 
 resource "kubernetes_manifest" "host_pressure_alert_rules" {
@@ -36,7 +39,7 @@ resource "kubernetes_manifest" "host_pressure_alert_rules" {
           rules = [
             {
               alert = "REDACTED_c580ce1a"
-              expr  = "(1 - (node_memory_MemAvailable_bytes{instance=~\"nlpve0[13].*\"} / node_memory_MemTotal_bytes{instance=~\"nlpve0[13].*\"})) > 0.85"
+              expr  = "(1 - (node_memory_MemAvailable_bytes{instance=~\"(nlpve0[134]|grpve0[12]).*\"} / node_memory_MemTotal_bytes{instance=~\"(nlpve0[134]|grpve0[12]).*\"})) > 0.85"
               for   = "10m"
               labels = {
                 severity = "warning"
@@ -50,7 +53,7 @@ resource "kubernetes_manifest" "host_pressure_alert_rules" {
             },
             {
               alert = "REDACTED_57cdabcd"
-              expr  = "(1 - (node_memory_MemAvailable_bytes{instance=~\"nlpve0[13].*\"} / node_memory_MemTotal_bytes{instance=~\"nlpve0[13].*\"})) > 0.95"
+              expr  = "(1 - (node_memory_MemAvailable_bytes{instance=~\"(nlpve0[134]|grpve0[12]).*\"} / node_memory_MemTotal_bytes{instance=~\"(nlpve0[134]|grpve0[12]).*\"})) > 0.95"
               for   = "3m"
               labels = {
                 severity = "critical"
@@ -65,7 +68,7 @@ resource "kubernetes_manifest" "host_pressure_alert_rules" {
             },
             {
               alert = "PVELoadHigh"
-              expr  = "node_load5{instance=~\"nlpve0[13].*\"} / count(node_cpu_seconds_total{mode=\"idle\",instance=~\"nlpve0[13].*\"}) by (instance) > 1.5"
+              expr  = "node_load5{instance=~\"(nlpve0[134]|grpve0[12]).*\"} / count(node_cpu_seconds_total{mode=\"idle\",instance=~\"(nlpve0[134]|grpve0[12]).*\"}) by (instance) > 1.5"
               for   = "10m"
               labels = {
                 severity = "warning"
@@ -99,10 +102,11 @@ resource "kubernetes_manifest" "host_pressure_alert_rules" {
         # nl-pve01 has wedged its pmxcfs (/etc/pve FUSE fs) 3x
         # (2026-06-23/-27/-30; the -30 wedge took matrix LXC 101201202 down).
         # The signature is load-avg 100+ while CPU is ~IDLE: dozens of
-        # pvesh/qm/pvestatd stuck D-state on /etc/pve. The PVELoadHigh rule
-        # above CANNOT see it — pve01 is NOT a node_exporter/snmp target, so
-        # `node_load5{instance="nl-pve01"}` returns no data and those rules
-        # are silently inert for pve01. (Known gap; tracked in -1501.)
+        # pvesh/qm/pvestatd stuck D-state on /etc/pve. (Until 2026-08-25 no
+        # PVE host was a node_exporter target, so the rules above were inert;
+        # they are now live via the `pve-node-exporter` job. These wedge rules
+        # remain complementary: the SSH canary sees D-state pile-ups and
+        # pmxcfs probe latency that load/memory series cannot.)
         #
         # These rules instead consume pve_wedge_* metrics emitted by
         # scripts/write-pve-wedge-metrics.sh on nlclaude01 (Cronicle */2),
@@ -163,6 +167,113 @@ resource "kubernetes_manifest" "host_pressure_alert_rules" {
               annotations = {
                 summary     = "pmxcfs-wedge collector stale >15min — wedge detection is BLIND"
                 description = "scripts/write-pve-wedge-metrics.sh on nlclaude01 (Cronicle */2) has not refreshed pve_wedge_* in >15min. The pmxcfs-wedge alerts are now blind. Check the Cronicle job + /home/claude-runner/logs/claude-gateway/pve-wedge-metrics.log. Ref IFRNLLEI01PRD-1501."
+              }
+            },
+          ]
+        },
+        # =====================================================================
+        # pve-exporter cluster-view rules (2026-08-25)
+        #
+        # Fed by the `pve-exporter` job in scrape-estate.tf: every live PVE
+        # host serves the WHOLE cluster view (/pve?cluster=1&node=0), so the
+        # expressions dedup with max by (id) / max by (storage) across the 5
+        # reporters — any single surviving reporter keeps the rules alive,
+        # including during an NL<->GR partition (reporters on both sites).
+        # No tier=1 on any of these (operator SMS decision 2026-08-01).
+        # =====================================================================
+        {
+          name     = "pve-exporter"
+          interval = "60s"
+          rules = [
+            {
+              alert = "PVEExporterDown"
+              expr  = "up{job=\"pve-exporter\"} == 0"
+              for   = "5m"
+              labels = {
+                severity = "warning"
+                service  = "pve-host"
+              }
+              annotations = {
+                summary     = "{{ $labels.instance }} prometheus-pve-exporter (:9221) is down"
+                description = "The native pve-exporter on this PVE host stopped answering. Its scrape doubles as the API/pmxcfs responsiveness canary of that host. Runbook: claude-gateway docs/runbooks/pve-host-exporters.md (re-run scripts/pve-host-exporters-install.sh --check)."
+              }
+            },
+            {
+              alert = "PVENodeExporterDown"
+              expr  = "up{job=\"pve-node-exporter\"} == 0"
+              for   = "5m"
+              labels = {
+                severity = "warning"
+                service  = "pve-host"
+              }
+              annotations = {
+                summary     = "{{ $labels.instance }} node_exporter (:9100) is down"
+                description = "Host-native node_exporter stopped answering — the host-pressure rules above go blind for this host. Runbook: claude-gateway docs/runbooks/pve-host-exporters.md."
+              }
+            },
+            {
+              alert = "PVENodeOffline"
+              expr  = "max by (id) (pve_up{job=\"pve-exporter\", id=~\"node/.*\", id!=\"node/nl-pve02\"}) == 0"
+              for   = "3m"
+              labels = {
+                severity = "critical"
+                service  = "pve-host"
+              }
+              annotations = {
+                summary     = "PVE {{ $labels.id }} reports offline in /cluster/resources"
+                description = "A live PVE cluster member is offline as seen by the surviving pve-exporter reporters (max by id across all 5). nl-pve02 is excluded (POWERED OFF by design, IFRNLLEI01PRD-2646). During an NL-GR partition the remote site nodes WILL show offline — correlate with IntersiteBGPLegDown."
+              }
+            },
+            {
+              alert = "PVEOnbootGuestDown"
+              expr  = "(max by (id) (pve_up{job=\"pve-exporter\", id=~\"(qemu|lxc)/.*\"}) == 0) and on (id) (max by (id) (pve_onboot_status{job=\"pve-exporter\"}) == 1)"
+              for   = "15m"
+              labels = {
+                severity = "warning"
+                service  = "pve-host"
+              }
+              annotations = {
+                summary     = "onboot guest {{ $labels.id }} is not running"
+                description = "A guest with onboot=1 has been down >15m — after a host recovery this is the half-recovered-boot signature (cf. gr-pve01 2026-08-25: 36/36 onboot guests had to come back). Resolve the name via pve_guest_info on this id."
+              }
+            },
+            {
+              alert = "PVEStorageNearFull"
+              expr  = "max by (storage) ((pve_disk_usage_bytes{job=\"pve-exporter\", id=~\"storage/.*\"} / (pve_disk_size_bytes{job=\"pve-exporter\", id=~\"storage/.*\"} > 0)) * on (id, instance) group_left (storage) pve_storage_info{job=\"pve-exporter\"}) > 0.85"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                service  = "pve-host"
+              }
+              annotations = {
+                summary     = "PVE storage {{ $labels.storage }} above 85% ({{ $value | humanizePercentage }})"
+                description = "Collapsed per storage NAME across nodes (shared storages alert once; for local storages the LibreNMS per-device disk rule names the exact host). At rollout 2026-08-25 nlpbs01 and nlpvecl01-nfs were already at 85.7% — known finding."
+              }
+            },
+            {
+              alert = "REDACTED_5ca3a25b"
+              expr  = "max by (storage) ((pve_disk_usage_bytes{job=\"pve-exporter\", id=~\"storage/.*\"} / (pve_disk_size_bytes{job=\"pve-exporter\", id=~\"storage/.*\"} > 0)) * on (id, instance) group_left (storage) pve_storage_info{job=\"pve-exporter\"}) > 0.95"
+              for   = "10m"
+              labels = {
+                severity = "critical"
+                service  = "pve-host"
+              }
+              annotations = {
+                summary     = "PVE storage {{ $labels.storage }} above 95% ({{ $value | humanizePercentage }})"
+                description = "vzdump/PBS writes and guest disk allocation are about to start failing on {{ $labels.storage }}."
+              }
+            },
+            {
+              alert = "PVEGuestNotBackedUp"
+              expr  = "max (pve_not_backed_up_total{job=\"pve-exporter\"}) > 0"
+              for   = "6h"
+              labels = {
+                severity = "info"
+                service  = "pve-host"
+              }
+              annotations = {
+                summary     = "{{ $value }} PVE guests are in no vzdump/PBS backup job"
+                description = "The cluster backup-info endpoint reports guests outside every backup job for >6h. List them via pve_not_backed_up_info. Known rollout state 2026-08-25: 9 guests. Place guests by LIVE node, never by VMID digits (memory: unbacked_guests_added_to_vzdump_20260803)."
               }
             },
           ]
