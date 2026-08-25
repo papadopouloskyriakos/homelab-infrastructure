@@ -224,3 +224,19 @@ resource "REDACTED_a9df2e77" "grafana_dashboard_agora" {
     "agora.json" = file("${path.module}/dashboards/agora.json")
   }
 }
+
+# Proxmox via Prometheus (grafana.com 10347 rev5, adapted 2026-08-25): nodes /
+# guests / storage from the pve-exporter job (scrape-estate.tf). Datasource
+# pinned to uid "prometheus" like the other dashboards.
+resource "REDACTED_a9df2e77" "REDACTED_f650f35a" {
+  metadata {
+    name      = "REDACTED_24355e86"
+    namespace = "monitoring"
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+  data = {
+    "proxmox-via-prometheus.json" = file("${path.module}/dashboards/proxmox-via-prometheus.json")
+  }
+}
