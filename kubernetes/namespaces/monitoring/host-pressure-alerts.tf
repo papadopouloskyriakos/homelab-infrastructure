@@ -10,11 +10,12 @@
 # repeated re-drift on pve01).
 #
 # Since 2026-08-25 all 5 LIVE PVE hosts run a host-native node_exporter
-# (scrape-estate.tf job `pve-node-exporter`, installed by claude-gateway
-# scripts/pve-host-exporters-install.sh) — these rules are live for the first
-# time, widened to NL+GR (nl-pve02 is POWERED OFF by design and excluded).
+# (per-site canonical job `pve-node-exporter` in main.tf, installed by
+# claude-gateway scripts/pve-host-exporters-install.sh) — live for the first
+# time. 2026-08-26: the pressure + liveness rules moved to the canonical
+# per-site pve-host-alerts.tf; THIS file keeps only the NL-scoped zram rule,
+# the pmxcfs-wedge canary rules, and the single-evaluation CLUSTER-VIEW group.
 # Verify with:
-#   curl -s 'http://nl-prometheus.example.net/api/v1/query?query=up{job="pve-node-exporter"}'
 # =============================================================================
 
 resource "kubernetes_manifest" "host_pressure_alert_rules" {
@@ -37,50 +38,11 @@ resource "kubernetes_manifest" "host_pressure_alert_rules" {
           name     = "pve-host-pressure"
           interval = "30s"
           rules = [
-            {
-              alert = "REDACTED_c580ce1a"
-              expr  = "(1 - (node_memory_MemAvailable_bytes{instance=~\"(nlpve0[134]|grpve0[12]).*\"} / node_memory_MemTotal_bytes{instance=~\"(nlpve0[134]|grpve0[12]).*\"})) > 0.85"
-              for   = "10m"
-              labels = {
-                severity = "warning"
-                tier     = "1"
-                service  = "pve-host"
-              }
-              annotations = {
-                summary     = "{{ $labels.instance }} memory >85% used for >10min ({{ $value | humanizePercentage }})"
-                description = "PVE host memory pressure rising. {{ $labels.instance }} hosts one HAHA node + one FISHA node; sustained pressure here cascades into NFS stutter and HA recorder SIGBUS. Investigate VM RSS: `pvesh get /nodes/{{ $labels.instance | reReplaceAll \"nlpve0([13]).*\" \"$1\" }}/qemu` or directly check pressure with `cat /proc/pressure/memory`. Related: IFRNLLEI01PRD-704 (balloon floors)."
-              }
-            },
-            {
-              alert = "REDACTED_57cdabcd"
-              expr  = "(1 - (node_memory_MemAvailable_bytes{instance=~\"(nlpve0[134]|grpve0[12]).*\"} / node_memory_MemTotal_bytes{instance=~\"(nlpve0[134]|grpve0[12]).*\"})) > 0.95"
-              for   = "3m"
-              labels = {
-                severity = "critical"
-                tier     = "1"   # restored 2026-08-25 (ntfy cutover)
-                page     = "sms" # ULTRA-urgent: the paging bridge also SMSes this one (operator decision 2026-08-25)
-                service  = "pve-host"
-              }
-              annotations = {
-                summary     = "{{ $labels.instance }} memory >95% used — HAHA + FISHA at risk"
-                description = "PVE host is near-OOM. Cascading risk: file01/file02 NFS stutters → HA recorder SIGBUS → 60h+ outage class (ref. 2026-04-27 incident). Take action now: identify the worst VM with `pvestatd auto_balloon` data and either standby+migrate or stop a non-critical guest. Consider implementing IFRNLLEI01PRD-704 balloon floors permanently."
-                impact      = "An HA recorder bus-error during SQLite mmap is now imminent. Detection (Phase A monitor_cmd) will catch the resulting HA crash but the underlying host is at fault."
-              }
-            },
-            {
-              alert = "PVELoadHigh"
-              expr  = "node_load5{instance=~\"(nlpve0[134]|grpve0[12]).*\"} / count(node_cpu_seconds_total{mode=\"idle\",instance=~\"(nlpve0[134]|grpve0[12]).*\"}) by (instance) > 1.5"
-              for   = "10m"
-              labels = {
-                severity = "warning"
-                tier     = "2"
-                service  = "pve-host"
-              }
-              annotations = {
-                summary     = "{{ $labels.instance }} 5-min load avg above 1.5 cores per CPU for >10min"
-                description = "Sustained CPU saturation or I/O wait. Often correlates with DRBD replication backlog or guest disk thrashing. Check `top`, `iostat -x 5 5`, and per-VM CPU usage."
-              }
-            },
+            # (REDACTED_c580ce1a / REDACTED_57cdabcd / PVELoadHigh
+            # moved 2026-08-26 to the canonical, per-site pve-host-alerts.tf —
+            # group REDACTED_75aca2cb, job-scoped — so each cluster
+            # covers its own hosts. PVELoadHigh also got the missing
+            # `/ on (instance)` fix there; the old form never matched.)
             {
               alert = "PVEZramSwapNearFull"
               expr  = "(1 - (node_memory_SwapFree_bytes{instance=~\"nl-pve01.*\"} / node_memory_SwapTotal_bytes{instance=~\"nl-pve01.*\"})) > 0.95"
@@ -187,32 +149,9 @@ resource "kubernetes_manifest" "host_pressure_alert_rules" {
           name     = "pve-exporter"
           interval = "60s"
           rules = [
-            {
-              alert = "PVEExporterDown"
-              expr  = "up{job=\"pve-exporter\"} == 0"
-              for   = "5m"
-              labels = {
-                severity = "warning"
-                service  = "pve-host"
-              }
-              annotations = {
-                summary     = "{{ $labels.instance }} prometheus-pve-exporter (:9221) is down"
-                description = "The native pve-exporter on this PVE host stopped answering. Its scrape doubles as the API/pmxcfs responsiveness canary of that host. Runbook: claude-gateway docs/runbooks/pve-host-exporters.md (re-run scripts/pve-host-exporters-install.sh --check)."
-              }
-            },
-            {
-              alert = "PVENodeExporterDown"
-              expr  = "up{job=\"pve-node-exporter\"} == 0"
-              for   = "5m"
-              labels = {
-                severity = "warning"
-                service  = "pve-host"
-              }
-              annotations = {
-                summary     = "{{ $labels.instance }} node_exporter (:9100) is down"
-                description = "Host-native node_exporter stopped answering — the host-pressure rules above go blind for this host. Runbook: claude-gateway docs/runbooks/pve-host-exporters.md."
-              }
-            },
+            # (PVEExporterDown / PVENodeExporterDown moved 2026-08-26 to the
+            # canonical pve-host-alerts.tf, group pve-exporter-liveness —
+            # up{} is per-scraping-cluster, so liveness must be site-local.)
             {
               alert = "PVENodeOffline"
               expr  = "max by (id) (pve_up{job=\"pve-exporter\", id=~\"node/.*\", id!=\"node/nl-pve02\"}) == 0"

@@ -441,6 +441,46 @@ resource "helm_release" "monitoring" {
                   { target_label = "__address__", replacement = "snmp-exporter.monitoring.svc:9116" },
                 ]
               },
+              ] : [], length(var.pve_hosts) > 0 ? [
+              # PVE hosts — native prometheus-pve-exporter (:9221). PER-SITE since
+              # 2026-08-26: each cluster scrapes its OWN hosts (handed over from
+              # the NL estate job when GR Prometheus returned, IFRGRSKG01PRD-313).
+              # Every host serves the WHOLE cluster view (?cluster=1&node=0), so
+              # cluster-view rules stay NL-only (host-pressure-alerts.tf, single
+              # evaluation) while site-local liveness/pressure rules live in
+              # pve-host-alerts.tf. Installer + runbook: claude-gateway
+              # scripts/pve-host-exporters-install.sh, docs/runbooks/pve-host-exporters.md.
+              {
+                job_name        = "pve-exporter"
+                scrape_interval = "60s"
+                scrape_timeout  = "50s"
+                metrics_path    = "/pve"
+                params = {
+                  cluster = ["1"]
+                  node    = ["0"]
+                }
+                static_configs = [for h in var.pve_hosts : {
+                  targets = ["${h.ip}:9221"]
+                  labels = {
+                    instance = h.instance
+                    role     = "pve-host"
+                    site     = var.site
+                  }
+                }]
+              },
+              ] : [], length(var.pve_hosts) > 0 ? [
+              # Host-native node_exporter on the same PVE hosts (PSI/zfs collectors).
+              {
+                job_name = "pve-node-exporter"
+                static_configs = [for h in var.pve_hosts : {
+                  targets = ["${h.ip}:9100"]
+                  labels = {
+                    instance = h.instance
+                    role     = "pve-host"
+                    site     = var.site
+                  }
+                }]
+              },
           ] : [], local.estate_scrape_configs)
         }
 
