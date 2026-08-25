@@ -200,6 +200,7 @@ module "monitoring" {
   snmp_syno_community         = var.snmp_syno_community
   etcd_endpoints              = var.etcd_endpoints
   frr_route_reflector_targets = var.frr_route_reflector_targets
+  pve_hosts                   = var.pve_hosts
   frr_edge_targets            = var.frr_edge_targets
   ipsec_edge_targets          = var.ipsec_edge_targets
 

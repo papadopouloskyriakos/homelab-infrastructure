@@ -326,78 +326,8 @@ locals {
       ]
     },
 
-    # =============================================================
-    # PVE hosts — prometheus-pve-exporter (:9221) + node_exporter (:9100)
-    # =============================================================
-    # Installed natively on all 5 LIVE PVE hosts 2026-08-25 by claude-gateway
-    # scripts/pve-host-exporters-install.sh (venv /opt/prometheus-pve-exporter,
-    # API token prometheus@pve!pve-exporter, PVEAuditor). nl-pve02 is
-    # POWERED OFF by design (5/6 baseline, IFRNLLEI01PRD-2646) — NOT a target.
-    #
-    # pve-exporter 3.x: status/version/node/resources/backup-info are all
-    # "cluster collectors" (?cluster=1) — EVERY host reports the whole
-    # cluster view (~236 pve_up ids, ~3.5k series/host). Rules must dedup
-    # with max by (id). The per-host value: exporter liveness, that host's
-    # API/pmxcfs responsiveness (scrape_duration_seconds per instance), and
-    # partition-safe reporters on both sites. config/replication/
-    # subscription/qdevice collectors are deliberately disabled on the hosts.
-    {
-      job_name        = "pve-exporter"
-      scrape_interval = "60s"
-      scrape_timeout  = "50s"
-      metrics_path    = "/pve"
-      params = {
-        cluster = ["1"]
-        node    = ["0"]
-      }
-      static_configs = [{
-        targets = [
-          "10.0.X.X:9221", # nl-pve01
-          "10.0.X.X:9221", # nl-pve03
-          "10.0.X.X:9221", # nlpve04
-          "10.0.X.X:9221",   # gr-pve01
-          "10.0.X.X:9221",   # gr-pve02
-        ]
-        labels = {
-          role = "pve-host"
-        }
-      }]
-      relabel_configs = [
-        { source_labels = ["__address__"], regex = "192\\.168\\.181\\.22:.*", target_label = "instance", replacement = "nl-pve01" },
-        { source_labels = ["__address__"], regex = "192\\.168\\.181\\.25:.*", target_label = "instance", replacement = "nl-pve03" },
-        { source_labels = ["__address__"], regex = "192\\.168\\.181\\.27:.*", target_label = "instance", replacement = "nlpve04" },
-        { source_labels = ["__address__"], regex = "192\\.168\\.2\\.26:.*", target_label = "instance", replacement = "gr-pve01" },
-        { source_labels = ["__address__"], regex = "192\\.168\\.2\\.28:.*", target_label = "instance", replacement = "gr-pve02" },
-        { source_labels = ["__address__"], regex = "192\\.168\\.181\\..*", target_label = "site", replacement = "nl" },
-        { source_labels = ["__address__"], regex = "192\\.168\\.2\\..*", target_label = "site", replacement = "gr" },
-      ]
-    },
-    # Host-native node_exporter on the same 5 PVE hosts (Debian package,
-    # PSI/zfs/textfile collectors, mgmt-IP-bound). Makes the host-pressure
-    # rules in host-pressure-alerts.tf live for the first time.
-    {
-      job_name = "pve-node-exporter"
-      static_configs = [{
-        targets = [
-          "10.0.X.X:9100", # nl-pve01
-          "10.0.X.X:9100", # nl-pve03
-          "10.0.X.X:9100", # nlpve04
-          "10.0.X.X:9100",   # gr-pve01
-          "10.0.X.X:9100",   # gr-pve02
-        ]
-        labels = {
-          role = "pve-host"
-        }
-      }]
-      relabel_configs = [
-        { source_labels = ["__address__"], regex = "192\\.168\\.181\\.22:.*", target_label = "instance", replacement = "nl-pve01" },
-        { source_labels = ["__address__"], regex = "192\\.168\\.181\\.25:.*", target_label = "instance", replacement = "nl-pve03" },
-        { source_labels = ["__address__"], regex = "192\\.168\\.181\\.27:.*", target_label = "instance", replacement = "nlpve04" },
-        { source_labels = ["__address__"], regex = "192\\.168\\.2\\.26:.*", target_label = "instance", replacement = "gr-pve01" },
-        { source_labels = ["__address__"], regex = "192\\.168\\.2\\.28:.*", target_label = "instance", replacement = "gr-pve02" },
-        { source_labels = ["__address__"], regex = "192\\.168\\.181\\..*", target_label = "site", replacement = "nl" },
-        { source_labels = ["__address__"], regex = "192\\.168\\.2\\..*", target_label = "site", replacement = "gr" },
-      ]
-    },
+    # (PVE-host exporter jobs moved OUT of the estate scrape 2026-08-26:
+    # they are now per-site canonical jobs in main.tf driven by var.pve_hosts —
+    # each cluster scrapes its own PVE hosts; see pve-host-alerts.tf.)
   ]
 }

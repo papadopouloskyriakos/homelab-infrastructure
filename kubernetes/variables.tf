@@ -1036,3 +1036,12 @@ variable "ingress_csp_header" {
   type        = string
   default     = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss:; frame-ancestors 'self' https://matrix.example.net vector://vector; base-uri 'self'; form-action 'self';"
 }
+
+variable "pve_hosts" {
+  description = "This site's PVE hosts running the native prometheus-pve-exporter (:9221) + node_exporter (:9100). Scraped PER-SITE since 2026-08-26 — each cluster scrapes its OWN hosts (partition-resilient; handover from the NL estate job when GR Prometheus returned, IFRGRSKG01PRD-313). instance = full site-prefixed hostname. Empty list = no PVE hosts at this site."
+  type = list(object({
+    instance = string
+    ip       = string
+  }))
+  default = []
+}

@@ -221,3 +221,11 @@ node_exporter_port    = 9100
 ingress_csp_header  = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss:; frame-ancestors 'self' https://matrix.example.net vector://vector; base-uri 'self'; form-action 'self';"
 snmp_syno_target    = "10.0.X.X"
 snmp_syno_community = "uBnr@W9dKOu#7ifTdVbAi!k$=XKr9X"
+
+# This site's PVE hosts (native pve-exporter :9221 + node_exporter :9100) —
+# per-site scraping since 2026-08-26 (was: NL estate job for all 5 hosts).
+pve_hosts = [
+  { instance = "nl-pve01", ip = "10.0.X.X" },
+  { instance = "nl-pve03", ip = "10.0.X.X" },
+  { instance = "nlpve04", ip = "10.0.X.X" },
+]
