@@ -185,7 +185,7 @@ module "monitoring" {
 
   # --- alerting ---
   alert_webhook_url      = var.alert_webhook_url
-  twilio_bridge_url      = var.twilio_bridge_url
+  paging_bridge_url      = var.paging_bridge_url
   tg_webhook_url         = var.tg_webhook_url
   wal_healer_webhook_url = var.wal_healer_webhook_url
 
@@ -408,17 +408,15 @@ module "gatus" {
   acme_issuer_enabled  = var.acme_issuer_enabled
   tls_secret_name      = var.gatus_tls_secret_name
 
-  # Paging: the bridge URL is pre-wired per site; Twilio stays OFF until the
-  # twilio_* credential vars are also supplied (AND-gate in module locals).
-  twilio_bridge_url = var.twilio_bridge_url
+  # Paging: native ntfy provider (2026-08-25 cutover — Twilio + the dead
+  # GitLab-pipeline provider removed). Arms only when all three gatus_ntfy_*
+  # values are present (NL: TF_VAR_gatus_ntfy_* in the Atlantis env +
+  # OpenBao ci/gatus-ntfy for drift-CI; GR/NO deliberately unset = silent).
+  ntfy_url   = var.gatus_ntfy_url
+  ntfy_topic = var.gatus_ntfy_topic
+  ntfy_token = var.gatus_ntfy_token
 
-  gitlab_pipeline_trigger_token = var.gatus_gitlab_pipeline_trigger_token
-  haproxy_stats_auth            = var.haproxy_stats_auth
-  twilio_account_sid            = var.gatus_twilio_account_sid
-  twilio_api_key_sid            = var.gatus_twilio_api_key_sid
-  twilio_api_key_secret         = var.gatus_twilio_api_key_secret
-  twilio_from_number            = var.gatus_twilio_from_number
-  twilio_to_number              = var.gatus_twilio_to_number
+  haproxy_stats_auth = var.haproxy_stats_auth
 }
 
 # =============================================================================

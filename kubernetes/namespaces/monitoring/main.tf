@@ -486,17 +486,29 @@ resource "helm_release" "monitoring" {
                 }]
               },
             ],
-            # Tier-1 SMS path. Bridge runs on nlclaude01:9106 as a user
-            # systemd service, transforms Alertmanager JSON -> Twilio API
-            # form-urlencoded with API-Key auth (same pattern as
-            # claude-gateway/scripts/freedom-qos-toggle.sh). Refs IFRNLLEI01PRD-802.
-            var.twilio_bridge_url != "" ? [
+            # Tier-1 paging path (2026-08-25 ntfy cutover). The paging bridge
+            # (claude-gateway/scripts/paging-bridge.py, formerly the Twilio bridge;
+            # NL nlclaude01:9106 user unit, GR grclaude01:9106 system unit)
+            # pushes every tier-1 critical to ntfy topic alrt-tier1 and SMSes ONLY
+            # alerts labeled page="sms" (ULTRA allowlist) + capped ntfy-down
+            # fail-over. page-heartbeat feeds the bridge's per-site Prometheus
+            # dead-man from the always-firing Watchdog alert.
+            # Runbook: claude-gateway docs/runbooks/paging-ntfy.md. Refs IFRNLLEI01PRD-802.
+            var.paging_bridge_url != "" ? [
               {
-                name = "twilio-tier1"
+                name = "page-tier1"
                 webhook_configs = [{
-                  url           = var.twilio_bridge_url
+                  url           = var.paging_bridge_url
                   send_resolved = true
                   max_alerts    = 5
+                }]
+              },
+              {
+                name = "page-heartbeat"
+                webhook_configs = [{
+                  url           = replace(var.paging_bridge_url, "/alert", "/heartbeat")
+                  send_resolved = false
+                  max_alerts    = 1
                 }]
               },
             ] : [],
@@ -542,11 +554,31 @@ resource "helm_release" "monitoring" {
             group_interval  = "5m"
             repeat_interval = "4h"
             routes = concat(
-              [
+              # Watchdog: the always-firing dead-man heartbeat. With the paging
+              # bridge wired it feeds POST /heartbeat every ~2m (per-site liveness;
+              # silence >15m -> PrometheusHeartbeatLost from the bridge). Ternary,
+              # NOT a plain edit: with paging_bridge_url == "" the receiver
+              # page-heartbeat would not exist and prometheus-operator would
+              # reject the whole Alertmanager config.
+              # (two separate ?:[] conditionals, not one ternary with both
+              # branches: HCL rejects branches whose object shapes differ —
+              # "Inconsistent conditional result types".)
+              var.paging_bridge_url != "" ? [
+                {
+                  matchers        = ["alertname = Watchdog"]
+                  receiver        = "page-heartbeat"
+                  group_wait      = "10s"
+                  group_interval  = "1m"
+                  repeat_interval = "2m"
+                },
+              ] : [],
+              var.paging_bridge_url != "" ? [] : [
                 {
                   matchers = ["alertname = Watchdog"]
                   receiver = "null"
                 },
+              ],
+              [
                 {
                   matchers = ["alertname = InfoInhibitor"]
                   receiver = "null"
@@ -599,13 +631,14 @@ resource "helm_release" "monitoring" {
                   continue = true
                 },
               ] : [],
-              # Tier-1 critical alerts → Twilio SMS. `continue = true` here lets evaluation reach the
+              # Tier-1 critical alerts → paging bridge (ntfy push; SMS only for
+              # page="sms" — 2026-08-25 cutover). `continue = true` here lets evaluation reach the
               # explicit webhook-n8n sibling below (NOT the parent default — see the correction above),
               # so a tier-1 critical still reaches Matrix/YouTrack as well as the phone.
-              var.twilio_bridge_url != "" ? [
+              var.paging_bridge_url != "" ? [
                 {
                   matchers = ["tier = 1", "severity = critical"]
-                  receiver = "twilio-tier1"
+                  receiver = "page-tier1"
                   continue = true
                   # Independent timing — escalate fast, don't wait for the
                   # 30s/5m group_wait/group_interval used by the chat path.
