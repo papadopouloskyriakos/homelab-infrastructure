@@ -112,6 +112,7 @@ REDACTED_d312035b = "dnssrv+_grpc._tcp.thanos-sidecar-gr.monitoring.svc.cluster.
 alertmanager_storage_size     = "10Gi"
 thanos_store_storage_size     = "20Gi"
 REDACTED_fd3fdc21 = "50Gi"
+REDACTED_bf135212     = 1
 
 # --- prometheus remote-write (IFRNLLEI01PRD-2403 hub/satellite) ---
 prometheus_remote_write_url = "" # NL is a hub, not a satellite
