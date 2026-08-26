@@ -51,6 +51,12 @@ variable "REDACTED_0a7b20f8" {
   default     = 5
 }
 
+variable "volume_max_volumes" {
+  description = "SeaweedFS volume server -max slots per dataDir. 0 = auto from disk space; pin explicitly where auto froze below real capacity (NL 2026-08-26: auto stuck at 1028 slots with the disk 55% free, starving replicated grows - IFRNLLEI01PRD-2605). minFreeSpacePercent stays the true disk-full guard, so slot overcommit is safe."
+  type        = number
+  default     = 0
+}
+
 variable "filer_storage_size" {
   description = "Storage size for filer metadata"
   type        = string
