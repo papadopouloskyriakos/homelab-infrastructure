@@ -550,6 +550,51 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
                 description = "scripts/verify-governance-chain.py (hourly) stopped emitting - the decision-log tamper-evidence is dark and a break would go undetected. absent() closes no-data=no-alert. Check its Cronicle job."
               }
             },
+            # 2026-08-26 nlgpu01 VRAM-starvation RCA (claude-gateway
+            # memory/gpu01_ollama_vram_starvation_judge_wedge_20260826.md): the
+            # RTX 3090 Ti is shared by ~8 tenants and Ollama is the only one that
+            # yields VRAM. Metrics: nvidia_gpu_exporter (:9835, job chatops-nvidia)
+            # + write-ollama-gpu-metrics.py textfile (root cron */1 on nlgpu01).
+            # Test twin + promtool fixtures: claude-gateway prometheus/alert-rules/agentic-health{,.test}.yml
+            {
+              alert = "Gpu01VramSaturated"
+              expr  = "nvidia_smi_memory_used_bytes{instance=\"nlgpu01\"} / nvidia_smi_memory_total_bytes{instance=\"nlgpu01\"} > 0.95"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "nlgpu01 VRAM >95% used for 30m — Ollama generates will fail to load"
+                description = "The shared RTX 3090 Ti has been >95% allocated for 30 minutes. Ollama needs ~5 GB free for qwen2.5:7b and ~9 GB for gemma3:12b; below that the judge and RAG synth OOM on every load and serialize every embed client behind 22 s load-failures. Find the hoarder: nvidia-smi --query-compute-apps=pid,used_memory + curl nlgpu01:11436/stats and :11437/stats (PyTorch services should sit at ~2.2 GB and idle-unload). Runbook: claude-gateway docs/runbooks/rerank-service.md § Dynamic VRAM."
+              }
+            },
+            {
+              alert = "REDACTED_b15337a9"
+              expr  = "ollama_model_gpu_only == 0"
+              for   = "15m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "Ollama model {{ $labels.model }} is partially/fully on CPU for 15m"
+                description = "write-ollama-gpu-metrics.py reports a loaded model whose size_vram < size — Ollama is splitting it to CPU (VRAM starvation or a stale NVML handle after a driver/persistenced restart). Inference is 10-20x slower and the runner burns host CPU. Check curl nlgpu01:11434/api/ps, nvidia-smi, and journalctl -t ollama-nvml-selfheal on nlgpu01."
+              }
+            },
+            {
+              alert = "REDACTED_ea154334"
+              expr  = "time() - ollama_metrics_last_run_timestamp > 900"
+              for   = "10m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "ollama GPU metrics exporter on nlgpu01 has not run in 15+ minutes"
+                description = "/usr/local/bin/write-ollama-gpu-metrics.py (root cron */1 on nlgpu01) writes /var/lib/node_exporter/textfile_collector/ollama_gpu.prom. If it is stale, the REDACTED_b15337a9 alert is blind. Check the root crontab and node_exporter on nlgpu01."
+              }
+            },
           ]
         },
         {
