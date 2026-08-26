@@ -292,6 +292,17 @@ variable "REDACTED_7479c0fd" {
   default     = "2Gi"
 }
 
+variable "REDACTED_bf135212" {
+  description = "Thanos Compactor replicas - 0 (parked) or 1 only; the compactor cannot run HA. GR parks it at 0: compactor backlog churn on the gr-pve01 rpool (which hosts all 6 GR k8s VMs) starves etcd - IFRGRSKG01PRD-313."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.REDACTED_bf135212 >= 0 && var.REDACTED_bf135212 <= 1
+    error_message = "REDACTED_bf135212 must be 0 or 1 - the compactor cannot run HA."
+  }
+}
+
 # -----------------------------------------------------------------------------
 # Remote Site Configuration
 # -----------------------------------------------------------------------------

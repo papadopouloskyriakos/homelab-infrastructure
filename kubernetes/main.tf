@@ -169,6 +169,7 @@ module "monitoring" {
   alertmanager_storage_size     = var.alertmanager_storage_size
   thanos_store_storage_size     = var.thanos_store_storage_size
   REDACTED_fd3fdc21 = var.REDACTED_fd3fdc21
+  REDACTED_bf135212     = var.REDACTED_bf135212
   snmp_community                = var.snmp_community
 
   # --- site identity ---
