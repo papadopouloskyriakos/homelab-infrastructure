@@ -343,6 +343,7 @@ module "seaweedfs" {
   canary_s3_endpoint            = var.REDACTED_b3642cef
   volume_storage_size           = var.REDACTED_a8217c41
   REDACTED_0a7b20f8 = var.REDACTED_6930756b
+  volume_max_volumes            = var.REDACTED_d36a9dce
   master_storage_size           = var.seaweedfs_master_storage_size
   filer_storage_size            = var.REDACTED_b907bdb5
   node_region                   = var.node_region
