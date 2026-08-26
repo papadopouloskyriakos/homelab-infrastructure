@@ -78,7 +78,7 @@ volume:
       type: "REDACTED_33feff97"
       size: "${volume_storage_size}"
       storageClass: "${storage_class}"
-      maxVolumes: 0  # auto-configure based on disk space
+      maxVolumes: ${volume_max_volumes} # 0 = auto from disk space; pin explicitly where auto froze below real capacity (IFRNLLEI01PRD-2605)
   # Below this free-space percentage the server marks all volumes read-only AND
   # refuses compaction — see the variable comment in variables.tf.
   minFreeSpacePercent: ${REDACTED_0a7b20f8}
