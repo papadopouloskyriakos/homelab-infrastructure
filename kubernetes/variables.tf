@@ -655,6 +655,12 @@ variable "REDACTED_6930756b" {
   default     = 5
 }
 
+variable "REDACTED_d36a9dce" {
+  description = "SeaweedFS volume server -max volume slots per dataDir (0 = auto from disk space; NL pins 1400 - auto froze at 1028 while the disk had 441G free, IFRNLLEI01PRD-2605)"
+  type        = number
+  default     = 0
+}
+
 variable "seaweedfs_master_storage_size" {
   description = "Storage size for master metadata"
   type        = string

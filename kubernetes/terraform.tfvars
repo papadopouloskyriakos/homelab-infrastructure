@@ -126,6 +126,7 @@ REDACTED_337e6630 = "10.0.X.X"
 
 # --- seaweedfs ---
 REDACTED_a8217c41 = "1000Gi"
+REDACTED_d36a9dce  = 1400 # auto (-max 0) froze at 1028 slots (computed during the July near-full crisis); disks now ~55% used - minFreeSpacePercent=5 is the true guard (IFRNLLEI01PRD-2605)
 # Staged 4.44 rollout (IFRNLLEI01PRD-2605): NO first, then NL, then GR.
 REDACTED_c1342204 = "4.44.0"
 REDACTED_a4f42897 = "4.44"
