@@ -531,7 +531,7 @@ resource "REDACTED_2f6bdfa2" "thanos_compactor" {
   }
 
   spec {
-    replicas     = 1 # Must be 1 - no HA for compactor
+    replicas     = var.REDACTED_bf135212 # 0 (parked) or 1 - the compactor cannot run HA
     service_name = "thanos-compactor"
 
     selector {

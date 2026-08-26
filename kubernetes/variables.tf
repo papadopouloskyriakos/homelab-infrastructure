@@ -536,6 +536,12 @@ variable "REDACTED_fd3fdc21" {
   default     = "50Gi"
 }
 
+variable "REDACTED_bf135212" {
+  description = "Thanos Compactor replicas - 0 (parked) or 1 only (no HA). GR parks it at 0: compactor backlog churn on the gr-pve01 rpool (all 6 GR k8s VMs live there) starves etcd - IFRGRSKG01PRD-313; re-enable only in a watched window with apiserver restart counts as the canary."
+  type        = number
+  default     = 1
+}
+
 variable "prometheus_remote_write_url" {
   description = "Prometheus remote_write target URL. \"\" (default) = no remoteWrite key rendered at all — today's NL/GR behavior. A satellite site (notrf01) sets its hub receiver URL here."
   type        = string
