@@ -1114,6 +1114,25 @@ resource "helm_release" "monitoring" {
                     sourceLabels = ["__name__"]
                     regex        = ".+_bucket"
                     action       = "drop"
+                  },
+                  # Drop LOCALLY-EVALUATED series: recording-rule outputs (the
+                  # level:metric:operation convention always contains a colon) and the
+                  # ALERTS/ALERTS_FOR_STATE pair. The hub evaluates the identical
+                  # kube-prometheus recording rules over the same remote-written raw
+                  # series, so the satellite's copies are redundant - and they were the
+                  # ONLY thing failing: on 2026-08-27 the hub logged "Out of order sample
+                  # from remote write" against exactly these names (instance:node_cpu:ratio,
+                  # count:up1, ALERTS, node_namespace_pod_container:*), 100% site="no",
+                  # while every scraped metric landed fine. The hub runs
+                  # tsdb.outOfOrderTimeWindow=0s, so a satellite HA pair evaluating the same
+                  # rules and writing into one receiver collides by construction. Dropping
+                  # them at the sender fixes it without loosening the hub's TSDB or losing
+                  # any raw data. Alert DELIVERY is unaffected - that rides Alertmanager to
+                  # the NL paging bridge, not this stream.
+                  {
+                    sourceLabels = ["__name__"]
+                    regex        = "ALERTS|ALERTS_FOR_STATE|.*:.*"
+                    action       = "drop"
                   }
                 ]
               }
