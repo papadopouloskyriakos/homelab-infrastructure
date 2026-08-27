@@ -566,6 +566,12 @@ variable "thanos_retention_1h" {
   default     = "365d"
 }
 
+variable "thanos_delete_delay" {
+  description = "Thanos compactor delete-delay (see the monitoring module variable of the same name)"
+  type        = string
+  default     = "48h"
+}
+
 variable "prometheus_remote_write_url" {
   description = "Prometheus remote_write target URL. \"\" (default) = no remoteWrite key rendered at all — today's NL/GR behavior. A satellite site (notrf01) sets its hub receiver URL here."
   type        = string

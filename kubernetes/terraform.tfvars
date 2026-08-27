@@ -116,6 +116,7 @@ REDACTED_fd3fdc21 = "50Gi"
 thanos_retention_raw      = "30d"
 thanos_retention_5m       = "120d"
 thanos_retention_1h       = "365d"
+thanos_delete_delay       = "48h"
 REDACTED_bf135212 = 1
 
 # --- prometheus remote-write (IFRNLLEI01PRD-2403 hub/satellite) ---

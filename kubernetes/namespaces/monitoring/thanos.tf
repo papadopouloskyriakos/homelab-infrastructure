@@ -593,7 +593,7 @@ resource "REDACTED_2f6bdfa2" "thanos_compactor" {
             "--retention.resolution-1h=${var.thanos_retention_1h}",
             "--compact.concurrency=1",
             "--downsample.concurrency=1",
-            "--delete-delay=48h",
+            "--delete-delay=${var.thanos_delete_delay}",
             "--wait",
           ]
 
