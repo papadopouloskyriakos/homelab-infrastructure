@@ -246,8 +246,18 @@ resource "kubernetes_manifest" "REDACTED_e981a6a4" {
               # no attempts. attempt_total stops moving in exactly that state.
               # {cluster=""} = local series only (remote-written twins carry a
               # cluster label; without the guard this would double-evaluate).
+              #
+              # 2026-08-27: weekly schedules are EXCLUDED. The window is 26h and the text
+              # below says "the daily schedule should attempt at least once per 24h", but
+              # the selector was schedule!="" - every schedule - so notrf01's weekly-backup
+              # (0 3 * * 0) satisfied it only on Sundays and sat as a permanent false
+              # critical the other six days. They are excluded rather than given their own
+              # 8d rule because LOCAL Prometheus retention here is 24h: any range window
+              # wider than that sees a flat counter and yields 0, so an [8d] increase()
+              # can never be satisfied - it would be decorative in the other direction.
+              # A wedged controller stops the DAILY schedule too, which this still catches.
               alert = "REDACTED_45e7a03a"
-              expr  = "sum by (schedule) (increase(velero_backup_attempt_total{schedule!=\"\",cluster=\"\"}[26h])) == 0"
+              expr  = "sum by (schedule) (increase(velero_backup_attempt_total{schedule!=\"\",schedule!~\".*weekly.*\",cluster=\"\"}[26h])) == 0"
               for   = "30m"
               labels = {
                 severity = "critical"
@@ -255,7 +265,7 @@ resource "kubernetes_manifest" "REDACTED_e981a6a4" {
                 scope    = "backup"
               }
               annotations = {
-                summary     = "Velero schedule {{ $labels.schedule }} produced NO backup attempt in 26h"
+                summary     = "Velero daily schedule {{ $labels.schedule }} produced NO backup attempt in 26h"
                 description = <<-EOT
                   The daily schedule should attempt at least once per 24h; zero attempts in 26h
                   means the backup controller is wedged (seen 2026-08-24: BSL poller and backup
