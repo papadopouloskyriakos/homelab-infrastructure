@@ -1109,6 +1109,19 @@ resource "helm_release" "monitoring" {
                 # (buckets included), the hub keeps _sum/_count so cross-site rates
                 # and means still work — only cross-site quantiles are lost. The
                 # operator's config-reloader hot-reloads this (no pod restart).
+                # The hub returns RW-2.0 written-stats headers
+                # (X-Prometheus-Remote-Write-Samples-Written) on EVERY 204, hardcoded to
+                # 0. Under the default V1.0 message version the sender still reads that
+                # header, concludes nothing landed, logs "we got 2xx status code from the
+                # Receiver yet statistics indicate some data was not written" and counts
+                # EVERY sample failed - measured on notrf01 2026-08-27:
+                # samples_failed_total rate == samples_total rate exactly (5237/s each),
+                # i.e. a 100% failure reading, while 330,605 site="no" series were live
+                # and fresh at the hub. The counter was spurious, and it drove
+                # PrometheusRemoteStorageFailures. Speaking V2.0 (both ends are Prometheus
+                # v3.8.0 and the hub has enableRemoteWriteReceiver) makes those headers
+                # meaningful instead of decorative.
+                messageVersion = "V2.0"
                 writeRelabelConfigs = [
                   {
                     sourceLabels = ["__name__"]
@@ -1167,24 +1180,6 @@ resource "kubernetes_ingress_v1" "prometheus" {
     labels = merge(var.common_labels, {
       "app.kubernetes.io/name" = "prometheus"
     })
-    annotations = {
-      # Remote-write into an HA Prometheus PAIR must not be round-robined. This vhost
-      # carries /api/v1/write for the satellites, and with no affinity nginx split
-      # notrf01's single write stream exactly 50/50 across BOTH receiver replicas
-      # (measured 2026-08-27 from one source 10.0.6.31: 197/197 on one controller,
-      # 318/318 on the other). Each receiver TSDB therefore got an interleaved SUBSET of
-      # every series and neither held a complete one: for one node-exporter series the
-      # source had 11 samples/5m while NL-0 held 5, NL-1 held 7, and their UNION was only
-      # 8 - roughly a quarter of samples reached no replica at all. The sender surfaced
-      # this as "we got 2xx status code from the Receiver yet statistics indicate some
-      # data was not written" and as PrometheusRemoteStorageFailures; nothing was
-      # rejected receiver-side (prometheus_tsdb_out_of_order_samples_total stayed 0) and
-      # every request logged 204, which is why it read as healthy from both ends.
-      # Consistent-hash by source address so one sender always lands on one receiver and
-      # each series stays whole. Query-side HA is unaffected: Thanos dedups across
-      # replicas and the object store.
-      "nginx.ingress.kubernetes.io/upstream-hash-by" = "$remote_addr"
-    }
   }
 
   spec {
