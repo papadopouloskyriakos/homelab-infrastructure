@@ -32,8 +32,18 @@ resource "kubernetes_manifest" "custom_alert_rules" {
           rules = [
             {
               alert = "ContainerOOMKilled"
-              expr  = "kube_pod_container_status_last_terminated_reason{reason=\"OOMKilled\"} == 1"
-              for   = "0m"
+              # last_terminated_reason latches for the LIFETIME of the pod, so on its own
+              # this fires forever after a single OOM and cannot distinguish "OOMing now"
+              # from "OOMed once and has been healthy for days" - on 2026-08-27 it held 3
+              # criticals open for pods last killed 29h and 4d17h earlier. Gate it on an
+              # OOM that actually happened in the last 15m so it describes the present.
+              # Uses the last_terminated TIMESTAMP rather than increase() on
+              # restarts_total: a container that OOMs on a fresh pod already reads
+              # restarts_total=1 at its first sample, so increase() never observes the
+              # 0->1 transition and would silently miss exactly that case. Control ladder
+              # on notrf01 2026-08-27: <30d=3 series, <5d=2, <2d=1, <15m=0.
+              expr = "kube_pod_container_status_last_terminated_reason{reason=\"OOMKilled\"} == 1 and on (namespace, pod, container) (time() - kube_pod_container_status_last_terminated_timestamp) < 900"
+              for  = "0m"
               labels = {
                 severity = "critical"
               }
