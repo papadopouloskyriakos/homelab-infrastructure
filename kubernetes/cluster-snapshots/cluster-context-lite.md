@@ -3,27 +3,27 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-08-26 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-08-27 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: CRITICAL ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 36 |
+| Unhealthy Pods | 14 |
 | Pending PVCs | 0 |
-| Total Restarts | 1784 |
+| Total Restarts | 2793 |
 
 ## Topology
 
 - **K8s:** v1.36.3 | **CNI:** Cilium 1.20.0
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 187
+- **Pods:** 173
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8002696Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-ctrl02** (control-plane) 10.0.X.X | CPU:4 Mem:8092Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-ctrl03** (control-plane) 10.0.X.X | CPU:4 Mem:8003704Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
-- **nlk8s-node01** (worker) 10.0.X.X | CPU:8 Mem:16246548Ki | Taints:node.kubernetes.io/unreachable=:NoSchedule,node.kubernetes.io/unreachable=:NoExecute,node.cilium.io/agent-not-ready=:NoSchedule
+- **nlk8s-node01** (worker) 10.0.X.X | CPU:8 Mem:16246548Ki | Taints:node.kubernetes.io/unreachable=:NoSchedule,node.cilium.io/agent-not-ready=:NoSchedule,node.kubernetes.io/unreachable=:NoExecute
 - **nlk8s-node02** (worker) 10.0.X.X | CPU:8 Mem:10054404Ki | Taints:none
 - **nlk8s-node03** (worker) 10.0.X.X | CPU:8 Mem:10054404Ki | Taints:none
 - **nlk8s-node04** (worker) 10.0.X.X | CPU:8 Mem:12117776Ki | Taints:none
@@ -32,56 +32,34 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-argocd                   argocd-repo-server-7dfc645f84-5sh42                               1/1   Terminating        0                 31h
-argocd                   argocd-repo-server-7dfc645f84-vqd64                               1/1   Terminating        0                 31h
-awx                      awx-operator-controller-manager-6ffdf98f6-m9gvc                   2/2   Terminating        2 (17h ago)       31h
-bentopdf                 bentopdf-85d6d55b9f-697tk                                         1/1   Terminating        0                 31h
-cert-manager             cert-manager-webhook-76ccbc5994-t2h2n                             1/1   Terminating        0                 31h
-cilium-spire             spire-agent-2xj9z                                                 0/1   CrashLoopBackOff   137 (27s ago)     9d
-cilium-spire             spire-agent-bf7g7                                                 0/1   CrashLoopBackOff   139 (4m45s ago)   9d
-cilium-spire             spire-agent-hpld8                                                 0/1   CrashLoopBackOff   138 (3m48s ago)   9d
-cilium-spire             spire-agent-sm9xs                                                 0/1   CrashLoopBackOff   138 (3m6s ago)    9d
-cilium-spire             spire-agent-xk8cl                                                 0/1   CrashLoopBackOff   137 (2m57s ago)   9d
-cilium-spire             spire-agent-zqpt4                                                 0/1   CrashLoopBackOff   140 (76s ago)     9d
-cilium-spire             spire-server-0                                                    2/2   Terminating        0                 31h
-cnpg-system              cnpg-cloudnative-pg-6d8bdc546d-5s4w9                              1/1   Terminating        0                 31h
-cnpg-system              cnpg-cloudnative-pg-6d8bdc546d-xtt94                              1/1   Terminating        1 (18h ago)       31h
-external-secrets         external-secrets-54bf5f9b8b-fp6f8                                 1/1   Terminating        0                 31h
-external-secrets         external-secrets-cert-controller-7b5c8c9659-nhsnq                 1/1   Terminating        0                 31h
-external-secrets         external-secrets-webhook-57bfc8987-tqdf7                          1/1   Terminating        0                 31h
-REDACTED_01b50c5d   REDACTED_ab04b573-v2-766bfc86f5-5ltjp                        1/1   Terminating        0                 31h
-REDACTED_01b50c5d   REDACTED_ab04b573-v2-766bfc86f5-5skcf                        1/1   Terminating        0                 31h
-ingress-nginx            ingress-nginx-controller-8445475547-7lbw5                         1/1   Terminating        0                 31h
-ingress-nginx            ingress-nginx-controller-8445475547-jxm5f                         1/1   Terminating        0                 31h
-kube-system              kube-proxy-qn8md                                                  0/1   CrashLoopBackOff   461 (4m22s ago)   9d
-kube-system              tetragon-operator-f674b87f4-m54tx                                 1/1   Terminating        0                 31h
-REDACTED_d97cef76     REDACTED_d97cef76-api-5579c66b6b-zvmrl                         1/1   Terminating        0                 31h
-REDACTED_d97cef76     REDACTED_d97cef76-auth-8f5d95bd5-v5l8m                         1/1   Terminating        0                 31h
-REDACTED_d97cef76     REDACTED_d97cef76-metrics-scraper-7685fd8b77-6kw9f             1/1   Terminating        0                 31h
-REDACTED_d97cef76     REDACTED_d97cef76-web-5c9f966b98-z5brs                         1/1   Terminating        0                 31h
-nfs-provisioner          nfs-provisioner-REDACTED_5fef70be-75b84759cfskglb   1/1   Terminating        2 (15h ago)       31h
-pihole                   pihole-574d9db4c-qf5hk                                            1/1   Terminating        0                 31h
-velero                   node-agent-55hgg                                                  1/1   Terminating        1 (31h ago)       31h
-velero                   pihole-default-kopia-maintain-job-1787712389425-skjc9             0/1   Error              0                 14m
-velero                   pihole-default-kopia-maintain-job-1787712689426-zs8nx             0/1   Error              0                 9m15s
-velero                   pihole-default-kopia-maintain-job-1787712989426-rrq44             0/1   Error              0                 4m15s
-velero                   velero-f7fc5f448-z2lbm                                            1/1   Terminating        0                 31h
-velero                   velero-ui-687565868b-547hd                                        1/1   Terminating        0                 31h
-well-known               well-known-7b9498f5f5-kn7br                                       1/1   Terminating        0                 31h
+awx                      awx-operator-controller-manager-6ffdf98f6-m9gvc                   2/2   Terminating        2 (41h ago)       2d7h
+cnpg-system              cnpg-cloudnative-pg-6d8bdc546d-xtt94                              1/1   Terminating        1 (42h ago)       2d7h
+kube-system              kube-proxy-qn8md                                                  0/1   CrashLoopBackOff   741 (4m43s ago)   10d
+nfs-provisioner          nfs-provisioner-REDACTED_5fef70be-75b84759cfskglb   1/1   Terminating        2 (39h ago)       2d7h
+velero                   awx-default-kopia-maintain-job-1787798794679-mwxq5                0/1   Error              0                 14m
+velero                   awx-default-kopia-maintain-job-1787799094688-sfh54                0/1   Error              0                 9m15s
+velero                   awx-default-kopia-maintain-job-1787799394685-78wj2                0/1   Error              0                 4m15s
+velero                   monitoring-default-kopia-maintain-job-1787798799709-jq59f         0/1   Error              0                 14m
+velero                   monitoring-default-kopia-maintain-job-1787799100728-fnrvl         0/1   Error              0                 9m9s
+velero                   monitoring-default-kopia-maintain-job-1787799399714-8wcbn         0/1   Error              0                 4m10s
+velero                   node-agent-55hgg                                                  1/1   Terminating        1 (2d7h ago)      2d7h
+velero                   pihole-default-kopia-maintain-job-1787798789645-5bnzc             0/1   Error              0                 14m
+velero                   pihole-default-kopia-maintain-job-1787799089646-fz77q             0/1   Error              0                 9m20s
+velero                   pihole-default-kopia-maintain-job-1787799389647-xmdvg             0/1   Error              0                 4m20s
 ```
 
 ### High Restart Pods (>3)
 awx/my-awx-task-756d768868-bslc2: 6 restarts
-cilium-spire/spire-agent-2xj9z: 137 restarts
-cilium-spire/spire-agent-bf7g7: 139 restarts
-cilium-spire/spire-agent-hpld8: 138 restarts
-cilium-spire/spire-agent-sm9xs: 138 restarts
-cilium-spire/spire-agent-xk8cl: 137 restarts
-cilium-spire/spire-agent-zqpt4: 140 restarts
+cilium-spire/spire-agent-2xj9z: 258 restarts
+cilium-spire/spire-agent-bf7g7: 261 restarts
+cilium-spire/spire-agent-hpld8: 259 restarts
+cilium-spire/spire-agent-sm9xs: 259 restarts
+cilium-spire/spire-agent-xk8cl: 258 restarts
+cilium-spire/spire-agent-zqpt4: 261 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 4 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 6 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl03: 4 restarts
-kube-system/kube-proxy-qn8md: 461 restarts
+kube-system/kube-proxy-qn8md: 741 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 5 restarts
 kube-system/tetragon-5gk99: 9 restarts
 kube-system/tetragon-75hdg: 10 restarts
@@ -108,11 +86,11 @@ synology-csi/synology-csi-node-zch7n: 27 restarts
 
 ### Recent Warnings (5)
 ```
-cilium-spire   3m40s       Warning   Unhealthy              pod/spire-agent-sm9xs                                 Readiness probe failed: Get "http://10.0.X.X:4251/ready": dial tcp 10.0.X.X:4251: connect: connection refused
-cilium-spire   2m27s       Warning   BackOff                pod/spire-agent-hpld8                                 Back-off restarting failed container spire-agent in pod spire-agent-hpld8_cilium-spire(ef3e9277-4925-488d-b6ee-a82b8276764c)
-cilium-spire   2m20s       Warning   BackOff                pod/spire-agent-bf7g7                                 Back-off restarting failed container spire-agent in pod spire-agent-bf7g7_cilium-spire(8757e3ca-53e4-4bb6-b853-f0d35385d5b8)
-cilium-spire   87s         Warning   Unhealthy              pod/spire-agent-zqpt4                                 Readiness probe failed: HTTP probe failed with statuscode: 500
-cilium-spire   79s         Warning   BackOff                pod/spire-agent-2xj9z                                 Back-off restarting failed container spire-agent in pod spire-agent-2xj9z_cilium-spire(0b7ea57c-7260-4278-8017-bcbdca8023c1)
+velero        9m5s        Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1787799100728   Job has reached the specified backoff limit
+velero        4m15s       Warning   BackoffLimitExceeded   job/pihole-default-kopia-maintain-job-1787799389647       Job has reached the specified backoff limit
+velero        4m10s       Warning   BackoffLimitExceeded   job/awx-default-kopia-maintain-job-1787799394685          Job has reached the specified backoff limit
+velero        4m6s        Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1787799399714   Job has reached the specified backoff limit
+kube-system   3m40s       Warning   BackOff                pod/kube-proxy-qn8md                                      Back-off restarting failed container kube-proxy in pod kube-proxy-qn8md_kube-system(70ae08f5-7949-459c-9670-ac69c6b03a55)
 ```
 
 ## Key Resources
