@@ -112,7 +112,11 @@ REDACTED_d312035b = "dnssrv+_grpc._tcp.thanos-sidecar-gr.monitoring.svc.cluster.
 alertmanager_storage_size     = "10Gi"
 thanos_store_storage_size     = "20Gi"
 REDACTED_fd3fdc21 = "50Gi"
-REDACTED_bf135212     = 1
+# NL: dedicated Synology CSI volumes - unchanged, these are the historical defaults.
+thanos_retention_raw      = "30d"
+thanos_retention_5m       = "120d"
+thanos_retention_1h       = "365d"
+REDACTED_bf135212 = 1
 
 # --- prometheus remote-write (IFRNLLEI01PRD-2403 hub/satellite) ---
 prometheus_remote_write_url = "" # NL is a hub, not a satellite
@@ -125,8 +129,9 @@ loki_s3_bucket        = "loki"
 REDACTED_337e6630 = "10.0.X.X"
 
 # --- seaweedfs ---
-REDACTED_a8217c41 = "1000Gi"
-REDACTED_d36a9dce  = 1400 # auto (-max 0) froze at 1028 slots (computed during the July near-full crisis); disks now ~55% used - minFreeSpacePercent=5 is the true guard (IFRNLLEI01PRD-2605)
+REDACTED_a8217c41           = "1000Gi"
+REDACTED_d36a9dce            = 1400 # auto (-max 0) froze at 1028 slots (computed during the July near-full crisis); disks now ~55% used - minFreeSpacePercent=5 is the true guard (IFRNLLEI01PRD-2605)
+REDACTED_6930756b = 5
 # Staged 4.44 rollout (IFRNLLEI01PRD-2605): NO first, then NL, then GR.
 REDACTED_c1342204 = "4.44.0"
 REDACTED_a4f42897 = "4.44"

@@ -542,6 +542,30 @@ variable "REDACTED_bf135212" {
   default     = 1
 }
 
+# Thanos bucket retention, per resolution tier. Site-tunable since 2026-08-27: the
+# defaults below are NL-sized and were previously unreachable from the root, so every
+# site inherited a year of 1h data. On notrf01 that is unaffordable - OS, containers and
+# every PV share one 160G root disk, and thanos block growth (~3.8 GB/day) drove the node
+# past kubelet's evictionHard imagefs.available<15%, tainting it and making every
+# LocalPV-pinned pod on it unschedulable. Defaults preserve NL/GR behaviour exactly.
+variable "thanos_retention_raw" {
+  description = "Thanos retention for raw-resolution blocks"
+  type        = string
+  default     = "30d"
+}
+
+variable "thanos_retention_5m" {
+  description = "Thanos retention for 5-minute downsampled blocks"
+  type        = string
+  default     = "120d"
+}
+
+variable "thanos_retention_1h" {
+  description = "Thanos retention for 1-hour downsampled blocks"
+  type        = string
+  default     = "365d"
+}
+
 variable "prometheus_remote_write_url" {
   description = "Prometheus remote_write target URL. \"\" (default) = no remoteWrite key rendered at all — today's NL/GR behavior. A satellite site (notrf01) sets its hub receiver URL here."
   type        = string
