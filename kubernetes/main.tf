@@ -173,6 +173,7 @@ module "monitoring" {
   thanos_retention_raw          = var.thanos_retention_raw
   thanos_retention_5m           = var.thanos_retention_5m
   thanos_retention_1h           = var.thanos_retention_1h
+  thanos_delete_delay           = var.thanos_delete_delay
   snmp_community                = var.snmp_community
 
   # --- site identity ---
