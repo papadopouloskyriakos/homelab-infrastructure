@@ -1167,6 +1167,24 @@ resource "kubernetes_ingress_v1" "prometheus" {
     labels = merge(var.common_labels, {
       "app.kubernetes.io/name" = "prometheus"
     })
+    annotations = {
+      # Remote-write into an HA Prometheus PAIR must not be round-robined. This vhost
+      # carries /api/v1/write for the satellites, and with no affinity nginx split
+      # notrf01's single write stream exactly 50/50 across BOTH receiver replicas
+      # (measured 2026-08-27 from one source 10.0.6.31: 197/197 on one controller,
+      # 318/318 on the other). Each receiver TSDB therefore got an interleaved SUBSET of
+      # every series and neither held a complete one: for one node-exporter series the
+      # source had 11 samples/5m while NL-0 held 5, NL-1 held 7, and their UNION was only
+      # 8 - roughly a quarter of samples reached no replica at all. The sender surfaced
+      # this as "we got 2xx status code from the Receiver yet statistics indicate some
+      # data was not written" and as PrometheusRemoteStorageFailures; nothing was
+      # rejected receiver-side (prometheus_tsdb_out_of_order_samples_total stayed 0) and
+      # every request logged 204, which is why it read as healthy from both ends.
+      # Consistent-hash by source address so one sender always lands on one receiver and
+      # each series stays whole. Query-side HA is unaffected: Thanos dedups across
+      # replicas and the object store.
+      "nginx.ingress.kubernetes.io/upstream-hash-by" = "$remote_addr"
+    }
   }
 
   spec {
