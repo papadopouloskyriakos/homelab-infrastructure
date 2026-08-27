@@ -196,6 +196,12 @@ variable "thanos_retention_1h" {
   default     = "365d"
 }
 
+variable "thanos_delete_delay" {
+  description = "Thanos compactor -delete-delay. Time a block stays marked-for-deletion before removal. The 48h default is a safety margin for undoing a bad retention change; on a site whose OS, containers and every PV share one 160G root disk it also means a retention cut reclaims NOTHING for two days, which is useless when the disk is the emergency."
+  type        = string
+  default     = "48h"
+}
+
 # -----------------------------------------------------------------------------
 # Replica Configuration
 # -----------------------------------------------------------------------------
