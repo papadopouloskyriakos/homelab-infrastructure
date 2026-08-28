@@ -145,6 +145,31 @@ re-check `mysql_servers`, not just `runtime_mysql_servers`.
 All consumers share this cluster and are subject to all three settings. None of them alter
 existing data or query behaviour; they relax creation-time restrictions and change ID stride.
 
+## Timezone tables — loaded per node, do NOT replicate (2026-08-28)
+
+`mysql.time_zone*` (Aria engine) were empty since install — named-zone `CONVERT_TZ()`
+returned NULL (found via CiviCRM's System.check). Loaded 2026-08-28 on **both** DB nodes
+(1793 zone names each), verified via ProxySQL and per node.
+
+Two things future maintainers must know:
+
+1. **These tables do not replicate**, so a rebuilt node or a tzdata package update means
+   re-running the load and verifying `SELECT COUNT(*) FROM mysql.time_zone_name` on **each**
+   node independently — a node can silently regress to 0 while the cluster looks healthy.
+2. **11.8's `mariadb-tzinfo-to-sql` is Galera-aware and will NOT stay local by default**: with
+   session `wsrep_on=ON` its SQL ALTERs the tz tables to InnoDB, replicates the load
+   cluster-wide via TOI, then ALTERs back to Aria — an interrupted run leaves them InnoDB
+   everywhere. The house method keeps it strictly per-node:
+
+   ```bash
+   ssh -i ~/.ssh/one_key root@10.0.X.X   # then .151
+   (echo "SET SESSION wsrep_on=OFF;"; mariadb-tzinfo-to-sql /usr/share/zoneinfo) | mariadb mysql
+   ```
+
+   Do it one node at a time, both nodes Synced before/after, not through ProxySQL. Nothing
+   needs restarting. Full execution record:
+   `docker/nlcivicrm01/civicrm/civicrm-timezone-runbook.md`.
+
 ## MariaDB config file layout — read this before editing any `.cnf`
 
 `/etc/mysql/my.cnf` includes `conf.d/` **first**, then `mariadb.conf.d/`, and **last definition
