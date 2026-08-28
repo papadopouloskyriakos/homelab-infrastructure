@@ -1,0 +1,13 @@
+[mysqld]
+### mysqltuner
+# Avoid reverse DNS lookups on every connection by adding
+#skip-name-resolve
+
+# Set log file size to 25% of the buffer pool size (e.g., 32M for a 128M pool):
+#innodb_log_file_size=32M
+
+# For better diagnostics, activate the performance schema:
+performance_schema=ON
+
+# Increase join_buffer_size
+join_buffer_size=4M

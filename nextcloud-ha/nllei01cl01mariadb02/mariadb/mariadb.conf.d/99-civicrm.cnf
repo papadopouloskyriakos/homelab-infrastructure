@@ -1,0 +1,21 @@
+# CiviCRM (nlcivicrm01) requirements — added 2026-08-28.
+# Placed in mariadb.conf.d/99-* so it wins the include order (conf.d is read first).
+#
+# 1) CREATE TRIGGER as a non-SUPER user: on a Galera node wsrep_on=ON counts as
+#    binary logging for MariaDB stored-program checks, so CREATE TRIGGER raises
+#    ER_1419 even though log_bin=OFF. CiviCRM documents this exact remedy; the
+#    alternative is granting SUPER, which is worse.
+#
+# 2) CiviCRM requires auto_increment_increment=1. Galera sets it to the cluster
+#    size via wsrep_auto_increment_control, and that override cannot be scoped to
+#    a session or a user - it is global. Disabling it is safe ONLY because
+#    ProxySQL runs mysql_galera_hostgroups with max_writers=1 on BOTH proxysql
+#    nodes, so exactly one node accepts writes.
+#    *** If max_writers is ever raised above 1, revert this or you can get
+#    *** duplicate auto-increment IDs across writers (Galera surfaces it as
+#    *** certification conflicts, not silent corruption).
+[mariadb]
+log_bin_trust_function_creators = 1
+wsrep_auto_increment_control    = OFF
+auto_increment_increment        = 1
+auto_increment_offset           = 1

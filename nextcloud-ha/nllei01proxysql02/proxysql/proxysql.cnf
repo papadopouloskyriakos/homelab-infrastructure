@@ -1,0 +1,70 @@
+datadir="/var/lib/proxysql"
+
+admin_variables=
+{
+    # Admin credentials: replace with strong passwords
+    admin_credentials="admin:admin;radmin:radmin"
+    # Admin MySQL interface for configuration (default is localhost-only for security)
+    mysql_ifaces="0.0.0.0:6032"
+    # Enable and configure the admin web interface
+    admin-web_enabled=true
+    admin-web_port=6070
+    admin-log_level=3
+}
+
+mysql_variables=
+{
+    # MySQL Proxy interface and settings
+    interfaces="0.0.0.0:6033"
+    threads=4
+    max_connections=2048
+    default_query_delay=0
+    default_query_timeout=10000
+    poll_timeout=2000
+    interfaces_log_error=1
+
+    # Monitor credentials: must match a valid MySQL user with REPLICATION CLIENT privilege
+    monitor_username="monitor"
+    monitor_password="REDACTED_3585623d"
+
+    # Connection pooling settings
+    connection_pool_size=20
+    connection_max_age_ms=3600000
+    disconnect_on_expired_password=1
+
+    # Query cache settings
+    query_cache_size_MB=64
+    query_cache_default_query_ttl=3600000
+    query_cache_empty_result_ttl=1000
+
+    # Load balancing and failover settings
+    scheduler_enabled=true
+    enforce_ssl=false
+
+    # Health check settings
+    mysql-monitor_history=600000
+    mysql-monitor_connect_interval=2000
+    mysql-monitor_ping_interval=2000
+    mysql-monitor_read_only_interval=2000
+    mysql-monitor_write_only_interval=2000
+    mysql-monitor_replication_lag_interval=2000
+    mysql-monitor_threads_interval=2000
+
+    # SSL settings (optional)
+    # ssl_pem=""
+}
+
+#scheduler=
+#{
+    # Example scheduler configuration (if needed)
+    #filename="/path/to/your/script.sh"
+    #interval_ms=60000
+#}
+
+# Log file location
+#errorlog="/var/log/proxysql/proxysql.log"
+
+# Optional advanced settings
+stats_mysql_query_digests=true
+stats_mysql_query_digests_normalize=true
+stats_mysql_query_digests_max_time=3600000
