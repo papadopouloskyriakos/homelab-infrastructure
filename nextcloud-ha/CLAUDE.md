@@ -64,7 +64,7 @@ ssh -i ~/.ssh/one_key root@nlnc02
 **HAProxy backends:**
 - `nextcloud_servers` — nlnc01(.148) PRIMARY, nlnc02(.149) BACKUP. Old nextcloud01(.20)/nextcloud02(.120) still listed but STOPPED — should be removed.
 - `proxysql_servers` — proxysql01(.152) PRIMARY, proxysql02(.154) BACKUP
-- `redis_servers` — redis03(.125) PRIMARY, redis01(.123)+redis02(.124) BACKUP. **Note:** HAProxy uses TCP PING, can't detect Redis master. Actual master is redis02.
+- `redis_servers` — redis03(.125) PRIMARY, redis01(.123)+redis02(.124) BACKUP. **Note:** HAProxy uses TCP PING, can't detect Redis master. As of 2026-08-28 the actual master IS redis03 (failover after pve02's shutdown), so backend and reality currently align — they can diverge again after any failover.
 - `collabora_backend` — code01(.126) only
 
 ### Layer 3: Nextcloud Application (Native Apache + PHP)
@@ -171,11 +171,11 @@ What Nextcloud needs to know: it connects to `proxysql.example.net:6033` (DNS RR
 | Host | VMID | PVE | IP | Role |
 |------|------|-----|-----|------|
 | nlredis01 | 102100402 | nl-pve01 | 10.0.X.X | Redis 8.6.1. Slave. Docker. |
-| nlredis02 | 102100403 | nl-pve02 | 10.0.X.X | Redis 8.6.1. **Master**. Docker. |
-| nlredis03 | 102100404 | nl-pve03 | 10.0.X.X | Redis 8.6.1. Slave. Docker. |
+| nlredis02 | 102100403 | **nlpve04** | 10.0.X.X | Redis 8.6.1. **Slave** (verified 2026-08-28: `role:slave`, master .125). Migrated off the powered-off pve02; vzdump coverage moved to the pve04 Sat job 2026-08-28 (IFRNLLEI01PRD-2818). Docker. |
+| nlredis03 | 102100404 | nl-pve03 | 10.0.X.X | Redis 8.6.1. **Master** (since the pve02 shutdown failover). Docker. |
 
 **DNS:** `redis.example.net` → RR 10.0.X.X + .158 (HAProxy, ports 6380→6379)
-**Sentinel master:** `mymaster` at redis02 (10.0.X.X:6379). 3 sentinels, quorum=2.
+**Sentinel master:** `mymaster` at redis03 (10.0.X.X:6379) as of 2026-08-28 — moves on failover, verify with `sentinel master mymaster`, never from this line. 3 sentinels, quorum=2.
 **Note:** Nextcloud connects via HAProxy TCP proxy (:6380), not directly via Sentinel. HAProxy can't detect master — uses PING/PONG health check only.
 
 ### Layer 6: Shared Storage (DRBD + OCFS2 + NFS)
@@ -238,7 +238,7 @@ What Nextcloud needs to know: it connects to `proxysql.example.net:6033` (DNS RR
 ## PVE Host Distribution (Failure Domains)
 
 **nl-pve01 (10.0.X.X):** nlnpm01, nlhaproxy01, nlnc01, proxysql01, redis01, nlcl01file01, code01, nlfreeipa01
-**nl-pve02 (10.0.X.X):** garbd01, redis02 — arbitrators only
+**nl-pve02 (10.0.X.X):** **POWERED OFF since 2026-08-25** (pending decommission decision). Its former guests migrated: garbd01 → pve01, redis02 → pve04 (both verified live 2026-08-28).
 **nl-pve03 (10.0.X.X):** nlhaproxy02, nlnc02, proxysql02, mariadb02, redis03, nlcl01file02, code02, imaginary01, whiteboard01, hpb01 (stopped), nlgpu01
 **nlpve04:** **mariadb01** — migrated off pve01; the host table (now in `../dbcluster/CLAUDE.md`) has said pve04 for a while but this list still said pve01. Verify placement with `pve_list_lxc`/`pvesh get /cluster/resources`, never from the VMID prefix.
 
@@ -246,7 +246,7 @@ What Nextcloud needs to know: it connects to `proxysql.example.net:6033` (DNS RR
 on top of half the HA cluster. Details in [`../dbcluster/CLAUDE.md`](../dbcluster/CLAUDE.md)
 Failure Domains.
 
-**Key risk:** nl-pve03 failure takes out half the HA cluster + ALL backend services (imaginary, whiteboard, hpb, gpu). nl-pve01 failure takes out the primary frontends + NFS server. nl-pve02 only has arbitrators — losing it doesn't cause outage but reduces quorum safety.
+**Key risk:** nl-pve03 failure takes out half the HA cluster + ALL backend services (imaginary, whiteboard, hpb, gpu). nl-pve01 failure takes out the primary frontends + NFS server — and, since the pve02 shutdown, also the Galera arbiter (garbd01). pve02 is already off (2026-08-25) with its guests re-homed, so it is no longer a failure domain.
 
 ## Config Snapshots in This Directory
 
