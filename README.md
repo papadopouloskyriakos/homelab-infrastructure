@@ -1130,7 +1130,7 @@ Selected content is automatically sanitized and synced to a public GitHub reposi
 
 ### Included Paths
 
-README.md, LICENSE, atlantis.yaml, renovate.json, `k8s/` (→ `kubernetes/`), `network/configs/`, `network/scripts/`, `network/ansible/`, `ansible/playbooks/`, `ci/` (all 8 files), `docker/nl-matrix01/matrix/` (→ `docker/matrix/`), `pve/scripts/` (→ `proxmox/scripts/`), `native/ncha/` (→ `nextcloud-ha/`)
+README.md, LICENSE, atlantis.yaml, renovate.json, `k8s/` (→ `kubernetes/`), `network/configs/`, `network/scripts/`, `network/ansible/`, `ansible/playbooks/`, `ci/` (all 8 files), `docker/nl-matrix01/matrix/` (→ `docker/matrix/`), `pve/scripts/` (→ `proxmox/scripts/`), `native/ncha/` (→ `nextcloud-ha/`), `native/dbcluster/` (→ `dbcluster/`)
 
 ### Runner Image
 
