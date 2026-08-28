@@ -620,7 +620,7 @@ Exceptions: `666`, `777` are IoT cluster nodes (special-purpose IDs).
 **Communication:** nl-matrix01 (Synapse + 8 bridges), nlmattermost01, librechat01, openwebui01
 **Media:** nlgpu01/jellyfin, navidrome01, lyrion01, feishin01, frigate01, pinchflat01, tautulli01
 **AI/GPU** (all on nlgpu01, 21 services): Ollama, Stable Diffusion, Immich ML, Whisper, Piper, Milvus, LibreTranslate, Audiomuse, Viseron, Beszel, GPU-Hot, Onlogs
-**Productivity:** nlnc01/nlnc02 (Nextcloud), mealie01, docuseal01, excalidraw01, calibre01, audiobookshelf01, bookwyrm01, linkwarden02
+**Productivity:** nlnc01/nlnc02 (Nextcloud), mealie01, docuseal01, excalidraw01, calibre01, audiobookshelf01, bookwyrm01, linkwarden02, civicrm01, twenty01
 **Infrastructure:** nlhaproxy01/02, nlnpm01, redis01/02/03, influxdb01, proxysql01/02, atlantis01, sftpgo01
 **Monitoring:** netalertx01, netvisor01
 **Finance:** actualbudget01, ghostfolio01, wallos01
