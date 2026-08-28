@@ -835,7 +835,7 @@ DNS: `proxysql.example.net` → RR .152 + .154 (Nextcloud connects directly, NOT
 | nlredis02 | 102100403 | nl-pve02 | 10.0.X.X | Redis 8.6.1, **Master** |
 | nlredis03 | 102100404 | nl-pve03 | 10.0.X.X | Redis 8.6.1, Slave |
 
-DNS: `redis.example.net` → RR .140 + .158 (HAProxy TCP proxy :6380→6379). Sentinel master: `mymaster`, quorum=2. **Known issue:** HAProxy uses PING health check only — can't detect Redis master. HAProxy has redis03 as PRIMARY but actual master is redis02.
+DNS: `redis.example.net` → RR .140 + .158 (HAProxy TCP proxy :6380→6379). Sentinel master: `mymaster`, quorum=2. **Known issue:** HAProxy uses PING health check only — can't detect Redis master. HAProxy has redis03 as PRIMARY; as of 2026-08-28 the actual master IS redis03 (failover after the pve02 shutdown), but they can diverge again after any failover.
 
 **Layer 6 — Shared Storage (DRBD + OCFS2 + NFS):**
 
