@@ -1,0 +1,38 @@
+# Copyright (C) 2012 Codership Oy
+# This config file is to be sourced by garb service script.
+
+# A comma-separated list of node addresses (address[:port]) in the cluster
+# GALERA_NODES=""
+
+# Galera cluster name, should be the same as on the rest of the nodes.
+# GALERA_GROUP=""
+
+# Optional Galera internal options string (e.g. SSL settings)
+# see https://galeracluster.com/library/documentation/galera-parameters.html
+# GALERA_OPTIONS=""
+
+# Log file for garbd. Optional, by default logs to syslog
+# LOG_FILE=""
+
+# Where to persist necessary data
+#WORK_DIR="/root"
+
+
+
+# /etc/default/garb
+# Configuration file for Galera Arbitrator Service (garb)
+
+# Node name for the arbitrator
+GALERA_NAME="nlcl01garbd01"
+
+# Galera cluster name
+GALERA_GROUP="eu-nl-mariadb01"
+
+# A space-separated list of node addresses in the cluster
+GALERA_NODES="10.0.X.X:4567 10.0.X.X:4567 10.0.X.X:4567"
+
+# Log file for garbd (optional, defaults to syslog if not set)
+LOG_FILE="/var/log/garbd/garbd.log"
+
+# Galera Arbitrator options, such as SSL settings
+#GALERA_OPTIONS="socket.ssl_key=/etc/ssl/garbd/gmnode.key;socket.ssl_cert=/etc/ssl/garbd/gmnode.pem;socket.ssl_ca=/etc/ssl/garbd/gmca.pem"
