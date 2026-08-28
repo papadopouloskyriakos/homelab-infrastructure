@@ -1,0 +1,58 @@
+[mysqld]
+# Enable Slow Query Log
+slow_query_log = ON
+slow_query_log_file = /var/log/mysql/slow.log
+long_query_time = 2
+log_queries_not_using_indexes = ON
+
+# Increase the sort_buffer_size to allow more sorting to occur in memory, reducing disk I/O
+sort_buffer_size = 4M
+
+# Increase read_buffer_size to optimize sequential index scans
+read_buffer_size = 4M
+
+# Adjust read_rnd_buffer_size to optimize random reads
+read_rnd_buffer_size = 4M
+
+# Allow more temporary tables to reside in memory
+tmp_table_size = 64M
+max_heap_table_size = 64M
+
+# Set the following parameters to optimize in-memory operations
+#temptable_max_ram = 128M
+#temptable_use_mmap = 1
+
+# If MyISAM usage is minimal or non-existent, reduce the key_buffer_size in your configuration
+key_buffer_size = 8M
+
+# If the cache size is too small, tables are closed and reopened frequently
+table_open_cache = 2000
+
+# If your server has multiple CPU cores, dividing the table cache into multiple instances can improve performance:
+table_open_cache_instances = 4
+
+# Must be >= total table count (~500 across all schemas)
+table_definition_cache = 2000
+
+# Increase open_files_limit
+open_files_limit = 8192
+
+# skip_name_resolve
+skip_name_resolve = 1
+
+# max_connections
+max_connections = 500
+
+# InnoDB Settings
+innodb_buffer_pool_size = 1536M
+innodb_log_file_size = 700M
+innodb_flush_log_at_trx_commit = 1
+innodb_lock_wait_timeout = 50
+innodb_log_buffer_size = 128M
+
+
+
+transaction-isolation = READ-COMMITTED
+
+# FTS cache: healthops.chunks FTS working set is ~18MB, default 8MB forced flushes
+innodb_ft_cache_size = 64000000

@@ -1,0 +1,49 @@
+[mysqld]
+binlog_format=ROW
+default-storage-engine=innodb
+innodb_autoinc_lock_mode=2
+bind-address=0.0.0.0
+
+# Galera Provider Configuration
+wsrep_on=ON
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
+
+# Galera Cluster Configuration
+wsrep_cluster_name=eu-nl-mariadb01
+wsrep_cluster_address=gcomm://10.0.X.X,10.0.X.X,10.0.X.X
+
+# Galera Synchronization Configuration
+wsrep_sst_method=rsync
+
+# Galera Node Configuration
+wsrep_node_address=10.0.X.X
+wsrep_node_name=nlcl01mariadb01
+
+
+
+#mysqltuner
+wsrep_slave_threads=4
+
+#gcs.fc_limit=80
+#gcs.fc_factor=0.8
+
+wsrep_provider_options="gcs.fc_limit=100; gcs.fc_factor=0.8"
+
+
+
+### unknown variable ### wsrep_flow_control_max_percent=125
+### unknown variable ### wsrep_flow_control_min_percent=10
+### unknown variable ### wsrep_flow_control_interval=40
+
+
+
+wsrep_sst_method=rsync
+#wsrep_sst_method=mariabackup
+#wsrep_sst_auth=mariabackup_sst:
+
+#wsrep_sst_auth=sst_user:Hqq4AS0VFvpXKCORtkmZy
+
+#ssl=0
+
+[sst]
+ssl_mode = DISABLED

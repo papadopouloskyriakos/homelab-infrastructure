@@ -162,7 +162,7 @@ starting.
 | nlproxysql02 | 101101008 | nl-pve03 | 10.0.X.X | ProxySQL 3.0.10. Identical config. |
 | nlcl01mariadb01 | 101101002 | nlpve04 | 10.0.X.X | MariaDB 11.8.8 Galera. Synced, Primary. **InnoDB buffer pool 1536M** (the "128MB" in older docs has been wrong since the 2026-03-20 tuning). Upgraded 11.6.2→11.8.8 LTS 2026-08-01 (native VECTOR for healthops); CT lives on pve04, not pve01 as older docs said. |
 | nlcl01mariadb02 | 101101006 | nl-pve03 | 10.0.X.X | MariaDB 11.8.8 Galera. Synced, Primary. InnoDB buffer pool 1536M. Upgraded 2026-08-01. |
-| nlcl01garbd01 | 101101007 | nl-pve02 | 10.0.X.X | Galera Arbitrator (quorum voter, no data). galera-arbitrator-4 **26.4.27**, upgraded from Debian's 26.4.23 on 2026-08-01 — it had been left behind by the DB upgrade. The MariaDB 11.8 apt repo had to be added to this container; Debian bookworm only ships 26.4.23. |
+| nlcl01garbd01 | 101101007 | **nl-pve01** | 10.0.X.X | Galera Arbitrator (quorum voter, no data). galera-arbitrator-4 **26.4.27**, upgraded from Debian's 26.4.23 on 2026-08-01 — it had been left behind by the DB upgrade. The MariaDB 11.8 apt repo had to be added to this container; Debian bookworm only ships 26.4.23. ⚠ Runs on **pve01**, verified live 2026-08-28 — this line said pve02, which has been powered off since 2026-08-25; had that been true the cluster would have had no tiebreaker. ⚠ **Not backed up**: vmid 101101007 appears only in the Tue 03:00 vzdump job, which is node-pinned to the powered-off pve02 and therefore never runs. Stateless and rebuildable, but the job is dead. |
 
 **⚠ ProxySQL runs SINGLE-WRITER since 2026-08-01.** `mysql_galera_hostgroups.max_writers` was
 `2`, so both ProxySQL instances sent writes to both Galera nodes — the classic multi-writer
@@ -185,6 +185,44 @@ Do **not** set a higher `weight` on the preferred writer in HG 10: with
 Config lives in ProxySQL's SQLite DB (`/srv/proxysql/proxysql_data/proxysql.db`), **not** in the
 mounted `proxysql.cnf` — that file is only read on first init. Change it via the admin
 interface on :6032 then `LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;`.
+
+#### Config snapshots (added 2026-08-28)
+
+Because none of this layer has a deploy pipeline and none of it was in git, the live configs are
+now snapshotted here — **reference copies only, nothing applies them automatically**:
+
+```
+native/ncha/nlcl01mariadb01/mariadb/{my.cnf,conf.d/*.cnf,mariadb.conf.d/*.cnf}
+native/ncha/nlcl01mariadb02/mariadb/{...}                    # identical file set
+native/ncha/nlproxysql01/proxysql/proxysql.cnf               # the mounted bootstrap file
+native/ncha/nlproxysql01/proxysql/runtime-config.sql         # replayable dump of the SQLite state
+native/ncha/nlproxysql02/proxysql/{...}
+```
+
+`runtime-config.sql` is the important one: it carries `mysql_servers`, `mysql_users`,
+`mysql_query_rules` and `mysql_galera_hostgroups` as INSERTs plus the LOAD/SAVE lines. Without
+it, a rebuild of either proxysql LXC loses the hostgroup topology and every query rule silently.
+Re-snapshot after any :6032 change — `device is source of truth` applies here as everywhere in
+`native/`.
+
+#### ⚠ CiviCRM added three cluster-wide MariaDB settings (2026-08-28)
+
+`mariadb.conf.d/99-civicrm.cnf` on **both** Galera nodes — see
+`docker/nlcivicrm01/civicrm/CLAUDE.md` for the full reasoning:
+
+| Setting | Why |
+|---|---|
+| `log_bin_trust_function_creators = 1` | `wsrep_on=ON` counts as binary logging, so `CREATE TRIGGER` as a non-SUPER user raises `ER_1419` **even though `log_bin=OFF`**. CiviCRM creates 26 triggers. |
+| `wsrep_auto_increment_control = OFF`<br>`auto_increment_increment = 1`<br>`auto_increment_offset = 1` | CiviCRM requires `auto_increment_increment=1`. Galera sets it to the cluster size and the override **cannot be scoped to a session or a user** — global was the only lever. |
+
+🚨 **The second one makes `max_writers=1` load-bearing for data integrity, not just for the
+certification-conflict reason above.** Galera's auto-increment striding is what makes concurrent
+multi-writer inserts safe, and it is now disabled. **Never raise `max_writers` above 1 without
+first reverting `wsrep_auto_increment_control`** — you would get duplicate auto-increment IDs
+across writers (surfacing as certification conflicts, not silent corruption).
+
+Nextcloud and paperless share this cluster and are subject to all three. None of them alter
+existing data or query behaviour; they relax creation-time restrictions and change ID stride.
 
 **DNS:** `proxysql.example.net` → RR 10.0.X.X + .154 (Nextcloud connects here directly, NOT via HAProxy)
 **Galera cluster:** `eu-nl-mariadb01`, `gcomm://10.0.X.X,10.0.X.X,10.0.X.X`, SST method: rsync
