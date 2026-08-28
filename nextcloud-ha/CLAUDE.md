@@ -218,8 +218,18 @@ Re-snapshot after any :6032 change — `device is source of truth` applies here 
 🚨 **The second one makes `max_writers=1` load-bearing for data integrity, not just for the
 certification-conflict reason above.** Galera's auto-increment striding is what makes concurrent
 multi-writer inserts safe, and it is now disabled. **Never raise `max_writers` above 1 without
-first reverting `wsrep_auto_increment_control`** — you would get duplicate auto-increment IDs
-across writers (surfacing as certification conflicts, not silent corruption).
+first reverting `wsrep_auto_increment_control`.**
+
+Measured on this cluster 2026-08-28, in a throwaway schema: 100 concurrent inserts fired at each
+node simultaneously gave **26 × `ERROR 1062 Duplicate entry for key 'PRIMARY'`**, 2 × deadlock,
+`wsrep_local_cert_failures` +61/+23, and **172 of 200 rows landed — 28 lost**. Sequential
+alternating inserts did not collide (each replicates before the next), so this only bites under
+real concurrency. Writes are rejected with errors, not silently corrupted.
+
+The guard is self-healing — a manual `OFFLINE_SOFT` on `.151` in `mysql_servers` was reverted by
+the Galera checker within seconds. ⚠ But it **persisted in the config table** while runtime
+reverted, so it would have applied on the next ProxySQL restart. After any manual server edit,
+re-check `mysql_servers`, not just `runtime_mysql_servers`.
 
 Nextcloud and paperless share this cluster and are subject to all three. None of them alter
 existing data or query behaviour; they relax creation-time restrictions and change ID stride.
