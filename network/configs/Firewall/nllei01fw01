@@ -728,6 +728,9 @@ object network nlwg01-wg
 object network georgez_home
  host 86.81.192.31
  description georgez home KPN - added 2026-08-30
+object network grnpm01
+ host 10.0.X.X
+ description GR NPM slave (replica of nlnpm01) - round-robin DNS target - added 2026-08-30
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -1076,13 +1079,17 @@ access-list dmz_vpn01_access_in extended deny tcp any any eq smtp
 access-list dmz_vpn01_access_in extended permit tcp object-group parents[oas01] object nlsynology01 eq 5001 
 access-list dmz_vpn01_access_in extended permit udp object-group parents[oas01] object nlpihole02 eq domain 
 access-list dmz_vpn01_access_in extended permit tcp object-group georgez[nloasXX] object nlnpm01-80-tcp eq www 
-access-list dmz_vpn01_access_in extended permit tcp object-group georgez[nloasXX] object nlnpm01-443-tcp eq https 
-access-list dmz_vpn01_access_in extended permit tcp object-group georgez[nloasXX] object nlhaproxy01 eq https 
+access-list dmz_vpn01_access_in extended permit tcp object-group georgez[nloasXX] object nlnpm01-443-tcp eq https
+access-list dmz_vpn01_access_in extended permit tcp object-group georgez[nloasXX] object grnpm01 eq www
+access-list dmz_vpn01_access_in extended permit tcp object-group georgez[nloasXX] object grnpm01 eq https
+access-list dmz_vpn01_access_in extended permit tcp object-group georgez[nloasXX] object nlhaproxy01 eq https
 access-list dmz_vpn01_access_in extended permit tcp object-group georgez[nloasXX] object nlhaproxy02 eq https 
 access-list dmz_vpn01_access_in extended permit udp object-group georgez[nloasXX] object nlpihole02 eq domain 
 access-list dmz_vpn01_access_in extended permit ip object-group georgez[nloasXX] 10.0.X.X 255.255.255.0 inactive 
-access-list dmz_vpn01_access_in extended permit ip object-group elliz[nloasXX] 10.0.X.X 255.255.255.0 
-access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX] object-group S2S_SKG_GRP_inside_mgmt 
+access-list dmz_vpn01_access_in extended permit ip object-group elliz[nloasXX] 10.0.X.X 255.255.255.0
+access-list dmz_vpn01_access_in extended permit tcp object-group elliz[nloasXX] object grnpm01 eq www
+access-list dmz_vpn01_access_in extended permit tcp object-group elliz[nloasXX] object grnpm01 eq https
+access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX] object-group S2S_SKG_GRP_inside_mgmt
 access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX] object-group S2S_SKG_GRP_inside_servers01 
 access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX] object-group S2S_SKG_GRP_dmz_vpn01 
 access-list dmz_vpn01_access_in extended permit ip object-group kyriakosp[oasXX] 10.0.X.X 255.255.255.0 
@@ -1699,6 +1706,10 @@ router bgp 65000
   network 10.0.X.X mask 255.255.255.224
   network 10.0.X.X mask 255.255.255.224
   network 10.0.X.X mask 255.255.255.224
+  network 10.0.X.X mask 255.255.255.240
+  network 10.0.X.X mask 255.255.255.240
+  network 10.0.X.X mask 255.255.255.240
+  network 10.0.X.X mask 255.255.255.240
   no auto-summary
   no synchronization
  exit-address-family
