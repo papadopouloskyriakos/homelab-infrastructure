@@ -118,9 +118,13 @@ Re-snapshot after any :6032 change — `device is source of truth` applies here 
 
 ## ⚠ CiviCRM added three cluster-wide MariaDB settings (2026-08-28)
 
-**Status 2026-08-29: CiviCRM's LXC is STOPPED pending decommission (IFRNLLEI01PRD-2820),
-but these settings REMAIN LIVE and the `max_writers=1` integrity constraint still stands.**
-Reverting them (and dropping the civicrm DB/user + the ProxySQL `rule_id 0` pin) is on the
+**Status 2026-08-29: CiviCRM DECOMMISSIONED and these settings REVERTED.** `99-civicrm.cnf`
+removed from both Galera nodes and `wsrep_auto_increment_control` set back to ON live
+(`auto_increment_increment` returned to cluster-size 3 automatically = Galera's multi-writer
+safety net restored, so `max_writers=1` is no longer load-bearing for integrity). `max_writers=1`
+is KEPT (it is Nextcloud's deadlock fix from 2026-08-01, never CiviCRM's). `log_bin_trust_function
+_creators` left ON at runtime; reverts to OFF on next restart with the file gone. Config backups
+archived at /home/claude-runner/archive/99-civicrm-mariadb0{1,2}.cnf.bak. Superseded plan below:
 decommission checklist — do not revert piecemeal before that.
 
 `mariadb.conf.d/99-civicrm.cnf` on **both** Galera nodes — see
@@ -131,10 +135,11 @@ decommission checklist — do not revert piecemeal before that.
 | `log_bin_trust_function_creators = 1` | `wsrep_on=ON` counts as binary logging, so `CREATE TRIGGER` as a non-SUPER user raises `ER_1419` **even though `log_bin=OFF`**. CiviCRM creates 26 triggers. |
 | `wsrep_auto_increment_control = OFF`<br>`auto_increment_increment = 1`<br>`auto_increment_offset = 1` | CiviCRM requires `auto_increment_increment=1`. Galera sets it to the cluster size and the override **cannot be scoped to a session or a user** — global was the only lever. |
 
-🚨 **The second one makes `max_writers=1` load-bearing for data integrity, not just for the
+🚨 **[HISTORICAL, reverted 2026-08-29] The second one MADE `max_writers=1` load-bearing for data integrity, not just for the
 certification-conflict reason above.** Galera's auto-increment striding is what makes concurrent
-multi-writer inserts safe, and it is now disabled. **Never raise `max_writers` above 1 without
-first reverting `wsrep_auto_increment_control`.**
+multi-writer inserts safe, and it was disabled. That override is now REMOVED — Galera striding
+is active again, so raising `max_writers` no longer risks auto-increment corruption (though
+single-writer stays for Nextcloud's sake).**
 
 Measured on this cluster 2026-08-28, in a throwaway schema: 100 concurrent inserts fired at each
 node simultaneously gave **26 × `ERROR 1062 Duplicate entry for key 'PRIMARY'`**, 2 × deadlock,
