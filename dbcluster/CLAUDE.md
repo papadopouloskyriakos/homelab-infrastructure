@@ -118,6 +118,11 @@ Re-snapshot after any :6032 change — `device is source of truth` applies here 
 
 ## ⚠ CiviCRM added three cluster-wide MariaDB settings (2026-08-28)
 
+**Status 2026-08-29: CiviCRM's LXC is STOPPED pending decommission (IFRNLLEI01PRD-2820),
+but these settings REMAIN LIVE and the `max_writers=1` integrity constraint still stands.**
+Reverting them (and dropping the civicrm DB/user + the ProxySQL `rule_id 0` pin) is on the
+decommission checklist — do not revert piecemeal before that.
+
 `mariadb.conf.d/99-civicrm.cnf` on **both** Galera nodes — see
 `docker/nlcivicrm01/civicrm/CLAUDE.md` for the full reasoning:
 
