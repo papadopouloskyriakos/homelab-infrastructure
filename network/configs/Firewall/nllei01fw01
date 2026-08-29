@@ -725,6 +725,9 @@ object network nlwg01
 object network nlwg01-wg
  host 10.0.X.X
  description WireGuard 51820 NAT
+object network georgez_home
+ host 86.81.192.31
+ description georgez home KPN - added 2026-08-30
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -871,6 +874,7 @@ object-group network WHITELIST_OAS
  network-object object MARIA_GEORGIADOU_INALAN
  network-object object notrf01dmz01
  network-object object notrf01dmz02
+ network-object object georgez_home
 object-group network WHITELIST_PLEX
  group-object WHITELIST_KYRIAKOS
  network-object object plex_sino_01
