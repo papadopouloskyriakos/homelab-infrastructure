@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-09-04 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-09-05 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: CRITICAL ⚠️
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 14 |
 | Pending PVCs | 0 |
-| Total Restarts | 5041 |
+| Total Restarts | 5321 |
 
 ## Topology
 
@@ -32,20 +32,20 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-awx                      awx-operator-controller-manager-6ffdf98f6-m9gvc                   2/2   Terminating        2 (9d ago)         10d
-cnpg-system              cnpg-cloudnative-pg-6d8bdc546d-xtt94                              1/1   Terminating        1 (9d ago)         10d
-kube-system              kube-proxy-qn8md                                                  0/1   CrashLoopBackOff   2983 (4m21s ago)   18d
-nfs-provisioner          nfs-provisioner-REDACTED_5fef70be-75b84759cfskglb   1/1   Terminating        2 (9d ago)         10d
-velero                   awx-default-kopia-maintain-job-1788489995418-wj54w                0/1   Error              0                  14m
-velero                   awx-default-kopia-maintain-job-1788490295434-2r8bj                0/1   Error              0                  9m17s
-velero                   awx-default-kopia-maintain-job-1788490596426-4lt8g                0/1   Error              0                  4m15s
-velero                   monitoring-default-kopia-maintain-job-1788489999445-nd69m         0/1   Error              0                  14m
-velero                   monitoring-default-kopia-maintain-job-1788490299459-9qdgd         0/1   Error              0                  9m13s
-velero                   monitoring-default-kopia-maintain-job-1788490601449-wn9tc         0/1   Error              0                  4m10s
-velero                   node-agent-55hgg                                                  1/1   Terminating        1 (10d ago)        10d
-velero                   pihole-default-kopia-maintain-job-1788489991393-2fqlw             0/1   Error              0                  14m
-velero                   pihole-default-kopia-maintain-job-1788490291394-bfszc             0/1   Error              0                  9m21s
-velero                   pihole-default-kopia-maintain-job-1788490591395-hn6s6             0/1   Error              0                  4m20s
+awx                      awx-operator-controller-manager-6ffdf98f6-m9gvc                   2/2   Terminating        2 (10d ago)       11d
+cnpg-system              cnpg-cloudnative-pg-6d8bdc546d-xtt94                              1/1   Terminating        1 (10d ago)       11d
+kube-system              kube-proxy-qn8md                                                  0/1   CrashLoopBackOff   3263 (4m5s ago)   19d
+nfs-provisioner          nfs-provisioner-REDACTED_5fef70be-75b84759cfskglb   1/1   Terminating        2 (10d ago)       11d
+velero                   awx-default-kopia-maintain-job-1788576391611-bfs4m                0/1   Error              0                 14m
+velero                   awx-default-kopia-maintain-job-1788576696640-vckls                0/1   Error              0                 9m13s
+velero                   awx-default-kopia-maintain-job-1788577003671-75b4s                0/1   Error              0                 4m6s
+velero                   monitoring-default-kopia-maintain-job-1788576396640-b7txf         0/1   Error              0                 14m
+velero                   monitoring-default-kopia-maintain-job-1788576700672-cv2rv         0/1   Error              0                 9m9s
+velero                   monitoring-default-kopia-maintain-job-1788576991612-r856x         0/1   Error              0                 4m18s
+velero                   node-agent-55hgg                                                  1/1   Terminating        1 (11d ago)       11d
+velero                   pihole-default-kopia-maintain-job-1788576401668-8xpzl             0/1   Error              0                 14m
+velero                   pihole-default-kopia-maintain-job-1788576691611-bt4gg             0/1   Error              0                 9m18s
+velero                   pihole-default-kopia-maintain-job-1788576998640-p4n4r             0/1   Error              0                 4m11s
 ```
 
 ### High Restart Pods (>3)
@@ -60,7 +60,7 @@ kube-system/cilium-operator-84c4fb58c7-jlhkp: 4 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 7 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 6 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl03: 4 restarts
-kube-system/kube-proxy-qn8md: 2983 restarts
+kube-system/kube-proxy-qn8md: 3263 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 5 restarts
 kube-system/tetragon-5gk99: 9 restarts
 kube-system/tetragon-75hdg: 10 restarts
@@ -87,11 +87,11 @@ synology-csi/synology-csi-node-zch7n: 27 restarts
 
 ### Recent Warnings (5)
 ```
-kube-system   41s         Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl01                     Liveness probe failed: HTTP probe failed with statuscode: 500
-bentopdf      32s         Warning   Unhealthy              pod/bentopdf-85d6d55b9f-8fxwj                             Readiness probe failed: Get "http://10.0.0.172:8080/": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-bentopdf      31s         Warning   Unhealthy              pod/bentopdf-85d6d55b9f-8fxwj                             Liveness probe failed: Get "http://10.0.0.172:8080/": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-gatus         30s         Warning   Unhealthy              pod/gatus-5b87dc9848-fn6tm                                Readiness probe failed: Get "http://10.0.0.200:8080/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-logging       27s         Warning   Unhealthy              pod/promtail-br4rf                                        Readiness probe failed: Get "http://10.0.0.186:3101/ready": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+velero        9m5s        Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1788576700672   Job has reached the specified backoff limit
+kube-system   5m27s       Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl01                     Readiness probe failed: HTTP probe failed with statuscode: 500
+velero        4m11s       Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1788576991612   Job has reached the specified backoff limit
+velero        4m6s        Warning   BackoffLimitExceeded   job/pihole-default-kopia-maintain-job-1788576998640       Job has reached the specified backoff limit
+velero        4m          Warning   BackoffLimitExceeded   job/awx-default-kopia-maintain-job-1788577003671          Job has reached the specified backoff limit
 ```
 
 ## Key Resources
