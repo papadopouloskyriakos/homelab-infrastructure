@@ -1,0 +1,221 @@
+---
+# deploy_tg.yml
+# AWX playbook: deploy the Territory Grounder docker-compose stack to nltg01 (GitOps).
+#
+# The stack (deploy/docker-compose.yml in the grounder repo) is multi-service: postgres(+pgvector),
+# the bundled LiteLLM gateway, Temporal(+its postgres)+UI, the grounder control-plane, and the console.
+# CI has already built and pushed the grounder + console images to the GitLab Container Registry; this
+# playbook only PULLs them by tag and (re)creates the stack — no build toolchain and no source tree run
+# on the box.  Mutation stays OFF on the host by construction (core/safety); nothing here can enable it.
+#
+# What it does (all failure-safe — a fetch/login failure leaves the running stack untouched):
+#   1. Log in to the GitLab registry (so `docker compose pull` can fetch the private images).
+#   2. Sync the deploy/ directory (compose file + litellm-config.yaml + postgres-init/) from the grounder
+#      repo at the deployed ref, so a compose/config edit reaches the host — single-sourced from git.
+#   3. Require an operator-managed /srv/tg/deploy/.env (secrets NEVER travel through git/CI/AWX).
+#   4. `docker compose pull` the requested image_tag, then `up -d` the stack.
+#   5. Health-gate: the grounder control-plane container is running and its API port answers.
+#
+# Required extra_vars (CI passes these when it launches the template):
+#   image_tag     — the image tag to deploy (the commit short-sha; default "latest")
+#   gitlab_token  — a token that can (a) clone the grounder repo and (b) pull its registry images.
+#                   From CI this is $CI_JOB_TOKEN (set gitlab_token_user=gitlab-ci-token).
+# Optional extra_vars (sensible defaults):
+#   tg_repo            — grounder repo path (default REDACTED_c6636574)
+#   tg_ref             — git ref to sync deploy/ from (default main)
+#   gitlab_host        — default gitlab.example.net
+#   registry_host      — default registry.example.net
+#   gitlab_token_user  — registry/clone username (default gitlab-ci-token — the CI_JOB_TOKEN user)
+#   tg_deploy_path     — host path for the stack (default /srv/tg)
+#   pull_timeout_seconds / pull_retries / pull_retry_delay_seconds — pull hardening (90/3/15)
+
+- name: Deploy Territory Grounder
+  hosts: "{{ target_hosts | default('territory_grounder') }}"
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  # Internal (_-prefixed) vars each read the raw extra_var with a default — NOT self-referential (a var
+  # defined as `x: "{{ x | default(...) }}"` recurses at template time).
+  vars:
+    _repo: "{{ tg_repo | default('REDACTED_c6636574') }}"
+    _ref: "{{ tg_ref | default('main') }}"
+    _gitlab_host: "{{ gitlab_host | default('gitlab.example.net') }}"
+    _registry_host: "{{ registry_host | default('registry.example.net') }}"
+    _token_user: "{{ gitlab_token_user | default('gitlab-ci-token') }}"
+    _deploy_path: "{{ tg_deploy_path | default('/srv/tg') }}"
+    _image_tag: "{{ image_tag | default('latest') }}"
+    _compose_dir: "{{ _deploy_path }}/deploy"
+    _grounder_image: "{{ _registry_host }}/{{ _repo }}/grounder"
+    _console_image: "{{ _registry_host }}/{{ _repo }}/console"
+
+  pre_tasks:
+    - name: Validate required extra_vars
+      ansible.builtin.assert:
+        that:
+          - gitlab_token is defined and (gitlab_token | length) > 0
+        fail_msg: "gitlab_token must be provided (CI passes $CI_JOB_TOKEN; a manual run needs a read+registry token)."
+
+    # Registry auth is a ONE-TIME persisted host login (the omoikane/DMZ pattern): run once on a new host —
+    #   echo <deploy-token> | docker login registry.example.net -u <deploy-token-user> --password-stdin
+    # — which persists in /root/.docker/config.json, and `docker compose pull` below reuses it. No per-run,
+    # in-playbook docker login (it was fragile and the token would transit AWX); the gitlab_token here is used
+    # only to clone the deploy/ dir below.
+
+    - name: Ensure the deploy path exists
+      ansible.builtin.file:
+        path: "{{ _compose_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    # Single-source the compose file + configs from the grounder repo at the deployed ref. A shallow clone
+    # into a temp dir (token in the URL, no_log) → sync deploy/ into place → drop the clone. Runs BEFORE any
+    # docker disruption; a clone failure aborts (any_errors_fatal) and leaves the running stack alone.
+    - name: Sync deploy/ (compose + configs) from git
+      no_log: true
+      block:
+        - name: Create a temp workspace for the shallow clone
+          ansible.builtin.tempfile:
+            state: directory
+            suffix: tg-deploy
+          register: _clone_tmp
+
+        - name: Shallow-clone the grounder repo at the deployed ref
+          ansible.builtin.git:
+            repo: "https://{{ _token_user }}:{{ gitlab_token }}@{{ _gitlab_host }}/{{ _repo }}.git"
+            dest: "{{ _clone_tmp.path }}"
+            version: "{{ _ref }}"
+            depth: 1
+            single_branch: true
+
+        - name: Install deploy/ onto the host (compose + litellm-config + postgres-init)
+          ansible.builtin.copy:
+            src: "{{ _clone_tmp.path }}/deploy/"
+            dest: "{{ _compose_dir }}/"
+            remote_src: true
+            owner: root
+            group: root
+            mode: preserve
+      always:
+        - name: Remove the temp clone
+          ansible.builtin.file:
+            path: "{{ _clone_tmp.path | default('') }}"
+            state: absent
+          when: _clone_tmp is defined and _clone_tmp.path is defined
+
+    - name: Require an operator-managed .env (secrets never travel through git/CI/AWX)
+      ansible.builtin.stat:
+        path: "{{ _compose_dir }}/.env"
+      register: _envfile
+
+    - name: Fail loudly if the .env is missing
+      ansible.builtin.assert:
+        that:
+          - _envfile.stat.exists
+        fail_msg: >-
+          {{ _compose_dir }}/.env is missing. Territory Grounder secrets (DB passwords, LiteLLM master key,
+          provider API keys) are operator-managed on the host and are never committed. Place a filled-in
+          .env (copy from deploy/.env.example) at {{ _compose_dir }}/.env once, then re-run the deploy.
+
+    # Persist the deployed image tag + repos into the operator .env so the pin SURVIVES a later manual
+    # `docker compose up` on the host. The compose image is `${TG_GROUNDER_IMAGE:-...}:${TG_TAG:-latest}`;
+    # without this, TG_TAG lives only in this playbook's per-command environment, so any manual `up` (e.g.
+    # restarting one service to debug) silently DOWNGRADES the whole stack to `:latest` — dropping the
+    # deployed code (this actually happened: a manual `up` reverted grounder to a stale :latest, losing a
+    # just-deployed feature). These three are deploy pins, NOT secrets, so they are safe to write to .env.
+    - name: Pin the deployed image tag + repos in .env (a manual `docker compose up` must not downgrade)
+      ansible.builtin.lineinfile:
+        path: "{{ _compose_dir }}/.env"
+        regexp: "^{{ item.key }}="
+        line: "{{ item.key }}={{ item.value }}"
+        state: present
+        owner: root
+        group: root
+        # lineinfile has no `preserve` (that's a copy-module value — it broke the deploy with "mode must be
+        # in octal or symbolic form"). The .env carries model-gateway API keys, so root-only it is.
+        mode: "0600"
+      loop:
+        - { key: "TG_TAG", value: "{{ _image_tag }}" }
+        - { key: "TG_GROUNDER_IMAGE", value: "{{ _grounder_image }}" }
+        - { key: "TG_CONSOLE_IMAGE", value: "{{ _console_image }}" }
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: Validate the compose file is well-formed
+      ansible.builtin.command:
+        cmd: "docker compose --env-file {{ _compose_dir }}/.env -f {{ _compose_dir }}/docker-compose.yml config --quiet"
+        chdir: "{{ _compose_dir }}"
+      environment:
+        TG_GROUNDER_IMAGE: "{{ _grounder_image }}"
+        TG_CONSOLE_IMAGE: "{{ _console_image }}"
+        TG_TAG: "{{ _image_tag }}"
+      changed_when: false
+
+  tasks:
+    # Pull the requested tag, hardened against a transient registry-egress blip (per-attempt timeout +
+    # retries) — a sustained outage fails fast and cleanly instead of hanging the deploy.
+    - name: Pull the stack images
+      ansible.builtin.command:
+        argv:
+          - timeout
+          - "{{ (pull_timeout_seconds | default(90)) | string }}"
+          - docker
+          - compose
+          - "--env-file"
+          - "{{ _compose_dir }}/.env"
+          - "-f"
+          - "{{ _compose_dir }}/docker-compose.yml"
+          - pull
+          - "--quiet"
+        chdir: "{{ _compose_dir }}"
+      environment:
+        TG_GROUNDER_IMAGE: "{{ _grounder_image }}"
+        TG_CONSOLE_IMAGE: "{{ _console_image }}"
+        TG_TAG: "{{ _image_tag }}"
+      register: _pull
+      changed_when: "'Pull complete' in _pull.stderr or 'Downloaded' in _pull.stderr"
+      until: _pull.rc == 0
+      retries: "{{ pull_retries | default(3) }}"
+      delay: "{{ pull_retry_delay_seconds | default(15) }}"
+
+    - name: Bring the stack up
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - "--env-file"
+          - "{{ _compose_dir }}/.env"
+          - "-f"
+          - "{{ _compose_dir }}/docker-compose.yml"
+          - up
+          - "-d"
+          - "--remove-orphans"
+        chdir: "{{ _compose_dir }}"
+      environment:
+        TG_GROUNDER_IMAGE: "{{ _grounder_image }}"
+        TG_CONSOLE_IMAGE: "{{ _console_image }}"
+        TG_TAG: "{{ _image_tag }}"
+
+    - name: Wait for the grounder control-plane container to be running
+      ansible.builtin.command:
+        cmd: "docker inspect --format '{{ '{{' }}.State.Running{{ '}}' }}' territory-grounder-grounder-1"
+      register: _grounder_state
+      until: _grounder_state.stdout == 'true'
+      retries: 24
+      delay: 5
+      changed_when: false
+
+    # The public API binds 127.0.0.1:8081 and the console 0.0.0.0:8080 (see docker-compose.yml).
+    - name: Wait for the console to accept connections
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 8080
+        timeout: 60
+        state: started
+
+    - name: Report deployed image tag and mutation posture
+      ansible.builtin.debug:
+        msg: >-
+          Territory Grounder deployed on {{ inventory_hostname }} (image_tag={{ _image_tag }}); mutation OFF
+          (read-only foundation). Console on :8080, authenticated API on 127.0.0.1:8081.

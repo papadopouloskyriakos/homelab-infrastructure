@@ -1,0 +1,46 @@
+---
+- name: Synchronize custom.list from nlpihole02 to grpihole01
+  hosts: nlpihole02.example.net
+  tasks:
+    - name: Ensure /home/semaphore/temp directory exists on control machine
+      delegate_to: localhost
+      file:
+        path: /home/semaphore/temp
+        state: directory
+        mode: '0755'
+
+    - name: Fetch the custom.list file from the master (nlpihole02)
+      fetch:
+        src: /etc/pihole/custom.list
+        dest: /home/semaphore/temp/nl_custom.list  # Local path on the Ansible control machine
+        flat: yes
+
+- name: Copy custom.list to grpihole01
+  hosts: grpihole01.example.net
+  tasks:
+    - name: Ensure /temp directory exists on grpihole01
+      file:
+        path: /temp
+        state: directory
+        mode: '0755'
+
+    - name: Check if local custom.list file exists on control machine
+      stat:
+        path: /home/semaphore/temp/nl_custom.list
+      delegate_to: localhost
+      register: local_custom_list
+
+    - name: Copy custom.list from control machine to grpihole01
+      copy:
+        src: /home/semaphore/temp/nl_custom.list  # Path on the Ansible control machine
+        dest: /etc/pihole/custom.list
+        owner: root
+        group: root
+        mode: '0644'
+      when: local_custom_list.stat.exists  # Only proceed if the file was successfully fetched
+
+    - name: Remove local temporary copy of custom.list
+      file:
+        path: /home/semaphore/temp/nl_custom.list
+        state: absent
+      delegate_to: localhost

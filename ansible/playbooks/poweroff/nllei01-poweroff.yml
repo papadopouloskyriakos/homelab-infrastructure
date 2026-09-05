@@ -1,0 +1,22 @@
+---
+- name: Power off the host
+  hosts: all
+  gather_facts: yes
+  become: yes
+  tasks:
+    - name: Check host reachability
+      ping:
+      ignore_errors: true
+
+    - name: Filter unreachable hosts
+      meta: clear_host_errors
+
+    - name: Shutdown the host asynchronously
+      command: poweroff
+      async: 1
+      poll: 0
+      failed_when: false
+
+    - name: Confirm playbook completion
+      debug:
+        msg: "Playbook execution completed."
