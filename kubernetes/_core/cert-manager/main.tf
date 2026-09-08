@@ -882,3 +882,64 @@ resource "kubernetes_manifest" "REDACTED_c665cfe3" {
 
   depends_on = [helm_release.cert_manager]
 }
+
+# =============================================================================
+# PushSecret: *.meshsat.net wildcard -> OpenBao (MESHSAT-865)
+# The MeshSat Hub runs on notrf01cl01k8s; its ingress, the NATS websocket TLS
+# listener and the Reticulum stunnel consume *.meshsat.net through an
+# ExternalSecret reading REDACTED_6b21d4ca. This closes the
+# renewal loop like the omoikane wildcard (LE -> NL cert-manager -> OpenBao ->
+# ESO). The AWX daily cert distribution to /srv/certs stays for the edge VPS
+# and the DMZ hosts.
+# =============================================================================
+resource "kubernetes_manifest" "REDACTED_91d3fb5a" {
+  count      = var.acme_issuer_enabled ? 1 : 0
+  depends_on = [kubernetes_manifest.REDACTED_b497be54]
+
+  manifest = {
+    apiVersion = "external-secrets.io/v1alpha1"
+    kind       = "PushSecret"
+    metadata = {
+      name      = "REDACTED_d86e428b"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+      labels = {
+        "app.kubernetes.io/component"  = "cert-sync"
+        "app.kubernetes.io/managed-by" = "opentofu"
+      }
+    }
+    spec = {
+      refreshInterval = "1h"
+      secretStoreRefs = [
+        {
+          name = "openbao"
+          kind = "ClusterSecretStore"
+        }
+      ]
+      selector = {
+        secret = {
+          name = "REDACTED_6b2b1d03-tls"
+        }
+      }
+      data = [
+        {
+          match = {
+            secretKey = "tls.crt"
+            remoteRef = {
+              remoteKey = "REDACTED_6b21d4ca"
+              property  = "tls.crt"
+            }
+          }
+        },
+        {
+          match = {
+            secretKey = "tls.key"
+            remoteRef = {
+              remoteKey = "REDACTED_6b21d4ca"
+              property  = "tls.key"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
