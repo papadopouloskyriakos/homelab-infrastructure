@@ -85,24 +85,35 @@ resource "kubernetes_manifest" "REDACTED_be56ac24" {
       scrapeInterval = "60s"
       scrapeTimeout  = "30s"
       metricsPath    = "/probe"
-      params = {
-        module = ["tcp_connect"]
-      }
+      # Both legs sit behind mTLS, so a plain tcp_connect cannot prove them (and the
+      # exporter's tcp_connect prefers IPv6, which the runner cannot route). The two
+      # modules live in the blackbox exporter config on nlclaude01 (2026-09-08):
+      #   tls_sni_mqtt_hub    - TLS handshake with SNI (NATS, TLS 1.3, cert expiry visible)
+      #   tls_hello_reticulum - raw ClientHello with SNI, expects the ServerHello record
+      #                         (stunnel, TLS 1.2, aborts without a client certificate)
       staticConfigs = [
         {
-          targets = [
-            "mqtt-hub.meshsat.net:443",
-            "reticulum.meshsat.net:443",
-          ]
+          targets = ["mqtt-hub.meshsat.net:443"]
           labels = {
             service = "meshsat-hub"
             env     = "production"
             leg     = "tcp"
+            module  = "tls_sni_mqtt_hub"
+          }
+        },
+        {
+          targets = ["reticulum.meshsat.net:443"]
+          labels = {
+            service = "meshsat-hub"
+            env     = "production"
+            leg     = "tcp"
+            module  = "tls_hello_reticulum"
           }
         },
       ]
       relabelings = [
         { sourceLabels = ["__address__"], targetLabel = "__param_target" },
+        { sourceLabels = ["module"], targetLabel = "__param_module" },
         { sourceLabels = ["__param_target"], targetLabel = "instance" },
         { targetLabel = "__address__", replacement = "10.0.X.X:9115" },
       ]
