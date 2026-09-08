@@ -69,9 +69,11 @@ resource "helm_release" "ingress_nginx" {
           compute-full-forwarded-for = "true"
           forwarded-for-header       = "X-Forwarded-For"
 
-          # Trust edge VPS proxies (CH and NO) and their tunnel subnets
-          # Estate-global (same edge fronts both sites) - intentionally not per-site
-          proxy-real-ip-cidr = "198.51.100.X/32,198.51.100.X/32,10.255.2.0/24,10.255.3.0/24"
+          # Trust edge VPS proxies (CH, NO, TX), their tunnel subnets and the
+          # notrf01 edge-relay worker nodes (a TCP relay without PROXY protocol:
+          # ingress sees the relay node as the peer, XFF carries the real client).
+          # Estate-global (same edge fronts every site) - intentionally not per-site
+          proxy-real-ip-cidr = "198.51.100.X/32,198.51.100.X/32,185.121.169.27/32,10.255.2.0/24,10.255.3.0/24,10.255.6.0/24,10.255.4.11/32,10.255.5.11/32,10.255.10.11/32"
 
           # === RATE LIMITING ===
           # Return 429 Too Many Requests for rate-limited connections
