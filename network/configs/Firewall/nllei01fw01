@@ -1902,7 +1902,7 @@ dhcpd reserve-address 10.0.X.X 542a.a2ce.318e inside_mgmt
 dhcpd reserve-address 10.0.X.X 14b1.c800.6c63 inside_mgmt
 dhcpd reserve-address 10.0.X.X 0004.4bcc.85de inside_mgmt
 dhcpd reserve-address 10.0.X.X 0004.4bcc.85e0 inside_mgmt
-dhcpd reserve-address 10.0.X.X 8887.172c.aaad inside_mgmt
+dhcpd reserve-address 10.0.X.X f04e.a4a9.1244 inside_mgmt
 dhcpd reserve-address 10.0.X.X b48c.9d7d.3577 inside_mgmt
 dhcpd reserve-address 10.0.X.X f8e4.3b2e.085e inside_mgmt
 dhcpd reserve-address 10.0.X.X 3035.add8.6cb8 inside_mgmt
