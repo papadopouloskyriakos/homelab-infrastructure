@@ -130,9 +130,16 @@ loki_s3_bucket        = "loki"
 REDACTED_337e6630 = "10.0.X.X"
 
 # --- seaweedfs ---
-REDACTED_a8217c41           = "1000Gi"
-REDACTED_d36a9dce            = 1400 # auto (-max 0) froze at 1028 slots (computed during the July near-full crisis); disks now ~55% used - minFreeSpacePercent=5 is the true guard (IFRNLLEI01PRD-2605)
-REDACTED_6930756b = 5
+REDACTED_a8217c41 = "1000Gi"
+REDACTED_d36a9dce  = 1400 # auto (-max 0) froze at 1028 slots (computed during the July near-full crisis); disks now ~55% used - minFreeSpacePercent=5 is the true guard (IFRNLLEI01PRD-2605)
+# TEMPORARY 5 -> 3 (2026-09-10 20:01 UTC, IFRNLLEI01PRD-2831): both volume PVs sat at 45-50 GB free
+# with 248 GB of reclaimable garbage, and below the floor a server REFUSES to compact (the
+# 2052 deadlock), so the floor had to move under the free space for vacuum to run. Patched live
+# on the STS first; this line reconciles Git so the next apply does not re-lock the cluster.
+# RAISE BACK to 5 (then 7, variables.tf:47) once kubelet_volume_stats_available_bytes on both
+# data-seaweedfs-volume-* PVs is comfortably above 10 % (~110 GB) — SeaweedFSFreeSpaceForecast
+# and the weekly seaweedfs-vacuum CronJob are the guards in the meantime.
+REDACTED_6930756b = 3
 # Staged 4.44 rollout (IFRNLLEI01PRD-2605): NO first, then NL, then GR.
 REDACTED_c1342204 = "4.44.0"
 REDACTED_a4f42897 = "4.44"
