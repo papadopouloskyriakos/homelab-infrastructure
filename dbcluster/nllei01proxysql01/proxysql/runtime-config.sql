@@ -37,6 +37,7 @@ INSERT INTO mysql_users (username,password,default_hostgroup,active,transaction_
 INSERT INTO mysql_users (username,password,default_hostgroup,active,transaction_persistent,max_connections) VALUES ('finops_agora','REDACTED_d1d1e94d',10,1,1,10000);
 INSERT INTO mysql_users (username,password,default_hostgroup,active,transaction_persistent,max_connections) VALUES ('grafana_ro','REDACTED_2bc77bc4',20,1,1,10);
 INSERT INTO mysql_users (username,password,default_hostgroup,active,transaction_persistent,max_connections) VALUES ('healthops','REDACTED_1bac42ef',10,1,1,10000);
+INSERT INTO mysql_users (username,password,default_hostgroup,active,transaction_persistent,max_connections) VALUES ('meshsat_kb','REDACTED_399e0297',10,1,1,1000);
 INSERT INTO mysql_users (username,password,default_hostgroup,active,transaction_persistent,max_connections) VALUES ('monitor','REDACTED_3585623d',1,1,1,10000);
 INSERT INTO mysql_users (username,password,default_hostgroup,active,transaction_persistent,max_connections) VALUES ('n8n_finops','REDACTED_8f6b408a',10,1,1,10000);
 INSERT INTO mysql_users (username,password,default_hostgroup,active,transaction_persistent,max_connections) VALUES ('nextcloud','REDACTED_4c3eafd9',0,1,1,10000);

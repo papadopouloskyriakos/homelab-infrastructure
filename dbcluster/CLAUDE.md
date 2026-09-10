@@ -10,6 +10,16 @@ component** — consumers as of 2026-08-28:
 | paperless | `paperless` | — |
 | CiviCRM | `civicrm` | `docker/nlcivicrm01/civicrm/CLAUDE.md` (onboarding required cluster-wide settings — see below) + `native/civicrm/CLAUDE.md` (its nightly dump is that app's real backup) |
 | healthops | `healthops` | uses native VECTOR (the reason for the 11.8 LTS upgrade) |
+| meshsat-fieldkit | `meshsat_kb` | datasheet retrieval for the field-kit PCB pipeline, native VECTOR(768) + InnoDB FULLTEXT; onboarded 2026-09-10, tools in `products/meshsat/meshsat-fieldkit/v2/ecad/tools/kb/` |
+
+**Onboarded 2026-09-10: `meshsat_kb`.** Needed NO cluster-wide setting: no triggers, no
+auto-increment requirement, InnoDB + VECTOR only. Schema + `meshsat_kb`@`%` created on the writer
+(.151) via the local root socket, then the user added to `mysql_users` on BOTH proxies with
+`LOAD MYSQL USERS TO RUNTIME; SAVE MYSQL USERS TO DISK;` and both `runtime-config.sql` snapshots
+re-taken here. No container restart, no disruption. Two things worth keeping from it: ProxySQL's
+admin is SQLite, so `INSERT OR REPLACE`, never `ON DUPLICATE KEY UPDATE`; and the schema default
+collation is case-INsensitive, so a table keyed on a filesystem path needs
+`COLLATE utf8mb4_bin` or two files differing only in case silently become one row with no error.
 
 **Onboarding a new app? Read the CiviCRM settings section below first** — the cluster runs
 single-writer with Galera auto-increment striding DISABLED, and that combination is
