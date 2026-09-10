@@ -113,7 +113,7 @@ alertmanager_storage_size     = "10Gi"
 thanos_store_storage_size     = "20Gi"
 REDACTED_fd3fdc21 = "50Gi"
 # NL: dedicated Synology CSI volumes - unchanged, these are the historical defaults.
-thanos_retention_raw      = "30d"
+thanos_retention_raw      = "14d" # 30d -> 14d 2026-09-10 (IFRNLLEI01PRD-2831): raw blocks were 883 GB raw of a 2 TB S3 and the compactor had been halted 2 weeks; 5m/1h downsampled keep 120d/365d
 thanos_retention_5m       = "120d"
 thanos_retention_1h       = "365d"
 thanos_delete_delay       = "48h"

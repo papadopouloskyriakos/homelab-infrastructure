@@ -230,3 +230,12 @@ variable "canary_s3_endpoint" {
   type        = string
   default     = "http://seaweedfs-s3.seaweedfs.svc.cluster.local:8333"
 }
+
+# -----------------------------------------------------------------------------
+# Scheduled vacuum (vacuum-cronjob.tf, IFRNLLEI01PRD-2831)
+# -----------------------------------------------------------------------------
+variable "REDACTED_fbcee600" {
+  description = "Garbage ratio above which the weekly explicit `volume.vacuum` pass compacts a volume. Kept equal to master.garbageThreshold in values.yaml.tpl (0.10) so the scheduled pass and the background loop agree on what is reclaimable."
+  type        = string
+  default     = "0.10"
+}
