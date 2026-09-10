@@ -139,7 +139,7 @@ REDACTED_d36a9dce  = 1400 # auto (-max 0) froze at 1028 slots (computed during t
 # RAISE BACK to 5 (then 7, variables.tf:47) once kubelet_volume_stats_available_bytes on both
 # data-seaweedfs-volume-* PVs is comfortably above 10 % (~110 GB) — SeaweedFSFreeSpaceForecast
 # and the weekly seaweedfs-vacuum CronJob are the guards in the meantime.
-REDACTED_6930756b = 3
+REDACTED_6930756b = 2 # 3 -> 2 at 21:35 UTC same day: volume-0 re-locked at exactly the 3% line while vacuum reclaimed 298 GB of garbage; 2% = 21 GB still leaves ~20x the 1 GB a single-volume compaction needs
 # Staged 4.44 rollout (IFRNLLEI01PRD-2605): NO first, then NL, then GR.
 REDACTED_c1342204 = "4.44.0"
 REDACTED_a4f42897 = "4.44"
