@@ -206,6 +206,14 @@ resource "helm_release" "loki" {
     }
 
     monitoring = {
+      # Scrape Loki itself (IFRNLLEI01PRD-2831, 2026-09-10): the chart default is
+      # off, so no loki_* series existed and "retention_enabled = true" below was
+      # never provable — the loki bucket had grown to 236 GB (+4 GB/day) with no
+      # evidence the compactor ever applied retention. seaweedfs-capacity-alerts.tf
+      # keys on loki_compactor_apply_retention_last_successful_run_timestamp_seconds.
+      serviceMonitor = {
+        enabled = true
+      }
       selfMonitoring = {
         enabled = false
         grafanaAgent = {

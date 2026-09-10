@@ -43,6 +43,13 @@ resource "kubernetes_manifest" "filer_meta_cluster" {
       {
         instances             = 2
         primaryUpdateStrategy = "unsupervised"
+        # PodMonitor so the CNPG exporter is scraped (IFRNLLEI01PRD-2831): until
+        # 2026-09-10 NO CNPG cluster in the estate exported metrics, so a stuck
+        # ScheduledBackup (omoikane-main, 17 days, WAL retention never pruning)
+        # was invisible. seaweedfs-capacity-alerts.tf keys on these series.
+        monitoring = {
+          enablePodMonitor = true
+        }
         bootstrap = {
           initdb = {
             database = "seaweedfs_filer"
