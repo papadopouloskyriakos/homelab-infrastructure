@@ -268,3 +268,219 @@ resource "kubernetes_manifest" "meshsat_hub_alert_rules" {
     }
   }
 }
+
+# =============================================================================
+# PER-EDGE probes + alerts (IFRNLLEI01PRD-2833, 2026-09-11)
+#
+# WHY THIS EXISTS, and why the rules above were not enough.
+#
+# hub/auth/mqtt-hub.meshsat.net each resolve to ALL THREE VPS edges. The probes
+# above target the HOSTNAME, so each scrape lands on one edge at random. When
+# txhou01vps01 lost its IPsec tunnels to notrf01 on 2026-09-11 05:55, its
+# haproxy began silent-dropping every request for those three names
+# (`http-request silent-drop if { nbsrv(meshsat_hub) eq 0 }`) — and
+# probe_success went to 0 on roughly a third of scrapes and never 0
+# continuously, so REDACTED_e644fb3b (for: 5m) could not fire. The
+# rule was correct; the target set was the bug.
+#
+# Cost while it was invisible: a third of all public traffic dropped with no
+# HTTP response, a third of Stripe's webhook deliveries lost (confirmed by
+# Stripe's own pending_webhooks counter — a customer could cancel and stay on a
+# paid plan), and a third of bridge MQTT connections refused. Measured, not
+# estimated: 0/6 on the dead edge, 6/6 on each of the others.
+#
+# So: probe each edge ADDRESS directly, with the SNI and Host header the VPS
+# haproxy routes on. The hostname probes above stay — they answer the different
+# question "can a real client reach the service at all".
+# =============================================================================
+
+locals {
+  # The three VPS edges behind every meshsat.net public name.
+  meshsat_edges = {
+    txhou   = "185.121.169.27"
+    notrf01 = "198.51.100.X"
+    chzrh   = "198.51.100.X"
+  }
+
+  # Modules live in the blackbox exporter config on nlclaude01
+  # (docker/nlclaude01/blackbox/config.yml). http_hub_edge and
+  # http_auth_edge were added for this; tls_sni_mqtt_hub already pinned the SNI
+  # so it works unchanged against an address.
+  meshsat_edge_legs = {
+    hub        = { module = "http_hub_edge", target = "https://%s/healthz" }
+    auth       = { module = "http_auth_edge", target = "https://%s/-/health/live/" }
+    "mqtt-hub" = { module = "tls_sni_mqtt_hub", target = "%s:443" }
+  }
+
+  meshsat_edge_targets = flatten([
+    for edge_name, edge_ip in local.meshsat_edges : [
+      for leg_name, leg in local.meshsat_edge_legs : {
+        targets = [format(leg.target, edge_ip)]
+        labels = {
+          service = "meshsat-hub"
+          env     = "production"
+          edge    = edge_name
+          leg     = leg_name
+          module  = leg.module
+        }
+      }
+    ]
+  ])
+}
+
+resource "kubernetes_manifest" "meshsat_edge_scrape" {
+  manifest = {
+    apiVersion = "monitoring.coreos.com/v1alpha1"
+    kind       = "ScrapeConfig"
+    metadata = {
+      name      = "meshsat-edge"
+      namespace = "monitoring"
+      labels = {
+        "app.kubernetes.io/part-of" = "kube-prometheus"
+        "release"                   = "monitoring"
+      }
+    }
+    spec = {
+      jobName        = "meshsat-edge"
+      scrapeInterval = "60s"
+      scrapeTimeout  = "30s"
+      metricsPath    = "/probe"
+      staticConfigs  = local.meshsat_edge_targets
+      relabelings = [
+        { sourceLabels = ["__address__"], targetLabel = "__param_target" },
+        { sourceLabels = ["module"], targetLabel = "__param_module" },
+        { sourceLabels = ["__param_target"], targetLabel = "instance" },
+        { targetLabel = "__address__", replacement = "10.0.X.X:9115" },
+      ]
+    }
+  }
+}
+
+resource "kubernetes_manifest" "meshsat_edge_alert_rules" {
+  manifest = {
+    apiVersion = "monitoring.coreos.com/v1"
+    kind       = "PrometheusRule"
+    metadata = {
+      name      = "meshsat-edge-alert-rules"
+      namespace = "monitoring"
+      labels = {
+        "app.kubernetes.io/part-of" = "kube-prometheus"
+        "prometheus"                = "monitoring"
+        "role"                      = "alert-rules"
+        "release"                   = "monitoring"
+      }
+    }
+    spec = {
+      groups = [
+        {
+          name     = "meshsat-edge"
+          interval = "1m"
+          rules = [
+            {
+              # tier 1: this is the failure that hid for hours. One dead edge is
+              # a third of customers and a third of Stripe's webhooks, and the
+              # service looks fine to anyone who happens to resolve elsewhere.
+              alert = "MeshSatEdgeDown"
+              expr  = "probe_success{job=\"meshsat-edge\"} == 0"
+              for   = "5m"
+              labels = {
+                severity = "critical"
+                service  = "meshsat-hub"
+                tier     = "1"
+              }
+              annotations = {
+                summary     = "MeshSat edge {{ $labels.edge }} is not serving {{ $labels.leg }} (5m)"
+                description = <<-EOT
+                  The blackbox exporter cannot complete the {{ $labels.leg }} probe against edge {{ $labels.edge }} ({{ $labels.instance }}) while the other edges may be fine, so the service looks healthy to anyone who resolves elsewhere. A third of clients are being dropped.
+
+                  Most likely cause: that VPS lost its IPsec tunnels to the notrf01 workers, so `nbsrv(meshsat_hub)` is 0 and haproxy silent-drops every request with no HTTP response at all.
+
+                  Check: `swanctl --list-sas | grep no-dmz` on the VPS — expect six ESTABLISHED. If they are missing, `swanctl --initiate --child no-dmz0N`. Since IFRNLLEI01PRD-2833 charon retries a failed initiate every 60s, so a tunnel that is still down after a few minutes is a new fault, not the old one.
+                  Then: `nc -z 10.255.{4,5,10}.11 8443` from the VPS, then the notrf01 edge-relay DaemonSet, then ingress-nginx.
+                EOT
+              }
+            },
+            {
+              # Negative control: while this fires, MeshSatEdgeDown cannot.
+              alert = "REDACTED_e80a8dbf"
+              expr  = "absent(probe_success{job=\"meshsat-edge\"})"
+              for   = "10m"
+              labels = {
+                severity = "critical"
+                service  = "meshsat-hub"
+              }
+              annotations = {
+                summary     = "Per-edge probing of meshsat.net has stopped (10m)"
+                description = "No probe_success series for job=meshsat-edge: the blackbox exporter (nlclaude01:9115) is down, its config lost the http_hub_edge/http_auth_edge modules, or the ScrapeConfig was removed. While this is true a single dead edge is invisible again."
+              }
+            },
+          ]
+        },
+        {
+          name     = "meshsat-hub-billing"
+          interval = "1m"
+          rules = [
+            {
+              # tier 1: money arrived that belongs to nobody. Every Checkout
+              # session the Hub creates carries metadata[tenant_id], so an
+              # unattributed payment means either a session the Hub did not
+              # build (a payment link, agentic commerce) or a Stripe payload
+              # whose shape moved. Both need a person, and the customer has
+              # already been charged.
+              #
+              # kind="payment" is load-bearing, learned the hard way: the first
+              # version of this rule matched the counter unlabelled and fired
+              # within MINUTES of being deployed -- three times, for zero-amount
+              # subscription events belonging to a probe whose tenant row had
+              # been deleted while Stripe was still sending trailing events. No
+              # money was involved in any of them. A pager that cries wolf on
+              # its first day is worse than no pager, so only money pages; the
+              # lifecycle case is the warning below.
+              alert = "REDACTED_1dec2c7c"
+              expr  = "increase(meshsat_hub_payments_unattributed_total{kind=\"payment\"}[15m]) > 0"
+              for   = "0m"
+              labels = {
+                severity = "critical"
+                service  = "meshsat-hub"
+                tier     = "1"
+              }
+              annotations = {
+                summary     = "MeshSat took a payment it could not attribute to a tenant"
+                description = "Money was taken and no tenant owns it, so no receipt and no VAT document will be issued for it. List them at GET /api/admin/payments/unmatched and read the audit entries (action payment_unattributed). Do not leave it: a sent invoice takes a number out of a gapless series, so the document has to be issued deliberately once the tenant is known."
+              }
+            },
+            {
+              # No money moved: a subscription event named a tenant this Hub does
+              # not know, which usually means a subscription outlived the account
+              # it was for. Worth seeing, not worth waking anyone.
+              alert = "REDACTED_33e8af56"
+              expr  = "increase(meshsat_hub_payments_unattributed_total{kind=\"lifecycle\"}[1h]) > 0"
+              for   = "0m"
+              labels = {
+                severity = "warning"
+                service  = "meshsat-hub"
+              }
+              annotations = {
+                summary     = "A Stripe subscription event named a tenant MeshSat does not know"
+                description = "A subscription lifecycle event could not be attributed. No money moved, so nobody is owed a document -- but a live subscription may exist in Stripe for an account that no longer does, which will keep billing somebody. Check the audit entries (action payment_unattributed, amount_cents 0) and cancel the subscription in Stripe if the tenant is really gone. Probes that delete a tenant before cancelling in Stripe produce this too."
+              }
+            },
+            {
+              alert = "REDACTED_a7c2f4e8"
+              expr  = "increase(meshsat_hub_payments_failed_total[1h]) > 0"
+              for   = "0m"
+              labels = {
+                severity = "warning"
+                service  = "meshsat-hub"
+              }
+              annotations = {
+                summary     = "MeshSat subscription payments are failing"
+                description = "One or more invoices failed to collect in the last hour. This does NOT change anyone's plan by design (past_due and unpaid keep their tier — a failing card is Stripe retrying, not a cancellation). Check the Stripe dashboard for the decline reason; Radar Pro is enabled, so a block may be a false positive worth reviewing."
+              }
+            },
+          ]
+        },
+      ]
+    }
+  }
+}
