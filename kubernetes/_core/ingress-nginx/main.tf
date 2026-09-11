@@ -73,7 +73,22 @@ resource "helm_release" "ingress_nginx" {
           # notrf01 edge-relay worker nodes (a TCP relay without PROXY protocol:
           # ingress sees the relay node as the peer, XFF carries the real client).
           # Estate-global (same edge fronts every site) - intentionally not per-site
-          proxy-real-ip-cidr = "198.51.100.X/32,198.51.100.X/32,185.121.169.27/32,10.255.2.0/24,10.255.3.0/24,10.255.6.0/24,10.255.4.11/32,10.255.5.11/32,10.255.10.11/32"
+          #
+          # The relay node addresses alone were NOT enough (IFRNLLEI01PRD-2833,
+          # 2026-09-11). The relay is hostNetwork on 10.255.4.11/5.11/10.11, but
+          # Cilium SNATs a host-to-ClusterIP connection to the node's cilium_host
+          # router address, so ingress sees a 10.2.x peer that was not trusted,
+          # stopped walking the XFF chain there, and handed the BACKEND its own
+          # router IP as the client. authentik recorded 10.2.0.235 as every
+          # signup's source address, and CrowdSec was rate-limiting and banning
+          # the same handful of addresses for the whole cluster.
+          #
+          # These are the six notrf01 CiliumInternalIPs (kubectl get ciliumnodes).
+          # /32s, not the pod CIDR, deliberately: only the nodes own these, so an
+          # arbitrary pod still cannot forge X-Forwarded-For. They change if a
+          # node is rebuilt - the symptom is a 10.2.x address turning up as a
+          # client IP again. Inert on NL (pod CIDR 10.0/16) and GR (10.1/16).
+          proxy-real-ip-cidr = "198.51.100.X/32,198.51.100.X/32,185.121.169.27/32,10.255.2.0/24,10.255.3.0/24,10.255.6.0/24,10.255.4.11/32,10.255.5.11/32,10.255.10.11/32,10.2.0.235/32,10.2.1.174/32,10.2.2.70/32,10.2.3.13/32,10.2.4.92/32,10.2.5.119/32"
 
           # === RATE LIMITING ===
           # Return 429 Too Many Requests for rate-limited connections
