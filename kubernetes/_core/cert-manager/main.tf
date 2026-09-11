@@ -826,6 +826,38 @@ resource "kubernetes_manifest" "REDACTED_b6fbec6d" {
   }
 }
 
+# Wildcard Certificate - ellizg.com (portfolio.ellizg.com + card.ellizg.com)
+#
+# ADOPTED, not created: this Certificate has existed in the cluster since
+# 2026-07-14, applied by hand with kubectl and declared nowhere. It renews
+# (cert-manager owns it), so nothing was visibly broken, but no rebuild or DR
+# restore would have recreated it. Commit 874cdcb9 named this exact gap in
+# August while closing it for zafeiridis. k8s/imports.tf adopts the live object
+# so the plan reads "1 to import, 0 to add"; delete that file once spent.
+resource "kubernetes_manifest" "REDACTED_1c3fab10" {
+  count      = var.acme_issuer_enabled ? 1 : 0
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "wildcard-ellizg-com"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_cd95cdbc"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.ellizg.com",
+        "ellizg.com"
+      ]
+    }
+  }
+}
+
 # =============================================================================
 # ExternalSecret - consume wildcard cert from OpenBao — CONSUMER role only
 # =============================================================================
