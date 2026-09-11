@@ -3,21 +3,21 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-09-10 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-09-11 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: CRITICAL ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 14 |
+| Unhealthy Pods | 21 |
 | Pending PVCs | 0 |
-| Total Restarts | 6726 |
+| Total Restarts | 7007 |
 
 ## Topology
 
 - **K8s:** v1.36.3 | **CNI:** Cilium 1.20.0
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 174
+- **Pods:** 185
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8002696Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -32,20 +32,27 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-awx                      awx-operator-controller-manager-6ffdf98f6-m9gvc                   2/2   Terminating        2 (15d ago)        16d
-cnpg-system              cnpg-cloudnative-pg-6d8bdc546d-xtt94                              1/1   Terminating        1 (15d ago)        16d
-kube-system              kube-proxy-qn8md                                                  0/1   CrashLoopBackOff   4661 (3m22s ago)   24d
-nfs-provisioner          nfs-provisioner-REDACTED_5fef70be-75b84759cfskglb   1/1   Terminating        2 (15d ago)        16d
-velero                   awx-default-kopia-maintain-job-1789008396770-zj76v                0/1   Error              0                  14m
-velero                   awx-default-kopia-maintain-job-1789008701889-vrnft                0/1   Error              0                  9m1s
-velero                   awx-default-kopia-maintain-job-1789008996796-5jr8h                0/1   Error              0                  4m6s
-velero                   monitoring-default-kopia-maintain-job-1789008401837-wmvpn         0/1   Error              0                  14m
-velero                   monitoring-default-kopia-maintain-job-1789008692716-rfjsr         0/1   Error              0                  9m10s
-velero                   monitoring-default-kopia-maintain-job-1789009000878-ldrxt         0/1   Error              0                  4m2s
-velero                   node-agent-55hgg                                                  1/1   Terminating        1 (16d ago)        16d
-velero                   pihole-default-kopia-maintain-job-1789008392715-8c9pv             0/1   Error              0                  14m
-velero                   pihole-default-kopia-maintain-job-1789008696857-hwchg             0/1   Error              0                  9m6s
-velero                   pihole-default-kopia-maintain-job-1789008992717-xsscr             0/1   Error              0                  4m10s
+awx                      awx-operator-controller-manager-6ffdf98f6-m9gvc                   2/2   Terminating        2 (16d ago)        17d
+awx                      awx-pg-dump-29816895-2lmjw                                        0/1   Error              0                  22h
+awx                      awx-pg-dump-29816895-ptmjh                                        0/1   Error              0                  22h
+awx                      awx-pg-dump-29816895-rch6k                                        0/1   Error              0                  22h
+cnpg-system              cnpg-cloudnative-pg-6d8bdc546d-xtt94                              1/1   Terminating        1 (16d ago)        17d
+kube-system              kube-proxy-qn8md                                                  0/1   CrashLoopBackOff   4941 (2m26s ago)   25d
+monitoring               thanos-bucket-cleanup-20260910b-szsnw                             0/1   StartError         0                  5h24m
+nfs-provisioner          nfs-provisioner-REDACTED_5fef70be-75b84759cfskglb   1/1   Terminating        2 (16d ago)        17d
+seaweedfs                seaweedfs-read-canary-29817743-cj88b                              0/1   Error              0                  8h
+seaweedfs                seaweedfs-read-canary-29817743-nn57g                              0/1   Error              0                  8h
+seaweedfs                thanos-corrupt-meta-delete-20260910-22mnh                         0/1   Error              0                  5h24m
+velero                   awx-default-kopia-maintain-job-1789094798025-zcqpw                0/1   Error              0                  14m
+velero                   awx-default-kopia-maintain-job-1789095099082-swftp                0/1   Error              0                  9m5s
+velero                   awx-default-kopia-maintain-job-1789095398126-hfqkz                0/1   Error              0                  4m6s
+velero                   monitoring-default-kopia-maintain-job-1789094803097-pc6rk         0/1   Error              0                  14m
+velero                   monitoring-default-kopia-maintain-job-1789095103295-26bsj         0/1   Error              0                  9m1s
+velero                   monitoring-default-kopia-maintain-job-1789095402299-99kzm         0/1   Error              0                  4m2s
+velero                   node-agent-55hgg                                                  1/1   Terminating        1 (17d ago)        17d
+velero                   pihole-default-kopia-maintain-job-1789094792940-cwt4m             0/1   Error              0                  14m
+velero                   pihole-default-kopia-maintain-job-1789095092940-l4k4r             0/1   Error              0                  9m11s
+velero                   pihole-default-kopia-maintain-job-1789095392941-lm589             0/1   Error              0                  4m11s
 ```
 
 ### High Restart Pods (>3)
@@ -60,7 +67,7 @@ kube-system/cilium-operator-84c4fb58c7-jlhkp: 4 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 9 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 6 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl03: 4 restarts
-kube-system/kube-proxy-qn8md: 4661 restarts
+kube-system/kube-proxy-qn8md: 4941 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 5 restarts
 kube-system/tetragon-5gk99: 9 restarts
 kube-system/tetragon-75hdg: 10 restarts
@@ -88,11 +95,11 @@ synology-csi/synology-csi-node-zch7n: 27 restarts
 
 ### Recent Warnings (5)
 ```
-velero        9m2s        Warning   BackoffLimitExceeded   job/pihole-default-kopia-maintain-job-1789008696857       Job has reached the specified backoff limit
-velero        8m57s       Warning   BackoffLimitExceeded   job/awx-default-kopia-maintain-job-1789008701889          Job has reached the specified backoff limit
-velero        4m8s        Warning   BackoffLimitExceeded   job/pihole-default-kopia-maintain-job-1789008992717       Job has reached the specified backoff limit
-velero        4m3s        Warning   BackoffLimitExceeded   job/awx-default-kopia-maintain-job-1789008996796          Job has reached the specified backoff limit
-velero        3m59s       Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1789009000878   Job has reached the specified backoff limit
+velero        9m2s        Warning   BackoffLimitExceeded   job/awx-default-kopia-maintain-job-1789095099082          Job has reached the specified backoff limit
+velero        8m56s       Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1789095103295   Job has reached the specified backoff limit
+velero        4m7s        Warning   BackoffLimitExceeded   job/pihole-default-kopia-maintain-job-1789095392941       Job has reached the specified backoff limit
+velero        4m3s        Warning   BackoffLimitExceeded   job/awx-default-kopia-maintain-job-1789095398126          Job has reached the specified backoff limit
+velero        3m59s       Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1789095402299   Job has reached the specified backoff limit
 ```
 
 ## Key Resources
