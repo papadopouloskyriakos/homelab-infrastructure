@@ -18,7 +18,13 @@
 # wildcard-ellizg-com: hand-applied 2026-07-14, undeclared in every repo until
 # now. Renewing normally (Ready, renewalTime 2026-09-12, notAfter 2026-10-12),
 # so this adopts a healthy object — it must NOT be recreated or re-issued.
+#
+# NOTE the address: the Certificate is declared INSIDE _core/cert-manager, so
+# the import target is module-qualified and carries the count index. A bare
+# `kubernetes_manifest.REDACTED_1c3fab10` fails the plan with
+# "Configuration for import target does not exist" — which is how this was
+# caught, at plan time, before anything was applied.
 import {
-  to = kubernetes_manifest.REDACTED_1c3fab10[0]
+  to = module.cert_manager.kubernetes_manifest.REDACTED_1c3fab10[0]
   id = "apiVersion=cert-manager.io/v1,kind=Certificate,namespace=cert-manager,name=wildcard-ellizg-com"
 }
