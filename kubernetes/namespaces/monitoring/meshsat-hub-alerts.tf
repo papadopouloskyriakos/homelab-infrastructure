@@ -484,3 +484,144 @@ resource "kubernetes_manifest" "meshsat_edge_alert_rules" {
     }
   }
 }
+
+# =============================================================================
+# The Hub's DATABASE BACKUP (IFRNLLEI01PRD-2833, 2026-09-11)
+#
+# On 2026-09-11 the Hub's only off-node copy of its database went 36 hours stale
+# and was found by hand, while the cluster reported:
+#
+#     ContinuousArchiving=True   Continuous archiving is working
+#     LastBackupSucceeded=True   Backup was successful
+#
+# Both true, both useless: the conditions describe the LAST attempt, not how old
+# the newest usable backup is. NL SeaweedFS had filled up, WAL archiving failed
+# for hours and then recovered on its own -- and the daily Backup object stayed
+# latched in walArchivingFailing, which CNPG never retries AND never releases.
+# So even after the storage came back, no backup could start: the next scheduled
+# run would have hit the same held slot. It took deleting the stuck object by
+# hand. Nothing anywhere would have said so.
+#
+# Backup AGE is therefore the signal, not backup success. These rules watch the
+# age, the leading indicator (archive failures), and the consequence (WAL piling
+# up on a node-local volume).
+#
+# Why this database and not every database: meshsat-hub-main is on
+# local-hostpath-retain with no cross-node re-attach, and its pgdata is
+# DELIBERATELY excluded from Velero because barman is meant to be the path. The
+# copy in s3://cnpg-meshsat-hub is the only one that is not on a single disk.
+# The scrape that makes these possible is the PodMonitor in meshsat-hub !149;
+# port 9187 was exposed and nothing was reading it.
+# =============================================================================
+
+resource "kubernetes_manifest" "REDACTED_a6e01f49" {
+  manifest = {
+    apiVersion = "monitoring.coreos.com/v1"
+    kind       = "PrometheusRule"
+    metadata = {
+      name      = "REDACTED_762bb277"
+      namespace = "monitoring"
+      labels = {
+        "app.kubernetes.io/part-of" = "kube-prometheus"
+        "prometheus"                = "monitoring"
+        "role"                      = "alert-rules"
+        "release"                   = "monitoring"
+      }
+    }
+    spec = {
+      groups = [
+        {
+          name     = "meshsat-hub-backup"
+          interval = "5m"
+          rules = [
+            {
+              # max() because only the PRIMARY reports a real timestamp; the two
+              # standbys publish 0, so any other aggregate reads "1970" and this
+              # fires constantly.
+              alert = "REDACTED_71dc5869"
+              expr  = "time() - max(cnpg_collector_last_available_backup_timestamp{namespace=\"meshsat-hub-db\"}) > 30 * 3600"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                service  = "meshsat-hub"
+                scope    = "backup"
+              }
+              annotations = {
+                summary     = "MeshSat Hub's newest database backup is over 30 hours old"
+                description = <<-EOT
+                  A daily backup has been missed. The cluster's own conditions are not evidence here: LastBackupSucceeded describes the last ATTEMPT and read True throughout the 36-hour gap on 2026-09-11.
+
+                  Check in this order:
+                  1. `kubectl --context notrf01 -n meshsat-hub-db get backups` — a Backup latched in `walArchivingFailing` BLOCKS every later one and CNPG never retries or releases it. Delete it and the next backup starts immediately.
+                  2. Is the object store accepting writes? A `REDACTED_adabb237` alert naming `cnpg-meshsat-hub` means it is not, and nothing will succeed until that clears.
+                  3. Trigger one by hand: apply a `Backup` with `spec.cluster.name: meshsat-hub-main`.
+                EOT
+              }
+            },
+            {
+              alert = "REDACTED_46a15709"
+              expr  = "time() - max(cnpg_collector_last_available_backup_timestamp{namespace=\"meshsat-hub-db\"}) > 48 * 3600"
+              for   = "30m"
+              labels = {
+                severity = "critical"
+                service  = "meshsat-hub"
+                scope    = "backup"
+              }
+              annotations = {
+                summary     = "MeshSat Hub has had no database backup for over 48 hours"
+                description = "Two scheduled backups have been missed. pgdata is node-local and deliberately excluded from Velero, so barman to nl-s3 is the ONLY copy of this database that is not on one disk — and it is now two days behind. It holds the receipt and credit-note series, which are legal documents with gapless numbering. Same checks as REDACTED_71dc5869; if that one has been firing and was not acted on, this is the second ask."
+              }
+            },
+            {
+              # The leading indicator. This started at 12:09 on 2026-09-11, hours
+              # before anyone looked at backup age.
+              alert = "REDACTED_fbaa677d"
+              expr  = "increase(cnpg_pg_stat_archiver_failed_count{namespace=\"meshsat-hub-db\"}[15m]) > 0"
+              for   = "15m"
+              labels = {
+                severity = "warning"
+                service  = "meshsat-hub"
+                scope    = "backup"
+              }
+              annotations = {
+                summary     = "MeshSat Hub cannot archive its write-ahead log"
+                description = "barman-cloud-wal-archive is failing, so the recoverable window has stopped advancing even if the last base backup looks fine. Usually the object store: `PutObject ... (InternalError)` means nl-s3 is refusing writes. PostgreSQL retries on its own and keeps the WAL on the primary's volume meanwhile — see REDACTED_632d52a7 for when that becomes the bigger problem."
+              }
+            },
+            {
+              # The consequence, and the one with a deadline: unarchived WAL is
+              # held on a node-local 10Gi volume that nothing reclaims.
+              alert = "REDACTED_632d52a7"
+              expr  = "max(cnpg_collector_pg_wal_archive_status{namespace=\"meshsat-hub-db\",value=\"ready\"}) > 20"
+              for   = "30m"
+              labels = {
+                severity = "critical"
+                service  = "meshsat-hub"
+                scope    = "backup"
+              }
+              annotations = {
+                summary     = "{{ $value }} WAL segments are waiting to be archived on the MeshSat Hub primary"
+                description = "WAL that cannot be shipped stays on the primary's volume, which is node-local and 10Gi. If it fills, PostgreSQL stops accepting writes and the Hub stops taking payments and recording positions. Fix the archiving (REDACTED_fbaa677d) rather than deleting WAL: those segments are the recovery window."
+              }
+            },
+            {
+              # Negative control. While this fires, none of the four above can.
+              alert = "REDACTED_25e31518"
+              expr  = "absent(cnpg_collector_last_available_backup_timestamp{namespace=\"meshsat-hub-db\"})"
+              for   = "20m"
+              labels = {
+                severity = "warning"
+                service  = "meshsat-hub"
+                scope    = "backup"
+              }
+              annotations = {
+                summary     = "MeshSat Hub database metrics have stopped arriving"
+                description = "No cnpg_collector series for meshsat-hub-db. The PodMonitor `meshsat-hub-postgres` (meshsat-hub k8s/monitoring/) was removed, the CNPG cluster is gone, or the notrf01 -> NL remote-write stream has stopped. While this is true a stale or failing backup is invisible again, which is the state that let a 36-hour gap go unnoticed."
+              }
+            },
+          ]
+        },
+      ]
+    }
+  }
+}
