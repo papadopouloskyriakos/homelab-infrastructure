@@ -427,8 +427,17 @@ resource "kubernetes_manifest" "meshsat_edge_alert_rules" {
               # build (a payment link, agentic commerce) or a Stripe payload
               # whose shape moved. Both need a person, and the customer has
               # already been charged.
+              #
+              # kind="payment" is load-bearing, learned the hard way: the first
+              # version of this rule matched the counter unlabelled and fired
+              # within MINUTES of being deployed -- three times, for zero-amount
+              # subscription events belonging to a probe whose tenant row had
+              # been deleted while Stripe was still sending trailing events. No
+              # money was involved in any of them. A pager that cries wolf on
+              # its first day is worse than no pager, so only money pages; the
+              # lifecycle case is the warning below.
               alert = "REDACTED_1dec2c7c"
-              expr  = "increase(meshsat_hub_payments_unattributed_total[15m]) > 0"
+              expr  = "increase(meshsat_hub_payments_unattributed_total{kind=\"payment\"}[15m]) > 0"
               for   = "0m"
               labels = {
                 severity = "critical"
@@ -438,6 +447,22 @@ resource "kubernetes_manifest" "meshsat_edge_alert_rules" {
               annotations = {
                 summary     = "MeshSat took a payment it could not attribute to a tenant"
                 description = "Money was taken and no tenant owns it, so no receipt and no VAT document will be issued for it. List them at GET /api/admin/payments/unmatched and read the audit entries (action payment_unattributed). Do not leave it: a sent invoice takes a number out of a gapless series, so the document has to be issued deliberately once the tenant is known."
+              }
+            },
+            {
+              # No money moved: a subscription event named a tenant this Hub does
+              # not know, which usually means a subscription outlived the account
+              # it was for. Worth seeing, not worth waking anyone.
+              alert = "REDACTED_33e8af56"
+              expr  = "increase(meshsat_hub_payments_unattributed_total{kind=\"lifecycle\"}[1h]) > 0"
+              for   = "0m"
+              labels = {
+                severity = "warning"
+                service  = "meshsat-hub"
+              }
+              annotations = {
+                summary     = "A Stripe subscription event named a tenant MeshSat does not know"
+                description = "A subscription lifecycle event could not be attributed. No money moved, so nobody is owed a document -- but a live subscription may exist in Stripe for an account that no longer does, which will keep billing somebody. Check the audit entries (action payment_unattributed, amount_cents 0) and cancel the subscription in Stripe if the tenant is really gone. Probes that delete a tenant before cancelling in Stripe produce this too."
               }
             },
             {
