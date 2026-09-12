@@ -310,6 +310,24 @@ locals {
     hub        = { module = "http_hub_edge", target = "https://%s/healthz" }
     auth       = { module = "http_auth_edge", target = "https://%s/-/health/live/" }
     "mqtt-hub" = { module = "tls_sni_mqtt_hub", target = "%s:443" }
+
+    # Hosted per-tenant TAK (MESHSAT-1037). ATAK, iTAK and WinTAK send no SNI on
+    # the CoT socket, so this leg cannot live on :443 with the others -- it is its
+    # own port, 8089, added to all three VPS on 2026-09-12.
+    #
+    # A PLAIN TCP CONNECT, deliberately, and this is the limit of what it asserts:
+    # the edge accepts 8089 (ufw open, haproxy up, the tak_in frontend present and
+    # its meshsat_tak backend resolving the workers' relay hostPort 9089). It does
+    # NOT assert that any tenant's TAK server is reachable. A TLS probe is not
+    # available here: the Hub's TAK front REQUIRES a client certificate, so a probe
+    # without one would fail by design and this alert would never stop firing.
+    #
+    # tcp_connect carries no preferred_ip_protocol, which elsewhere means IPv6 and
+    # a false failure on this runner -- measured harmless here because the target is
+    # a literal IPv4 address, so there is nothing to resolve (probe_ip_protocol 4 on
+    # all three edges). Do not reuse this module against a HOSTNAME without adding
+    # the ip4 preference first.
+    tak = { module = "tcp_connect", target = "%s:8089" }
   }
 
   meshsat_edge_targets = flatten([
