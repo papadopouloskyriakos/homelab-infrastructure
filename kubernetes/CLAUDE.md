@@ -45,7 +45,7 @@ python3 /home/claude-runner/scripts/tf-graph-indexer.py /home/claude-runner/gitl
 - **Atlantis** handles plan/apply via MR comments. Always create MRs for `.tf` changes.
 - **Argo CD** manages 4 apps (bentopdf, pihole, velero, echo-server) from `argocd-apps/`. These auto-sync — push YAML to main. `argocd-apps/velero/` is canonical (byte-identical with GR, incl. the 13-CRD `crds.yaml` pinned v1.17.1); the other three are NL-only (mirror-exempt).
 - **State**: GitLab Terraform HTTP backend. Never run `tofu apply` locally.
-- **The root is tfvars-driven since 2026-08-16 (mirror campaign):** `main.tf`/`variables.tf`/`providers.tf`/`outputs.tf` are canonical (byte-identical with GR, zero site literals); ALL site values live in `terraform.tfvars` (77 keys, key-set parity with GR asserted by the mirror check); `site-storage.tf` holds the per-site CSI module call (nl-nas01-csi) and is the only mirror-exempt root `.tf` file. `moved.tf`/`imports.tf` were spent and deleted. Secrets stay in Atlantis `TF_VAR_*` env — tfvars values would override them.
+- **The root is tfvars-driven since 2026-08-16 (mirror campaign):** `main.tf`/`variables.tf`/`providers.tf`/`outputs.tf` are canonical (byte-identical with GR, zero site literals); ALL site values live in `terraform.tfvars` (77 keys, key-set parity with GR asserted by the mirror check); `site-storage.tf` holds the per-site CSI module call (nl-nas01-csi) and is the only mirror-exempt root `.tf` file. `moved.tf`/`imports.tf` were spent and deleted (`imports.tf` came back briefly on 2026-09-12 to adopt the hand-applied `wildcard-ellizg-com` Certificate, then was deleted again in MR !550 — that is the intended lifecycle for an import block, not a file to keep). Secrets stay in Atlantis `TF_VAR_*` env — tfvars values would override them.
 - Run `tofu fmt -recursive` before committing — the pipeline enforces formatting.
 
 ## Mirror contract
@@ -101,7 +101,7 @@ The authoritative machine-readable pairs live in `terraform.tfvars` (all three f
 | NFS | 10.0.X.X:/volume1/k8s | 10.0.X.X:/exports/nfs/k8s | none (`nfs_enabled = false`) |
 | Storage classes (backend) | `synology-csi-nl-nas01-iscsi-{retain,delete}` (Synology DS1621+) | `iscsi-ssd-{retain,delete}` (democratic-csi, ZFS on gr-pve02) | `local-hostpath-{retain,delete}` (OpenEBS LocalPV, 160G shared roots) |
 | S3 buckets | `loki` / `thanos-nl` / `velero` | `loki-gr` / `thanos-gr` / `velero-gr` | `loki-no` / `thanos-no` / `velero-no` — loki-no/thanos-no on the LOCAL NO SeaweedFS (7 pods run there — audit fix 2026-08-18); velero-no + etcd-snapshots-no on NL S3 (velero BSL s3Url = https://nl-s3.example.net) |
-| cert-manager role | issuer (`acme_issuer_enabled = true`: ACME + 19 Certificates + PushSecret) | consumer (`false`: ExternalSecret pulls `REDACTED_2812d784`) | consumer (`false`) |
+| cert-manager role | issuer (`acme_issuer_enabled = true`: ACME + 20 Certificates + PushSecret) | consumer (`false`: ExternalSecret pulls `REDACTED_2812d784`) | consumer (`false`) |
 | Estate scrapes / estate alerts | `estate_scrape_enabled = true` + the estate alert files | `false` + stub / exempt (see below) | `false` + stub |
 | Gating vars (2403) | clustermesh/bgp/nfs/asa_snmp/thanos_remote/awx all `true`; remote-write receiver `true` (hub) | all `true`; receiver `false` | **all `false`**; `prometheus_remote_write_url` → NL receiver (satellite) |
 | Twilio bridge | http://10.0.X.X:9106/alert (nlclaude01) | http://10.0.X.X:9106/alert (grclaude01) | NL bridge over the overlay (http://10.0.X.X:9106/alert) |
