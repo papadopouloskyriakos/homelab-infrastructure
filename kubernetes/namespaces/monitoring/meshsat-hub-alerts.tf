@@ -262,6 +262,34 @@ resource "kubernetes_manifest" "meshsat_hub_alert_rules" {
                 description = "meshsat_hub_dependency_up is absent from this Prometheus. Either the Hub Deployment is scaled to 0, the ServiceMonitor meshsat-hub in the notrf01 monitoring namespace is not scraping (bearer token Secret meshsat-hub-metrics-token), or the notrf01 -> NL remote-write stream is down. While this is true the REDACTED_e9a9f82e rules cannot fire."
               }
             },
+            {
+              # A tenant's CoT is going nowhere and only they are affected, so this is a
+              # warning rather than a page: their own TAK server is refusing the Hub or has
+              # gone away, which is a configuration problem somebody has to tell them about.
+              #
+              # Why it exists: until MESHSAT-1066 this failed SILENTLY. Under TLS 1.3 the
+              # client certificate is sent after the server's Finished, so the dial returned
+              # nil, the first write landed in the kernel buffer and returned nil, and the Hub
+              # logged "opened a CoT connection" for a peer that had already rejected it. Four
+              # refusals at a customer's server produced zero warnings. This counter is the
+              # signal that defect had no way to raise.
+              #
+              # kind is hosted or external -- DERIVED, never the per-tenant instance label, so
+              # the series count does not grow with the customer count. All six kind/reason
+              # pairs are materialised at Hub startup, because an absent series cannot fire a
+              # rate rule.
+              alert = "REDACTED_eb9d96ac"
+              expr  = "increase(meshsat_hub_takhosted_forward_failed_total[15m]) > 0"
+              for   = "0m"
+              labels = {
+                severity = "warning"
+                service  = "meshsat-hub"
+              }
+              annotations = {
+                summary     = "MeshSat CoT is not reaching a {{ $labels.kind }} TAK server ({{ $labels.reason }})"
+                description = "Cursor-on-Target events failed to reach a tenant TAK server in the last 15m, reason {{ $labels.reason }}, kind {{ $labels.kind }}. Their kit is still reporting to the Hub -- only the forward is lost, so the tenant sees an empty map rather than an error. reason=refused usually means the client certificate pasted into Settings -> Integrations is not one their server trusts; the Hub logs 'refused this Hub' with the TLS reason, so grep the lease-holder pod for takhosted. reason=dial means the host or port is wrong or unreachable from the cluster. reason=write means an established connection died. For kind=hosted this is ours to fix rather than theirs: check the TakInstance and its pod in meshsat-tak."
+              }
+            },
           ]
         },
       ]
