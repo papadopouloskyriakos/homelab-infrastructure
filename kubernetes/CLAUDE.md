@@ -56,7 +56,7 @@ THREE `k8s/` trees are a **character-perfect mirror** of one hub form: **NL (the
 
 | Class | Files | Rule |
 |-------|-------|------|
-| **Canonical (byte-identical)** | Every `.tf` under `_core/*` (except the site storage module dirs) and `namespaces/*`; root `main.tf` / `variables.tf` / `providers.tf` / `outputs.tf`; `argocd-apps/velero/*`; `ci/k8s.yml`; `atlantis.yaml`; `.githooks/pre-commit`; `scripts/k8s-mirror-*` | NO site identifiers in file content — every site value is `var.*` fed from tfvars. Edits MUST be ported to BOTH twins (see THE RULE). |
+| **Canonical (byte-identical)** | Every `.tf` under `_core/*` (except the site storage module dirs) and `namespaces/*`; root `main.tf` / `variables.tf` / `providers.tf` / `outputs.tf` / `node-zones.tf`; `argocd-apps/velero/*`; `ci/k8s.yml`; `atlantis.yaml`; `.githooks/pre-commit`; `scripts/k8s-mirror-*` | NO site identifiers in file content — every site value is `var.*` fed from tfvars. Edits MUST be ported to BOTH twins (see THE RULE). |
 | **Site values** | root `terraform.tfvars` | The ONLY home of site-unique values. The diff asserts all files carry the **same key set**; values differ per the identifier dictionary. Secrets stay in the Atlantis `TF_VAR_*` env — never in tfvars (tfvars values OVERRIDE env vars). Adding a key in one repo without the twins fails the key-set gate. |
 | **Site structural (same name, per-site content)** | root `site-storage.tf` (the per-site storage module call: NL = synology-csi against nl-nas01, GR = democratic-csi against the gr-pve02 ZFS pool, NO = openebs-localpv hostpath on the 160G shared roots); `namespaces/monitoring/scrape-estate.tf` (NL = the estate-wide scrape jobs, GR and NO = stubs defining `estate_scrape_configs = []`) | Deliberately different content behind an identical filename, so `main.tf` (root and monitoring) stays byte-identical. All are on the exemption manifest. Do not "align" them. |
 | **Exempt** | Everything listed in `scripts/k8s-mirror-exempt.txt`: the three site storage module dirs, `terraform.tfvars` (key-set-checked instead), the estate/NL-subsystem alert files (`estate-alerts.tf`, `host-pressure-alerts.tf`, `infrastructure-integrity-alerts.tf`, the omoikane/edge/intersite/agentic/meshsat-hub/meshsat-copycat `*-alerts.tf` set), `dashboards.tf` + `dashboards/`, NL-only `argocd-apps/{bentopdf,echo-server,pihole}`, `CLAUDE.md`, `README.md`, `cluster-snapshots/`, `secrets/`, lock/terraform dirs | Every entry MUST carry a reason comment. Removing an entry = claiming the path is now canonical. |
@@ -132,6 +132,7 @@ k8s/
 ├── variables.tf         # CANONICAL union var set (122 vars, declared once each)
 ├── providers.tf         # CANONICAL — Kubernetes + Helm providers (~> 3.2.0 both)
 ├── outputs.tf           # CANONICAL — var-driven deployment summary
+├── node-zones.tf       # CANONICAL — topology.kubernetes.io/zone from var.node_zones
 ├── site-storage.tf      # SITE FILE — nl-nas01-csi module call (GR: democratic-csi)
 ├── terraform.tfvars     # SITE FILE — ALL site values (77 keys, key-set parity with GR)
 ├── _core/               # Platform infrastructure modules (all canonical except the CSI dir)
