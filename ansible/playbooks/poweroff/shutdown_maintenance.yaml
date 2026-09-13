@@ -1,0 +1,152 @@
+---
+# ┌──────────────────────────────────────────────────────────┐
+# │ PLAY 1: API calls run 100% locally (no SSH/sudo)         │
+# └──────────────────────────────────────────────────────────┘
+- name: Schedule 45-minute maintenance in LibreNMS for targeted hosts
+  hosts: all  # Scoped by template limit, tasks delegated to localhost
+  gather_facts: no
+  become: false
+  vars:
+    librenms_api_url: "https://nlnms01.example.net/api/v0"  # Customize if needed
+    librenms_api_token: "{{ api_token | default('your_token_here') }}"   # Pass securely via AWX
+    maintenance_duration: "00:45"  # Fixed to HH:MM
+    maintenance_title: "Automated shutdown maintenance for {{ inventory_hostname }}"
+    maintenance_notes: "Suppress alerts during shutdown"
+    domain_suffix: ".example.net"  # Your FQDN suffix
+
+  tasks:
+    - name: Debug api_token (masked) and inventory hosts in group
+      debug:
+        msg: "API Token (masked): {{ librenms_api_token | regex_replace('.', '*') }} | Scoped hosts: {{ groups['all'] | join(', ') }}"
+      delegate_to: localhost
+
+    - name: Fetch device_id for {{ inventory_hostname }} from LibreNMS (try short hostname)
+      ansible.builtin.uri:
+        url: "{{ librenms_api_url }}/devices?type=hostname&query={{ inventory_hostname }}"
+        method: GET
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        validate_certs: no
+        timeout: 60
+        return_content: yes
+      register: device_query_short
+      delegate_to: localhost
+      ignore_errors: yes
+
+    - name: Fetch device_id for {{ inventory_hostname }} from LibreNMS (fallback to FQDN if short not found)
+      ansible.builtin.uri:
+        url: "{{ librenms_api_url }}/devices?type=hostname&query={{ inventory_hostname ~ domain_suffix }}"
+        method: GET
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        validate_certs: no
+        timeout: 60
+        return_content: yes
+      register: device_query_fqdn
+      delegate_to: localhost
+      ignore_errors: yes
+      when: device_query_short.json.devices | length == 0 or device_query_short.status != 200
+
+    - name: Set device_id fact
+      set_fact:
+        device_id: "{{ (device_query_short.json.devices[0].device_id if device_query_short.json.devices | length > 0 else device_query_fqdn.json.devices[0].device_id) | default('not_found') }}"
+      when: device_query_short.status == 200 or device_query_fqdn.status == 200
+      delegate_to: localhost
+
+    - name: Debug device_id
+      debug:
+        msg: "Hostname {{ inventory_hostname }} has device_id {{ device_id }} (tried FQDN fallback)"
+      delegate_to: localhost
+
+    - name: Check if {{ inventory_hostname }} is already in maintenance (using device_id)
+      ansible.builtin.uri:
+        url: "{{ librenms_api_url }}/devices/{{ device_id }}/maintenance/"
+        method: GET
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        validate_certs: no
+        timeout: 60
+        return_content: yes
+      register: check_maintenance
+      when: device_id != 'not_found'
+      delegate_to: localhost
+      ignore_errors: yes
+
+    - name: Put {{ inventory_hostname }} into maintenance if not already (using device_id)
+      ansible.builtin.uri:
+        url: "{{ librenms_api_url }}/devices/{{ device_id }}/maintenance/"
+        method: POST
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+          Content-Type: application/json
+        body_format: json
+        body:
+          title: "{{ maintenance_title }}"
+          notes: "{{ maintenance_notes }}"
+          duration: "{{ maintenance_duration }}"
+        status_code: [200, 201, 204]
+        validate_certs: no
+        timeout: 60
+        return_content: yes
+      when: device_id != 'not_found' and (check_maintenance.status != 200 or 'already in maintenance' not in check_maintenance.content | default(''))
+      register: maintenance_results
+      retries: 3
+      delay: 10
+      until: maintenance_results.status in [200, 201, 204]
+      delegate_to: localhost
+      tags: maintenance
+
+    - name: Debug maintenance results
+      debug:
+        msg: "{{ inventory_hostname }} → {{ maintenance_results.content | default(maintenance_results.json | default('Success - no JSON response')) }}"
+      when: maintenance_results.changed | default(false)
+      delegate_to: localhost
+      tags: maintenance
+
+    - name: Pause to let maintenance take effect
+      pause:
+        seconds: 30
+      tags: maintenance
+
+
+# ┌───────────────────────────────────────────────────┐
+# │ PLAY 2: Shutdown on the real hosts over SSH       │
+# └───────────────────────────────────────────────────┘
+- name: Power off each host under maintenance
+  hosts: all  # Scoped by template limit
+  gather_facts: yes
+  become: yes
+
+  tasks:
+    - name: Test become (sudo) with echo
+      command: echo "Become worked"
+      register: become_test
+      changed_when: false
+
+    - name: Debug become test
+      debug:
+        msg: "Become (sudo) test: {{ become_test.stdout | default('Failed - no output') }}"
+
+    - name: Check host reachability
+      ansible.builtin.ping:
+      ignore_errors: true
+
+    - name: Debug reachability
+      debug:
+        msg: "{{ inventory_hostname }} is reachable via ping."
+
+    - name: Clear any host errors
+      meta: clear_host_errors
+
+    - name: Shutdown the host asynchronously
+      command: poweroff
+      async: 30
+      poll: 0
+      failed_when: false
+      ignore_unreachable: true
+      register: shutdown_result
+
+    - name: Debug shutdown dispatch
+      debug:
+        msg: "Poweroff command dispatched for {{ inventory_hostname }}. Result: {{ shutdown_result.msg | default('No output') }} | RC: {{ shutdown_result.rc | default('N/A') }}"
+      tags: shutdown

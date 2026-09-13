@@ -1,0 +1,203 @@
+---
+# ChatOps Maintenance Mode — Set or Clear
+#
+# Controls the gateway maintenance file and posts Matrix notices.
+#
+# Required extra_vars:
+#   action: "set" or "clear"
+#
+# Optional extra_vars (for action=set):
+#   reason: "PVE kernel updates + Synology DSM" (default)
+#   eta_minutes: 135 (default)
+#   operator: "kyriakos" (default)
+#   site: "nl" or "gr" or "both" (default: "both")
+#
+# Mechanism:
+#   Set: writes /home/claude-runner/gateway.maintenance JSON file
+#        + posts m.notice to relevant Matrix rooms
+#   Clear: removes the file + posts "maintenance complete" notice
+#
+# Matrix rooms (by site):
+#   NL: #chatops, #cubeos, #meshsat, #infra-nl-prod, #alerts
+#   GR: #infra-gr-prod, #alerts
+#   both: all of the above
+
+- name: "ChatOps maintenance mode: {{ action }}"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    gateway_maintenance_file: "/home/claude-runner/gateway.maintenance"
+    claude_host: "nlclaude01"
+    ssh_user: "claude-runner"
+    matrix_base_url: "https://matrix.example.net"
+    # Injected by the AWX credential type "Matrix API Token" (attached to
+    # template 67). Empty when absent: the maintenance file is the load-bearing
+    # part, so Matrix notices degrade to a skip instead of failing the job.
+    matrix_token: "{{ matrix_api_token | default('') }}"
+    maint_reason: "{{ reason | default('PVE kernel updates + Synology DSM') }}"
+    maint_eta: "{{ eta_minutes | default(135) }}"
+    maint_operator: "{{ operator | default('kyriakos') }}"
+    maint_site: "{{ site | default('both') }}"
+
+    # Matrix room IDs by site
+    nl_rooms:
+      - "!PVkZvHgyrtBVEbgpRt:matrix.example.net"  # chatops
+      - "!iXTnQsFJahUquYPDdG:matrix.example.net"  # cubeos
+      - "!miZJJDwFQZDkuMcBqL:matrix.example.net"  # meshsat
+      - "!AOMuEtXGyzGFLgObKN:matrix.example.net"  # infra-nl-prod
+    gr_rooms:
+      - "!NKosBPujbWMevzHaaM:matrix.example.net"  # infra-gr-prod
+    alert_room:
+      - "!xeNxtpScJWCmaFjeCL:matrix.example.net"  # alerts
+
+  tasks:
+    ###########################################################################
+    # Build room list based on site
+    ###########################################################################
+    - name: Build target room list
+      set_fact:
+        target_rooms: >-
+          {%- if maint_site == 'nl' -%}
+            {{ nl_rooms + alert_room }}
+          {%- elif maint_site == 'gr' -%}
+            {{ gr_rooms + alert_room }}
+          {%- else -%}
+            {{ nl_rooms + gr_rooms + alert_room }}
+          {%- endif -%}
+
+    ###########################################################################
+    # SET maintenance mode
+    ###########################################################################
+    - name: "Write gateway.maintenance file"
+      block:
+        - name: Build maintenance JSON
+          set_fact:
+            maint_json:
+              started: "{{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}"
+              reason: "{{ maint_reason }}"
+              eta_minutes: "{{ maint_eta | int }}"
+              operator: "{{ maint_operator }}"
+              site: "{{ maint_site }}"
+
+        # JSON is fed via stdin, never an inline heredoc: the previous heredoc-in-
+        # `command:` form was word-split by argv parsing, so the remote shell got a
+        # mangled one-liner -- rc=1 AND a 0-byte gateway.maintenance left behind by
+        # the redirection (2026-08-16, campaign IFRNLLEI01PRD-2373). Same trap as
+        # AWX job 33873: command with a string word-splits; use argv.
+        - name: Write maintenance file via SSH
+          command:
+            argv:
+              - ssh
+              - "{{ ssh_user }}@{{ claude_host }}"
+              - "cat > {{ gateway_maintenance_file }}"
+            stdin: "{{ maint_json | to_nice_json }}"
+          register: write_result
+
+        # Existence is not enough -- the failure mode above leaves an EMPTY file.
+        # Require non-empty AND parseable JSON.
+        - name: Verify maintenance file written
+          command:
+            argv:
+              - ssh
+              - "{{ ssh_user }}@{{ claude_host }}"
+              - "test -s {{ gateway_maintenance_file }} && python3 -m json.tool {{ gateway_maintenance_file }} > /dev/null && echo VALID"
+          register: verify_file
+          failed_when: "'VALID' not in verify_file.stdout"
+
+        - name: Build maintenance notice message
+          set_fact:
+            maint_message: >-
+              Scheduled maintenance starting: {{ maint_reason }}.
+              ETA: {{ maint_eta }} minutes. Operator: {{ maint_operator }}.
+              Alert processing suspended until maintenance completes.
+
+        - name: Post maintenance notice to Matrix rooms
+          uri:
+            url: "{{ matrix_base_url }}/_matrix/client/v3/rooms/{{ item }}/send/m.room.message"
+            method: POST
+            headers:
+              Authorization: "Bearer {{ matrix_token }}"
+              Content-Type: application/json
+            body_format: json
+            body:
+              msgtype: "m.notice"
+              body: "{{ maint_message }}"
+            status_code: [200]
+            timeout: 30
+          loop: "{{ target_rooms }}"
+          register: matrix_results
+          ignore_errors: true
+          when: matrix_token | length > 0
+
+        - name: Log Matrix posting results
+          debug:
+            msg: >-
+              {%- if matrix_token | length == 0 -%}
+              Matrix notice SKIPPED: matrix_api_token not provided (attach the
+              Matrix API Token credential to this template)
+              {%- else -%}
+              Posted maintenance notice to {{ matrix_results.results | default([])
+              | selectattr('status', 'defined')
+              | selectattr('status', 'eq', 200)
+              | list | length }}/{{ target_rooms | length }} rooms
+              {%- endif -%}
+      when: action == "set"
+
+    ###########################################################################
+    # CLEAR maintenance mode
+    ###########################################################################
+    - name: "Clear gateway.maintenance file"
+      block:
+        - name: Remove maintenance file via SSH
+          command: >-
+            ssh {{ ssh_user }}@{{ claude_host }}
+            "rm -f {{ gateway_maintenance_file }}"
+          register: remove_result
+
+        - name: Verify maintenance file removed
+          command: >-
+            ssh {{ ssh_user }}@{{ claude_host }}
+            "test ! -f {{ gateway_maintenance_file }} && echo REMOVED"
+          register: verify_removed
+          failed_when: "'REMOVED' not in verify_removed.stdout"
+
+        - name: Build clearance notice message
+          set_fact:
+            clear_message: >-
+              Maintenance complete. All services restored.
+              15-minute cooldown period starting — post-maintenance recovery alerts will be auto-tagged.
+
+        - name: Post clearance notice to Matrix rooms
+          uri:
+            url: "{{ matrix_base_url }}/_matrix/client/v3/rooms/{{ item }}/send/m.room.message"
+            method: POST
+            headers:
+              Authorization: "Bearer {{ matrix_token }}"
+              Content-Type: application/json
+            body_format: json
+            body:
+              msgtype: "m.notice"
+              body: "{{ clear_message }}"
+            status_code: [200]
+            timeout: 30
+          loop: "{{ target_rooms }}"
+          register: matrix_clear_results
+          ignore_errors: true
+          when: matrix_token | length > 0
+
+        - name: Log Matrix clearance results
+          debug:
+            msg: >-
+              {%- if matrix_token | length == 0 -%}
+              Matrix notice SKIPPED: matrix_api_token not provided (attach the
+              Matrix API Token credential to this template)
+              {%- else -%}
+              Posted clearance notice to {{ matrix_clear_results.results | default([])
+              | selectattr('status', 'defined')
+              | selectattr('status', 'eq', 200)
+              | list | length }}/{{ target_rooms | length }} rooms
+              {%- endif -%}
+      when: action == "clear"

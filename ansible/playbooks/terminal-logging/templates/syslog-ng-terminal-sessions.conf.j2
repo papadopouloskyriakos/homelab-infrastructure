@@ -1,0 +1,23 @@
+# {{ ansible_managed }}
+# Terminal session logs from all servers
+
+filter f_terminal_session {
+    facility(local6) and match("terminal-session" value("PROGRAM"));
+};
+
+destination d_terminal_sessions {
+    file("/var/log/central/terminal-sessions/${HOST}/${YEAR}-${MONTH}-${DAY}.log"
+        create-dirs(yes)
+        owner("root")
+        group("adm")
+        perm(0640)
+        dir-perm(0750)
+    );
+};
+
+log {
+    source(s_net);
+    filter(f_terminal_session);
+    destination(d_terminal_sessions);
+    flags(final);
+};
