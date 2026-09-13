@@ -30,6 +30,19 @@
 # believes it has spread a workload that it has not, and the belief is
 # what gets trusted in a design review. Only claim the boundary you can
 # point at, and say which one it is in node_zone_basis.
+#
+# ⚠⚠ THE TWO RESOURCES BELOW MUST NEVER SHARE A field_manager. Both patch
+# the SAME Node object, and a server-side apply declares the COMPLETE set
+# of fields that manager owns: the second apply therefore REMOVES whatever
+# the first one wrote. The first version of this file gave both the name
+# "opentofu-node-zones" and the result was a silent, order-dependent
+# split — `tofu apply` reported "12 added", state held all twelve, nothing
+# was red, and four of the six nodes had no annotation because the label
+# resource happened to run last on them. On the other two the ANNOTATION
+# ran last, and their zone label survived only because a leftover
+# kubectl-label ownership was still holding it; on a clean node those two
+# would have lost the label outright. Distinct names, and leave them
+# distinct.
 # ========================================================================
 
 resource "kubernetes_labels" "node_zone" {
@@ -51,7 +64,7 @@ resource "kubernetes_labels" "node_zone" {
   # server-side-apply field manager, and without force the apply fails on
   # the field conflict instead of taking ownership. The same applies to a
   # cloud controller or a kubelet --node-labels flag setting it at join.
-  field_manager = "opentofu-node-zones"
+  field_manager = "opentofu-node-zone-label"
   force         = true
 }
 
@@ -72,9 +85,16 @@ resource "kubernetes_annotations" "node_zone_basis" {
   }
 
   annotations = {
-    "example.net/zone-basis" = var.node_zone_basis
+    "infra.example.net/zone-basis" = var.node_zone_basis
   }
 
+  # KEPT at the old shared name on purpose, and it is not interchangeable
+  # with the label's. This manager is the one that still owns the stray
+  # `example.net/zone-basis` key the collision above left on some
+  # nodes, and an apply from the owning manager that omits a field is the
+  # ONLY thing that removes it. Renaming this would strand that key with an
+  # owner nothing ever applies as again, and it would have to be deleted by
+  # hand. The label resource took the new name instead.
   field_manager = "opentofu-node-zones"
   force         = true
 }
