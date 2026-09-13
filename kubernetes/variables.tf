@@ -1095,7 +1095,7 @@ variable "node_zones" {
 }
 
 variable "node_zone_basis" {
-  description = "One sentence naming what the boundary in node_zones physically IS — rack, PSU, upstream gateway, hypervisor — written onto every zoned node as the annotation example.net/zone-basis. Empty writes no annotation. Required in spirit whenever node_zones is non-empty: a zone name nobody can trace back to shared hardware is a claim the scheduler acts on and no reviewer can check."
+  description = "One sentence naming what the boundary in node_zones physically IS — rack, PSU, upstream gateway, hypervisor — written onto every zoned node as the annotation infra.example.net/zone-basis. Empty writes no annotation. Required in spirit whenever node_zones is non-empty: a zone name nobody can trace back to shared hardware is a claim the scheduler acts on and no reviewer can check."
   type        = string
   default     = ""
 }
