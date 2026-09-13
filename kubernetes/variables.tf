@@ -1087,3 +1087,15 @@ variable "pve_hosts" {
   }))
   default = []
 }
+
+variable "node_zones" {
+  description = "This site's failure-domain map: node name -> topology.kubernetes.io/zone value, consumed by node-zones.tf. Node names must match `kubectl get nodes` exactly — a name that does not exist fails the apply rather than being skipped, which is deliberate. An EMPTY map labels nothing, and an unlabelled cluster is a single zone as far as kube-scheduler is concerned: every topology spread constraint in it silently becomes a no-op. Empty is therefore a statement that this site has not surveyed its own topology yet, not a neutral default."
+  type        = map(string)
+  default     = {}
+}
+
+variable "node_zone_basis" {
+  description = "One sentence naming what the boundary in node_zones physically IS — rack, PSU, upstream gateway, hypervisor — written onto every zoned node as the annotation example.net/zone-basis. Empty writes no annotation. Required in spirit whenever node_zones is non-empty: a zone name nobody can trace back to shared hardware is a claim the scheduler acts on and no reviewer can check."
+  type        = string
+  default     = ""
+}
