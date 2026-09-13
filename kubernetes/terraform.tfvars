@@ -14,6 +14,14 @@ remote_site_code = "gr"
 node_region      = "nl-lei"
 repository_label = "REDACTED_25022d4e"
 
+# --- node failure domains (node-zones.tf) ---
+# Empty = this site's failure-domain topology has not been surveyed, so no node
+# carries topology.kubernetes.io/zone and kube-scheduler treats the whole
+# cluster as ONE zone: every topology spread constraint in it is a no-op. That
+# is a gap to close, not a setting. See variables.tf and k8s/node-zones.tf.
+node_zones      = {}
+node_zone_basis = ""
+
 # --- cluster identity ---
 cluster_name = "nlcl01k8s"
 cluster_id   = 1
