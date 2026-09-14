@@ -202,11 +202,44 @@ resource "kubernetes_manifest" "meshsat_hub_alert_rules" {
               }
             },
             {
-              # Informational dependencies (mqtt, redis, apprise, ntfy, hawkbit,
+              # The message bus is NOT a degraded dependency (MESHSAT-1129,
+              # owner decision 2026-09-14: alert, do not gate readiness).
+              #
+              # Every position, message, bridge birth, SMS and SOS reaches the Hub
+              # over MQTT. A replica whose bus is down stores nothing and detects
+              # no SOS -- and it passes /readyz, because the bus probe is
+              # informational, so it keeps taking half the traffic while
+              # consuming none of it. That is the shape MESHSAT-1129 found: a
+              # broker blip at startup left a pod silent for its whole life.
+              #
+              # Readiness deliberately stays informational. Gating it would
+              # remove BOTH replicas from the Service during a NATS outage and
+              # take the whole public API down, including Stripe webhooks and
+              # billing that need no broker. So this pages a person instead.
+              #
+              # The gauge is refreshed on every kubelet readiness call (the info
+              # probe runs "metric always, response only if verbose"), so 5m of
+              # zeros is five minutes of a replica that cannot hear an SOS.
+              alert = "REDACTED_aca3dddc"
+              expr  = "meshsat_hub_dependency_up{dependency=\"mqtt\"} == 0"
+              for   = "5m"
+              labels = {
+                severity = "critical"
+                service  = "meshsat-hub"
+                tier     = "1"
+              }
+              annotations = {
+                summary     = "MeshSat Hub replica {{ $labels.instance }} has no message bus (5m)"
+                description = "meshsat_hub_dependency_up{dependency=mqtt} has been 0 for 5m on {{ $labels.instance }}. This replica is storing no positions or messages, marking no bridges online, sending no SMS and DETECTING NO SOS, while still passing /readyz and taking traffic. Check the nats StatefulSet (kubectl -n meshsat-hub get sts nats) and the pod's own log for 'bus: mqtt'. The bus reconnects on its own since MESHSAT-1129; if it has not in 5m the broker itself is the problem."
+              }
+            },
+            {
+              # Informational dependencies (redis, apprise, ntfy, hawkbit,
               # reticulum_identity, leader_election, bridge_ca_export): degraded,
-              # not down. Warning after 15m.
+              # not down. Warning after 15m. mqtt is excluded: it has its own
+              # tier-1 rule above, because a Hub with no bus is not degraded.
               alert = "REDACTED_26c9d062"
-              expr  = "meshsat_hub_dependency_up{dependency!=\"db\"} == 0"
+              expr  = "meshsat_hub_dependency_up{dependency!~\"db|mqtt\"} == 0"
               for   = "15m"
               labels = {
                 severity = "warning"
