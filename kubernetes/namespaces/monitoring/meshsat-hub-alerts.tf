@@ -51,6 +51,14 @@ resource "kubernetes_manifest" "REDACTED_f4ab4444" {
           targets = [
             "https://hub.meshsat.net/healthz",
             "https://auth.meshsat.net/-/health/live/",
+            # The three static sites, for the public status page's Website /
+            # Docs / Installer rows (MESHSAT-1134). Each nginx answers /healthz
+            # with 200 "OK" (meshsat-website nginx-*.conf); the hostname
+            # round-robins the three edges, so the page averages this series
+            # over 5m to read the fraction of healthy edges.
+            "https://meshsat.net/healthz",
+            "https://docs.meshsat.net/healthz",
+            "https://get.meshsat.net/healthz",
           ]
           labels = {
             service = "meshsat-hub"
