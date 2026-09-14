@@ -227,6 +227,7 @@ resource "kubernetes_manifest" "meshsat_hub_alert_rules" {
                 severity = "critical"
                 service  = "meshsat-hub"
                 tier     = "1"
+                page     = "sms" # a replica that cannot hear an SOS must reach a phone on silent (owner decision 2026-09-14)
               }
               annotations = {
                 summary     = "MeshSat Hub replica {{ $labels.instance }} has no message bus (5m)"
@@ -466,6 +467,7 @@ resource "kubernetes_manifest" "meshsat_edge_alert_rules" {
                 severity = "critical"
                 service  = "meshsat-hub"
                 tier     = "1"
+                page     = "sms" # a third of customers dropped with no error is worth a phone on silent (owner decision 2026-09-14)
               }
               annotations = {
                 summary     = "MeshSat edge {{ $labels.edge }} is not serving {{ $labels.leg }} (5m)"
