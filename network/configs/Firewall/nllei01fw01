@@ -1161,6 +1161,7 @@ access-list dmz_servers02_access_in extended permit tcp object nl-matrix01 objec
 access-list dmz_servers02_access_in extended permit ip object-group S2S_LEI_GRP_dmz_servers02 object-group S2S_SKG_GRP_dmz_servers02 
 access-list dmz_servers02_access_in extended permit icmp object-group S2S_LEI_GRP_dmz_servers02 object-group S2S_SKG_GRP_dmz_servers02 
 access-list dmz_servers02_access_in extended permit tcp host 10.0.X.X host 10.0.X.X eq https 
+access-list dmz_servers02_access_in extended permit tcp host 10.0.X.X object nlsmtp-dkim01 eq 2525 
 access-list dmz_servers02_access_in extended deny ip any object-group nl_all_subnets 
 access-list dmz_servers02_access_in extended deny icmp any object-group nl_all_subnets 
 access-list dmz_servers02_access_in extended deny ip any object-group gr_all_subnets 
