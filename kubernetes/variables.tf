@@ -685,6 +685,18 @@ variable "REDACTED_6930756b" {
   default     = 5
 }
 
+variable "REDACTED_6db9426a" {
+  description = "SeaweedFS master -volumeSizeLimitMB (chart default 1000; NL 8000 so slots stop being the ceiling, IFRNLLEI01PRD-2850)"
+  type        = number
+  default     = 1000
+}
+
+variable "REDACTED_323fe643" {
+  description = "SeaweedFS volume server -compactionMBps (vacuum throttle; default 50, NL 200, IFRNLLEI01PRD-2850)"
+  type        = number
+  default     = 50
+}
+
 variable "REDACTED_d36a9dce" {
   description = "SeaweedFS volume server -max volume slots per dataDir (0 = auto from disk space; NL pins 1400 - auto froze at 1028 while the disk had 441G free, IFRNLLEI01PRD-2605)"
   type        = number

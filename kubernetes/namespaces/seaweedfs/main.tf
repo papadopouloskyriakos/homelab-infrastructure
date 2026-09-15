@@ -94,6 +94,8 @@ resource "helm_release" "seaweedfs" {
       volume_storage_size           = var.volume_storage_size
       REDACTED_0a7b20f8 = var.REDACTED_0a7b20f8
       volume_max_volumes            = var.volume_max_volumes
+      volume_size_limit_mb          = var.volume_size_limit_mb
+      REDACTED_db5b622d        = var.REDACTED_db5b622d
       filer_storage_size            = var.filer_storage_size
       node_region                   = var.node_region
       filer_store                   = var.filer_store
