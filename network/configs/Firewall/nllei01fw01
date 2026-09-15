@@ -734,12 +734,12 @@ object network grnpm01
 object network grskg03pmsops01_wg
  host 10.0.X.X
  description WireGuard site peer, Ilias home, one-way trust
-object network grskg03pmsops01_ddns
- fqdn v4 grskg03pmsops01.freeddns.org
- description Ilias portable box (ddclient -> Dynu), WireGuard udp/443 fallback source
 object network nlwg01-wg443
  host 10.0.X.X
  description WireGuard fallback: public udp/443 -> wg01:443 (REDIRECT to 51820 on wg01); FQDN-whitelisted ACE only
+object network grskg03pmsops01_ddns
+ fqdn v4 grskg03pmsops01.freeddns.org
+ description Ilias portable box (ddclient -> Dynu), WireGuard udp/443 fallback source
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -799,9 +799,6 @@ object-group network nl_oas_vpn_pool_XX
  network-object object nl_oas_vpn_pool_01
  network-object object nl_oas_vpn_pool_02
  network-object object nl_oas_vpn_pool_03
-object-group network WHITELIST_PMSOPS
- description grskg03pmsops01 dyndns whitelist (udp/443 WireGuard fallback)
- network-object object grskg03pmsops01_ddns
 object-group network nl_strongswan_vpn_pool_XX
  network-object object nl_strongswan_vpn_pool_01
 object-group network S2S_SKG_GRP_dmz_servers02
@@ -1037,6 +1034,9 @@ object-group network META_AS32934
  network-object 185.89.216.0 255.255.252.0
  network-object 189.247.71.0 255.255.255.0
  network-object 204.15.20.0 255.255.252.0
+object-group network WHITELIST_PMSOPS
+ description grskg03pmsops01 dyndns whitelist (udp/443 WireGuard fallback)
+ network-object object grskg03pmsops01_ddns
 access-list inside_cctv_access_in extended permit tcp object nlunify01 object nln8n01 eq 5678 
 access-list inside_cctv_access_in extended permit tcp object nlunify01 object nlsmtp-gpg01 eq smtp 
 access-list inside_cctv_access_in extended permit object-group TCPUDP object nlunify01 object-group eu-nlgr-freeipa01 eq domain 
@@ -2093,5 +2093,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:0eb68892a2deb5031abbf989d01fd31f
+Cryptochecksum:9dca02e463633d75a5d174de8adae9fd
 : end
