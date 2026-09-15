@@ -126,7 +126,7 @@ thanos_retention_5m       = "120d"
 thanos_retention_1h       = "365d"
 loki_retention_days       = 14   # 30 -> 14 2026-09-15 (IFRNLLEI01PRD-2850, owner decision)
 thanos_delete_delay       = "2h" # 48h -> 2h 2026-09-10 (IFRNLLEI01PRD-2831): 84 expired blocks were waiting 48h to be deleted while the compactor wrote new ones, eating the vacuum's reclaim on a 96%-full S3; NO already runs 2h
-REDACTED_bf135212 = 1
+REDACTED_bf135212 = 0    # TEMPORARY 2026-09-15 (IFRNLLEI01PRD-2850): back to 1 once nl-s3 has room; its uploads filled 16 GiB in 20 min at 95%
 
 # --- prometheus remote-write (IFRNLLEI01PRD-2403 hub/satellite) ---
 prometheus_remote_write_url = "" # NL is a hub, not a satellite
@@ -139,9 +139,10 @@ loki_s3_bucket        = "loki"
 REDACTED_337e6630 = "10.0.X.X"
 
 # --- seaweedfs ---
-REDACTED_a8217c41  = "1000Gi"
-REDACTED_6db9426a = 8000 # chart default 1000 made 1.8 TiB into 2778 volumes; new volumes seal at 8 GB (IFRNLLEI01PRD-2850)
-REDACTED_d36a9dce   = 1800 # 1400 -> 1800 2026-09-15: 22 slots left of 2800 (IFRNLLEI01PRD-2850); minFreeSpacePercent stays the disk guard
+REDACTED_a8217c41    = "1000Gi"
+REDACTED_323fe643 = 200  # 50 -> 200 2026-09-15: vacuum reclaimed 2 GiB per 10 min against 120 GiB of garbage (IFRNLLEI01PRD-2850)
+REDACTED_6db9426a   = 8000 # chart default 1000 made 1.8 TiB into 2778 volumes; new volumes seal at 8 GB (IFRNLLEI01PRD-2850)
+REDACTED_d36a9dce     = 1800 # 1400 -> 1800 2026-09-15: 22 slots left of 2800 (IFRNLLEI01PRD-2850); minFreeSpacePercent stays the disk guard
 # TEMPORARY 5 -> 3 (2026-09-10 20:01 UTC, IFRNLLEI01PRD-2831): both volume PVs sat at 45-50 GB free
 # with 248 GB of reclaimable garbage, and below the floor a server REFUSES to compact (the
 # 2052 deadlock), so the floor had to move under the free space for vacuum to run. Patched live
