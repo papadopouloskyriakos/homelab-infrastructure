@@ -731,18 +731,18 @@ object network georgez_home
 object network grnpm01
  host 10.0.X.X
  description GR NPM slave (replica of nlnpm01) - round-robin DNS target - added 2026-08-30
-object network grskg03pmsops01_wg
- host 10.0.X.X
- description WireGuard site peer, Ilias home, one-way trust
 object network nlwg01-wg443
  host 10.0.X.X
  description WireGuard fallback: public udp/443 -> wg01:443 (REDIRECT to 51820 on wg01); FQDN-whitelisted ACE only
-object network grskg03pmsops01_ddns
- fqdn v4 grskg03pmsops01.freeddns.org
- description Ilias portable box (ddclient -> Dynu), WireGuard udp/443 fallback source
 object network defra01agri01_wg
  host 10.0.X.X
- description WireGuard peer, Frankfurt VPS, one-way trust (reaches only grskg03pmsops01 via wg01)
+ description WireGuard peer, Frankfurt VPS, one-way trust (reaches only grxxx01demops01 via wg01)
+object network grxxx01demops01_wg
+ host 10.0.X.X
+ description WireGuard site peer, Ilias portable box, one-way trust
+object network grxxx01demops01_ddns
+ fqdn v4 grxxx01demops01.freeddns.org
+ description Ilias portable box (ddclient -> Dynu), WireGuard udp/443 fallback source
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -1037,9 +1037,9 @@ object-group network META_AS32934
  network-object 185.89.216.0 255.255.252.0
  network-object 189.247.71.0 255.255.255.0
  network-object 204.15.20.0 255.255.252.0
-object-group network WHITELIST_PMSOPS
- description grskg03pmsops01 dyndns whitelist (udp/443 WireGuard fallback)
- network-object object grskg03pmsops01_ddns
+object-group network WHITELIST_DEMOPS
+ description grxxx01demops01 dyndns whitelist (udp/443 WireGuard fallback)
+ network-object object grxxx01demops01_ddns
 access-list inside_cctv_access_in extended permit tcp object nlunify01 object nln8n01 eq 5678 
 access-list inside_cctv_access_in extended permit tcp object nlunify01 object nlsmtp-gpg01 eq smtp 
 access-list inside_cctv_access_in extended permit object-group TCPUDP object nlunify01 object-group eu-nlgr-freeipa01 eq domain 
@@ -1081,7 +1081,7 @@ access-list outside_freedom_tv_access_in extended deny icmp object-group BLACKLI
 access-list outside_freedom_tv_access_in extended deny ip any any 
 access-list outside_freedom_tv_access_in extended deny icmp any any 
 access-list dmz_vpn01_access_in extended deny ip object defra01agri01_wg any 
-access-list dmz_vpn01_access_in extended deny ip object grskg03pmsops01_wg any 
+access-list dmz_vpn01_access_in extended deny ip object grxxx01demops01_wg any 
 access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_LEI_GRP_inside_mgmt 
 access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_LEI_GRP_inside_k8s 
 access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_SKG_GRP_inside_mgmt 
@@ -1233,7 +1233,7 @@ access-list outside_freedom_access_in extended permit tcp object-group WHITELIST
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_OAS object nloas02-888-tcp eq 888 
 access-list outside_freedom_access_in extended permit udp object-group WHITELIST_OAS object nloas03-999-udp eq 999 
 access-list outside_freedom_access_in extended permit udp any object nlwg01-wg eq 51820 
-access-list outside_freedom_access_in extended permit udp object-group WHITELIST_PMSOPS object nlwg01-wg443 eq 443 
+access-list outside_freedom_access_in extended permit udp object-group WHITELIST_DEMOPS object nlwg01-wg443 eq 443 
 access-list outside_freedom_access_in extended permit udp host 91.211.213.72 host 203.0.113.X eq isakmp 
 access-list outside_freedom_access_in extended permit udp host 91.211.213.72 host 203.0.113.X eq 4500 
 access-list outside_freedom_access_in extended permit esp host 91.211.213.72 host 203.0.113.X 
@@ -2097,5 +2097,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:9dca02e463633d75a5d174de8adae9fd
+Cryptochecksum:44bc509654981b313b9a904c6931adbf
 : end
