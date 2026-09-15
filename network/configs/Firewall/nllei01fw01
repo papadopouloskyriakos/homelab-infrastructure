@@ -740,6 +740,9 @@ object network nlwg01-wg443
 object network grskg03pmsops01_ddns
  fqdn v4 grskg03pmsops01.freeddns.org
  description Ilias portable box (ddclient -> Dynu), WireGuard udp/443 fallback source
+object network defra01agri01_wg
+ host 10.0.X.X
+ description WireGuard peer, Frankfurt VPS, one-way trust (reaches only grskg03pmsops01 via wg01)
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -1077,6 +1080,7 @@ access-list outside_freedom_tv_access_in extended deny ip object-group BLACKLIST
 access-list outside_freedom_tv_access_in extended deny icmp object-group BLACKLIST_FAIL2BAN any 
 access-list outside_freedom_tv_access_in extended deny ip any any 
 access-list outside_freedom_tv_access_in extended deny icmp any any 
+access-list dmz_vpn01_access_in extended deny ip object defra01agri01_wg any 
 access-list dmz_vpn01_access_in extended deny ip object grskg03pmsops01_wg any 
 access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_LEI_GRP_inside_mgmt 
 access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_LEI_GRP_inside_k8s 
