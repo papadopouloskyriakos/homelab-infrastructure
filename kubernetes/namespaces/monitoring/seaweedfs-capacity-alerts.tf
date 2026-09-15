@@ -58,6 +58,7 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
               for   = "30m"
               labels = {
                 severity  = "critical"
+                tier      = "1" # pages: it sat critical and unread for two days on 2026-09-13 while the store filled (IFRNLLEI01PRD-2850)
                 category  = "storage-capacity"
                 service   = "thanos"
                 namespace = "monitoring"
