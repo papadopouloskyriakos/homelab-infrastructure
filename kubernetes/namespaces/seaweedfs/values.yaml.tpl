@@ -33,7 +33,7 @@ master:
   # (thanos-nl 54.9 GiB @ 11.1%, loki 11.0 GiB @ 13.0%) and the disks reached 92-93%,
   # which tripped minFreeSpacePercent and took the S3 write path down for 12h
   # (IFRNLLEI01PRD-2052). 0.10 sits below both collections' observed ratios so GC
-  # actually reclaims. Compaction is throttled by the volume servers' -compactionMBps=${REDACTED_db5b622d}.
+  # actually reclaims. Compaction is throttled by the volume servers' -compactionMBps (compactionMBps below).
   garbageThreshold: "0.10"
   # Persistence uses data/logs structure, NOT persistence.enabled
   data:
@@ -86,6 +86,10 @@ volume:
   # Below this free-space percentage the server marks all volumes read-only AND
   # refuses compaction — see the variable comment in variables.tf.
   minFreeSpacePercent: ${REDACTED_0a7b20f8}
+  # Vacuum compaction throttle (chart default 50). The 2026-09-15 deep vacuum on
+  # nl-s3 reclaimed 2 GiB per 10 minutes against 120 GiB of garbage at 50; NL
+  # runs 200 on Synology iSCSI (IFRNLLEI01PRD-2850).
+  compactionMBps: ${REDACTED_db5b622d}
   idx: {}
   logs: {}
   # Resources as YAML object — 4Gi limit needed for compaction of large thanos/loki volumes (700MB+)
