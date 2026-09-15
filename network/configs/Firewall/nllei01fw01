@@ -734,6 +734,9 @@ object network grnpm01
 object network grskg03pmsops01_wg
  host 10.0.X.X
  description WireGuard site peer, Ilias home, one-way trust
+object network grskg03pmsops01_ddns
+ fqdn v4 grskg03pmsops01.freeddns.org
+ description Ilias portable box (ddclient -> Dynu), WireGuard udp/443 fallback source
 object network nlwg01-wg443
  host 10.0.X.X
  description WireGuard fallback: public udp/443 -> wg01:443 (REDIRECT to 51820 on wg01); FQDN-whitelisted ACE only
@@ -796,6 +799,9 @@ object-group network nl_oas_vpn_pool_XX
  network-object object nl_oas_vpn_pool_01
  network-object object nl_oas_vpn_pool_02
  network-object object nl_oas_vpn_pool_03
+object-group network WHITELIST_PMSOPS
+ description grskg03pmsops01 dyndns whitelist (udp/443 WireGuard fallback)
+ network-object object grskg03pmsops01_ddns
 object-group network nl_strongswan_vpn_pool_XX
  network-object object nl_strongswan_vpn_pool_01
 object-group network S2S_SKG_GRP_dmz_servers02
@@ -1223,6 +1229,7 @@ access-list outside_freedom_access_in extended permit tcp object-group WHITELIST
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_OAS object nloas02-888-tcp eq 888 
 access-list outside_freedom_access_in extended permit udp object-group WHITELIST_OAS object nloas03-999-udp eq 999 
 access-list outside_freedom_access_in extended permit udp any object nlwg01-wg eq 51820 
+access-list outside_freedom_access_in extended permit udp object-group WHITELIST_PMSOPS object nlwg01-wg443 eq 443 
 access-list outside_freedom_access_in extended permit udp host 91.211.213.72 host 203.0.113.X eq isakmp 
 access-list outside_freedom_access_in extended permit udp host 91.211.213.72 host 203.0.113.X eq 4500 
 access-list outside_freedom_access_in extended permit esp host 91.211.213.72 host 203.0.113.X 
