@@ -736,7 +736,7 @@ object network grskg03pmsops01_wg
  description WireGuard site peer, Ilias home, one-way trust
 object network nlwg01-wg443
  host 10.0.X.X
- description WireGuard fallback: public udp/443 -> 51820 (portable peers on restrictive networks)
+ description WireGuard fallback: public udp/443 -> wg01:443 (REDIRECT to 51820 on wg01); FQDN-whitelisted ACE only
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -1532,7 +1532,7 @@ object network nlhpb01-3478-udp
 object network nlwg01-wg
  nat (dmz_vpn01,outside_freedom) static PUBLIC_dmz_vpn01 service udp 51820 51820 
 object network nlwg01-wg443
- nat (dmz_vpn01,outside_freedom) static PUBLIC_dmz_vpn01 service udp 51820 443 
+ nat (dmz_vpn01,outside_freedom) static PUBLIC_dmz_vpn01 service udp 443 443 
 !
 nat (inside_mgmt,outside_freedom) after-auto source dynamic any interface
 nat (inside_k8s,outside_freedom) after-auto source dynamic any interface
