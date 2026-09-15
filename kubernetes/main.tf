@@ -360,6 +360,7 @@ module "seaweedfs" {
   volume_storage_size           = var.REDACTED_a8217c41
   REDACTED_0a7b20f8 = var.REDACTED_6930756b
   volume_max_volumes            = var.REDACTED_d36a9dce
+  volume_size_limit_mb          = var.REDACTED_6db9426a
   master_storage_size           = var.seaweedfs_master_storage_size
   filer_storage_size            = var.REDACTED_b907bdb5
   node_region                   = var.node_region

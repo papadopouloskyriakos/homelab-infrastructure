@@ -22,6 +22,10 @@ master:
     backup.velero.io/backup-volumes-excludes: "data-seaweedfs"
   # Replication: 001 = 1 copy on another server in same rack
   defaultReplication: "001"
+  # Size at which a volume is sealed and a new one assigned. The chart default
+  # is 1000 MB; on NL that made 1.8 TiB into 2778 volumes against 2800 slots
+  # (IFRNLLEI01PRD-2850, 2026-09-15). Only NEW volumes take the new size.
+  volumeSizeLimitMB: ${volume_size_limit_mb}
   # The master's background vacuum only compacts a volume whose garbage ratio
   # exceeds this. The chart default is null -> weed's built-in 0.3, and NO volume
   # in this cluster has ever exceeded 30% garbage, so automatic GC has been a

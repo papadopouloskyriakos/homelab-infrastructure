@@ -119,12 +119,12 @@ REDACTED_d312035b = "dnssrv+_grpc._tcp.thanos-sidecar-gr.monitoring.svc.cluster.
 # --- monitoring storage sizes (immutable live StatefulSet templates) ---
 alertmanager_storage_size     = "10Gi"
 thanos_store_storage_size     = "20Gi"
-REDACTED_fd3fdc21 = "50Gi"
+REDACTED_fd3fdc21 = "100Gi" # 50 -> 100 2026-09-15: the compactor halted 13 Sep on ENOSPC of its own PV and retention stopped (IFRNLLEI01PRD-2850)
 # NL: dedicated Synology CSI volumes - unchanged, these are the historical defaults.
-thanos_retention_raw      = "14d" # 30d -> 14d 2026-09-10 (IFRNLLEI01PRD-2831): raw blocks were 883 GB raw of a 2 TB S3 and the compactor had been halted 2 weeks; 5m/1h downsampled keep 120d/365d
+thanos_retention_raw      = "7d" # 14d -> 7d 2026-09-15 (IFRNLLEI01PRD-2850, owner decision): 434 GB logical and the store at 95%; 5m keeps 120d, 1h 365d
 thanos_retention_5m       = "120d"
 thanos_retention_1h       = "365d"
-loki_retention_days       = 30   # the module default, declared so the three sites carry the same tfvars keys (NO runs 14)
+loki_retention_days       = 14   # 30 -> 14 2026-09-15 (IFRNLLEI01PRD-2850, owner decision)
 thanos_delete_delay       = "2h" # 48h -> 2h 2026-09-10 (IFRNLLEI01PRD-2831): 84 expired blocks were waiting 48h to be deleted while the compactor wrote new ones, eating the vacuum's reclaim on a 96%-full S3; NO already runs 2h
 REDACTED_bf135212 = 1
 
@@ -139,8 +139,9 @@ loki_s3_bucket        = "loki"
 REDACTED_337e6630 = "10.0.X.X"
 
 # --- seaweedfs ---
-REDACTED_a8217c41 = "1000Gi"
-REDACTED_d36a9dce  = 1400 # auto (-max 0) froze at 1028 slots (computed during the July near-full crisis); disks now ~55% used - minFreeSpacePercent=5 is the true guard (IFRNLLEI01PRD-2605)
+REDACTED_a8217c41  = "1000Gi"
+REDACTED_6db9426a = 8000 # chart default 1000 made 1.8 TiB into 2778 volumes; new volumes seal at 8 GB (IFRNLLEI01PRD-2850)
+REDACTED_d36a9dce   = 1800 # 1400 -> 1800 2026-09-15: 22 slots left of 2800 (IFRNLLEI01PRD-2850); minFreeSpacePercent stays the disk guard
 # TEMPORARY 5 -> 3 (2026-09-10 20:01 UTC, IFRNLLEI01PRD-2831): both volume PVs sat at 45-50 GB free
 # with 248 GB of reclaimable garbage, and below the floor a server REFUSES to compact (the
 # 2052 deadlock), so the floor had to move under the free space for vacuum to run. Patched live
