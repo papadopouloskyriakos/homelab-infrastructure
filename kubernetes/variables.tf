@@ -297,10 +297,10 @@ variable "gitlab_kas_address" {
 # =============================================================================
 
 variable "metrics_server_selector" {
-  description = "PDB selector match_labels for the metrics-server deployment. NL k8s-app=metrics-server; GR app.kubernetes.io/name=metrics-server."
+  description = "PDB selector match_labels for the metrics-server deployment. Since _core/metrics-server (chart 3.14.0) manages it on every site, the label is the chart's app.kubernetes.io/name everywhere."
   type        = map(string)
   default = {
-    "k8s-app" = "metrics-server"
+    "app.kubernetes.io/name" = "metrics-server"
   }
 }
 

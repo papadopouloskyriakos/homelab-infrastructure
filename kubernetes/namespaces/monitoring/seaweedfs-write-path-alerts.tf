@@ -153,8 +153,12 @@ resource "kubernetes_manifest" "REDACTED_78d971a7" {
           rules = [
             {
               alert = "SeaweedFSReadCanaryFailed"
-              expr  = "max(kube_job_status_failed{namespace=\"seaweedfs\", job_name=~\"seaweedfs-read-canary-.+\"}) > 0"
-              for   = "5m"
+              # Bound to runs started in the last 12 h (two schedule periods):
+              # a failed Job object from days ago kept this critical on NL for a
+              # canary that had been green for a week (2026-09-15). The Stale
+              # rule below still covers a canary that stops running.
+              expr = "max by (job_name) (kube_job_status_failed{namespace=\"seaweedfs\", job_name=~\"seaweedfs-read-canary-.+\"}) > 0 and on (job_name) (time() - kube_job_status_start_time{namespace=\"seaweedfs\", job_name=~\"seaweedfs-read-canary-.+\"}) < 43200"
+              for  = "5m"
               labels = {
                 severity  = "critical"
                 category  = "storage-read-path"
