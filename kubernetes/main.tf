@@ -113,6 +113,12 @@ module "tetragon" {
   depends_on = [module.cilium_bgp]
 }
 
+module "reloader" {
+  source = "./_core/reloader"
+
+  depends_on = [module.cilium_bgp]
+}
+
 module "ingress_nginx" {
   source = "./_core/ingress-nginx"
 
