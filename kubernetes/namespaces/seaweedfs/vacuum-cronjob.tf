@@ -72,8 +72,11 @@ resource "kubernetes_manifest" "vacuum_cronjob" {
       failedJobsHistoryLimit     = 4
       jobTemplate = {
         spec = {
-          backoffLimit          = 0
-          activeDeadlineSeconds = 21600
+          # Finished Jobs are garbage-collected after seven days so a failed run from
+          # weeks ago cannot keep KubeJobFailed (and the canary rule) latched.
+          ttlSecondsAfterFinished = 604800
+          backoffLimit            = 0
+          activeDeadlineSeconds   = 21600
           template = {
             metadata = {
               labels = { "app.kubernetes.io/name" = "seaweedfs-vacuum" }

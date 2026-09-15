@@ -70,8 +70,11 @@ resource "kubernetes_manifest" "awx_pg_dump_cronjob" {
       failedJobsHistoryLimit     = 3
       jobTemplate = {
         spec = {
-          backoffLimit          = 2
-          activeDeadlineSeconds = 1800
+          # Finished Jobs are garbage-collected after seven days so a failed run from
+          # weeks ago cannot keep KubeJobFailed (and the canary rule) latched.
+          ttlSecondsAfterFinished = 604800
+          backoffLimit            = 2
+          activeDeadlineSeconds   = 1800
           template = {
             metadata = {
               labels = { "app.kubernetes.io/name" = "awx-pg-dump" }
