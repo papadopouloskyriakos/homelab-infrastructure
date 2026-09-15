@@ -57,6 +57,12 @@ variable "volume_size_limit_mb" {
   default     = 1000
 }
 
+variable "REDACTED_db5b622d" {
+  description = "SeaweedFS volume server -compactionMBps: the throttle on vacuum compaction. At 50 the 2026-09-15 deep vacuum of nl-s3 reclaimed ~2 GiB per 10 minutes against 120 GiB of garbage (IFRNLLEI01PRD-2850); NL runs 200 on Synology iSCSI."
+  type        = number
+  default     = 50
+}
+
 variable "volume_max_volumes" {
   description = "SeaweedFS volume server -max slots per dataDir. 0 = auto from disk space; pin explicitly where auto froze below real capacity (NL 2026-08-26: auto stuck at 1028 slots with the disk 55% free, starving replicated grows - IFRNLLEI01PRD-2605). minFreeSpacePercent stays the true disk-full guard, so slot overcommit is safe."
   type        = number

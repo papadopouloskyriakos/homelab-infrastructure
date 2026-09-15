@@ -33,7 +33,7 @@ master:
   # (thanos-nl 54.9 GiB @ 11.1%, loki 11.0 GiB @ 13.0%) and the disks reached 92-93%,
   # which tripped minFreeSpacePercent and took the S3 write path down for 12h
   # (IFRNLLEI01PRD-2052). 0.10 sits below both collections' observed ratios so GC
-  # actually reclaims. Compaction is throttled by the volume servers' -compactionMBps=50.
+  # actually reclaims. Compaction is throttled by the volume servers' -compactionMBps=${REDACTED_db5b622d}.
   garbageThreshold: "0.10"
   # Persistence uses data/logs structure, NOT persistence.enabled
   data:
