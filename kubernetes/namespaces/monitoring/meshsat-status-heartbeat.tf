@@ -62,8 +62,11 @@ resource "kubernetes_manifest" "REDACTED_aa26710d" {
       failedJobsHistoryLimit     = 3
       jobTemplate = {
         spec = {
-          backoffLimit          = 0
-          activeDeadlineSeconds = 50
+          # Finished Jobs are garbage-collected after seven days so a failed run from
+          # weeks ago cannot keep KubeJobFailed (and the canary rule) latched.
+          ttlSecondsAfterFinished = 604800
+          backoffLimit            = 0
+          activeDeadlineSeconds   = 50
           template = {
             metadata = {
               labels = { "app.kubernetes.io/name" = "meshsat-status-heartbeat" }

@@ -156,8 +156,11 @@ resource "kubernetes_manifest" "read_canary_cronjob" {
       failedJobsHistoryLimit     = 3
       jobTemplate = {
         spec = {
-          backoffLimit          = 1
-          activeDeadlineSeconds = 1200
+          # Finished Jobs are garbage-collected after seven days so a failed run from
+          # weeks ago cannot keep KubeJobFailed (and the canary rule) latched.
+          ttlSecondsAfterFinished = 604800
+          backoffLimit            = 1
+          activeDeadlineSeconds   = 1200
           template = {
             metadata = {
               labels = { "app.kubernetes.io/name" = "seaweedfs-read-canary" }

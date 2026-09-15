@@ -65,7 +65,7 @@ gitlab_kas_address = "wss://gitlab.example.net/-/kubernetes-agent/"
 
 # --- PDBs ---
 metrics_server_selector = {
-  "k8s-app" = "metrics-server"
+  "app.kubernetes.io/name" = "metrics-server"
 }
 
 # --- service hostnames ---
