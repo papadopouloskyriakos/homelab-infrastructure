@@ -119,6 +119,12 @@ module "reloader" {
   depends_on = [module.cilium_bgp]
 }
 
+module "metrics_server" {
+  source = "./_core/metrics-server"
+
+  depends_on = [module.cilium_bgp]
+}
+
 module "ingress_nginx" {
   source = "./_core/ingress-nginx"
 
