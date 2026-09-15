@@ -725,6 +725,9 @@ object network nlwg01
 object network nlwg01-wg
  host 10.0.X.X
  description WireGuard 51820 NAT
+object network grskg03pmsops01_wg
+ host 10.0.X.X
+ description WireGuard site peer, Ilias home, one-way trust
 object network georgez_home
  host 86.81.192.31
  description georgez home KPN - added 2026-08-30
@@ -1065,6 +1068,7 @@ access-list outside_freedom_tv_access_in extended deny ip object-group BLACKLIST
 access-list outside_freedom_tv_access_in extended deny icmp object-group BLACKLIST_FAIL2BAN any 
 access-list outside_freedom_tv_access_in extended deny ip any any 
 access-list outside_freedom_tv_access_in extended deny icmp any any 
+access-list dmz_vpn01_access_in extended deny ip object grskg03pmsops01_wg any 
 access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_LEI_GRP_inside_mgmt 
 access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_LEI_GRP_inside_k8s 
 access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_SKG_GRP_inside_mgmt 
