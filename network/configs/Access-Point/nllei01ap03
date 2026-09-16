@@ -455,10 +455,6 @@ snmp-server community REDACTED RO
 snmp-server host 10.0.X.X version 2c uBnr@W9dKOu#7ifTdVbAi!k$=XKr9X 
 access-list 700 deny   1068.3f78.644e   0000.0000.0000
 access-list 700 permit 0000.0000.0000   ffff.ffff.ffff
-access-list 701 deny   1068.3f78.644e   0000.0000.0000
-access-list 701 deny   d83a.dddf.d3e7   0000.0000.0000
-access-list 701 deny   88a2.9e64.994c   0000.0000.0000
-access-list 701 permit 0000.0000.0000   ffff.ffff.ffff
 bridge 1 route ip
 !
 !
