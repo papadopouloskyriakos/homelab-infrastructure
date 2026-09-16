@@ -178,7 +178,9 @@ deploy_docker:
         done
       done
 
-      PROJECTS=$(echo "$PROJECTS" | tr ' ' '\n' | grep -v '^$' | sort -u)
+      # `grep -v '^$'` exits 1 on empty input, and `set -e` would kill the job before the
+      # `[ -z "$PROJECTS" ]` guard below. `|| true` keeps the guard reachable.
+      PROJECTS=$(echo "$PROJECTS" | tr ' ' '\n' | grep -v '^$' | sort -u || true)
 
       if [ -z "$PROJECTS" ]; then
         echo "No docker-compose.yml or Dockerfile found in changed directories"
@@ -377,7 +379,9 @@ verify_docker_deployments:
         done
       done
 
-      PROJECTS=$(echo "$PROJECTS" | tr ' ' '\n' | grep -v '^$' | sort -u)
+      # `grep -v '^$'` exits 1 on empty input, and `set -e` would kill the job before the
+      # `[ -z "$PROJECTS" ]` guard below. `|| true` keeps the guard reachable.
+      PROJECTS=$(echo "$PROJECTS" | tr ' ' '\n' | grep -v '^$' | sort -u || true)
 
       if [ -z "$PROJECTS" ]; then
         echo "No projects to verify"
