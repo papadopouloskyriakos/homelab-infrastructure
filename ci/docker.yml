@@ -178,9 +178,17 @@ deploy_docker:
         done
       done
 
-      # `grep -v '^$'` exits 1 on empty input, and `set -e` would kill the job before the
-      # `[ -z "$PROJECTS" ]` guard below. `|| true` keeps the guard reachable.
-      PROJECTS=$(echo "$PROJECTS" | tr ' ' '\n' | grep -v '^$' | sort -u || true)
+      # Use sed, NOT `grep -v '^$'`. When PROJECTS is empty (a commit touching only a
+      # docker/ file that is in no project dir, e.g. docker/CLAUDE.md) grep matches
+      # nothing and exits 1. GitLab Runner's bash wrapper enables `set -o pipefail`,
+      # which our `set -eu` above does NOT clear, so grep's 1 becomes the pipeline's
+      # exit status and `set -e` killed the job here, before the `[ -z "$PROJECTS" ]`
+      # guard below could run. The guard was unreachable and every docs-only commit
+      # under docker/ went red: pipelines 51035, 51036 (2026-08-28), 54370 (2026-09-16).
+      # sed exits 0 on no match, so the guard is reachable AND a genuine tool failure
+      # here stays fatal. Do not revert to grep, and do not paper over it with
+      # `|| true`: that also swallows real errors and would silently deploy nothing.
+      PROJECTS=$(echo "$PROJECTS" | tr ' ' '\n' | sed '/^$/d' | sort -u)
 
       if [ -z "$PROJECTS" ]; then
         echo "No docker-compose.yml or Dockerfile found in changed directories"
@@ -379,9 +387,17 @@ verify_docker_deployments:
         done
       done
 
-      # `grep -v '^$'` exits 1 on empty input, and `set -e` would kill the job before the
-      # `[ -z "$PROJECTS" ]` guard below. `|| true` keeps the guard reachable.
-      PROJECTS=$(echo "$PROJECTS" | tr ' ' '\n' | grep -v '^$' | sort -u || true)
+      # Use sed, NOT `grep -v '^$'`. When PROJECTS is empty (a commit touching only a
+      # docker/ file that is in no project dir, e.g. docker/CLAUDE.md) grep matches
+      # nothing and exits 1. GitLab Runner's bash wrapper enables `set -o pipefail`,
+      # which our `set -eu` above does NOT clear, so grep's 1 becomes the pipeline's
+      # exit status and `set -e` killed the job here, before the `[ -z "$PROJECTS" ]`
+      # guard below could run. The guard was unreachable and every docs-only commit
+      # under docker/ went red: pipelines 51035, 51036 (2026-08-28), 54370 (2026-09-16).
+      # sed exits 0 on no match, so the guard is reachable AND a genuine tool failure
+      # here stays fatal. Do not revert to grep, and do not paper over it with
+      # `|| true`: that also swallows real errors and would silently deploy nothing.
+      PROJECTS=$(echo "$PROJECTS" | tr ' ' '\n' | sed '/^$/d' | sort -u)
 
       if [ -z "$PROJECTS" ]; then
         echo "No projects to verify"
