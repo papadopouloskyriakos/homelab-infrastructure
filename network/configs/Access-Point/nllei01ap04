@@ -1,10 +1,10 @@
 Building configuration...
 
-Current configuration : 11364 bytes
+Current configuration : 11593 bytes
 !
-! Last configuration change at 14:20:06 CET Thu Jan 15 2026 by kyriakosp
-! NVRAM config last updated at 14:20:06 CET Thu Jan 15 2026 by kyriakosp
-! NVRAM config last updated at 14:20:06 CET Thu Jan 15 2026 by kyriakosp
+! Last configuration change at 22:31:10 CEST Wed Sep 16 2026 by kyriakosp
+! NVRAM config last updated at 15:32:21 CEST Tue Sep 1 2026 by kyriakosp
+! NVRAM config last updated at 15:32:21 CEST Tue Sep 1 2026 by kyriakosp
 version 15.3
 no service pad
 service tcp-keepalives-in
@@ -38,7 +38,7 @@ ip name-server 10.0.X.X
 !
 dot11 mbssid
 dot11 pause-time 100
-dot11 association mac-list 700
+dot11 association mac-list 701
 dot11 syslog
 !
 dot11 ssid Ziggo1BC23AD
@@ -456,6 +456,10 @@ snmp-server community REDACTED RO
 snmp-server host 10.0.X.X version 2c uBnr@W9dKOu#7ifTdVbAi!k$=XKr9X 
 access-list 700 deny   1068.3f78.644e   0000.0000.0000
 access-list 700 permit 0000.0000.0000   ffff.ffff.ffff
+access-list 701 deny   1068.3f78.644e   0000.0000.0000
+access-list 701 deny   d83a.dddf.d3e7   0000.0000.0000
+access-list 701 deny   88a2.9e64.994c   0000.0000.0000
+access-list 701 permit 0000.0000.0000   ffff.ffff.ffff
 bridge 1 route ip
 !
 !
