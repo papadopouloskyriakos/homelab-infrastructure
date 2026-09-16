@@ -669,8 +669,8 @@ object network notrf01k8s-node01_PUBLIC
  host 198.51.100.X
  description Gigahost Norway VPS
 object network nl_strongswan_vpn_pool_01
- subnet 10.0.X.X 255.255.255.240
- description StrongSwan VPN Client Pool
+ subnet 10.0.X.X 255.255.255.0
+ description WireGuard client pool (widened /28 to /24 2026-09-16)
 object network chzrh01k8s-node01_PUBLIC
  host 198.51.100.X
  description iFog Zurich VPS
@@ -743,6 +743,9 @@ object network grxxx01demops01_wg
 object network grxxx01demops01_ddns
  fqdn v4 grxxx01demops01.freeddns.org
  description Ilias portable box (ddclient -> Dynu), WireGuard udp/443 fallback source
+object network nlxxx01rtr01_ddns
+ fqdn v4 nlxxx01rtr01.mytunnel.org
+ description Mudi 7 travel router (Dynu), WireGuard site peer 10.0.X.X
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -1037,6 +1040,12 @@ object-group network META_AS32934
  network-object 185.89.216.0 255.255.252.0
  network-object 189.247.71.0 255.255.255.0
  network-object 204.15.20.0 255.255.252.0
+object-group network WHITELIST_WG
+ description WireGuard udp/51820 source gate - peers only (replaced permit-any 2026-09-16)
+ group-object USR_KYRIAKOSP_PUBLIC_IP_ADDRESSES
+ network-object object nlxxx01rtr01_ddns
+ network-object object grxxx01demops01_ddns
+ network-object object defra01agri01
 object-group network WHITELIST_DEMOPS
  description grxxx01demops01 dyndns whitelist (udp/443 WireGuard fallback)
  network-object object grxxx01demops01_ddns
@@ -1232,7 +1241,7 @@ access-list outside_freedom_access_in extended permit tcp object-group META_AS32
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_OAS object nloas01-443-tcp eq https 
 access-list outside_freedom_access_in extended permit tcp object-group WHITELIST_OAS object nloas02-888-tcp eq 888 
 access-list outside_freedom_access_in extended permit udp object-group WHITELIST_OAS object nloas03-999-udp eq 999 
-access-list outside_freedom_access_in extended permit udp any object nlwg01-wg eq 51820 
+access-list outside_freedom_access_in extended permit udp object-group WHITELIST_WG object nlwg01-wg eq 51820 
 access-list outside_freedom_access_in extended permit udp object-group WHITELIST_DEMOPS object nlwg01-wg443 eq 443 
 access-list outside_freedom_access_in extended permit udp host 91.211.213.72 host 203.0.113.X eq isakmp 
 access-list outside_freedom_access_in extended permit udp host 91.211.213.72 host 203.0.113.X eq 4500 
@@ -1730,7 +1739,7 @@ router bgp 65000
   network 10.0.X.X mask 255.255.255.240
   network 10.0.X.X mask 255.255.255.240
   network 10.0.X.X mask 255.255.255.240
-  network 10.0.X.X mask 255.255.255.240
+  network 10.0.X.X
   no auto-summary
   no synchronization
  exit-address-family
@@ -1757,7 +1766,7 @@ route Null0 10.0.X.X 255.255.255.224 255
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
 route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
-route dmz_vpn01 10.0.X.X 255.255.255.240 10.0.X.X 1
+route dmz_vpn01 10.0.X.X 255.255.255.0 10.0.X.X 1
 timeout xlate 3:00:00
 timeout pat-xlate 0:00:30
 timeout conn 1:00:00 half-closed 0:10:00 udp 0:02:00 sctp 0:02:00 icmp 0:00:02
@@ -2097,5 +2106,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:44bc509654981b313b9a904c6931adbf
+Cryptochecksum:2d49409d169c625eb43997b314d479ae
 : end
