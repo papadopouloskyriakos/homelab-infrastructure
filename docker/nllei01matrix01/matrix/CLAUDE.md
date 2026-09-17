@@ -205,6 +205,68 @@ ssh root@nl-matrix01 'curl -s -H "Authorization: Bearer <token>" http://localhos
 # !wa login        — link WhatsApp account
 ```
 
+## Troubleshooting: "Element says Upload Failed" (2026-09-17)
+
+**Check the server before believing the client.** On 2026-09-17 the operator reported that Element
+could not upload a screenshot. It had already uploaded **six times**. Element timed out and
+retried; Synapse stored every copy and then found nobody listening:
+
+```
+POST /_matrix/media/v3/upload  115.0sec  db=(0.002sec/113.911sec/7)  0B  200!
+synapse.http.server WARNING - Not sending response to request ... already disconnected.
+```
+
+`200!` (with the bang) means the request succeeded after the client gave up, and `0B` is the
+response body never written, not the bytes received. Confirm with the DB, where repeated rows of
+an identical `media_length` are the retry fingerprint:
+
+```bash
+docker exec postgres psql -U synapse -d synapse -c \
+ "SELECT to_timestamp(created_ts/1000), media_id, media_length, upload_name
+    FROM local_media_repository
+   WHERE created_ts > (extract(epoch from now())-7200)*1000 ORDER BY created_ts;"
+```
+
+**Then compare `Processed request: <n>sec` against `db=(...)`.** If nearly all the time is `db=`,
+the Matrix stack is fine and you are looking at storage. Here 113.9 of 115.0 seconds was database.
+The cause was a host-level fsync stall on **nl-pve01** (this LXC is 101201202 there, rootfs on
+`/dev/loop16`), not anything in this stack. Verify on the node, never from inside the LXC, because
+`/proc/pressure/*` and loadavg in an LXC are the host's values:
+
+```bash
+ssh root@nl-pve01 'cat /proc/pressure/io; zpool iostat rpool 5 2'
+```
+
+`full avg300 > 50` with trivial throughput is the signature. When it cleared, the identical upload
+took **0.767 s with db=0.057 s**. See memory `project_pve01_fsync_stall_20260917`.
+
+**Fallout that does not self-heal: `401 Token is not active`.** The same stall restarted `mas`
+(3rd restart, exit 0) at 18:22:43Z mid-way through a **191.8 s** COMMIT. Afterwards three accounts
+(`@dominicus`, `@elli`, `@zafeiridis.george`) held access tokens MAS no longer recognised, giving a
+steady 1-2 per minute of `SynapseError: 401 - Token is not active` on `whoami`, `sync`,
+`keys/query` and `presence`. That was **still firing after** storage recovered and normal uploads
+worked again, so do not read one user's "it works now" as the incident being over. Count them:
+
+```bash
+docker logs synapse --since 30m 2>&1 | grep -c 'Token is not active'
+docker logs synapse --since 30m 2>&1 | grep 'Token is not active' | grep -oE '@[a-z.]+:matrix' | sort -u
+```
+
+A red herring to skip: the failing request carried `?filename=...` and the succeeding ones did not.
+Coincidence, not a filename bug.
+
+**Media limits are consistent and were not the problem:** `max_upload_size: 200M` in
+`synapse-data/homeserver.yaml` and `client_max_body_size 200M` in `nginx-conf/nginx.conf`, with
+`proxy_request_buffering off` and `proxy_read_timeout 600s`.
+
+## Note: jitsi is NOT deployed on this host
+
+`docker/nl-matrix01/jitsi/` exists in git but there is no `/srv/jitsi` on the host and no
+jitsi containers (`com.docker.compose.project` returns only `matrix`).
+`scripts/docker-drift-check.py` reports it `UNREACHABLE`, which is UNKNOWN, not OK. Either deploy
+it or delete the directory; until then the host runs the `matrix` project only. Calling is served
+by public Jitsi (`meet.jit.si`) and Element X MatrixRTC, per Key Design Decisions above.
+
 ## Port Reference
 
 | Port | Service | Bind |
