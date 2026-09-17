@@ -184,7 +184,7 @@ What Nextcloud needs to know: it connects to `proxysql.example.net:6033` (DNS RR
 |------|------|-----|-----|------|
 | nlcl01file01 | VM | nl-pve01 | 10.0.X.X, 10.0.X.X, **VIP 10.0.X.X** | DRBD Primary + OCFS2 + **Active NFS server** (Pacemaker-managed). 3.7TB, 77GB used (3%). |
 | nlcl01file02 | VM | nl-pve03 | 10.0.X.X, 10.0.X.X | DRBD Primary + OCFS2 mounted. NFS passive (Pacemaker failover target). |
-| nlcl01filearb01 | VM | nl-nas01 | 10.0.X.X, 10.0.X.X | Corosync/Pacemaker quorum voter only. No DRBD disk. |
+| nlcl01filearb01 | VM | nl-nas01 | 10.0.X.X, 10.0.X.X | Corosync/Pacemaker quorum voter **and the DRBD quorum tiebreaker**: `/etc/drbd.d/r0.res` is identical on all three nodes (`node-id 2`, `disk none`, `quorum majority`), drbd-dkms 9.3.2 loaded, `drbd@r0.target` enabled. ⚠ **StandAlone since its 2026-08-30 03:02 boot** (connected, then `receive-disconnect` from file02 during the simultaneous weekly reboot; `drbdadm status` now says "No currently configured DRBD found"). Consequence proven 2026-09-17: losing file01 left file02 at 1 of 3, DRBD `susp-io`, o2cb self-fenced file02, NFS down until file01 returned (IFRNLLEI01PRD-2860). Bring it up with `drbdadm up r0` (dry-run clean) and check `connection:Connected` for it on file01/file02. |
 
 **Pacemaker cluster:** 3 nodes online, 7 resources. DRBD dual-Primary mode with OCFS2 (cluster filesystem).
 **NFS floating IP:** 10.0.X.X (Pacemaker-managed, currently on nlcl01file01). Both nlnc01 and nlnc02 mount from this IP.
