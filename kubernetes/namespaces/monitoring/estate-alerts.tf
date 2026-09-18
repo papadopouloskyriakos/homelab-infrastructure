@@ -294,6 +294,47 @@ resource "kubernetes_manifest" "estate_alert_rules" {
             },
           ]
         },
+        {
+          # Territory Grounder outside-in liveness (TG-565). The 2026-09-16 outage: a host reboot left the
+          # whole TG stack down 57h and nothing noticed, because TG's own alerting dies with it. These rules
+          # look from OUTSIDE via the REDACTED_6d7af194 blackbox job (scrape-estate.tf).
+          # tier="1" + critical -> page-tier1 -> ntfy push (owner-ruled 2026-09-18: "ntfy"), plus Matrix/YouTrack.
+          name     = "territory-grounder"
+          interval = "1m"
+          rules = [
+            {
+              # Fires on the ORIGIN path: that is what an operator and every inbound webhook use. 5m so a
+              # deploy's container recreate (~35s boot) never pages.
+              alert = "TerritoryGrounderDown"
+              expr  = "probe_success{job=\"REDACTED_6d7af194\",path=\"origin\"} == 0"
+              for   = "5m"
+              labels = {
+                severity = "critical"
+                tier     = "1"
+                service  = "territory-grounder"
+              }
+              annotations = {
+                summary     = "Territory Grounder is DOWN: /api/healthz unreachable through the console origin (5m)"
+                description = "The blackbox probe of {{ $labels.instance }} fails. Compare the path=direct series: direct also 0 means TG itself is down on nltg01 (ssh in, docker ps -a; systemctl status tg-stack re-runs docker compose up -d); direct 1 means the proxy/DNS path is broken and TG is up. While this fires TG triages nothing and heals nothing."
+              }
+            },
+            {
+              # The watcher needs watching: if the scrape job or the blackbox exporter dies, probe_success
+              # goes ABSENT (not 0) and the rule above cannot fire.
+              alert = "REDACTED_912c4c1d"
+              expr  = "absent(probe_success{job=\"REDACTED_6d7af194\",path=\"origin\"})"
+              for   = "10m"
+              labels = {
+                severity = "critical"
+                service  = "territory-grounder"
+              }
+              annotations = {
+                summary     = "Territory Grounder outside-in probing has stopped (10m)"
+                description = "No probe_success series for job=REDACTED_6d7af194. The blackbox exporter (nlclaude01:9115) is down or the scrape job was removed; while this is true TerritoryGrounderDown cannot fire."
+              }
+            },
+          ]
+        },
       ]
     }
   }

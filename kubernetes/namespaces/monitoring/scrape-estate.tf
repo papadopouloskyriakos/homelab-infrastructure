@@ -252,6 +252,44 @@ locals {
       ]
     },
 
+    # Territory Grounder OUTSIDE-IN liveness (TG-565). On 2026-09-16 the TG host rebooted and the whole
+    # compose stack stayed down 57h with nothing noticing — TG's own Prometheus/Alertmanager die with it.
+    # /api/healthz through the console origin proves DNS + npm + the console nginx + a live grounder in one
+    # unauthenticated request (502 when the grounder is down, connect-fail when the console is); the
+    # direct :8080 target tells a proxy fault from a TG fault. Rules: estate-alerts.tf group territory-grounder.
+    {
+      job_name        = "REDACTED_6d7af194"
+      scrape_interval = "60s"
+      scrape_timeout  = "30s"
+      metrics_path    = "/probe"
+      params = {
+        module = ["http_2xx"]
+      }
+      static_configs = [
+        {
+          targets = ["https://territory-grounder.example.net/api/healthz"]
+          labels = {
+            service = "territory-grounder"
+            path    = "origin"
+            site    = "nl"
+          }
+        },
+        {
+          targets = ["http://10.0.X.X:8080/api/healthz"]
+          labels = {
+            service = "territory-grounder"
+            path    = "direct"
+            site    = "nl"
+          }
+        },
+      ]
+      relabel_configs = [
+        { source_labels = ["__address__"], target_label = "__param_target" },
+        { source_labels = ["__param_target"], target_label = "instance" },
+        { target_label = "__address__", replacement = "10.0.X.X:9115" },
+      ]
+    },
+
     # CrowdSec Security Metrics
     {
       job_name = "crowdsec"
