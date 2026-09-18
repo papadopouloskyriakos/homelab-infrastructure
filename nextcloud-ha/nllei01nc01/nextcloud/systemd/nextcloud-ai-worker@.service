@@ -1,0 +1,12 @@
+[Unit]
+Description=Nextcloud AI worker %i
+After=network.target
+
+[Service]
+ExecStart=/opt/nextcloud-ai-worker/taskprocessing.sh %i
+Restart=always
+StartLimitInterval=30
+StartLimitBurst=10
+
+[Install]
+WantedBy=multi-user.target
