@@ -182,12 +182,12 @@ What Nextcloud needs to know: it connects to `proxysql.example.net:6033` (DNS RR
 
 | Host | VMID | PVE | IPs | Role |
 |------|------|-----|-----|------|
-| nlcl01file01 | VM | nl-pve01 | 10.0.X.X, 10.0.X.X, **VIP 10.0.X.X** | DRBD Primary + OCFS2 + **Active NFS server** (Pacemaker-managed). 3.7TB, 77GB used (3%). |
-| nlcl01file02 | VM | nl-pve03 | 10.0.X.X, 10.0.X.X | DRBD Primary + OCFS2 mounted. NFS passive (Pacemaker failover target). |
+| nlcl01file01 | VM | nl-pve01 | 10.0.X.X, 10.0.X.X | DRBD Primary + OCFS2. Serves NFS when it holds the VIP (Pacemaker-managed). 3.7TB, 77GB used (3%). |
+| nlcl01file02 | VM | nl-pve03 | 10.0.X.X, 10.0.X.X | DRBD Primary + OCFS2. Serves NFS when it holds the VIP. **Holds the VIP as of 2026-09-18** (moved 04:00:05 via `crm_resource` on file02; no `cli-` constraint left behind). |
 | nlcl01filearb01 | VM | nl-nas01 | 10.0.X.X, 10.0.X.X | Corosync/Pacemaker quorum voter **and the DRBD quorum tiebreaker**: `/etc/drbd.d/r0.res` is identical on all three nodes (`node-id 2`, `disk none`, `quorum majority`), drbd-dkms 9.3.2, `drbd@r0.target` enabled. **Connected since 2026-09-17 23:47Z** (it had been StandAlone since the 2026-08-30 boot; on 09-17 that left file02 at 1 of 3 when file01 died, DRBD `susp-io`, o2cb self-fenced file02, NFS down until file01 returned, IFRNLLEI01PRD-2860). ⚠ **A diskless node cannot join two established Primaries**: the far Primary declines the connect (`rv = -10`, nothing logged on the decliner). To (re)join it: `crm node standby` one data node (NFS stays put, stickiness 100 > preference 50), `drbdadm connect r0:<peer>` on both the arb and the remaining Primary, then `crm node online`; the returning node joins the pair on its own. The Sunday 03:00 triple reboot can therefore strand it again if both data nodes promote before the arb connects; reboot the arb first, or check `drbdadm status` for `filearb01 ... peer-client:yes` after every update. Its VLAN 88 NIC is MTU 1500 vs 9000 on file01/02 (tolerated, should be aligned). |
 
 **Pacemaker cluster:** 3 nodes online, 7 resources. DRBD dual-Primary mode with OCFS2 (cluster filesystem).
-**NFS floating IP:** 10.0.X.X (Pacemaker-managed, currently on nlcl01file01). Both nlnc01 and nlnc02 mount from this IP.
+**NFS floating IP:** 10.0.X.X (Pacemaker `nfs-group`, moves between file01 and file02; read placement from `crm status`, never from this line). Both nlnc01 and nlnc02 mount from this IP.
 **NFS export:** `/mnt/ocfs2` to `*(rw,no_root_squash)`
 
 **Note:** This storage cluster is shared with HAHA — see [`../haha/CLAUDE.md`](../haha/CLAUDE.md). HAHA mounts `/mnt/ocfs2/iot/`.
@@ -252,14 +252,78 @@ Failure Domains.
 
 | Host | Service | Configs Tracked |
 |------|---------|-----------------|
-| nlnc01 | Nextcloud | apache/nextcloud.conf, apache/adminer.conf, php/php.ini, php/www.conf, nextcloud-config/config.php, nextcloud-config/redis_sentinel.config.php, fstab, crontabs |
+| nlnc01 | Nextcloud | apache/nextcloud.conf, apache/adminer.conf, php/php.ini, php/www.conf, nextcloud-config/config.php, nextcloud-config/redis_sentinel.config.php, fstab, crontabs, systemd/nextcloud-ai-worker@.service + scripts/taskprocessing.sh (live `/etc/systemd/system/` and `/opt/nextcloud-ai-worker/`, instances @1-4 enabled; added 2026-09-18) |
 | nlnc02 | Nextcloud | Same as nlnc01 (shared OCFS2 storage, identical app) |
 
 ## Troubleshooting Quick Reference
 
-### Nextcloud shows Apache default page
-**Cause:** NFS mounts not mounted. Check: `mount | grep nextcloud`. Fix: `mount -a` on the affected nlnc01/nlnc02.
-**Known issue:** NFS mounts don't auto-recover after PVE host reboot if NFS server (nlcl01file01) isn't ready. Consider adding `_netdev,x-systemd.automount` to fstab.
+### Nextcloud shows Apache default page, `File not found.`, or 404 on one node only
+**Cause:** that node's two `10.0.X.X` mounts are missing, so Apache and PHP-FPM serve the
+empty local mountpoints. Happens when an nc node **boots while the NFS VIP is unavailable**: the
+fstab entries are plain `hard` mounts with no `x-systemd.automount` or `mount-timeout`, so
+systemd kills them at its 90 s default (`Mounting timed out. Terminating.`) and **never retries**.
+Nothing in the web stack depends on the mounts (no `RequiresMountsFor=`), so Apache starts anyway.
+
+**Symptom from outside is intermittent**, because each HAProxy prefers a different node
+(haproxy01 → nc01, haproxy02 → nc02), so only some requests land on the broken one. Test each node
+directly instead of the public name:
+```bash
+for ip in 10.0.X.X 10.0.X.X; do curl -sk -H 'Host: nextcloud.example.net' https://$ip/status.php; echo; done
+```
+A healthy node returns the `{"installed":true,...}` JSON; the broken one returns 404 / `File not found.`
+
+**Check with `findmnt`, not `ls` or `stat`:** the mountpoints exist as local dirs, so `stat` and
+`cd` succeed on a broken node. `findmnt -t nfs4 | grep 88.20` must list both
+`/var/www/nextcloud` and `/mnt/nextcloud-data`. `journalctl -b -u var-www-nextcloud.mount`
+shows the boot-time timeout.
+
+**Fix** (on the affected node, after confirming the VIP is up in `crm status`):
+```bash
+mount /var/www/nextcloud && mount /mnt/nextcloud-data
+systemctl restart php8.4-fpm apache2
+sudo -u www-data php /var/www/nextcloud/occ status   # expect maintenance: false
+systemctl --failed                                   # then see the AI worker section below
+```
+systemd logs `Directory /mnt/nextcloud-data to mount over is not empty, mounting anyway` on
+nc02. That is a stale `nextcloud.log` dated **2025-10-09** under the local mountpoint, left by
+an earlier occurrence of this same failure. It is harmless (hidden once mounted) and is the
+evidence that this recurs.
+
+**Worked example 2026-09-17/18 (IFRNLLEI01PRD-2860):** during the pve01 cold drain, file02
+self-fenced and nc02 rebooted at 23:01 while neither file node was serving. Its mounts timed out
+at 23:02:34, and nc02 served an empty tree for **~11.5 h** until it was fixed by hand on 09-18.
+
+**Durable fix, OPEN (operator decision pending):** give both fstab entries
+`x-systemd.automount` (or `x-systemd.mount-timeout=infinity`) and add a `RequiresMountsFor=/var/www/nextcloud /mnt/nextcloud-data`
+drop-in to `apache2` and `php8.4-fpm`, so a node cannot serve an unmounted tree.
+
+### Nextcloud AI workers `failed` after any NFS outage (both nodes)
+`nextcloud-ai-worker@1-4` (unit + script snapshotted under `<node>/nextcloud/systemd/` and
+`scripts/`) run `occ background-job:worker -t 30` in a loop via `Restart=always`, with
+`StartLimitBurst=10` / `StartLimitInterval=30` and **no `RestartSec`** (so the systemd default of
+100 ms). A normal cycle restarts once per ~30 s and never approaches the limit. But when
+`/var/www/nextcloud` is hung or empty, `occ` exits instantly, the ten restarts happen in about
+one second, and the unit sits `failed` **permanently**: `Restart=always` does not survive the
+start limit. Nextcloud AI task processing (Assistant, LLM, text2image via gpu01) then stays dead
+while the web UI looks healthy.
+
+On 2026-09-17 nc01's workers died at **22:49:39** (the moment NFS dropped) although nc01 itself
+never rebooted, and nc02's died at boot. Both were dead **~12 h**.
+
+**Fix:** `systemctl reset-failed nextcloud-ai-worker@{1..4}; systemctl start nextcloud-ai-worker@{1..4}`
+on each node, **after** the mounts are back.
+**Durable fix, OPEN:** add `RestartSec=10` (and `RequiresMountsFor=/var/www/nextcloud`) to the unit.
+
+### After ANY FISHA / NFS VIP outage: Nextcloud recovery checklist
+Nothing alerts on the two failures above, so run this on **both** nodes even if only one looked
+affected:
+1. `findmnt -t nfs4 | grep 88.20` shows both Nextcloud mounts.
+2. `systemctl --failed` is empty (AI workers, and `snmpd` on a node that booted during the
+   outage: on nc02 it timed out at boot at the same moment as the mounts, and a plain restart fixed it).
+3. `dmesg -T | grep 'check lease failed'` has **stopped**. A burst ending when the VIP returns is
+   normal (nc01 logged 50 of them, error 13, until 23:04:53 on 09-17). If it keeps going, the NFS
+   client is wedged: see the upgrade lessons in Layer 3.
+4. Direct `status.php` on .148 and .149 (curl above) both return JSON.
 
 ### Nextcloud maintenance mode
 **Check:** `sudo -u www-data php /var/www/nextcloud/occ maintenance:mode`
@@ -282,11 +346,11 @@ and the true node in one shot.
 **Known issue:** HAProxy redis backend has redis03 as PRIMARY but actual Redis master may differ. HAProxy can't detect master — uses PING only.
 
 ### NFS/DRBD/OCFS2 issues
-**Check DRBD:** `ssh -i ~/.ssh/one_key root@nlcl01file01 "cat /proc/drbd"` (should show UpToDate/UpToDate)
+**Check DRBD:** `ssh -i ~/.ssh/one_key root@nlcl01file01 "drbdadm status r0"` (both data nodes `UpToDate`, and `nlcl01filearb01 role:Secondary ... peer-client:yes`; on DRBD 9, `/proc/drbd` shows only the version, not peer state)
 **Check OCFS2:** `ssh -i ~/.ssh/one_key root@nlcl01file01 "mount | grep ocfs2"`
 **Check NFS exports:** `ssh -i ~/.ssh/one_key root@nlcl01file01 "exportfs -v"`
 **Check Pacemaker:** `ssh -i ~/.ssh/one_key root@nlcl01file01 "crm status"`
-**NFS VIP:** 10.0.X.X should be on nlcl01file01. If nlcl01file01 is down, Pacemaker should failover to nlcl01file02.
+**NFS VIP:** 10.0.X.X runs on whichever of file01/file02 Pacemaker chose (file02 as of 2026-09-18); either is normal. If both are down or file02 has lost DRBD quorum, NFS is down for every client, and afterwards the Nextcloud recovery checklist above applies.
 
 ### Collabora not loading documents
 **Check:** `docker logs collabora` on code01 (nl-pve01, VMID 101101205)
