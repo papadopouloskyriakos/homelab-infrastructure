@@ -1,0 +1,140 @@
+---
+# Reusable cluster health validation for FISHA HA NFS cluster.
+# Run on any cluster node with crm/corosync access.
+# Delegates VIP and NFS export checks to localhost (AWX runner).
+#
+# Checks:
+#   1. All 3 nodes Online
+#   2. ms_drbd_r0 Master/Promoted on both primaries (dual-primary)
+#   3. ocfs2-clone Started on both primaries
+#   4. nfs-group Started on exactly 1 primary
+#   5. No failed resource actions
+#   6. Quorum: Quorate Yes, Total votes 3
+#   7. VIP 10.0.X.X reachable (ping from localhost)
+#   8. NFS export /mnt/ocfs2 accessible via VIP (showmount from localhost)
+#
+# Retry: 3 attempts with 60s delay. On persistent failure, runs
+# crm resource cleanup and retries once more. Fails the playbook
+# if still unhealthy.
+
+- name: Define cluster validation script
+  set_fact:
+    _cluster_health_script: |
+      errors=""
+      crm_out=$(crm status 2>&1)
+
+      # 1. All 3 nodes Online
+      for node in nlcl01file01 nlcl01file02 nlcl01filearb01; do
+        if ! echo "$crm_out" | grep -E "Online:" | grep -q "\b${node}\b"; then
+          errors="${errors}Node ${node} not Online. "
+        fi
+      done
+
+      # 2. DRBD dual-primary on both file nodes
+      drbd_promoted=$(echo "$crm_out" | grep -A3 "ms_drbd_r0" | grep -iE "Masters|Promoted" || true)
+      for node in nlcl01file01 nlcl01file02; do
+        if ! echo "$drbd_promoted" | grep -q "\b${node}\b"; then
+          errors="${errors}ms_drbd_r0 not Master/Promoted on ${node}. "
+        fi
+      done
+
+      # 3. OCFS2 started on both primaries
+      ocfs2_started=$(echo "$crm_out" | grep -A3 "ocfs2-clone" | grep -i "Started" || true)
+      for node in nlcl01file01 nlcl01file02; do
+        if ! echo "$ocfs2_started" | grep -q "\b${node}\b"; then
+          errors="${errors}ocfs2-clone not Started on ${node}. "
+        fi
+      done
+
+      # 4. nfs-group on exactly 1 node
+      nfs_count=$(echo "$crm_out" | grep -c "nfs-ip.*Started" || true)
+      if [ "$nfs_count" != "1" ]; then
+        errors="${errors}nfs-group on ${nfs_count} nodes (expected 1). "
+      fi
+
+      # 5. No failed resources
+      if echo "$crm_out" | grep -qiE "Failed Actions|Failed Resource Actions"; then
+        failed_info=$(echo "$crm_out" | grep -A5 -iE "Failed" | head -8)
+        errors="${errors}Failed resources detected: ${failed_info}. "
+      fi
+
+      # 6. Quorum
+      quorum_out=$(corosync-quorumtool -s 2>&1)
+      if ! echo "$quorum_out" | grep -q "Quorate:.*Yes"; then
+        errors="${errors}Cluster not quorate. "
+      fi
+      if ! echo "$quorum_out" | grep -q "Total votes:.*3"; then
+        total=$(echo "$quorum_out" | grep "Total votes:" | awk '{print $NF}')
+        errors="${errors}Total votes ${total} (expected 3). "
+      fi
+
+      if [ -n "$errors" ]; then
+        echo "VALIDATION FAILED: ${errors}"
+        exit 1
+      fi
+      echo "All cluster health checks passed"
+
+- name: Validate cluster health (with retries)
+  block:
+    - name: Run cluster health checks
+      shell: "{{ _cluster_health_script }}"
+      register: health_result
+      until: health_result.rc == 0
+      retries: 3
+      delay: 60
+      changed_when: false
+      check_mode: false
+
+  rescue:
+    - name: Display validation failure before cleanup
+      debug:
+        msg: "Health check failed after 3 retries: {{ health_result.stdout | default('unknown') }}"
+
+    - name: Attempt resource cleanup for failed resources
+      command: "crm resource cleanup {{ item }}"
+      loop:
+        - ms_drbd_r0
+        - ocfs2-clone
+        - nfs-group
+
+    - name: Wait for cleanup to take effect
+      pause:
+        seconds: 60
+
+    - name: Re-validate cluster health after cleanup
+      shell: "{{ _cluster_health_script }}"
+      register: post_cleanup_result
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Fail if cluster still unhealthy after cleanup
+      fail:
+        msg: >-
+          Cluster health validation failed after resource cleanup.
+          {{ post_cleanup_result.stdout | default('No output') }}
+          Manual intervention required. Do not proceed to the next node.
+      when: post_cleanup_result.rc != 0
+
+- name: Verify VIP 10.0.X.X is reachable (NFS port 2049)
+  ansible.builtin.wait_for:
+    host: 10.0.X.X
+    port: 2049
+    timeout: 60
+    state: started
+  delegate_to: localhost
+  become: no
+  check_mode: false
+
+- name: Verify NFS export /mnt/ocfs2 is accessible via VIP
+  shell: showmount -e 10.0.X.X | grep -q '/mnt/ocfs2'
+  changed_when: false
+  check_mode: false
+  register: nfs_export
+  until: nfs_export.rc == 0
+  retries: 3
+  delay: 20
+
+- name: Cluster health validation passed
+  debug:
+    msg: "All cluster health and service validation checks passed"
