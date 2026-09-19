@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 25483 bytes
+Current configuration : 25562 bytes
 !
-! Last configuration change at 16:37:59 CEST Sat Aug 8 2026 by kyriakosp
+! Last configuration change at 03:26:23 CEST Sat Sep 19 2026 by kyriakosp
 ! NVRAM config last updated at 16:38:00 CEST Sat Aug 8 2026 by kyriakosp
 !
 version 16.12
@@ -623,9 +623,10 @@ interface GigabitEthernet1/0/36
  no cdp enable
 !
 interface TenGigabitEthernet1/0/37
- description *** Connection to APC Switched Rack PDU AP7922 | 100 Mbps ***
+ description *** TEMP 2026-09-19 nl-pve01 enp109s0 (AMT+uplink) trunk native 10 - revert to access when Po7 back ***
  switchport access vlan 10
- switchport mode access
+ switchport trunk native vlan 10
+ switchport mode trunk
  switchport nonegotiate
  load-interval 30
  power inline never
