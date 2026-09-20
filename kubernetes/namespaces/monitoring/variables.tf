@@ -1,3 +1,15 @@
+variable "node_root_floor_alert_enabled" {
+  description = "Emit REDACTED_76f07183. Only meaningful where the node ROOT filesystem is the storage floor, i.e. LocalPV-backed sites (notrf01). ⚠ NOT ported to NL/GR on purpose: NL's Prometheus scrapes the whole estate, so an unscoped node rule there covers PVE/iot/VPS hosts that have nothing to do with a SeaweedFS floor, and nlgpu01 already sits at 19.8%% free, so notrf01's 22%% threshold would fire the moment it was deployed. An alert that is on at birth is an alert that gets ignored."
+  type        = bool
+  default     = false
+}
+
+variable "node_root_floor_threshold" {
+  description = "Free-fraction below which REDACTED_76f07183 fires. notrf01 uses 0.22: five points above its 17%% SeaweedFS floor, deliberately not 0.25 because dmz01 sat at 25.3%% and would have fired at birth."
+  type        = string
+  default     = "0.22"
+}
+
 # =============================================================================
 # Variables for Monitoring Module
 # =============================================================================

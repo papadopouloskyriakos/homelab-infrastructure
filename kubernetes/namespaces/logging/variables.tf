@@ -1,3 +1,9 @@
+variable "loki_ruler_enabled" {
+  description = "Enable the Loki ruler (log-based alerting). Rules come from ConfigMaps labelled `loki_rule` via the chart's rules sidecar, so storage is the local directory rather than the S3 bucket nobody writes rules to; alerts go to this cluster's own Alertmanager. ⚠ The matching egress rule in network-policy.tf is LOAD-BEARING: without it the ruler evaluates rules and cannot deliver a single alert, which looks configured and fires nothing."
+  type        = bool
+  default     = false
+}
+
 # =============================================================================
 # Variables for Logging Module
 # =============================================================================

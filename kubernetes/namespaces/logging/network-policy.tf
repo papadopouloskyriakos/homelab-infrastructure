@@ -75,7 +75,7 @@ resource "kubernetes_manifest" "REDACTED_46f7c9ba" {
         }
       ]
 
-      egress = [
+      egress = concat([
         # Allow DNS resolution
         {
           toEndpoints = [
@@ -133,7 +133,27 @@ resource "kubernetes_manifest" "REDACTED_46f7c9ba" {
             }
           ]
         }
-      ]
+        ], var.loki_ruler_enabled ? [
+        # The Loki ruler delivers alerts to Alertmanager. Load-bearing: without
+        # this the ruler evaluates rules and can deliver none of them.
+        {
+          toEndpoints = [
+            {
+              matchLabels = {
+                "k8s:io.kubernetes.pod.namespace" = "monitoring"
+                "app.kubernetes.io/name"          = "alertmanager"
+              }
+            }
+          ]
+          toPorts = [
+            {
+              ports = [
+                { port = "9093", protocol = "TCP" }
+              ]
+            }
+          ]
+        }
+      ] : [])
     }
   }
 
