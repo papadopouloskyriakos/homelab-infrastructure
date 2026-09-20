@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-09-19 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-09-20 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: CRITICAL ⚠️
 
@@ -11,13 +11,13 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 16 |
 | Pending PVCs | 0 |
-| Total Restarts | 9361 |
+| Total Restarts | 9674 |
 
 ## Topology
 
 - **K8s:** v1.36.3 | **CNI:** Cilium 1.20.0
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 177
+- **Pods:** 179
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8002696Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -32,22 +32,22 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-kube-system              kube-proxy-qn8md                                                  0/1   CrashLoopBackOff   7172 (3m46s ago)   33d
-monitoring               meshsat-status-heartbeat-29829069-m8s46                           0/1   Error              0                  11h
-monitoring               meshsat-status-heartbeat-29829070-2jvgv                           0/1   Error              0                  11h
-monitoring               meshsat-status-heartbeat-29829071-rdsc7                           0/1   Error              0                  11h
-seaweedfs                seaweedfs-filer-0                                                 0/1   Pending            0                  87m
-seaweedfs                seaweedfs-read-canary-29829623-2gd2r                              0/1   Error              0                  147m
-seaweedfs                seaweedfs-read-canary-29829623-97727                              0/1   Error              0                  157m
-velero                   awx-default-kopia-maintain-job-1789786008141-n2kbf                0/1   Error              0                  14m
-velero                   awx-default-kopia-maintain-job-1789786313176-nhdhr                0/1   Error              0                  9m2s
-velero                   awx-default-kopia-maintain-job-1789786608143-944t2                0/1   Error              0                  4m7s
-velero                   monitoring-default-kopia-maintain-job-1789786012170-4vvjl         0/1   Error              0                  14m
-velero                   monitoring-default-kopia-maintain-job-1789786318207-fp47g         0/1   Error              0                  8m57s
-velero                   monitoring-default-kopia-maintain-job-1789786613180-rcqm9         0/1   Error              0                  4m2s
-velero                   pihole-default-kopia-maintain-job-1789786016204-2fx62             0/1   Error              0                  13m
-velero                   pihole-default-kopia-maintain-job-1789786308142-wkc86             0/1   Error              0                  9m7s
-velero                   pihole-default-kopia-maintain-job-1789786618211-mvlnd             0/1   Error              0                  3m57s
+kube-system              kube-proxy-qn8md                                                  0/1   CrashLoopBackOff   7452 (3m28s ago)   34d
+monitoring               meshsat-status-heartbeat-29829905-wgzmx                           0/1   Error              0                  21h
+monitoring               meshsat-status-heartbeat-29829979-2btsh                           0/1   Error              0                  20h
+monitoring               meshsat-status-heartbeat-29830064-622tc                           0/1   Error              0                  19h
+seaweedfs                seaweedfs-filer-0                                                 0/1   Pending            0                  25h
+seaweedfs                seaweedfs-read-canary-29829623-2gd2r                              0/1   Error              0                  26h
+seaweedfs                seaweedfs-read-canary-29829623-97727                              0/1   Error              0                  26h
+velero                   awx-default-kopia-maintain-job-1789872408352-nzf69                0/1   Error              0                  14m
+velero                   awx-default-kopia-maintain-job-1789872723223-2dzn8                0/1   Error              0                  8m46s
+velero                   awx-default-kopia-maintain-job-1789873008354-7nvqr                0/1   Error              0                  4m1s
+velero                   monitoring-default-kopia-maintain-job-1789872415131-gjlfn         0/1   Error              0                  13m
+velero                   monitoring-default-kopia-maintain-job-1789872708353-h9xlk         0/1   Error              0                  9m1s
+velero                   monitoring-default-kopia-maintain-job-1789873015506-vmtzw         0/1   Error              0                  3m54s
+velero                   pihole-default-kopia-maintain-job-1789872421630-xrfcz             0/1   Error              0                  13m
+velero                   pihole-default-kopia-maintain-job-1789872716854-7bv2j             0/1   Error              0                  8m53s
+velero                   pihole-default-kopia-maintain-job-1789873019757-pwhjn             0/1   Error              0                  3m50s
 ```
 
 ### High Restart Pods (>3)
@@ -67,13 +67,13 @@ kube-system/cilium-envoy-dzx97: 5 restarts
 kube-system/cilium-g5h5t: 4 restarts
 kube-system/cilium-operator-84c4fb58c7-jlhkp: 10 restarts
 kube-system/etcd-nlk8s-ctrl02: 5 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 9 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 14 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 11 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 5 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl02: 6 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl03: 7 restarts
 kube-system/kube-proxy-7jvns: 5 restarts
-kube-system/kube-proxy-qn8md: 7172 restarts
+kube-system/kube-proxy-qn8md: 7452 restarts
 kube-system/kube-scheduler-nlk8s-ctrl01: 4 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 4 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 8 restarts
@@ -90,10 +90,11 @@ logging/promtail-br4rf: 4 restarts
 logging/promtail-hp5sc: 8 restarts
 logging/promtail-m2gzm: 7 restarts
 logging/promtail-ng69s: 10 restarts
-monitoring/bgpalerter-789f984488-cwmbg: 5 restarts
+monitoring/bgpalerter-789f984488-cwmbg: 33 restarts
 monitoring/goldpinger-fjpnh: 4 restarts
 monitoring/goldpinger-rb96x: 5 restarts
 monitoring/goldpinger-t8x65: 5 restarts
+monitoring/monitoring-grafana-7d6c5795b8-6cvtn: 6 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 180 restarts
 monitoring/monitoring-prometheus-node-exporter-6sc8j: 10 restarts
 monitoring/monitoring-prometheus-node-exporter-88hp8: 7 restarts
@@ -111,11 +112,11 @@ synology-csi/synology-csi-node-zch7n: 35 restarts
 
 ### Recent Warnings (5)
 ```
-velero         4m3s        Warning   BackoffLimitExceeded   job/awx-default-kopia-maintain-job-1789786608143          Job has reached the specified backoff limit
-velero         3m58s       Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1789786613180   Job has reached the specified backoff limit
-velero         3m53s       Warning   BackoffLimitExceeded   job/pihole-default-kopia-maintain-job-1789786618211       Job has reached the specified backoff limit
-kube-system    45s         Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl01                     Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system    43s         Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl01                     Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system   4m42s       Warning   BackOff                pod/kube-proxy-qn8md                                      Back-off restarting failed container kube-proxy in pod kube-proxy-qn8md_kube-system(70ae08f5-7949-459c-9670-ac69c6b03a55)
+velero        3m55s       Warning   BackoffLimitExceeded   job/awx-default-kopia-maintain-job-1789873008354          Job has reached the specified backoff limit
+velero        3m52s       Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1789873015506   Job has reached the specified backoff limit
+velero        3m46s       Warning   BackoffLimitExceeded   job/pihole-default-kopia-maintain-job-1789873019757       Job has reached the specified backoff limit
+kube-system   2m30s       Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl03                     Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
