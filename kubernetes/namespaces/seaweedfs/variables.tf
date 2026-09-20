@@ -138,6 +138,12 @@ variable "REDACTED_a4f42897" {
 # -----------------------------------------------------------------------------
 # filer.sync Resource Allocation
 # -----------------------------------------------------------------------------
+variable "REDACTED_5adcfee4" {
+  description = "Prometheus metrics port for filer.sync. 0 disables. The cross-site replication that carries this site's Velero backups to the twin had NO telemetry at all until 2026-09-20 (IFRNLLEI01PRD-2879): no -metricsPort, no Service, no ServiceMonitor, and a liveness probe of `pgrep -f filer.sync` that proves the process exists, not that a byte is replicating. Same family as the estate's other fail-open collectors."
+  type        = number
+  default     = 9327
+}
+
 variable "REDACTED_11f97ee2" {
   description = "CPU request for filer.sync container"
   type        = string

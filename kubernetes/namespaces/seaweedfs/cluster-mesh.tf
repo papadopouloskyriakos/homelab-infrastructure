@@ -183,7 +183,20 @@ resource "REDACTED_08d34ae1" "filer_sync" {
             ],
             var.REDACTED_d063ac2f > 0 ? ["-a.fromTsMs", tostring(var.REDACTED_d063ac2f)] : [],
             var.REDACTED_88d37e0b > 0 ? ["-b.fromTsMs", tostring(var.REDACTED_88d37e0b)] : [],
+            # Telemetry for the replication that carries this site's Velero backups
+            # to the twin. Bind 0.0.0.0 so the Service can reach it; the pod is not
+            # host-networked and the port is not published. IFRNLLEI01PRD-2879.
+            var.REDACTED_5adcfee4 > 0 ? ["-metricsIp", "0.0.0.0", "-metricsPort", tostring(var.REDACTED_5adcfee4)] : [],
           )
+
+          dynamic "port" {
+            for_each = var.REDACTED_5adcfee4 > 0 ? [1] : []
+            content {
+              name           = "metrics"
+              container_port = var.REDACTED_5adcfee4
+              protocol       = "TCP"
+            }
+          }
 
           resources {
             requests = {
@@ -196,7 +209,10 @@ resource "REDACTED_08d34ae1" "filer_sync" {
             }
           }
 
-          # Health check - filer.sync doesn't expose health endpoint
+          # Health check. NOTE this proves only that the PROCESS exists, never that
+          # replication is advancing -- filer.sync can sit in a tight retry loop
+          # ("failed to get next log entry ... volume N not found") and still pass.
+          # The metrics port above is the signal that actually answers that question.
           liveness_probe {
             exec {
               command = ["pgrep", "-f", "filer.sync"]
@@ -218,4 +234,91 @@ resource "REDACTED_08d34ae1" "filer_sync" {
     kubernetes_service_v1.seaweedfs_filer_site,
     kubernetes_service_v1.seaweedfs_filer_remote
   ]
+}
+
+# -----------------------------------------------------------------------------
+# filer.sync telemetry (IFRNLLEI01PRD-2879)
+# -----------------------------------------------------------------------------
+# Until 2026-09-20 the cross-site replication that carries this site's Velero
+# backups to the twin exported nothing at all, so "is the offsite copy still
+# being written?" had no answer short of listing the remote bucket by hand.
+# GR was reclassified NON-PRODUCTION the same day, which makes this the one
+# control that has to keep working: the backup replica now lives on hardware
+# explicitly labelled best-effort.
+#
+# The scrape is deliberately LOCAL. filer.sync runs at THIS site, so this
+# site's Prometheus answers the question without depending on the twin to
+# report its own health -- the twin is exactly what we stopped trusting.
+
+resource "kubernetes_service_v1" "filer_sync_metrics" {
+  count = var.REDACTED_4bbaa453 && var.REDACTED_5adcfee4 > 0 ? 1 : 0
+
+  metadata {
+    name      = "REDACTED_6caea058"
+    namespace = REDACTED_46569c16.seaweedfs.metadata[0].name
+
+    labels = merge(var.common_labels, {
+      "app.kubernetes.io/name"      = "seaweedfs"
+      "app.kubernetes.io/component" = "filer-sync"
+      "app.kubernetes.io/instance"  = "seaweedfs-${var.site_code}"
+    })
+  }
+
+  spec {
+    selector = {
+      "app.kubernetes.io/name"      = "seaweedfs"
+      "app.kubernetes.io/component" = "filer-sync"
+    }
+
+    port {
+      name        = "metrics"
+      port        = var.REDACTED_5adcfee4
+      target_port = "metrics"
+      protocol    = "TCP"
+    }
+
+    # Headless: nothing load-balances a single replica, and this keeps the
+    # scrape target pinned to the pod rather than a virtual IP.
+    cluster_ip = "None"
+    type       = "ClusterIP"
+  }
+
+  depends_on = [REDACTED_08d34ae1.filer_sync]
+}
+
+resource "kubernetes_manifest" "REDACTED_40168fa8" {
+  count = var.REDACTED_4bbaa453 && var.REDACTED_5adcfee4 > 0 ? 1 : 0
+
+  manifest = {
+    apiVersion = "monitoring.coreos.com/v1"
+    kind       = "ServiceMonitor"
+    metadata = {
+      name      = "seaweedfs-filer-sync"
+      namespace = REDACTED_46569c16.seaweedfs.metadata[0].name
+      labels = merge(var.common_labels, {
+        "app.kubernetes.io/name"      = "seaweedfs"
+        "app.kubernetes.io/component" = "filer-sync"
+        release                       = "monitoring"
+      })
+    }
+    spec = {
+      selector = {
+        matchLabels = {
+          "app.kubernetes.io/name"      = "seaweedfs"
+          "app.kubernetes.io/component" = "filer-sync"
+        }
+      }
+      namespaceSelector = {
+        matchNames = [REDACTED_46569c16.seaweedfs.metadata[0].name]
+      }
+      endpoints = [{
+        port          = "metrics"
+        path          = "/metrics"
+        interval      = "30s"
+        scrapeTimeout = "10s"
+      }]
+    }
+  }
+
+  depends_on = [kubernetes_service_v1.filer_sync_metrics]
 }
