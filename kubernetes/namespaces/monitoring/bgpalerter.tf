@@ -104,7 +104,13 @@ monitors:
 
 reports:
   # Syslog reporter - sends alerts to syslog-ng -> Loki
-  # Using TCP instead of UDP for reliable delivery
+  # transport MUST stay udp. With tcp, syslog-client arms a 10s idle timeout on the
+  # socket and emits "error"; BGPalerter 2.0.1's reportSyslog.js binds that handler
+  # with `function` instead of an arrow, so `this.logger` is undefined and the
+  # uncaught TypeError exits the process ~10s after EVERY alert it sends. On
+  # 2026-09-19 that crash-looped bgpalerter on all three clusters for 2h20m
+  # (54 alert mails; 28 restarts NL, 27 NO). Do not "restore tcp for reliability":
+  # tcp delivers the first message and then kills the alerter.
   - file: reportSyslog
     channels:
       - hijack
@@ -117,7 +123,7 @@ reports:
     params:
       host: 10.0.X.X
       port: 514
-      transport: tcp
+      transport: udp
       templates:
         default: "$${channel}: $${summary}"
 
