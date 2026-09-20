@@ -89,6 +89,7 @@ wal_healer_webhook_url = "" # not wired on NL
 
 # --- scrape targets (NL Prometheus scrapes the whole estate) ---
 estate_scrape_enabled = true
+bgpalerter_enabled    = true
 asa_snmp_enabled      = true
 snmp_asa_target       = "10.0.X.X"
 snmp_asa_device       = "nlfw01"

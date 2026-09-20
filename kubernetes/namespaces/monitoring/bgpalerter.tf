@@ -256,7 +256,16 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
   }
 
   spec {
-    replicas = 1
+    # BGPalerter is an ESTATE-WIDE subsystem, not a cluster-local one. All three
+    # clusters run byte-identical config, watch the SAME single prefix
+    # (2a0c:9a40:8e20::/48, AS214304) via the SAME global RIS Live feed, and mail
+    # the SAME address, so extra copies add no detection coverage and simply
+    # multiply every notification. On 2026-09-19 one upstream event produced 54
+    # mails from three crash-looping copies. This is the same single-site rule
+    # that keeps estate_scrape_enabled true on exactly one Prometheus.
+    # Gated on replicas rather than count so the objects stay in state and
+    # re-enabling a site is a one-word tfvars flip with no state moves.
+    replicas = var.bgpalerter_enabled ? 1 : 0
 
     selector {
       match_labels = {
@@ -302,8 +311,20 @@ resource "REDACTED_08d34ae1" "bgpalerter" {
         }
 
         container {
-          name  = "bgpalerter"
-          image = "nttgin/bgpalerter:latest"
+          name = "bgpalerter"
+          # Pinned by DIGEST. Two things to know before changing this line:
+          #   - This repo forbids mutable :latest tags, and this was :latest
+          #     until 2026-09-20, so the running image could change under us
+          #     with no commit and no plan.
+          #   - The v2.0.1 TAG is NOT this image. Both were pushed 2025-08-07
+          #     but they are different builds: tag v2.0.1 is
+          #     sha256:c65a1942... (92,952,686 B), this one is 92,984,792 B.
+          #     "Tidying" this to nttgin/bgpalerter:v2.0.1 would silently swap
+          #     the running image for one nobody has run here.
+          # App version is 2.0.1 (the container logs `bgpalerter@2.0.1 serve`).
+          # To move: pull the candidate, confirm it starts and still alerts,
+          # then replace the digest here.
+          image = "nttgin/bgpalerter@sha256:7716926952c431baf851d9923a5273e42f32c21aa248da1d6a35158d37d1b894"
 
           command = ["npm"]
           args    = ["run", "serve", "--", "--d", "REDACTED_729ea3cb/"]

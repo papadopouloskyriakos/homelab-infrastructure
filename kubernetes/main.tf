@@ -210,6 +210,7 @@ module "monitoring" {
   # estate_scrape_enabled must be true on exactly ONE Prometheus (NL) —
   # see namespaces/monitoring/scrape-estate.tf (mirror-exempt, GR stub).
   estate_scrape_enabled       = var.estate_scrape_enabled
+  bgpalerter_enabled          = var.bgpalerter_enabled
   asa_snmp_enabled            = var.asa_snmp_enabled
   snmp_asa_target             = var.snmp_asa_target
   snmp_asa_device             = var.snmp_asa_device
