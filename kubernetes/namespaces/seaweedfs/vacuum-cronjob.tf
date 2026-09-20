@@ -42,7 +42,10 @@ resource "REDACTED_a9df2e77_v1" "vacuum_script" {
       # failure they catch. Do not collapse them back into a one-liner.
       set -u
       MASTERS="seaweedfs-master-0.seaweedfs-master:9333,seaweedfs-master-1.seaweedfs-master:9333,seaweedfs-master-2.seaweedfs-master:9333"
-      FLOOR_BYTES=10737418240   # 10 GiB: below this a no-op pass is not worth alerting on
+      FLOOR_MIB=10240           # 10 GiB: below this a no-op pass is not worth alerting on
+      # ⚠ Work in MiB, never raw bytes. busybox awk in this image is 32-bit for
+      # printf "%d", so 966 GiB printed as -2147483648 and a NEGATIVE garbage total
+      # would make the guard below fail OPEN. Caught by running it, 2026-09-20.
       echo "== $(date -u +%FT%TZ) seaweedfs vacuum pass start (garbageThreshold=$GARBAGE_THRESHOLD)"
 
       # GUARD 1: assert the threshold can select at least one volume BEFORE running.
@@ -69,15 +72,21 @@ resource "REDACTED_a9df2e77_v1" "vacuum_script" {
         END {
           tot=0; garb=0; sel=0; nv=0
           for (k in S) { nv++; tot+=S[k]; garb+=D[k]; if (S[k] > 0 && D[k]/S[k] >= TH) sel++ }
-          printf "%d %d %d %d", tot, garb, sel, nv
+          printf "%.0f %.0f %d %d", tot/1048576, garb/1048576, sel, nv
         }' "$PRE")
       rm -f "$PRE"
-      TOT=$(echo "$STATS" | cut -d" " -f1); GARB=$(echo "$STATS" | cut -d" " -f2)
+      TOT_MIB=$(echo "$STATS" | cut -d" " -f1); GARB_MIB=$(echo "$STATS" | cut -d" " -f2)
       SEL=$(echo "$STATS" | cut -d" " -f3); NVOL=$(echo "$STATS" | cut -d" " -f4)
-      echo "   pre-pass: volumes=$NVOL total=$TOT bytes garbage=$GARB bytes selectable_at_$GARBAGE_THRESHOLD=$SEL"
+      echo "   pre-pass: volumes=$NVOL total=$TOT_MIB MiB garbage=$GARB_MIB MiB selectable_at_$GARBAGE_THRESHOLD=$SEL"
+      # Fail CLOSED if the listing could not be parsed: an unassessable cluster must
+      # not read as a healthy one (that is the whole point of this guard).
+      if [ -z "$NVOL" ] || [ "$NVOL" -eq 0 ]; then
+        echo "   ERROR: could not parse volume.list (volumes=$NVOL) - refusing to report success"
+        exit 1
+      fi
       NOOP=0
-      if [ "$${SEL:-0}" -eq 0 ] && [ "$${GARB:-0}" -gt "$FLOOR_BYTES" ]; then
-        echo "   ERROR: garbageThreshold=$GARBAGE_THRESHOLD selects ZERO of $NVOL volumes while $GARB bytes of garbage exist."
+      if [ "$${SEL:-0}" -eq 0 ] && [ "$${GARB_MIB:-0}" -gt "$FLOOR_MIB" ]; then
+        echo "   ERROR: garbageThreshold=$GARBAGE_THRESHOLD selects ZERO of $NVOL volumes while $GARB_MIB MiB of garbage exist."
         echo "   ERROR: this pass cannot reclaim anything. Lower the threshold (and master.garbageThreshold with it)."
         NOOP=1
       fi
