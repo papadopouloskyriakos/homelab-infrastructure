@@ -119,6 +119,26 @@ module "reloader" {
   depends_on = [module.cilium_bgp]
 }
 
+# Per-workload admission policy; see _core/kyverno/main.tf for why PSA alone
+# cannot close CIS 5.2 here and why phase 1 is audit-only. Gated per-site:
+# NL/GR run it AUDIT-ONLY (REDACTED_da51e7e0 = false), notrf01 additionally
+# enforces the cosign policy on its own Hub image.
+module "kyverno" {
+  count  = var.kyverno_enabled ? 1 : 0
+  source = "./_core/kyverno"
+
+  REDACTED_da51e7e0 = var.REDACTED_a1145f93
+
+  depends_on = [module.cilium_bgp]
+}
+
+# notrf01 ran this module un-counted until 2026-09-20; moved{} maps its state
+# onto [0]. On NL/GR the source address does not exist and this is a no-op.
+moved {
+  from = module.kyverno
+  to   = module.kyverno[0]
+}
+
 module "metrics_server" {
   source = "./_core/metrics-server"
 
