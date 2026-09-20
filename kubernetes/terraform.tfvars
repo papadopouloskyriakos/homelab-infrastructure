@@ -266,3 +266,8 @@ REDACTED_5741a7a4   = false # network-attached iSCSI: pods reschedule
 loki_ruler_enabled            = true  # NL is the estate alerting hub; had none before
 node_root_floor_alert_enabled = false # gpu01 already at 19.8% free: 0.22 would fire at birth
 node_root_floor_threshold     = "0.22"
+
+# --- ingress WAF + internal CA (site values, 2026-09-20) ---
+REDACTED_f03c8bab = "DetectionOnly" # backend-only ingress; ModSecurity already truncated a 2 GB restore here
+REDACTED_14740f3f = ""
+internal_ca_enabled     = false # no meshsat-hub NATS consumer

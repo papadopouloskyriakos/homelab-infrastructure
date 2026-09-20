@@ -444,6 +444,24 @@ variable "node_root_floor_threshold" {
   default     = "0.22"
 }
 
+variable "REDACTED_f03c8bab" {
+  description = "ModSecurity mode for this cluster's ingress: DetectionOnly (log) or On (BLOCK). See _core/ingress-nginx/variables.tf. ⚠ Do not flip to On without explicit operator instruction (root CLAUDE.md, Things to Never Do)."
+  type        = string
+  default     = "DetectionOnly"
+}
+
+variable "REDACTED_14740f3f" {
+  description = "Extra SecRule lines appended to this cluster's ModSecurity snippet. Keep EMPTY where the engine is DetectionOnly. See _core/ingress-nginx/variables.tf."
+  type        = string
+  default     = ""
+}
+
+variable "internal_ca_enabled" {
+  description = "Create the self-signed internal CA for cluster-internal TLS. Enable only where a consumer exists (today: meshsat-hub NATS on notrf01). See _core/cert-manager/variables.tf."
+  type        = bool
+  default     = false
+}
+
 variable "estate_scrape_enabled" {
   description = "Run the estate-wide scrape jobs (exactly ONE Prometheus may — NL true, GR false; see scrape-estate.tf)"
   type        = bool

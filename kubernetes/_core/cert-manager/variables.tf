@@ -1,3 +1,9 @@
+variable "internal_ca_enabled" {
+  description = "Create the self-signed internal CA (REDACTED_0aeb0676 -> meshsat-internal-ca) for cluster-internal TLS. Enable only where a consumer exists: today that is the meshsat-hub NATS route port on notrf01, whose members authenticate with a shared credential but still speak plaintext to each other (MESHSAT-1194). NL and GR have no meshsat-hub namespace and no NATS pods, so enabling it there would create a 10-year CA and two ClusterIssuers that nothing uses."
+  type        = bool
+  default     = false
+}
+
 variable "chart_version" {
   description = "cert-manager Helm chart version"
   type        = string

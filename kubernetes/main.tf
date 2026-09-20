@@ -130,6 +130,8 @@ module "ingress_nginx" {
 
   REDACTED_3b82c3d6 = var.REDACTED_af8c15ba
   csp_header              = var.ingress_csp_header
+  REDACTED_f03c8bab = var.REDACTED_f03c8bab
+  REDACTED_14740f3f = var.REDACTED_14740f3f
 
   depends_on = [module.cilium_bgp]
 }
@@ -160,6 +162,7 @@ module "cert_manager" {
 
   acme_issuer_enabled = var.acme_issuer_enabled
   install_crds        = var.install_crds
+  internal_ca_enabled = var.internal_ca_enabled
 
   depends_on = [module.external_secrets]
 }

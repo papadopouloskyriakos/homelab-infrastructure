@@ -123,14 +123,63 @@ resource "helm_release" "ingress_nginx" {
           hide-headers = "X-Powered-By,Server"
 
           # === ModSecurity WAF ===
-          # OWASP Core Rule Set - DetectionOnly mode for initial deployment
-          # Change to "SecRuleEngine On" after tuning (1-2 weeks monitoring)
+          # The MODE IS PER-SITE: var.REDACTED_f03c8bab, with any extra
+          # SecRule lines in var.REDACTED_14740f3f. Read both variable
+          # descriptions before changing either; the short version is below.
+          #
+          # notrf01 runs "On" (MESHSAT-1207, enforcing since 2026-09-17). Its
+          # tuning window showed two things. First that the engine works at all,
+          # which is worth checking because "zero audit records in 24 h" reads
+          # identically to a WAF that is not evaluating anything: a harmless
+          # `?q=<script>` produced CRS 941100/941110/941160/941390 plus the 949110
+          # anomaly rule and a JSON audit record. Second that across 24 h of
+          # production traffic those were the ONLY matches. It is quiet because the
+          # VPS CrowdSec AppSec engine blocks probe traffic (1.19M processed, 2.68k
+          # blocked) before it reaches here, so this is defence-in-depth for a
+          # bypassed edge, not the primary control.
+          #
+          # NL and GR stay "DetectionOnly", deliberately. Their ingress carries only
+          # internal ops names behind the ASA and is not routed from the internet, so
+          # the bypass case above does not exist for them, while their traffic is
+          # machine-to-machine (S3 sigv4 PUTs of binary objects, Prometheus
+          # remote-write protobuf, ArgoCD gRPC) which is exactly what CRS is worst
+          # at. This is not hypothetical here: the seaweedfs-s3 ingress already
+          # carries enable-modsecurity=false because ModSecurity's body filter
+          # truncated a 2 GB barman restore at exactly 512 MiB, and production DB
+          # backups were not restorable through that gateway until it was turned off.
+          # ⚠ Do not flip either to "On" without explicit operator instruction
+          # (root CLAUDE.md, Things to Never Do).
           enable-modsecurity           = "true"
           enable-owasp-modsecurity-crs = "true"
-          # SecAuditLog -> /dev/stdout (was /var/log/modsec_audit.log): the serial audit file
-          # had NO rotation and grew unbounded (33.6G on one controller, 2026-06-24 -> node02
-          # ephemeral-storage eviction). stdout is kubelet-rotated (~50Mi cap) + flows to Loki.
-          modsecurity-snippet = "SecRuleEngine DetectionOnly\nSecAuditLog /dev/stdout\nSecAuditLogFormat JSON\nSecAuditEngine RelevantOnly"
+          # SecAuditLog -> /dev/stdout (was /var/log/modsec_audit.log): the serial audit
+          # file had NO rotation and grew unbounded (33.6G on one controller, 2026-06-24
+          # -> node02 ephemeral-storage eviction). stdout is kubelet-rotated (~50Mi cap)
+          # and flows to Loki.
+          #
+          # The two rules notrf01 supplies via REDACTED_14740f3f, and why they are
+          # site values rather than canonical content:
+          #   id:1000 holds /api/webhook/ in DetectionOnly PERMANENTLY. That prefix is
+          #     where a satellite MO message arrives (Cloudloop, RockBLOCK/Ground
+          #     Control, Globalstar, inbound SMS) and an SOS arrives on exactly those
+          #     paths. The sender is a third party's ground station that cannot
+          #     interpret a 403 and will not retry intelligently, so a CRS false
+          #     positive on a binary or base64 payload would silently drop an emergency
+          #     message. /api/webhook/stripe/{secret} rides the same carve-out: its real
+          #     control is the raw-body HMAC signature.
+          #   id:1001 applies ctl:ruleRemoveById=911100 because CRS ships
+          #     tx.allowed_methods without PUT or DELETE and the Hub REST API uses both;
+          #     within an hour of the flip every PUT and DELETE to hub.meshsat.net got an
+          #     HTML 403. ⚠ It must NOT be canonical: on a DetectionOnly site it would
+          #     silently pre-authorise a permissive method policy for the day that site
+          #     ever flips to On.
+          modsecurity-snippet = trimspace(<<-EOT
+            SecRuleEngine ${var.REDACTED_f03c8bab}
+            SecAuditLog /dev/stdout
+            SecAuditLogFormat JSON
+            SecAuditEngine RelevantOnly
+            ${var.REDACTED_14740f3f}
+          EOT
+          )
 
           # === JSON STRUCTURED LOGGING ===
           # Better for SIEM integration and log analysis
