@@ -37,14 +37,64 @@ resource "REDACTED_a9df2e77_v1" "vacuum_script" {
     "vacuum.sh" = <<-SHEOF
       #!/bin/sh
       # Explicit reclaim pass. Output is the job log (kubectl logs job/...).
+      #
+      # Two guards here, both added 2026-09-20 after IFRNLLEI01PRD-2848 showed the
+      # failure they catch. Do not collapse them back into a one-liner.
       set -u
       MASTERS="seaweedfs-master-0.seaweedfs-master:9333,seaweedfs-master-1.seaweedfs-master:9333,seaweedfs-master-2.seaweedfs-master:9333"
+      FLOOR_BYTES=10737418240   # 10 GiB: below this a no-op pass is not worth alerting on
       echo "== $(date -u +%FT%TZ) seaweedfs vacuum pass start (garbageThreshold=$GARBAGE_THRESHOLD)"
+
+      # GUARD 1: assert the threshold can select at least one volume BEFORE running.
+      # volume.vacuum is per-VOLUME, so a cluster can hold a lot of garbage and still
+      # have no single volume above the threshold - in which case every pass is a
+      # guaranteed no-op that still exits 0 and still looks like a healthy run.
+      # notrf01 sat that way for 20 consecutive passes while garbage grew to 85 GiB,
+      # and SeaweedFSVacuumJobNotRunning could not see it, because the job DID run.
+      # NOTE: `volume.list -v 0` prints only the topology summary, with no per-volume
+      # garbage, so the assertion needs the full listing.
+      PRE=$(mktemp)
+      printf 'lock\nvolume.list\nunlock\n' | weed shell -master="$MASTERS" > "$PRE" 2>&1
+      STATS=$(awk -v TH="$GARBAGE_THRESHOLD" '
+        /volume Id:/ {
+          id=""; size=0; del=0; n=split($0, a, ",")
+          for (i=1;i<=n;i++) {
+            if (a[i] ~ /volume Id:/)          { sub(/.*volume Id:/,"",a[i]);          id=a[i]+0 }
+            else if (a[i] ~ /DeletedByteCount:/) { sub(/.*DeletedByteCount:/,"",a[i]); del=a[i]+0 }
+            else if (a[i] ~ /Size:/)          { sub(/.*Size:/,"",a[i]);               size=a[i]+0 }
+          }
+          # replicas repeat the same volume id; keep the largest copy
+          if (size > 0 && size > S[id]) { S[id]=size; D[id]=del }
+        }
+        END {
+          tot=0; garb=0; sel=0; nv=0
+          for (k in S) { nv++; tot+=S[k]; garb+=D[k]; if (S[k] > 0 && D[k]/S[k] >= TH) sel++ }
+          printf "%d %d %d %d", tot, garb, sel, nv
+        }' "$PRE")
+      rm -f "$PRE"
+      TOT=$(echo "$STATS" | cut -d" " -f1); GARB=$(echo "$STATS" | cut -d" " -f2)
+      SEL=$(echo "$STATS" | cut -d" " -f3); NVOL=$(echo "$STATS" | cut -d" " -f4)
+      echo "   pre-pass: volumes=$NVOL total=$TOT bytes garbage=$GARB bytes selectable_at_$GARBAGE_THRESHOLD=$SEL"
+      NOOP=0
+      if [ "$${SEL:-0}" -eq 0 ] && [ "$${GARB:-0}" -gt "$FLOOR_BYTES" ]; then
+        echo "   ERROR: garbageThreshold=$GARBAGE_THRESHOLD selects ZERO of $NVOL volumes while $GARB bytes of garbage exist."
+        echo "   ERROR: this pass cannot reclaim anything. Lower the threshold (and master.garbageThreshold with it)."
+        NOOP=1
+      fi
+
+      # GUARD 2: capture weed shell's OWN exit status. This used to read `rc=$?`
+      # after a `| grep` pipe stage, so it recorded grep's status and a failed
+      # vacuum exited 0 (same class as feedback_pipe_into_log_loop_hides_failures).
+      OUT=$(mktemp)
       printf 'lock\nvolume.list -v 0\nvolume.vacuum -garbageThreshold %s\nvolume.deleteEmpty -quietFor 24h -force\nvolume.list -v 0\nunlock\n' "$GARBAGE_THRESHOLD" \
-        | weed shell -master="$MASTERS" 2>&1 | grep -vE '^\s*$'
+        | weed shell -master="$MASTERS" > "$OUT" 2>&1
       rc=$?
-      echo "== $(date -u +%FT%TZ) seaweedfs vacuum pass end rc=$rc"
-      exit $rc
+      grep -vE '^[[:space:]]*$' "$OUT" || true
+      rm -f "$OUT"
+
+      echo "== $(date -u +%FT%TZ) seaweedfs vacuum pass end rc=$rc noop=$NOOP"
+      [ "$rc" -ne 0 ] && exit "$rc"
+      exit "$NOOP"
     SHEOF
   }
 }
