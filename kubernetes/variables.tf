@@ -420,6 +420,12 @@ variable "wal_healer_webhook_url" {
   default     = ""
 }
 
+variable "bgpalerter_enabled" {
+  description = "Run BGPalerter on this cluster. Exactly ONE site (NL) should: every site watches the same prefix via the same global feed and mails the same address, so additional copies only multiply notifications. Same single-site rule as estate_scrape_enabled."
+  type        = bool
+  default     = true
+}
+
 variable "estate_scrape_enabled" {
   description = "Run the estate-wide scrape jobs (exactly ONE Prometheus may — NL true, GR false; see scrape-estate.tf)"
   type        = bool

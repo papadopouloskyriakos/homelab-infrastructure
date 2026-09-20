@@ -461,6 +461,12 @@ variable "ipsec_edge_targets" {
 # Estate Scrape Jobs (NL-only estate targets — see scrape-estate.tf)
 # =============================================================================
 
+variable "bgpalerter_enabled" {
+  description = "Run BGPalerter on this cluster. Exactly ONE site (NL) should: every site watches the same prefix via the same global feed and mails the same address, so additional copies only multiply notifications. Same single-site rule as estate_scrape_enabled."
+  type        = bool
+  default     = true
+}
+
 variable "estate_scrape_enabled" {
   description = "Emit the NL-estate additionalScrapeConfigs jobs (chatops, omoikane, crowdsec, fisha, iot, edge node_exporter, frr-dmz). Exactly one cluster (NL) scrapes these targets; enabling on both would double-scrape the estate."
   type        = bool
