@@ -99,6 +99,8 @@ resource "helm_release" "seaweedfs" {
       filer_storage_size            = var.filer_storage_size
       node_region                   = var.node_region
       filer_store                   = var.filer_store
+      garbage_threshold             = var.REDACTED_fbcee600
+      tolerate_disk_pressure        = var.tolerate_disk_pressure
     })
   ]
 

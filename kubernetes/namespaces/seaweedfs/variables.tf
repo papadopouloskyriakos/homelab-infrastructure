@@ -247,7 +247,19 @@ variable "canary_s3_endpoint" {
 # Scheduled vacuum (vacuum-cronjob.tf, IFRNLLEI01PRD-2831)
 # -----------------------------------------------------------------------------
 variable "REDACTED_fbcee600" {
-  description = "Garbage ratio above which the weekly explicit `volume.vacuum` pass compacts a volume. Kept equal to master.garbageThreshold in values.yaml.tpl (0.10) so the scheduled pass and the background loop agree on what is reclaimable."
+  description = "Garbage ratio above which a volume is compacted. Feeds BOTH the explicit vacuum CronJob and master.garbageThreshold in values.yaml.tpl, so the scheduled pass and the background loop always agree on what is reclaimable. notrf01 runs 0.02: there, at 0.10 the real ratio of 0.059 sat BELOW the threshold, so every pass was a no-op while garbage grew to 85 GiB and `SeaweedFSVacuumJobNotRunning` stayed quiet, because the job DID run (IFRNLLEI01PRD-2848). NL measured the opposite on 2026-09-20 and keeps 0.10: 142 of its 1558 volumes already clear it and hold 41.6 of 48.8 GiB of garbage, so lowering it would add 192 volumes worth only 5.8 GiB. MEASURE before changing it. A threshold above the steady-state garbage ratio is not a throttle, it is an off switch."
   type        = string
   default     = "0.10"
+}
+
+variable "vacuum_schedule" {
+  description = "Cron schedule for the explicit seaweedfs vacuum pass. Weekly suits sites whose volume PVs are large relative to churn (NL/GR). notrf01 runs it DAILY: on a 155 GiB shared root the garbage from one retention cut can exceed the whole margin above minFreeSpacePercent between two Sunday passes, and once the floor latches the volumes go read-only and the vacuum can no longer run at all."
+  type        = string
+  default     = "10 4 * * 0"
+}
+
+variable "tolerate_disk_pressure" {
+  description = "Let the seaweedfs pods AND the CNPG filer-meta pods tolerate node.kubernetes.io/disk-pressure. Only meaningful where their PVs are NODE-PINNED (notrf01: openebs local-hostpath). There the taint evicts pods that have nowhere to go, and the node only recovers by DELETING data - which Loki compaction and Thanos retention do through the S3 gateway that runs inside the filer. So the taint removes the only mechanism that could clear it: a stable deadlock, observed 2026-09-17 (dmz01 flat at 15.07% free for hours, seaweedfs-s3 with zero endpoints). NL/GR use network-attached iSCSI, so their pods simply reschedule and they degrade instead of deadlocking; keep false there."
+  type        = bool
+  default     = false
 }

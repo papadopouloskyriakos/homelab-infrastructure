@@ -123,9 +123,8 @@ resource "kubernetes_manifest" "vacuum_cronjob" {
       }
     }
     spec = {
-      # Weekly, Sunday 04:10 UTC — after the daily CNPG/Velero/etcd backup windows
-      # (01:30–03:15 UTC) so their deletions of expired objects are already garbage.
-      schedule                   = "10 4 * * 0"
+      # Per-site; see var.vacuum_schedule for why notrf01 runs this daily.
+      schedule                   = var.vacuum_schedule
       concurrencyPolicy          = "Forbid"
       successfulJobsHistoryLimit = 4
       failedJobsHistoryLimit     = 4
