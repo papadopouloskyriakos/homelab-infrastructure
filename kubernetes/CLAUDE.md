@@ -48,6 +48,61 @@ python3 /home/claude-runner/scripts/tf-graph-indexer.py /home/claude-runner/gitl
 - **The root is tfvars-driven since 2026-08-16 (mirror campaign):** `main.tf`/`variables.tf`/`providers.tf`/`outputs.tf` are canonical (byte-identical with GR, zero site literals); ALL site values live in `terraform.tfvars` (77 keys, key-set parity with GR asserted by the mirror check); `site-storage.tf` holds the per-site CSI module call (nl-nas01-csi) and is the only mirror-exempt root `.tf` file. `moved.tf`/`imports.tf` were spent and deleted (`imports.tf` came back briefly on 2026-09-12 to adopt the hand-applied `wildcard-ellizg-com` Certificate, then was deleted again in MR !550 — that is the intended lifecycle for an import block, not a file to keep). Secrets stay in Atlantis `TF_VAR_*` env — tfvars values would override them.
 - Run `tofu fmt -recursive` before committing — the pipeline enforces formatting.
 
+## GR cluster classification (set 2026-09-20, IFRNLLEI01PRD-2879)
+
+**`gr` is NON-PRODUCTION / best-effort.** No service may depend on it for
+availability. It runs on hardware that cannot currently carry a production
+guarantee: `gr-pve01` I/O contention stalls the API write path, which drops
+leader-election leases, which exits the CSI sidecars (IFRNLLEI01PRD-2878). The
+operator decision on 2026-09-20 was to accept that rather than migrate guests,
+because the durable fix needs hardware that does not exist yet.
+
+**Exit condition:** new GR hardware. Until then this label stands and the
+`DR` label does not.
+
+### What this label costs you, stated plainly
+
+**NL has no DR site.** That is the whole point of writing this down. Older docs
+called GR "DR"; a cluster you have classified as volatile is not a DR site, and
+holding both labels at once is how a site gets trusted in an emergency it cannot
+serve. Root `CLAUDE.md` says `GR, non-production` for this reason.
+
+### Two things still depend on GR, deliberately
+
+The label is "no service may depend on it", not "nothing does". Two **machine**
+consumers remain, each an explicit accepted risk rather than an oversight:
+
+| Dependency | What it is | Decision 2026-09-20 |
+|---|---|---|
+| **Velero replication target** | `seaweedfs-filer-sync` on NL runs `filer.sync -a <NL filer> -b <GR filer>`, bidirectional over `/buckets`, excluding only thanos and loki. **Velero is NOT excluded, so GR holds a replica of NL's backups.** | **ACCEPTED as best-effort.** There is no third site to move it to. Offsite backup is explicitly now a best-effort guarantee, not a hard one. Revisit when GR hardware lands or a third target exists. |
+| **Thanos long-range history** | NL's `thanos-query` carries `--endpoint=…thanos-store-gr…` and `…thanos-sidecar-gr…`. | **ACCEPTED.** No explicit `--query.partial-response` flag, so the Thanos default applies: a GR store outage does not error your NL dashboards, it silently truncates them. Read a gap in a long-range NL panel as "GR may be down" before believing the data. |
+
+⚠ **Do not read "GR is experimental" as "GR is idle."** Checked 2026-09-20: GR
+Velero holds **20 backups, newest `Completed`**, while NL holds 3 with the newest
+two `PartiallyFailed` (the kopia repos of IFRNLLEI01PRD-2793). On the backup axis
+GR is currently the healthier of the two. The classification is about the hardware
+under it, not about the workload being worthless.
+
+### The pairing that makes the label mean something
+
+A classification with no change in behaviour is just a note. "Non-production"
+is what gives you permission to **shrink** GR, and shrinking is the remedy
+available without buying hardware, because the contention is workload-driven.
+Freezing GR at full workload buys the volatility and none of the relief.
+
+### The one control that makes "leave it alone" safe
+
+Everything else on GR can go quiet, but the replication carrying NL's backups
+must not. As of 2026-09-20 it is **completely unmonitored**: `filer.sync` runs
+with no `-metricsPort`, no Service, no ServiceMonitor, `prometheus.io/scrape
+= "false"`, and a liveness probe of `pgrep -f filer.sync` — which proves the
+process exists, not that a single byte is replicating. Same family as Known
+Gaps 5a/9/10/12/13/16/17: a signal that reads green is not a working control.
+
+The alert must live on **NL**, not GR. `filer.sync` runs on NL, so NL can scrape
+it locally and does not depend on a cluster it has just declared untrustworthy
+to report its own health.
+
 ## Mirror contract
 
 THREE `k8s/` trees are a **character-perfect mirror** of one hub form: **NL (the hub)** `infrastructure/nl/production` (gitlab.example.net, project 7), **GR** `infrastructure/gr/production` (gr-gitlab.example.net, project 5), and **NO** `infrastructure/notrf01/production` (gitlab.example.net, project 58, Atlantis instance `Atlantis-no`) — byte-identical except site-unique identifiers, checked hub-pairwise (NL↔GR, NL↔NO). This section is IDENTICAL in all three repos' `k8s/CLAUDE.md`. Every `k8s/` edit falls into exactly one of the four file classes below; know which one before you touch a file.
