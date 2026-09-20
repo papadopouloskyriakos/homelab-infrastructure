@@ -69,10 +69,20 @@ resource "kubernetes_manifest" "filer_meta_cluster" {
             memory = "1Gi"
           }
         }
-        affinity = {
+        # tolerations are added only where the PVs are node-pinned; see
+        # var.tolerate_disk_pressure for the deadlock it breaks.
+        affinity = merge({
           enablePodAntiAffinity = true
           topologyKey           = "kubernetes.io/hostname"
-        }
+          }, var.tolerate_disk_pressure ? {
+          tolerations = [
+            {
+              key      = "node.kubernetes.io/disk-pressure"
+              operator = "Exists"
+              effect   = "NoSchedule"
+            }
+          ]
+        } : {})
       },
       var.REDACTED_5c69828e != "" ? {
         backup = {

@@ -634,6 +634,24 @@ variable "REDACTED_337e6630" {
 # SeaweedFS
 # =============================================================================
 
+variable "REDACTED_4c9c3cf5" {
+  description = "Per-site seaweedfs vacuum/GC garbage threshold. See namespaces/seaweedfs/variables.tf: MEASURE before changing it, a threshold above the steady-state garbage ratio is an off switch rather than a throttle."
+  type        = string
+  default     = "0.10"
+}
+
+variable "seaweedfs_vacuum_schedule" {
+  description = "Cron schedule for the explicit seaweedfs vacuum pass. notrf01 runs daily, NL/GR weekly; see namespaces/seaweedfs/variables.tf."
+  type        = string
+  default     = "10 4 * * 0"
+}
+
+variable "REDACTED_5741a7a4" {
+  description = "Tolerate node.kubernetes.io/disk-pressure on the seaweedfs and CNPG filer-meta pods. Only meaningful on NODE-PINNED storage (notrf01 local-hostpath); NL/GR use network-attached iSCSI. See namespaces/seaweedfs/variables.tf."
+  type        = bool
+  default     = false
+}
+
 variable "REDACTED_c1342204" {
   description = "SeaweedFS Helm chart version"
   type        = string

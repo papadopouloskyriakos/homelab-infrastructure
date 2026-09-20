@@ -26,15 +26,9 @@ master:
   # is 1000 MB; on NL that made 1.8 TiB into 2778 volumes against 2800 slots
   # (IFRNLLEI01PRD-2850, 2026-09-15). Only NEW volumes take the new size.
   volumeSizeLimitMB: ${volume_size_limit_mb}
-  # The master's background vacuum only compacts a volume whose garbage ratio
-  # exceeds this. The chart default is null -> weed's built-in 0.3, and NO volume
-  # in this cluster has ever exceeded 30% garbage, so automatic GC has been a
-  # permanent no-op since install. ~68 GiB of reclaimable garbage accumulated
-  # (thanos-nl 54.9 GiB @ 11.1%, loki 11.0 GiB @ 13.0%) and the disks reached 92-93%,
-  # which tripped minFreeSpacePercent and took the S3 write path down for 12h
-  # (IFRNLLEI01PRD-2052). 0.10 sits below both collections' observed ratios so GC
-  # actually reclaims. Compaction is throttled by the volume servers' -compactionMBps (compactionMBps below).
-  garbageThreshold: "0.10"
+  # Fed from var.REDACTED_fbcee600 so this background loop and the scheduled
+  # vacuum pass agree on what is reclaimable. See that variable before changing it.
+  garbageThreshold: "${garbage_threshold}"
   # Persistence uses data/logs structure, NOT persistence.enabled
   data:
     type: "REDACTED_33feff97"
@@ -51,6 +45,12 @@ master:
       cpu: 500m
       memory: 512Mi
   # Affinity as STRING
+%{ if tolerate_disk_pressure ~}
+  tolerations: |
+    - key: node.kubernetes.io/disk-pressure
+      operator: Exists
+      effect: NoSchedule
+%{ endif ~}
   affinity: |
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -101,6 +101,12 @@ volume:
       cpu: "1"
       memory: 4Gi
   # Affinity as STRING
+%{ if tolerate_disk_pressure ~}
+  tolerations: |
+    - key: node.kubernetes.io/disk-pressure
+      operator: Exists
+      effect: NoSchedule
+%{ endif ~}
   affinity: |
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -185,6 +191,12 @@ filer:
         key: password
 %{ endif ~}
   # Affinity as STRING
+%{ if tolerate_disk_pressure ~}
+  tolerations: |
+    - key: node.kubernetes.io/disk-pressure
+      operator: Exists
+      effect: NoSchedule
+%{ endif ~}
   affinity: |
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
