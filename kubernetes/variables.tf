@@ -462,6 +462,18 @@ variable "internal_ca_enabled" {
   default     = false
 }
 
+variable "kyverno_enabled" {
+  description = "Run Kyverno on this cluster. Enabled on all three from 2026-09-20: it governs WHAT RUNS rather than who connects, so internet exposure is nearly irrelevant to its value, and by supply-chain surface NL is if anything the worse cluster (ArgoCD, AWX and ~20 Helm charts). Workload admission webhooks are failurePolicy=Ignore, so a Kyverno outage cannot block API writes."
+  type        = bool
+  default     = false
+}
+
+variable "REDACTED_a1145f93" {
+  description = "Also create the cosign image-verification policy, the module's only Enforce rule. notrf01 only; see _core/kyverno/variables.tf."
+  type        = bool
+  default     = false
+}
+
 variable "estate_scrape_enabled" {
   description = "Run the estate-wide scrape jobs (exactly ONE Prometheus may — NL true, GR false; see scrape-estate.tf)"
   type        = bool

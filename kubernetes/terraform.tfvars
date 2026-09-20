@@ -271,3 +271,7 @@ node_root_floor_threshold     = "0.22"
 REDACTED_f03c8bab = "DetectionOnly" # backend-only ingress; ModSecurity already truncated a 2 GB restore here
 REDACTED_14740f3f = ""
 internal_ca_enabled     = false # no meshsat-hub NATS consumer
+
+# --- kyverno admission policy (site values, 2026-09-20) ---
+kyverno_enabled               = true  # AUDIT-ONLY here
+REDACTED_a1145f93 = false # cosign policy is notrf01-only (Enforce)
