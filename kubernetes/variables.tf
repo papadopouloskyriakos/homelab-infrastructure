@@ -426,6 +426,24 @@ variable "bgpalerter_enabled" {
   default     = true
 }
 
+variable "loki_ruler_enabled" {
+  description = "Enable the Loki ruler (log-based alerting) on this cluster. Independent of internet exposure: NL is the estate's alerting hub and had no log-based alerting at all before 2026-09-20. See namespaces/logging/variables.tf - the matching egress rule is load-bearing."
+  type        = bool
+  default     = false
+}
+
+variable "node_root_floor_alert_enabled" {
+  description = "Emit REDACTED_76f07183. Only meaningful on LocalPV-backed sites where the node ROOT filesystem is the storage floor (notrf01). See namespaces/monitoring/variables.tf for why NL/GR keep it off."
+  type        = bool
+  default     = false
+}
+
+variable "node_root_floor_threshold" {
+  description = "Free-fraction threshold for REDACTED_76f07183. See namespaces/monitoring/variables.tf."
+  type        = string
+  default     = "0.22"
+}
+
 variable "estate_scrape_enabled" {
   description = "Run the estate-wide scrape jobs (exactly ONE Prometheus may — NL true, GR false; see scrape-estate.tf)"
   type        = bool

@@ -209,18 +209,20 @@ module "monitoring" {
   # --- scrape targets ---
   # estate_scrape_enabled must be true on exactly ONE Prometheus (NL) —
   # see namespaces/monitoring/scrape-estate.tf (mirror-exempt, GR stub).
-  estate_scrape_enabled       = var.estate_scrape_enabled
-  bgpalerter_enabled          = var.bgpalerter_enabled
-  asa_snmp_enabled            = var.asa_snmp_enabled
-  snmp_asa_target             = var.snmp_asa_target
-  snmp_asa_device             = var.snmp_asa_device
-  snmp_syno_target            = var.snmp_syno_target
-  snmp_syno_community         = var.snmp_syno_community
-  etcd_endpoints              = var.etcd_endpoints
-  frr_route_reflector_targets = var.frr_route_reflector_targets
-  pve_hosts                   = var.pve_hosts
-  frr_edge_targets            = var.frr_edge_targets
-  ipsec_edge_targets          = var.ipsec_edge_targets
+  estate_scrape_enabled         = var.estate_scrape_enabled
+  node_root_floor_alert_enabled = var.node_root_floor_alert_enabled
+  node_root_floor_threshold     = var.node_root_floor_threshold
+  bgpalerter_enabled            = var.bgpalerter_enabled
+  asa_snmp_enabled              = var.asa_snmp_enabled
+  snmp_asa_target               = var.snmp_asa_target
+  snmp_asa_device               = var.snmp_asa_device
+  snmp_syno_target              = var.snmp_syno_target
+  snmp_syno_community           = var.snmp_syno_community
+  etcd_endpoints                = var.etcd_endpoints
+  frr_route_reflector_targets   = var.frr_route_reflector_targets
+  pve_hosts                     = var.pve_hosts
+  frr_edge_targets              = var.frr_edge_targets
+  ipsec_edge_targets            = var.ipsec_edge_targets
 
   # --- thanos cross-site identity ---
   site_code                      = var.site_code
@@ -338,6 +340,7 @@ module "logging" {
   s3_bucket             = var.loki_s3_bucket
   promtail_syslog_port  = var.promtail_syslog_port
   REDACTED_337e6630 = var.REDACTED_337e6630
+  loki_ruler_enabled    = var.loki_ruler_enabled
 
   depends_on = [module.seaweedfs, module.external_secrets]
 }

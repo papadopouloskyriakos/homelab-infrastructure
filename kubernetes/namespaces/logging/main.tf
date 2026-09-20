@@ -74,7 +74,7 @@ resource "helm_release" "loki" {
   values = [yamlencode({
     deploymentMode = "SingleBinary"
 
-    loki = {
+    loki = merge({
       auth_enabled = false
 
       commonConfig = {
@@ -124,7 +124,19 @@ resource "helm_release" "loki" {
         retention_enabled    = true
         delete_request_store = "s3"
       }
-    }
+      }, var.loki_ruler_enabled ? {
+      rulerConfig = {
+        storage = {
+          type  = "local"
+          local = { directory = "/rules" }
+        }
+        rule_path        = "REDACTED_bdb60f72"
+        alertmanager_url = "http://monitoring-kube-prometheus-alertmanager.monitoring.svc.cluster.local:9093"
+        enable_api       = true
+        ring             = { kvstore = { store = "inmemory" } }
+        wal              = { dir = "/var/loki/ruler-wal" }
+      }
+    } : {})
 
     singleBinary = {
       extraArgs = ["-config.expand-env=true"]

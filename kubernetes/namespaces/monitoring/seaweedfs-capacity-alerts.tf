@@ -41,7 +41,7 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
     }
 
     spec = {
-      groups = [
+      groups = concat([
         {
           name     = "REDACTED_c3c1b312"
           interval = "1m"
@@ -251,7 +251,51 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
             },
           ]
         },
-      ]
+        ], var.node_root_floor_alert_enabled ? [
+        {
+          name = "seaweedfs-node-floor"
+          rules = [
+            {
+              # THE UNALERTED BAND (IFRNLLEI01PRD-2848, 2026-09-17). Between the storage
+              # floor and the node-exporter defaults there was NO alert at all:
+              #
+              #   25% .......................... nothing watched this
+              #   17%  seaweedfs minFreeSpacePercent -> volumes read-only, vacuum DISABLED
+              #   15%  kubelet evictionHard imagefs.available -> node tainted, every
+              #        LocalPV-pinned pod stranded, S3 gateway gone
+              #    5%  NodeFilesystemAlmostOutOfSpace finally fires (kube-prometheus default)
+              #
+              # So the shipped node alert fires ten points BELOW the point at which this
+              # site is already in a total outage. On 2026-09-17 the roots walked from
+              # ~25% to 11.8% with nothing paging on the node itself: containerd had grown
+              # to 26 GiB on dmz06 and 13 GiB on dmz01 because kubelet's
+              # imageGCHighThresholdPercent (85) is the SAME point as evictionHard, so
+              # image GC never runs before eviction rather than instead of it.
+              #
+              # 22% is chosen deliberately, not 25%. It sits 5 points (~7.7 GiB) above the
+              # floor, which in steady state is days of warning. 25% was measured first and
+              # rejected: dmz01 sits at 25.3% RIGHT NOW, so a 25% rule would fire the moment
+              # it was deployed and never clear. An alert that is on at birth is an alert
+              # that gets ignored - which is exactly how LokiRetentionNotRunning went
+              # unactioned for seven days here. Warning, not critical: the point is lead
+              # time, not urgency.
+              alert = "REDACTED_76f07183"
+              expr  = "min by (instance) (node_filesystem_avail_bytes{mountpoint=\"/\", fstype!~\"tmpfs|overlay\", cluster=\"\"} / node_filesystem_size_bytes{mountpoint=\"/\", fstype!~\"tmpfs|overlay\", cluster=\"\"}) < ${var.node_root_floor_threshold}"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                category = "storage-capacity"
+                service  = "kubernetes"
+              }
+              annotations = {
+                summary     = "Node {{ $labels.instance }} root filesystem is below 22% free - above the SeaweedFS floor but heading for it"
+                description = "{{ $labels.instance }} has {{ $value | humanizePercentage }} free on /. These are 155 GiB shared roots carrying OS, containerd AND every local-hostpath PV. At 17% SeaweedFS latches its volumes read-only and can no longer vacuum - the operation that would free the space is the one the floor disables. At 15% kubelet taints the node and every LocalPV-pinned pod is stranded, which takes the S3 gateway down and with it Loki and Thanos retention, so nothing deletes anything any more. The shipped NodeFilesystemAlmostOutOfSpace does not fire until 5%, long past all of that. Act now while there is still headroom: check containerd size (`du -sh /var/lib/containerd`), the SeaweedFS garbage ratio, and that the daily vacuum CronJob is actually reclaiming rather than merely running."
+                impact      = "Lead time before a storage deadlock that requires manual intervention to escape."
+              }
+            }
+          ]
+        }
+      ] : [])
     }
   }
 }
