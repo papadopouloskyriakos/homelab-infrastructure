@@ -190,6 +190,33 @@ resource "kubernetes_manifest" "custom_alert_rules" {
           ]
         },
         {
+          name = "custom-node"
+          rules = [
+            {
+              alert = "REDACTED_16872a9b"
+              # A cordoned node is a STANDING CONDITION, not an event: nothing re-raises it,
+              # and kube-prometheus ships no rule for it, so the estate had no way to report
+              # one. On 2026-09-19 nlk8s-node01 rejoined the cluster cordoned after a
+              # pve01 reboot and stayed that way for 32h. The three surviving workers ran at
+              # 88/95/99% memory REQUESTS against 60/81/65% actual usage, so the cluster was
+              # request-bound with a quarter of its reservation pool switched off, and a
+              # single-replica rollout could no longer surge. Same class as the worker that
+              # sat powered off for 19 days (IFRNLLEI01PRD-2684).
+              # 30m is deliberately longer than a drain for a kubeadm upgrade or a PVE
+              # migration, so planned maintenance does not alert.
+              expr = "kube_node_spec_unschedulable == 1"
+              for  = "30m"
+              labels = {
+                severity = "warning"
+              }
+              annotations = {
+                summary     = "Node {{ $labels.node }} has been unschedulable for 30m"
+                description = "{{ $labels.node }} is cordoned (SchedulingDisabled) and has been for over 30 minutes. If no drain is in progress, uncordon it - capacity is silently removed from the cluster while the remaining nodes absorb its share of requests, and nothing else reports this. Remedy: kubectl uncordon {{ $labels.node }}"
+              }
+            }
+          ]
+        },
+        {
           name = "custom-apps"
           rules = [
             {
