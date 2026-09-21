@@ -66,6 +66,16 @@ The Android app needs BOTH `/v1/` (its login check hits `/v1/account`) and the t
 = "login failed" / "websocket not supported" AND a dead UnifiedPush (learned live 2026-08-26).
 Full runbook: `n8n/claude-gateway` → `docs/runbooks/paging-ntfy.md` § Phone app.
 
+**`docker logs ntfy` can go dark while ntfy is fine (hit 2026-09-21, IFRNLLEI01PRD-2885).** The
+stack logs to syslog (host `daemon.json`), so `docker logs` reads Docker's local dual-logging cache;
+on 09-21 that cache was corrupt (`Error grabbing logs: log message is too large (2047477363 >
+1000000)`, most likely the 09-17 pve01 fsync stall around the weekly reboot) and the runbook's
+`subscribers=N` check was unreadable while pushes still delivered. Fix: `docker compose up -d
+--force-recreate --no-deps ntfy` in `/srv/matrix` (fresh container = fresh cache, ~5 s downtime, no
+config change). Independent check that never needs the log: poll the topic with the operator
+credential from `~/.config/gateway/ntfy-operator.cred` on nlclaude01,
+`curl -u USER:PASS 'http://10.0.X.X:8880/alrt-tier1/json?poll=1&since=15m'`.
+
 ## Key Accounts
 
 | Account | Role | Admin | Type |
