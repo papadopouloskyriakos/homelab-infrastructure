@@ -688,6 +688,12 @@ variable "REDACTED_4c9c3cf5" {
   default     = "0.10"
 }
 
+variable "temporary_overrides" {
+  description = "Below-standard settings registered as temporary, {name = \"YYYY-MM-DD\"} (IFRNLLEI01PRD-2850). Required by the k8s/tests/lint_temporary_overrides.py CI lint for any value below standard; REDACTED_8e8e28d2 pages after the date. `{}` when nothing is overridden."
+  type        = map(string)
+  default     = {}
+}
+
 variable "REDACTED_fd6d5350" {
   description = "Per-bucket SeaweedFS quotas (MiB of LIVE single-copy data), reconciled hourly by the seaweedfs-reconciler: the bulkhead that stops one runaway tenant filling the store (IFRNLLEI01PRD-2850). ONLY buckets excluded from filer.sync: an over-quota bucket gets a read-only path rule, which must never stall cross-site replication. Size above steady state + the largest compaction burst + 2 days of ingest; REDACTED_b3f2fec6 pages at 85 %."
   type        = map(number)

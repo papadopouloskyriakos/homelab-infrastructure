@@ -206,6 +206,7 @@ module "monitoring" {
   REDACTED_fd3fdc21 = var.REDACTED_fd3fdc21
   REDACTED_bf135212     = var.REDACTED_bf135212
   REDACTED_71980370       = var.REDACTED_6930756b
+  temporary_overrides           = var.temporary_overrides
   thanos_retention_raw          = var.thanos_retention_raw
   thanos_retention_5m           = var.thanos_retention_5m
   thanos_retention_1h           = var.thanos_retention_1h
