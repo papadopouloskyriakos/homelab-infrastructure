@@ -196,22 +196,28 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
               }
             },
             {
-              # The scheduled explicit vacuum (namespaces/seaweedfs/vacuum-cronjob.tf)
-              # is the safety net under the master's background GC. If its Job
-              # fails, or has not completed in 8 days, the net is gone.
-              alert = "SeaweedFSVacuumJobNotRunning"
-              expr  = "(max(kube_job_status_failed{namespace=\"seaweedfs\", job_name=~\"seaweedfs-vacuum-.+\", cluster=\"\"}) > 0) or ((time() - max(kube_job_status_completion_time{namespace=\"seaweedfs\", job_name=~\"seaweedfs-vacuum-.+\", cluster=\"\"})) > 8 * 86400) or absent(kube_cronjob_info{namespace=\"seaweedfs\", cronjob=\"seaweedfs-vacuum\", cluster=\"\"})"
-              for   = "30m"
+              # The seaweedfs-reconciler (namespaces/seaweedfs/reconciler-cronjob.tf,
+              # IFRNLLEI01PRD-2850) is the hourly reclaim loop: explicit-id vacuum,
+              # deleteEmpty, vacuum.enable, abandoned uploads, drift vs Git. It fails
+              # its Job on any parsed error, on "garbage but no room to compact" and
+              # on drift. Keyed on the last SUCCESSFUL run (plus absent(): a job that
+              # fails from its first run never gets that series), so one rule covers a
+              # failing, a stuck (Forbid + lock held) and a missing reconciler.
+              # Replaces SeaweedFSVacuumJobNotRunning (weekly CronJob, removed).
+              alert = "REDACTED_875a0962"
+              expr  = "((time() - max(kube_cronjob_status_last_successful_time{namespace=\"seaweedfs\", cronjob=\"seaweedfs-reconciler\", cluster=\"\"})) > 3 * 3600) or absent(kube_cronjob_status_last_successful_time{namespace=\"seaweedfs\", cronjob=\"seaweedfs-reconciler\", cluster=\"\"})"
+              for   = "90m"
               labels = {
-                severity  = "warning"
+                severity  = "critical"
+                tier      = "1"
                 category  = "storage-capacity"
                 service   = "seaweedfs"
                 namespace = "seaweedfs"
               }
               annotations = {
-                summary     = "SeaweedFS weekly vacuum job failed, is overdue, or the CronJob is missing"
-                description = "The explicit weekly `weed shell` vacuum pass (seaweedfs-vacuum CronJob, Sunday 04:10 UTC) has a failed Job, has not completed in 8 days, or the CronJob object is gone. kubectl get jobs -n seaweedfs | grep vacuum; kubectl logs job/<name> -n seaweedfs. A pass that prints 'Vacuum is already running' is benign."
-                impact      = "Garbage below master.garbageThreshold per volume is never reclaimed and empty volumes keep their slots."
+                summary     = "SeaweedFS reconciler has not succeeded in 3h: garbage is not being reclaimed"
+                description = "The hourly seaweedfs-reconciler has not completed successfully in 3h, or never has. Read the last run: kubectl logs -n seaweedfs job/<latest seaweedfs-reconciler-*>; each step prints ok or FAILED. [vacuum] 'none fits in the free space' = the disk is too full to compact anything (free a volume by hand, e.g. delete an expired bucket prefix, or grow the PV). [drift] = a StatefulSet was changed live (restore it from Git, never edit it live). 'timed out ... weed lock held elsewhere' = someone is holding a weed shell lock. 'Vacuum is already running' is benign."
+                impact      = "Deleted data stops turning back into free space; a burst of deletions (a retention catch-up) is not reclaimed, and the store drifts toward the write floor."
               }
             },
           ]

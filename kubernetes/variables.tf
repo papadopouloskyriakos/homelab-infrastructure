@@ -689,9 +689,9 @@ variable "REDACTED_4c9c3cf5" {
 }
 
 variable "seaweedfs_vacuum_schedule" {
-  description = "Cron schedule for the explicit seaweedfs vacuum pass. notrf01 runs daily, NL/GR weekly; see namespaces/seaweedfs/variables.tf."
+  description = "Cron schedule of the seaweedfs-reconciler (hourly at every site since IFRNLLEI01PRD-2850); see namespaces/seaweedfs/variables.tf."
   type        = string
-  default     = "10 4 * * 0"
+  default     = "17 * * * *"
 }
 
 variable "REDACTED_5741a7a4" {

@@ -256,9 +256,9 @@ pve_hosts = [
 ]
 
 # --- seaweedfs reclaim + storage-pinning (site values, 2026-09-20) ---
-REDACTED_4c9c3cf5 = "0.10" # measured: 142/1558 volumes already clear it
-seaweedfs_vacuum_schedule          = "10 4 * * 0"
-REDACTED_5741a7a4   = false # network-attached iSCSI: pods reschedule
+REDACTED_4c9c3cf5 = "0.10"       # measured: 142/1558 volumes already clear it
+seaweedfs_vacuum_schedule          = "17 * * * *" # hourly seaweedfs-reconciler (IFRNLLEI01PRD-2850)
+REDACTED_5741a7a4   = false        # network-attached iSCSI: pods reschedule
 
 # --- log-based alerting + node floor (site values, 2026-09-20) ---
 loki_ruler_enabled            = true  # NL is the estate alerting hub; had none before

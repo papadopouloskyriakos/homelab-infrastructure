@@ -250,7 +250,7 @@ variable "canary_s3_endpoint" {
 }
 
 # -----------------------------------------------------------------------------
-# Scheduled vacuum (vacuum-cronjob.tf, IFRNLLEI01PRD-2831)
+# Reclaim loop (reconciler-cronjob.tf, IFRNLLEI01PRD-2850; replaced the weekly vacuum of -2831)
 # -----------------------------------------------------------------------------
 variable "REDACTED_fbcee600" {
   description = "Garbage ratio above which a volume is compacted. Feeds BOTH the explicit vacuum CronJob and master.garbageThreshold in values.yaml.tpl, so the scheduled pass and the background loop always agree on what is reclaimable. notrf01 runs 0.02: there, at 0.10 the real ratio of 0.059 sat BELOW the threshold, so every pass was a no-op while garbage grew to 85 GiB and `SeaweedFSVacuumJobNotRunning` stayed quiet, because the job DID run (IFRNLLEI01PRD-2848). NL measured the opposite on 2026-09-20 and keeps 0.10: 142 of its 1558 volumes already clear it and hold 41.6 of 48.8 GiB of garbage, so lowering it would add 192 volumes worth only 5.8 GiB. MEASURE before changing it. A threshold above the steady-state garbage ratio is not a throttle, it is an off switch."
@@ -259,9 +259,15 @@ variable "REDACTED_fbcee600" {
 }
 
 variable "vacuum_schedule" {
-  description = "Cron schedule for the explicit seaweedfs vacuum pass. Weekly suits sites whose volume PVs are large relative to churn (NL/GR). notrf01 runs it DAILY: on a 155 GiB shared root the garbage from one retention cut can exceed the whole margin above minFreeSpacePercent between two Sunday passes, and once the floor latches the volumes go read-only and the vacuum can no longer run at all."
+  description = "Cron schedule of the seaweedfs-reconciler (reconciler-cronjob.tf, IFRNLLEI01PRD-2850). HOURLY at every site: it reclaims garbage largest-first by explicit volume id, so a burst (a retention catch-up, a Thanos cleanup) is gone within the hour instead of waiting for the master's 4+ hour walk. The name is historical (it drove the weekly seaweedfs-vacuum CronJob this replaced)."
   type        = string
-  default     = "10 4 * * 0"
+  default     = "17 * * * *"
+}
+
+variable "REDACTED_8b4b9080" {
+  description = "REDACTED_bf135212 as Git sets it. The reconciler's drift step fails when the live StatefulSet differs (a `kubectl scale` parked the compactor on 2026-09-15 and nl-s3 filled six days later)."
+  type        = number
+  default     = 1
 }
 
 variable "tolerate_disk_pressure" {
