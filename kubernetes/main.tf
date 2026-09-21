@@ -350,6 +350,15 @@ module "cnpg_operator" {
   REDACTED_46d876c8 = var.REDACTED_6b820d0e
 }
 
+# Every site runs CNPG clusters (NL/GR: seaweedfs-filer-meta; NO: the omoikane and
+# meshsat databases too), whether or not this repo installs the operator, so the
+# janitor is not gated on cnpg_enabled (IFRNLLEI01PRD-2850).
+module "cnpg_janitor" {
+  source = "./_core/cnpg-janitor"
+
+  common_labels = local.common_labels
+}
+
 # =============================================================================
 # Logging Stack
 # =============================================================================
