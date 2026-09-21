@@ -39,6 +39,7 @@ Standard library only. Tested by tests/test_reconciler.py (real volume.list capt
 import json
 import os
 import re
+import signal
 import ssl
 import subprocess
 import sys
@@ -226,8 +227,11 @@ def drift_step():
 
 
 def main():
+    # activeDeadlineSeconds ends a run with SIGTERM; route it through `finally` so the
+    # master's vacuum walk is always resumed (default SIGTERM would skip it).
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(1))
     t0 = time.time()
-    budget = int(os.environ.get("REDACTED_fc48940e", "2400"))
+    budget = int(os.environ.get("REDACTED_fc48940e", "1800"))
     threshold = float(os.environ.get("GARBAGE_THRESHOLD", "0.10"))
     margin = int(float(os.environ.get("MARGIN_GIB", "8")) * GIB)
     max_count = int(os.environ.get("MAX_VOLUMES_PER_RUN", "200"))
@@ -245,7 +249,6 @@ def main():
 
     # 1. vacuum by explicit id, with the master's own walk paused for the window
     step("vacuum.disable", ["volume.vacuum.disable"], 120)
-    time.sleep(int(os.environ.get("PAUSE_SETTLE_SECONDS", "20")))  # the walk stops at its next volume (~10 s)
     try:
         before = parse_volume_list(weed.run(["volume.list"], 300, lock=False))
         nodes = sorted({x["node"] for x in before})
@@ -275,13 +278,30 @@ def main():
                 sent += part
             return sent
 
-        sent = send(chosen)
+        # PRIME: the paused walk only notices the disable between volumes, and one volume can
+        # take minutes to compact (20:18-20:19 NL on 2026-09-21 a single 8 GB volume held
+        # the lock 62 s past the disable). Refusals are silent, so vacuum the top volume
+        # alone until its compaction is visible in volume.list, and only then send the rest.
+        sent = []
+        if chosen:
+            primed, deadline = False, time.time() + int(os.environ.get("REDACTED_96d6f180", "360"))
+            while not primed and time.time() < deadline:
+                send(chosen[:1])
+                probe = parse_volume_list(weed.run(["volume.list"], 300, lock=False))
+                primed = bool(vacuum_effect(before, probe, chosen[:1])[0])
+                if not primed:
+                    time.sleep(15)
+            if not primed:
+                print("reconciler: [vacuum] FAILED: the top volume did not compact within the prime timeout "
+                      "(master walk still holding the vacuum lock, or compaction failing)")
+                failures.append("vacuum-prime")
+            else:
+                sent = chosen[:1] + send(chosen[1:])
         if sent:
             after = parse_volume_list(weed.run(["volume.list"], 300, lock=False))
             done, _ = vacuum_effect(before, after, sent)
             missing = [v for v in sent if v not in done]
-            if missing:  # refused silently (walk still holding the lock) or raced: one retry
-                time.sleep(int(os.environ.get("PAUSE_SETTLE_SECONDS", "20")))
+            if missing:  # refused silently or raced: one retry
                 send(missing)
                 after = parse_volume_list(weed.run(["volume.list"], 300, lock=False))
             done, reclaimed = vacuum_effect(before, after, sent)
@@ -290,6 +310,8 @@ def main():
             if not done:
                 print("reconciler: [vacuum] FAILED: vacuum requests had no effect (refused silently?)")
                 failures.append("vacuum-no-effect")
+        elif chosen:
+            pass  # prime failed, already reported
         else:
             print("reconciler: [vacuum] nothing to do")
     except (ParseError, OSError, ValueError) as e:

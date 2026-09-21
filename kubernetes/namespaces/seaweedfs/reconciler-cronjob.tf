@@ -147,7 +147,7 @@ resource "kubernetes_manifest" "reconciler_cronjob" {
                     { name = "GARBAGE_THRESHOLD", value = var.REDACTED_fbcee600 },
                     # one full volume of headroom on top of the volume being compacted
                     { name = "MARGIN_GIB", value = tostring(var.volume_size_limit_mb / 1024) },
-                    { name = "REDACTED_fc48940e", value = "2400" },
+                    { name = "REDACTED_fc48940e", value = "1800" }, # leaves the verify pass room inside activeDeadlineSeconds
                     { name = "EXPECTED_FLOOR", value = tostring(var.REDACTED_0a7b20f8) },
                     { name = "REDACTED_d7471732", value = tostring(var.REDACTED_8b4b9080) },
                   ]
