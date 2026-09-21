@@ -87,16 +87,16 @@ resource "kubernetes_manifest" "REDACTED_78d971a7" {
               expr  = "sum by (instance, pod) (SeaweedFS_volumeServer_read_only_volumes{type=\"isDiskSpaceLow\"}) > 0"
               for   = "5m"
               labels = {
-                severity = "critical"
-                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
+                severity  = "critical"
+                tier      = "1" # re-promoted 2026-09-21 by operator decision (IFRNLLEI01PRD-2850): the 09-21 outage ran 12 h with no page
                 category  = "storage-write-path"
                 service   = "seaweedfs"
                 namespace = "seaweedfs"
               }
               annotations = {
                 summary     = "SeaweedFS volume server {{ $labels.pod }} has entered low-space protection"
-                description = "{{ $labels.pod }} has marked {{ $value }} volume(s) read-only because free disk fell below -minFreeSpacePercent. It will ALSO refuse to compact while in this state, so volume.vacuum cannot dig it out — this is self-deadlocking and needs space added or the threshold lowered before GC can run. With replication:001 one server in this state fails writes for the WHOLE cluster, including collections that are nowhere near full. Check: kubectl exec -n seaweedfs {{ $labels.pod }} -- df -h /data, and the server log line 'disk_location.go: dir /data disk free X% < required Y%'."
-                impact      = "S3 writes to nl-s3 fail cluster-wide with 'No writable volumes'. Known blast radius: cv.omoikane.coach goes fully down (its /api/health performs an S3 write), and Thanos/Loki/Tempo silently discard data. Reads keep working, so read-only health checks stay green."
+                description = "{{ $labels.pod }} has marked {{ $value }} volume(s) read-only because free disk fell below -minFreeSpacePercent. The master's automatic vacuum and plain `volume.vacuum` skip read-only volumes, but `volume.vacuum -volumeId=<ids>` does not (explicit ids clear skipReadOnly; compaction needs free space >= the volume's .dat+.idx): vacuum the highest-garbage volumes by id to dig out (the 2026-09-21 technique). With replication:001 one server in this state fails writes for the WHOLE cluster, including collections that are nowhere near full. Check: kubectl exec -n seaweedfs {{ $labels.pod }} -- df -h /data, and the server log line 'disk_location.go: dir /data disk free X% < required Y%'."
+                impact      = "S3 writes to nl-s3 fail cluster-wide with 'No writable volumes'. Velero, CNPG WAL archiving and Thanos/Loki uploads all stop; Thanos/Loki/Tempo discard data silently. (cv.omoikane.coach no longer goes down with it since OMOIKANE-1668.) Reads keep working, so read-only health checks stay green."
               }
             },
             {
@@ -108,8 +108,8 @@ resource "kubernetes_manifest" "REDACTED_78d971a7" {
               expr  = "sum(rate(SeaweedFS_master_pick_for_write_error[5m])) > 0"
               for   = "10m"
               labels = {
-                severity = "critical"
-                # tier = "1"  # not tier-1 by operator decision 2026-08-25 (Matrix/YT only; tier-1 = ntfy paging population — docs/runbooks/paging-ntfy.md in claude-gateway)
+                severity  = "critical"
+                tier      = "1" # re-promoted 2026-09-21 by operator decision (IFRNLLEI01PRD-2850): the 09-21 outage ran 12 h with no page
                 category  = "storage-write-path"
                 service   = "seaweedfs"
                 namespace = "seaweedfs"
@@ -118,6 +118,29 @@ resource "kubernetes_manifest" "REDACTED_78d971a7" {
                 summary     = "SeaweedFS is failing to assign volumes for writes ({{ $value | printf \"%.1f\" }}/s)"
                 description = "The SeaweedFS master is rejecting write-volume assignments. Every failure here is an S3 PUT that did not happen. Check the filer log for 'No writable volumes' and which collections it names: kubectl logs -n seaweedfs seaweedfs-filer-0 --tail 20. Most likely causes, in order: a volume server in low-space protection (see REDACTED_cc66fa91), the volume-count ceiling reached, or no volume satisfying the replication policy."
                 impact      = "Silent write loss. Producers that do not surface S3 errors (Thanos, Loki, Tempo) drop data without complaint; apps whose health check writes to S3 go hard-down."
+              }
+            },
+            {
+              # A bucket the S3 gateway has made read-only: writes to it get 403
+              # AccessDenied while every other bucket works, so REDACTED_8ea3848e
+              # never sees it (IFRNLLEI01PRD-2850). Set by quota enforcement (every
+              # minute, both directions) or by a path rule left behind when a bucket
+              # was deleted and recreated (open upstream bug). max across filers:
+              # each filer exports the same bucket.
+              alert = "REDACTED_439f78b0"
+              expr  = "max by (bucket) (SeaweedFS_s3_bucket_read_only{cluster=\"\"}) == 1"
+              for   = "5m"
+              labels = {
+                severity  = "critical"
+                tier      = "1"
+                category  = "storage-write-path"
+                service   = "seaweedfs"
+                namespace = "seaweedfs"
+              }
+              annotations = {
+                summary     = "S3 bucket {{ $labels.bucket }} is read-only: every write to it is refused"
+                description = "SeaweedFS_s3_bucket_read_only=1 for {{ $labels.bucket }}. Over quota: weed shell `s3.bucket.quota -name {{ $labels.bucket }} -op get` and compare with `collection.list` (quota counts live single-copy bytes); free space in the bucket or raise its quota and it unlocks within a minute. No quota set: a stale path rule, check `fs.configure` for locationPrefix /buckets/{{ $labels.bucket }}/ and remove it with `fs.configure -locationPrefix=/buckets/{{ $labels.bucket }}/ -delete -apply`. Deletes still work while read-only."
+                impact      = "Every writer of this bucket fails with 403; for a Thanos or Loki bucket that includes the retention markers, so its own reclaimer stops too."
               }
             },
             {
