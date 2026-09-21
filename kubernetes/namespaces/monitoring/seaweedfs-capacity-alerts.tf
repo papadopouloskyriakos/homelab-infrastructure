@@ -146,6 +146,29 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
               }
             },
             {
+              # The CNPG janitor (_core/cnpg-janitor, IFRNLLEI01PRD-2850) releases latched
+              # Backups and FAILS its Job when any ScheduledBackup has not fired, or its
+              # cluster has not backed up, within 30h. Keyed on the CronJob's last
+              # SUCCESSFUL run, so one rule covers: a stale schedule, a janitor that
+              # errors, and one that never runs. absent() is essential: a janitor that
+              # fails from its first run never gets a last-success series at all.
+              alert = "REDACTED_4c435e3b"
+              expr  = "((time() - max(kube_cronjob_status_last_successful_time{namespace=\"cnpg-system\", cronjob=\"cnpg-janitor\", cluster=\"\"})) > 3 * 3600) or absent(kube_cronjob_status_last_successful_time{namespace=\"cnpg-system\", cronjob=\"cnpg-janitor\", cluster=\"\"})"
+              for   = "90m"
+              labels = {
+                severity  = "critical"
+                tier      = "1"
+                category  = "storage-capacity"
+                service   = "cnpg"
+                namespace = "cnpg-system"
+              }
+              annotations = {
+                summary     = "CNPG backups unproven: the cnpg-janitor has not succeeded in 3h"
+                description = "The hourly cnpg-janitor Job (namespace cnpg-system) has not completed successfully in 3h, or never has. It fails when a ScheduledBackup has not fired or its cluster has not backed up within 30h, printing one STALE line per problem: kubectl logs -n cnpg-system job/<latest cnpg-janitor-*>. A schedule that stopped firing is almost always a Backup that is not done (walArchivingFailing, or stuck running): the janitor releases those itself after 2h / 12h, so a STALE that persists means the backups themselves fail (check the Backup's status.error and the barman target's S3)."
+                impact      = "Without new base backups, barman retention prunes nothing: the database's S3 prefix grows until the store fills (the 2026-09-21 nl-s3 outage), and point-in-time recovery depends on an ever-older base."
+              }
+            },
+            {
               # Loki's compactor applies retention_period; if it never runs the
               # bucket is unbounded regardless of what the config says. Before
               # 2026-09-10 Loki was not scraped at all, so this could not be known.
