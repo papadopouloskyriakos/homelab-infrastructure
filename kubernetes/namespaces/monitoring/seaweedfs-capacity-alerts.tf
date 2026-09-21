@@ -169,6 +169,44 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
               }
             },
             {
+              # --compact.skip-block-with-out-of-order-chunks (thanos.tf) marks such a block
+              # no-compact instead of halting everything; a skipped block is then never
+              # compacted or DOWNSAMPLED, so its data is lost once raw retention passes it.
+              alert = "REDACTED_dab4956a"
+              expr  = "sum(increase(thanos_compact_blocks_marked_total{marker=\"no-compact-mark.json\", cluster=\"\"}[24h])) > 0"
+              for   = "15m"
+              labels = {
+                severity  = "warning"
+                category  = "storage-capacity"
+                service   = "thanos"
+                namespace = "monitoring"
+              }
+              annotations = {
+                summary     = "Thanos compactor marked {{ $value }} block(s) no-compact in 24h"
+                description = "A block was skipped (out-of-order chunks or index too large) rather than halting the compactor. It will never be downsampled, so its history is lost when raw retention passes it. kubectl logs -n monitoring thanos-compactor-0 | grep -i 'no-compact'; repair or delete the block with `thanos tools bucket` before raw retention reaches it."
+                impact      = "A gap in long-term metrics for the time range of the skipped block."
+              }
+            },
+            {
+              # Retention never waits for downsampling (thanos retention.go): if downsampling
+              # falls behind raw retention, raw days are deleted with no 5m/1h copy. That is
+              # how NL lost 2026-08-25 -> 09-14 while the compactor was halted/parked.
+              alert = "REDACTED_1739a474"
+              expr  = "max(thanos_compact_todo_downsample_blocks{cluster=\"\"}) > 0"
+              for   = "24h"
+              labels = {
+                severity  = "warning"
+                category  = "storage-capacity"
+                service   = "thanos"
+                namespace = "monitoring"
+              }
+              annotations = {
+                summary     = "Thanos downsampling has had a backlog for 24h"
+                description = "thanos_compact_todo_downsample_blocks has been above zero for a day. Raw retention deletes blocks whether or not they were downsampled, so a persistent backlog becomes a permanent gap in long-term metrics. Check the compactor log and its CPU/memory limits; never run `thanos tools bucket retention` while this fires (it does not downsample first)."
+                impact      = "Long-term (5m/1h) metrics history is lost for every raw day that expires before it is downsampled."
+              }
+            },
+            {
               # Loki's compactor applies retention_period; if it never runs the
               # bucket is unbounded regardless of what the config says. Before
               # 2026-09-10 Loki was not scraped at all, so this could not be known.
@@ -196,22 +234,28 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
               }
             },
             {
-              # The scheduled explicit vacuum (namespaces/seaweedfs/vacuum-cronjob.tf)
-              # is the safety net under the master's background GC. If its Job
-              # fails, or has not completed in 8 days, the net is gone.
-              alert = "SeaweedFSVacuumJobNotRunning"
-              expr  = "(max(kube_job_status_failed{namespace=\"seaweedfs\", job_name=~\"seaweedfs-vacuum-.+\", cluster=\"\"}) > 0) or ((time() - max(kube_job_status_completion_time{namespace=\"seaweedfs\", job_name=~\"seaweedfs-vacuum-.+\", cluster=\"\"})) > 8 * 86400) or absent(kube_cronjob_info{namespace=\"seaweedfs\", cronjob=\"seaweedfs-vacuum\", cluster=\"\"})"
-              for   = "30m"
+              # The seaweedfs-reconciler (namespaces/seaweedfs/reconciler-cronjob.tf,
+              # IFRNLLEI01PRD-2850) is the hourly reclaim loop: explicit-id vacuum,
+              # deleteEmpty, vacuum.enable, abandoned uploads, drift vs Git. It fails
+              # its Job on any parsed error, on "garbage but no room to compact" and
+              # on drift. Keyed on the last SUCCESSFUL run (plus absent(): a job that
+              # fails from its first run never gets that series), so one rule covers a
+              # failing, a stuck (Forbid + lock held) and a missing reconciler.
+              # Replaces SeaweedFSVacuumJobNotRunning (weekly CronJob, removed).
+              alert = "REDACTED_875a0962"
+              expr  = "((time() - max(kube_cronjob_status_last_successful_time{namespace=\"seaweedfs\", cronjob=\"seaweedfs-reconciler\", cluster=\"\"})) > 3 * 3600) or absent(kube_cronjob_status_last_successful_time{namespace=\"seaweedfs\", cronjob=\"seaweedfs-reconciler\", cluster=\"\"})"
+              for   = "90m"
               labels = {
-                severity  = "warning"
+                severity  = "critical"
+                tier      = "1"
                 category  = "storage-capacity"
                 service   = "seaweedfs"
                 namespace = "seaweedfs"
               }
               annotations = {
-                summary     = "SeaweedFS weekly vacuum job failed, is overdue, or the CronJob is missing"
-                description = "The explicit weekly `weed shell` vacuum pass (seaweedfs-vacuum CronJob, Sunday 04:10 UTC) has a failed Job, has not completed in 8 days, or the CronJob object is gone. kubectl get jobs -n seaweedfs | grep vacuum; kubectl logs job/<name> -n seaweedfs. A pass that prints 'Vacuum is already running' is benign."
-                impact      = "Garbage below master.garbageThreshold per volume is never reclaimed and empty volumes keep their slots."
+                summary     = "SeaweedFS reconciler has not succeeded in 3h: garbage is not being reclaimed"
+                description = "The hourly seaweedfs-reconciler has not completed successfully in 3h, or never has. Read the last run: kubectl logs -n seaweedfs job/<latest seaweedfs-reconciler-*>; each step prints ok or FAILED. [vacuum] 'none fits in the free space' = the disk is too full to compact anything (free a volume by hand, e.g. delete an expired bucket prefix, or grow the PV). [drift] = a StatefulSet was changed live (restore it from Git, never edit it live). 'timed out ... weed lock held elsewhere' = someone is holding a weed shell lock. 'Vacuum is already running' is benign."
+                impact      = "Deleted data stops turning back into free space; a burst of deletions (a retention catch-up) is not reclaimed, and the store drifts toward the write floor."
               }
             },
           ]
@@ -220,6 +264,28 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
           name     = "REDACTED_552ff583"
           interval = "5m"
           rules = [
+            {
+              # The bulkhead's early warning (IFRNLLEI01PRD-2850). At 100 % the S3 gateway makes
+              # the bucket read-only, and for Thanos/Loki that also stops their OWN retention
+              # (deletion marks and index rewrites are writes), so a human must act before it.
+              # size (not logical) is exported and is always >= the logical size the quota
+              # enforces, so this errs early. Only buckets that have a quota have the series.
+              alert = "REDACTED_b3f2fec6"
+              expr  = "(max by (bucket) (SeaweedFS_s3_bucket_size_bytes{cluster=\"\"}) / max by (bucket) (SeaweedFS_s3_bucket_quota_bytes{cluster=\"\"} > 0)) > 0.85"
+              for   = "30m"
+              labels = {
+                severity  = "critical"
+                tier      = "1"
+                category  = "storage-capacity"
+                service   = "seaweedfs"
+                namespace = "seaweedfs"
+              }
+              annotations = {
+                summary     = "S3 bucket {{ $labels.bucket }} is at {{ $value | humanizePercentage }} of its quota"
+                description = "{{ $labels.bucket }} will go read-only at 100 % of its quota (REDACTED_fd6d5350 in terraform.tfvars). First check its reclaimer (Thanos compactor / Loki retention), because a bucket that grows to its quota usually has a dead one; raise the quota in Git only if the steady state really grew. Current use: weed shell `s3.bucket.list`."
+                impact      = "At 100 % the bucket refuses all writes, including its own retention markers, so it cannot shrink itself back."
+              }
+            },
             {
               # The PAGING forecast (IFRNLLEI01PRD-2850). SeaweedFSFreeSpaceForecast
               # below fired three days before the 2026-09-21 outage and paged nobody.

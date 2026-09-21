@@ -206,6 +206,7 @@ module "monitoring" {
   REDACTED_fd3fdc21 = var.REDACTED_fd3fdc21
   REDACTED_bf135212     = var.REDACTED_bf135212
   REDACTED_71980370       = var.REDACTED_6930756b
+  temporary_overrides           = var.temporary_overrides
   thanos_retention_raw          = var.thanos_retention_raw
   thanos_retention_5m           = var.thanos_retention_5m
   thanos_retention_1h           = var.thanos_retention_1h
@@ -401,6 +402,8 @@ module "seaweedfs" {
   REDACTED_db5b622d        = var.REDACTED_323fe643
   REDACTED_fbcee600      = var.REDACTED_4c9c3cf5
   vacuum_schedule               = var.seaweedfs_vacuum_schedule
+  REDACTED_8b4b9080   = var.REDACTED_bf135212
+  bucket_quotas_mb              = var.REDACTED_fd6d5350
   tolerate_disk_pressure        = var.REDACTED_5741a7a4
   master_storage_size           = var.seaweedfs_master_storage_size
   filer_storage_size            = var.REDACTED_b907bdb5

@@ -310,6 +310,16 @@ variable "REDACTED_7479c0fd" {
   default     = "2Gi"
 }
 
+variable "temporary_overrides" {
+  description = "Below-standard settings registered as temporary, {name = \"YYYY-MM-DD\"}; REDACTED_8e8e28d2 pages after the date (temporary-overrides-alerts.tf)."
+  type        = map(string)
+  default     = {}
+  validation {
+    condition     = alltrue([for d in values(var.temporary_overrides) : can(regex("^\\d{4}-\\d{2}-\\d{2}$", d))])
+    error_message = "temporary_overrides values must be YYYY-MM-DD dates."
+  }
+}
+
 variable "REDACTED_71980370" {
   description = "The site's SeaweedFS volume -minFreeSpacePercent (root var REDACTED_6930756b). SeaweedFSWillFillSoon forecasts the time to THIS line, not to zero, because below it every volume goes read-only."
   type        = number

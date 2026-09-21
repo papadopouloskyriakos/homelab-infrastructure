@@ -1,0 +1,433 @@
+"""SeaweedFS reconciler: the hourly auto-heal loop for the object store (IFRNLLEI01PRD-2850).
+
+nl-s3 filled three times in eight weeks (2052, 2831, 2850), each time because a
+reclaimer had stopped. On 2026-09-21 the way out was to vacuum the highest-garbage
+volumes by EXPLICIT id: the master's own vacuum walks EVERY volume at ~10 s each
+(~1550 volumes = 4+ h per pass, mostly on volumes with no garbage), so it could not
+keep up with a burst. Proven on a disposable SeaweedFS 4.44 the same evening:
+  - below -minFreeSpacePercent, a sweep DOES compact volumes that are read-only only
+    because the disk is low (so this is not the deadlock older notes describe);
+  - a sweep SKIPS volumes the master flags read-only (sealed/marked, `AnyReadOnly`),
+    an explicit -volumeId does not ("vacuuming read-only volume N on explicit request");
+  - a fast writer can overshoot the floor to 100 % full, because the floor is checked
+    periodically; then nothing can compact and only freeing a volume by hand helps.
+This job reclaims largest-garbage-first every hour, fails loudly in the no-room case,
+and gives the reclaim loop the success signal the master's vacuum never had:
+
+  1. pause the master's own vacuum walk (`volume.vacuum.disable`): while it runs it holds
+     the vacuum lock for hours and every explicit request is refused SILENTLY (the shell
+     prints nothing, rc 0; the first production run on 2026-09-21 "processed" 129
+     volumes and reclaimed nothing); then vacuum by explicit -volumeId, largest garbage
+     first, only volumes whose .dat+.idx (plus a margin of one full volume) fits on
+     EVERY replica's server, time-budgeted; then VERIFY by re-reading volume.list, retry
+     what did not compact, and fail if requests had no effect;
+  2. volume.deleteEmpty -quietFor=24h -apply (frees volume SLOTS);
+  3. volume.vacuum.enable, ALWAYS (resumes the master's walk as a backup between runs,
+     and heals a forgotten manual disable);
+  4. s3.clean.uploads -timeAgo=24h (abandoned multipart uploads; the chart never ran it);
+  5. drift: live volume -minFreeSpacePercent and thanos-compactor replicas must equal
+     what Git says (a `kubectl scale` or a hand-edited StatefulSet fails the job).
+
+FAIL CLOSED, BY OUTPUT AND BY EFFECT. `weed shell` exits 0 on command errors (verified
+2026-09-21: `error: need to run "lock" first to continue`, rc 0), so every step's output
+is parsed; and a refused vacuum prints nothing at all, so vacuum is judged by its effect. A step failing
+never skips the others; any failure fails the Job, and the page keys on the CronJob's
+last SUCCESSFUL run (REDACTED_875a0962).
+
+Standard library only. Tested by tests/test_reconciler.py (real volume.list captures).
+"""
+import json
+import os
+import re
+import signal
+import ssl
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+
+GIB = 1024 ** 3
+BENIGN = ("vacuum is already running",)
+ERROR_PATTERNS = (
+    re.compile(r"^\s*error", re.I),
+    re.compile(r"need to run \"?lock\"?", re.I),
+    re.compile(r"insufficient free space", re.I),
+    re.compile(r"\bfailed\b", re.I),
+    re.compile(r"no such command|unknown command", re.I),
+)
+VOL_RE = re.compile(r"volume Id:(\d+), Size:(\d+), ReplicaPlacement:(\d+), Collection:([^,]*),.*?"
+                    r"FileCount:(\d+), DeleteCount:(\d+), DeletedByteCount:(\d+), ReadOnly:(true|false)")
+NODE_RE = re.compile(r"DataNode (\S+)")
+
+
+class ParseError(Exception):
+    pass
+
+
+def parse_volume_list(text):
+    """`volume.list` output -> list of replicas {node,id,collection,size,deleted,files,deletes,read_only}."""
+    node, out, nodes = None, [], set()
+    for line in text.splitlines():
+        m = NODE_RE.search(line)
+        if m:
+            node = m.group(1)
+            nodes.add(node)
+            continue
+        m = VOL_RE.search(line)
+        if m and node:
+            vid, size, rp, col, files, deletes, deleted, ro = m.groups()
+            out.append({"node": node, "id": int(vid), "collection": col.strip(), "size": int(size),
+                        "copies": 1 + sum(int(c) for c in rp),
+                        "files": int(files), "deletes": int(deletes), "deleted": int(deleted),
+                        "read_only": ro == "true"})
+    if not nodes or not out:
+        raise ParseError(f"volume.list parsed to {len(nodes)} node(s) and {len(out)} volume(s)")
+    return out
+
+
+def plan_vacuum(replicas, free_by_node, threshold, margin, max_count):
+    """Choose volumes to vacuum. Returns (ids, stats). A volume qualifies when EVERY replica's
+    garbage ratio >= threshold, and every replica's server has free >= .dat + .idx + margin
+    (both replicas compact; SeaweedFS refuses with 'insufficient free space' otherwise)."""
+    by_id = {}
+    for r in replicas:
+        by_id.setdefault(r["id"], []).append(r)
+    candidates, no_room, under = [], [], 0
+    for vid, reps in by_id.items():
+        if any(r["size"] <= 0 for r in reps):
+            continue
+        if len(reps) < reps[0].get("copies", 1):
+            under += 1  # the master refuses these ("not enough copies"), silently
+            continue
+        if min(r["deleted"] / r["size"] for r in reps) < threshold:
+            continue
+        need_ok = all(free_by_node.get(r["node"], 0) >= r["size"] + 16 * r["files"] + margin for r in reps)
+        garbage = sum(r["deleted"] for r in reps)
+        (candidates if need_ok else no_room).append((garbage, vid))
+    candidates.sort(reverse=True)
+    chosen = [vid for _, vid in candidates[:max_count]]
+    stats = {
+        "eligible": len(candidates) + len(no_room),
+        "chosen": len(chosen),
+        "no_room": len(no_room),
+        "chosen_garbage": sum(g for g, v in candidates[:max_count]),
+        "no_room_garbage": sum(g for g, _ in no_room),
+        "total_garbage": sum(r["deleted"] for r in replicas),
+        "under_replicated": under,
+    }
+    return chosen, stats
+
+
+def vacuum_effect(before, after, ids):
+    """Which chosen volumes actually compacted, judged by the data: a volume counts when its
+    garbage (summed over replicas) dropped to at most half. Returns (compacted, reclaimed_bytes)."""
+    def garbage(reps):
+        g = {}
+        for r in reps:
+            g[r["id"]] = g.get(r["id"], 0) + r["deleted"]
+        return g
+    gb, ga = garbage(before), garbage(after)
+    compacted = [v for v in ids if gb.get(v, 0) > 0 and ga.get(v, 0) <= gb[v] / 2]
+    reclaimed = sum(gb[v] - ga.get(v, 0) for v in compacted)
+    return compacted, reclaimed
+
+
+def parse_bucket_list(text):
+    """`s3.bucket.list` -> {bucket: {"logical": bytes, "quota": bytes or None}}."""
+    out = {}
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) < 2 or ":" in parts[0] or not any(p.startswith("size:") for p in parts[1:]):
+            continue
+        fields = dict(p.split(":", 1) for p in parts[1:] if ":" in p)
+        quota = int(fields["quota"]) if fields.get("quota", "").isdigit() else None
+        out[parts[0]] = {"logical": int(fields.get("logical", 0) or 0), "quota": quota}
+    return out
+
+
+def orphan_readonly_rules(fs_configure_text, buckets):
+    """Read-only path rules for buckets that no longer exist. SeaweedFS keeps a deleted bucket's
+    path rule, so a bucket re-created under the same name starts read-only (open upstream bug,
+    reproduced on notrf01 2026-09-21). Only readOnly rules for MISSING buckets are returned."""
+    start = fs_configure_text.find("{")
+    if start < 0:
+        return []
+    doc = json.loads(fs_configure_text[start:fs_configure_text.rfind("}") + 1])
+    out = []
+    for loc in doc.get("locations") or []:
+        m = re.match(r"^/buckets/([^/]+)/?$", loc.get("locationPrefix", ""))
+        if m and loc.get("readOnly") and m.group(1) not in buckets:
+            out.append(loc["locationPrefix"])
+    return out
+
+
+def plan_quotas(want_mb, buckets):
+    """Commands to make live quotas match `want_mb` ({bucket: MiB}). Buckets missing on this site
+    are reported, never created; quotas on buckets absent from `want_mb` are removed."""
+    cmds, missing = [], []
+    for b, mb in sorted(want_mb.items()):
+        if b not in buckets:
+            missing.append(b)
+            continue
+        if buckets[b]["quota"] != mb * 1024 * 1024:
+            cmds.append(f"s3.bucket.quota -name {b} -op set -sizeMB {mb}")
+        cmds.append(f"s3.bucket.quota -name {b} -op enable")
+    for b, info in sorted(buckets.items()):
+        if info["quota"] and b not in want_mb:
+            cmds.append(f"s3.bucket.quota -name {b} -op remove")
+    return cmds, missing
+
+
+def output_errors(text):
+    """Error lines in a weed shell transcript (rc is meaningless: it is 0 on errors)."""
+    errs = []
+    for line in text.splitlines():
+        low = line.lower()
+        if any(b in low for b in BENIGN):
+            continue
+        if any(p.search(line) for p in ERROR_PATTERNS):
+            errs.append(line.strip())
+    return errs
+
+
+def floor_from_command(cmd):
+    """Extract -minFreeSpacePercent from a container command (list or single shell string)."""
+    text = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
+    m = re.search(r"-minFreeSpacePercent[= ]([0-9.]+)", text)
+    return float(m.group(1)) if m else None
+
+
+def drift_problems(volume_sts, compactor_sts, expected_floor, expected_compactor):
+    probs = []
+    if volume_sts is not None and expected_floor is not None:
+        live = floor_from_command(volume_sts["spec"]["template"]["spec"]["containers"][0].get("command")
+                                  or volume_sts["spec"]["template"]["spec"]["containers"][0].get("args") or [])
+        if live is None:
+            probs.append("seaweedfs-volume: no -minFreeSpacePercent in the live command")
+        elif abs(live - expected_floor) > 1e-9:
+            probs.append(f"seaweedfs-volume: live -minFreeSpacePercent={live:g}, Git says {expected_floor:g} "
+                         "(hand-edited StatefulSet? change it in terraform.tfvars, never live)")
+    if compactor_sts is not None and expected_compactor is not None:
+        live = compactor_sts["spec"].get("replicas", 1)
+        if live != expected_compactor:
+            probs.append(f"thanos-compactor: live replicas={live}, Git says {expected_compactor} "
+                         "(kubectl scale? a parked compactor stops Thanos retention)")
+    return probs
+
+
+# --------------------------------------------------------------------------- runtime
+
+class Weed:
+    def __init__(self):
+        self.bin = os.environ.get("WEED", "/tools/weed")
+        self.masters = os.environ["MASTERS"]
+        self.filer = os.environ.get("FILER", "")
+
+    def run(self, commands, timeout, lock=True):
+        body = "\n".join((["lock"] if lock else []) + commands + (["unlock"] if lock else [])) + "\n"
+        argv = [self.bin, "shell", f"-master={self.masters}"] + ([f"-filer={self.filer}"] if self.filer else [])
+        try:
+            p = subprocess.run(argv, input=body, capture_output=True, text=True, timeout=timeout)
+            return p.stdout + p.stderr
+        except subprocess.TimeoutExpired as e:
+            partial = (e.stdout or "") if isinstance(e.stdout, str) else ""
+            return partial + f"\nerror: timed out after {timeout}s (weed lock held elsewhere?)\n"
+
+
+def server_free(node):
+    with urllib.request.urlopen(f"http://{node}/status", timeout=15) as r:
+        doc = json.loads(r.read().decode())
+    return sum(int(d.get("free", 0)) for d in doc.get("DiskStatuses", []))
+
+
+def k8s_get(path):
+    sa = "/var/run/secrets/kubernetes.io/serviceaccount"
+    with open(f"{sa}/token") as f:
+        token = f.read().strip()
+    ctx = ssl.create_default_context(cafile=f"{sa}/ca.crt")
+    req = urllib.request.Request("https://kubernetes.default.svc" + path)
+    req.add_header("Authorization", "Bearer " + token)
+    try:
+        with urllib.request.urlopen(req, context=ctx, timeout=20) as r:
+            return json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return None
+        raise
+
+
+def quota_step(weed, failures):
+    """Per-bucket quotas from QUOTAS_MB (JSON {bucket: MiB}) — the bulkhead of IFRNLLEI01PRD-2850.
+    Only on buckets excluded from filer.sync (a read-only path rule must never stall replication)."""
+    want = json.loads(os.environ.get("QUOTAS_MB", "{}") or "{}")
+    try:
+        buckets = parse_bucket_list(weed.run(["s3.bucket.list"], 120, lock=False))
+    except (ValueError, OSError) as e:
+        print(f"reconciler: [quotas] FAILED: {e}")
+        failures.append("quotas")
+        return
+    try:
+        for prefix in orphan_readonly_rules(weed.run(["fs.configure"], 60, lock=False), buckets):
+            out = weed.run([f"fs.configure -locationPrefix={prefix} -delete -apply"], 60)
+            errs = output_errors(out)
+            print(f"reconciler: [quotas] orphan read-only rule {prefix} "
+                  f"{'FAILED: ' + errs[0] if errs else 'removed (its bucket no longer exists)'}")
+            if errs:
+                failures.append("quotas")
+    except ValueError as e:
+        print(f"reconciler: [quotas] FAILED: fs.configure unreadable: {e}")
+        failures.append("quotas")
+    cmds, missing = plan_quotas(want, buckets)
+    for b in missing:
+        print(f"reconciler: [quotas] bucket {b} has a quota in Git but does not exist here (skipped)")
+    if not cmds:
+        print("reconciler: [quotas] ok (nothing to apply)" if want else "reconciler: [quotas] none configured")
+        return
+    out = weed.run(cmds, 300)
+    errs = output_errors(out)
+    print(f"reconciler: [quotas] {'FAILED: ' + ' | '.join(errs[:5]) if errs else 'ok'} ({len(cmds)} command(s))")
+    if errs:
+        failures.append("quotas")
+
+
+def drift_step():
+    """Live StatefulSets vs the values Git passed in. True when clean."""
+    try:
+        exp_floor = os.environ.get("EXPECTED_FLOOR")
+        exp_comp = os.environ.get("REDACTED_d7471732")
+        probs = drift_problems(
+            k8s_get("REDACTED_f3655c6b"),
+            k8s_get("REDACTED_80619556"),
+            float(exp_floor) if exp_floor else None,
+            int(exp_comp) if exp_comp else None)
+    except (OSError, ValueError, KeyError) as e:
+        print(f"reconciler: [drift] FAILED: {e}")
+        return False
+    for p in probs:
+        print(f"reconciler: [drift] {p}")
+    if not probs:
+        print("reconciler: [drift] ok")
+    return not probs
+
+
+def main():
+    # activeDeadlineSeconds ends a run with SIGTERM; route it through `finally` so the
+    # master's vacuum walk is always resumed (default SIGTERM would skip it).
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(1))
+    t0 = time.time()
+    budget = int(os.environ.get("REDACTED_fc48940e", "1800"))
+    threshold = float(os.environ.get("GARBAGE_THRESHOLD", "0.10"))
+    margin = int(float(os.environ.get("MARGIN_GIB", "8")) * GIB)
+    max_count = int(os.environ.get("MAX_VOLUMES_PER_RUN", "200"))
+    batch = int(os.environ.get("BATCH", "5"))
+    weed = Weed()
+    failures = []
+
+    def step(name, commands, timeout, lock=True):
+        out = weed.run(commands, timeout, lock=lock)
+        errs = output_errors(out)
+        print(f"reconciler: [{name}] {'FAILED: ' + ' | '.join(errs[:5]) if errs else 'ok'}")
+        if errs:
+            failures.append(name)
+        return out
+
+    # 1. vacuum by explicit id, with the master's own walk paused for the window
+    step("vacuum.disable", ["volume.vacuum.disable"], 120)
+    try:
+        before = parse_volume_list(weed.run(["volume.list"], 300, lock=False))
+        nodes = sorted({x["node"] for x in before})
+        free = {n: server_free(n) for n in nodes}
+        chosen, st = plan_vacuum(before, free, threshold, margin, max_count)
+        print("reconciler: free " + ", ".join(f"{n.split('.')[0]}={free[n] / GIB:.0f}GiB" for n in nodes)
+              + f"; garbage {st['total_garbage'] / GIB:.1f}GiB; {st['eligible']} volume(s) >= {threshold:g}, "
+              f"{st['chosen']} chosen ({st['chosen_garbage'] / GIB:.1f}GiB), {st['no_room']} without room, "
+              f"{st['under_replicated']} under-replicated volume(s) skipped")
+        if st["no_room"] and not st["chosen"]:
+            print(f"reconciler: [vacuum] FAILED: {st['no_room']} volume(s) hold {st['no_room_garbage'] / GIB:.1f}GiB "
+                  "of garbage but none fits in the free space of its servers: add space or free a volume by hand")
+            failures.append("vacuum-no-room")
+
+        def send(ids):
+            sent = []
+            for k in range(0, len(ids), batch):
+                if time.time() - t0 > budget:
+                    print(f"reconciler: [vacuum] time budget reached after {len(sent)} request(s); the next run continues")
+                    break
+                part = ids[k:k + batch]
+                cmd = [f"volume.vacuum -volumeId={','.join(map(str, part))} -garbageThreshold={threshold}"]
+                errs = output_errors(weed.run(cmd, 1200))
+                if errs:  # one retry: a long call can end in a transient gRPC cancel (NL 21 Sep 21:59)
+                    print(f"reconciler: [vacuum] batch retry after: {errs[0]}")
+                    errs = output_errors(weed.run(cmd, 1200))
+                if errs:
+                    print(f"reconciler: [vacuum] FAILED: {' | '.join(errs[:5])}")
+                    failures.append("vacuum")
+                    break
+                sent += part
+            return sent
+
+        # PRIME: the paused walk only notices the disable between volumes, and one volume can
+        # take minutes to compact (20:18-20:19 NL on 2026-09-21 a single 8 GB volume held
+        # the lock 62 s past the disable). Refusals are silent, so vacuum the top volume
+        # alone until its compaction is visible in volume.list, and only then send the rest.
+        sent = []
+        if chosen:
+            primed, deadline = False, time.time() + int(os.environ.get("REDACTED_96d6f180", "360"))
+            head = chosen[:3]  # a single unvacuumable volume must not block the run
+            while not primed and time.time() < deadline:
+                send(head)
+                probe = parse_volume_list(weed.run(["volume.list"], 300, lock=False))
+                primed = bool(vacuum_effect(before, probe, head)[0])
+                if not primed:
+                    time.sleep(15)
+            if not primed:
+                print("reconciler: [vacuum] FAILED: none of the top volumes compacted within the prime timeout "
+                      "(master walk still holding the vacuum lock, or compaction failing)")
+                failures.append("vacuum-prime")
+            else:
+                sent = head + send(chosen[3:])
+        if sent:
+            after = parse_volume_list(weed.run(["volume.list"], 300, lock=False))
+            done, _ = vacuum_effect(before, after, sent)
+            missing = [v for v in sent if v not in done]
+            if missing:  # refused silently or raced: one retry
+                send(missing)
+                after = parse_volume_list(weed.run(["volume.list"], 300, lock=False))
+            done, reclaimed = vacuum_effect(before, after, sent)
+            print(f"reconciler: [vacuum] {len(done)} of {len(sent)} volume(s) compacted, "
+                  f"{reclaimed / GIB:.1f}GiB reclaimed (verified from volume.list)")
+            if not done:
+                print("reconciler: [vacuum] FAILED: vacuum requests had no effect (refused silently?)")
+                failures.append("vacuum-no-effect")
+        elif chosen:
+            pass  # prime failed, already reported
+        else:
+            print("reconciler: [vacuum] nothing to do")
+    except (ParseError, OSError, ValueError) as e:
+        print(f"reconciler: [vacuum] FAILED: {e}")
+        failures.append("vacuum")
+    finally:
+        # ALWAYS resume the master's own walk (backup between runs; heals a manual disable)
+        if os.environ.get("VACUUM_ENABLE", "1") == "1":
+            step("vacuum.enable", ["volume.vacuum.enable"], 120)
+
+    # 2-4. housekeeping, each independent
+    step("deleteEmpty", ["volume.deleteEmpty -quietFor=24h -apply"], 600)
+    if weed.filer:
+        step("clean.uploads", ["s3.clean.uploads -timeAgo=24h"], 600)
+        quota_step(weed, failures)
+
+    # 5. drift, live vs Git (DRIFT_CHECK=0 only for the disposable drill cluster)
+    if os.environ.get("DRIFT_CHECK", "1") == "1":
+        if not drift_step():
+            failures.append("drift")
+    else:
+        print("reconciler: [drift] skipped (DRIFT_CHECK=0)")
+
+    print(f"reconciler: {'FAIL: ' + ', '.join(failures) if failures else 'OK'} in {time.time() - t0:.0f}s")
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

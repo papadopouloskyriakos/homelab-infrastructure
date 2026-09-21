@@ -257,8 +257,15 @@ pve_hosts = [
 
 # --- seaweedfs reclaim + storage-pinning (site values, 2026-09-20) ---
 REDACTED_4c9c3cf5 = "0.10" # measured: 142/1558 volumes already clear it
-seaweedfs_vacuum_schedule          = "10 4 * * 0"
-REDACTED_5741a7a4   = false # network-attached iSCSI: pods reschedule
+# Below-standard settings must be registered here with an end date (lint + REDACTED_8e8e28d2).
+temporary_overrides = {}
+
+REDACTED_fd6d5350 = { # bulkhead, 2026-09-21 (IFRNLLEI01PRD-2850); both excluded from filer.sync
+  "thanos-nl" = 409600         # 400 GiB: 232 GB live at the time, raw 7d + 5m 120d + 1h 365d, + compaction burst
+  "loki"      = 153600         # 150 GiB: 64 GB live, 14 d retention now actually running
+}
+seaweedfs_vacuum_schedule        = "17 * * * *" # hourly seaweedfs-reconciler (IFRNLLEI01PRD-2850)
+REDACTED_5741a7a4 = false        # network-attached iSCSI: pods reschedule
 
 # --- log-based alerting + node floor (site values, 2026-09-20) ---
 loki_ruler_enabled            = true  # NL is the estate alerting hub; had none before

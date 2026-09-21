@@ -25,11 +25,13 @@ validate_k8s_opentofu:
         paths:
           - k8s/**/*.tf
           - k8s/**/*.tfvars
+          - k8s/**/*.py
         compare_to: 'refs/heads/main'
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
         - k8s/**/*.tf
         - k8s/**/*.tfvars
+        - k8s/**/*.py
   before_script:
     - git config --global --add safe.directory $CI_PROJECT_DIR
   script:
@@ -58,6 +60,15 @@ validate_k8s_opentofu:
     
     # Clean up temp backend
     - rm -f backend_override.tf
+
+    # Unit tests + the temporary-override lint (IFRNLLEI01PRD-2850): the janitor and the
+    # reconciler fail closed by design, so their logic is only trusted while its tests pass
+    - echo "=== Unit tests (cnpg-janitor, seaweedfs-reconciler, lints) ==="
+    - python3 -m unittest discover -s _core/cnpg-janitor/tests
+    - python3 -m unittest discover -s namespaces/seaweedfs/reconciler/tests
+    - python3 -m unittest discover -s tests
+    - echo "=== Temporary overrides ==="
+    - python3 tests/lint_temporary_overrides.py terraform.tfvars
     
     - echo "OK - OpenTofu validation passed - Atlantis will handle plan/apply in MR"
   allow_failure: false
