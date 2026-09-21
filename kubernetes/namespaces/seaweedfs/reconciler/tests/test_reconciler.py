@@ -91,6 +91,20 @@ class Plan(unittest.TestCase):
         ids, st = r.plan_vacuum(reps, {}, 0.5, 0, 10)
         self.assertEqual((ids, st["no_room"]), ([], 1))
 
+    def test_under_replicated_is_skipped_not_chosen(self):
+        # NO 2026-09-21: volume 56 (placement 001, ONE replica, 100 % garbage) was chosen, the
+        # master answered "not enough copies" in its own log only, and the prime never landed
+        reps = [{"node": "a", "id": 56, "collection": "thanos-no", "size": 1051898208, "copies": 2, "files": 280,
+                 "deletes": 280, "deleted": 1051879298, "read_only": False}]
+        ids, st = r.plan_vacuum(reps, {"a": 100 * GIB}, 0.02, 0, 10)
+        self.assertEqual((ids, st["under_replicated"]), ([], 1))
+
+    def test_replica_placement_parsed(self):
+        # NL mixes placement 001 (2 copies) and 000 (1 copy, yet often present on both servers)
+        self.assertEqual({x["copies"] for x in LOWDISK}, {1, 2})
+        ids, st = r.plan_vacuum(LOWDISK, {n: 500 * GIB for n in NODES}, 0.1, GIB, 5000)
+        self.assertEqual(st["under_replicated"], 3)
+
     def test_cap(self):
         ids, st = r.plan_vacuum(LOWDISK, {n: 500 * GIB for n in NODES}, 0.1, GIB, 7)
         self.assertEqual(len(ids), 7)

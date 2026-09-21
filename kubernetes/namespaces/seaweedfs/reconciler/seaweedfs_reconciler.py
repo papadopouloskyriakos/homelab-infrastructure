@@ -56,7 +56,7 @@ ERROR_PATTERNS = (
     re.compile(r"\bfailed\b", re.I),
     re.compile(r"no such command|unknown command", re.I),
 )
-VOL_RE = re.compile(r"volume Id:(\d+), Size:(\d+), ReplicaPlacement:\d+, Collection:([^,]*),.*?"
+VOL_RE = re.compile(r"volume Id:(\d+), Size:(\d+), ReplicaPlacement:(\d+), Collection:([^,]*),.*?"
                     r"FileCount:(\d+), DeleteCount:(\d+), DeletedByteCount:(\d+), ReadOnly:(true|false)")
 NODE_RE = re.compile(r"DataNode (\S+)")
 
@@ -76,8 +76,9 @@ def parse_volume_list(text):
             continue
         m = VOL_RE.search(line)
         if m and node:
-            vid, size, col, files, deletes, deleted, ro = m.groups()
+            vid, size, rp, col, files, deletes, deleted, ro = m.groups()
             out.append({"node": node, "id": int(vid), "collection": col.strip(), "size": int(size),
+                        "copies": 1 + sum(int(c) for c in rp),
                         "files": int(files), "deletes": int(deletes), "deleted": int(deleted),
                         "read_only": ro == "true"})
     if not nodes or not out:
@@ -92,9 +93,12 @@ def plan_vacuum(replicas, free_by_node, threshold, margin, max_count):
     by_id = {}
     for r in replicas:
         by_id.setdefault(r["id"], []).append(r)
-    candidates, no_room = [], []
+    candidates, no_room, under = [], [], 0
     for vid, reps in by_id.items():
         if any(r["size"] <= 0 for r in reps):
+            continue
+        if len(reps) < reps[0].get("copies", 1):
+            under += 1  # the master refuses these ("not enough copies"), silently
             continue
         if min(r["deleted"] / r["size"] for r in reps) < threshold:
             continue
@@ -110,6 +114,7 @@ def plan_vacuum(replicas, free_by_node, threshold, margin, max_count):
         "chosen_garbage": sum(g for g, v in candidates[:max_count]),
         "no_room_garbage": sum(g for g, _ in no_room),
         "total_garbage": sum(r["deleted"] for r in replicas),
+        "under_replicated": under,
     }
     return chosen, stats
 
@@ -256,7 +261,8 @@ def main():
         chosen, st = plan_vacuum(before, free, threshold, margin, max_count)
         print("reconciler: free " + ", ".join(f"{n.split('.')[0]}={free[n] / GIB:.0f}GiB" for n in nodes)
               + f"; garbage {st['total_garbage'] / GIB:.1f}GiB; {st['eligible']} volume(s) >= {threshold:g}, "
-              f"{st['chosen']} chosen ({st['chosen_garbage'] / GIB:.1f}GiB), {st['no_room']} without room")
+              f"{st['chosen']} chosen ({st['chosen_garbage'] / GIB:.1f}GiB), {st['no_room']} without room, "
+              f"{st['under_replicated']} under-replicated volume(s) skipped")
         if st["no_room"] and not st["chosen"]:
             print(f"reconciler: [vacuum] FAILED: {st['no_room']} volume(s) hold {st['no_room_garbage'] / GIB:.1f}GiB "
                   "of garbage but none fits in the free space of its servers: add space or free a volume by hand")
@@ -285,18 +291,19 @@ def main():
         sent = []
         if chosen:
             primed, deadline = False, time.time() + int(os.environ.get("REDACTED_96d6f180", "360"))
+            head = chosen[:3]  # a single unvacuumable volume must not block the run
             while not primed and time.time() < deadline:
-                send(chosen[:1])
+                send(head)
                 probe = parse_volume_list(weed.run(["volume.list"], 300, lock=False))
-                primed = bool(vacuum_effect(before, probe, chosen[:1])[0])
+                primed = bool(vacuum_effect(before, probe, head)[0])
                 if not primed:
                     time.sleep(15)
             if not primed:
-                print("reconciler: [vacuum] FAILED: the top volume did not compact within the prime timeout "
+                print("reconciler: [vacuum] FAILED: none of the top volumes compacted within the prime timeout "
                       "(master walk still holding the vacuum lock, or compaction failing)")
                 failures.append("vacuum-prime")
             else:
-                sent = chosen[:1] + send(chosen[1:])
+                sent = head + send(chosen[3:])
         if sent:
             after = parse_volume_list(weed.run(["volume.list"], 300, lock=False))
             done, _ = vacuum_effect(before, after, sent)
