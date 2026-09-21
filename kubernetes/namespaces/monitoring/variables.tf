@@ -310,6 +310,12 @@ variable "REDACTED_7479c0fd" {
   default     = "2Gi"
 }
 
+variable "REDACTED_71980370" {
+  description = "The site's SeaweedFS volume -minFreeSpacePercent (root var REDACTED_6930756b). SeaweedFSWillFillSoon forecasts the time to THIS line, not to zero, because below it every volume goes read-only."
+  type        = number
+  default     = 5
+}
+
 variable "REDACTED_bf135212" {
   description = "Thanos Compactor replicas - 0 (parked) or 1 only; the compactor cannot run HA. GR parks it at 0: compactor backlog churn on the gr-pve01 rpool (which hosts all 6 GR k8s VMs) starves etcd - IFRGRSKG01PRD-313."
   type        = number

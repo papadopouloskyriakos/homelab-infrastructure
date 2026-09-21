@@ -149,18 +149,26 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
               # Loki's compactor applies retention_period; if it never runs the
               # bucket is unbounded regardless of what the config says. Before
               # 2026-09-10 Loki was not scraped at all, so this could not be known.
+              # site="" (NOT cluster="", 2026-09-21): Loki exports its OWN label
+              # cluster="loki", so the old cluster="" selector matched nothing and
+              # the rule fired forever on absent(). That hid a real failure: NL's
+              # value was 0 (never succeeded) because one expired table held 0-byte
+              # index files (-2090 corruption) and retention aborted on it every run.
+              # Local series carry no `site`; notrf01's remote-written copies on the
+              # NL hub carry site="no". Pages: a dead reclaimer (IFRNLLEI01PRD-2850).
               alert = "LokiRetentionNotRunning"
-              expr  = "absent(loki_compactor_apply_retention_last_successful_run_timestamp_seconds{cluster=\"\"}) or ((time() - max(loki_compactor_apply_retention_last_successful_run_timestamp_seconds{cluster=\"\"})) > 2 * 86400)"
+              expr  = "absent(loki_compactor_apply_retention_last_successful_run_timestamp_seconds{site=\"\"}) or ((time() - max(loki_compactor_apply_retention_last_successful_run_timestamp_seconds{site=\"\"})) > 2 * 86400)"
               for   = "2h"
               labels = {
-                severity  = "warning"
+                severity  = "critical"
+                tier      = "1"
                 category  = "storage-capacity"
                 service   = "loki"
                 namespace = "logging"
               }
               annotations = {
                 summary     = "Loki retention has not run successfully in 2 days (or is not measurable)"
-                description = "loki_compactor_apply_retention_last_successful_run_timestamp_seconds is absent or older than 48h. Either the compactor is not applying retention (check compactor.retention_enabled, delete_request_store, and the loki log for 'retention'), or Loki is not being scraped (monitoring.serviceMonitor.enabled in the chart values)."
+                description = "loki_compactor_apply_retention_last_successful_run_timestamp_seconds is absent or older than 48h. Either the compactor is not applying retention (kubectl logs -n logging loki-0 -c loki | grep -E 'failed to (apply retention|compact files)'; the table it names may hold unreadable index files, see IFRNLLEI01PRD-2850), or Loki is not being scraped (monitoring.serviceMonitor.enabled in the chart values). A value of 0 means it has never succeeded since the pod started."
                 impact      = "The loki S3 bucket grows without bound (+4 GB/day at NL when this was found)."
               }
             },
@@ -189,6 +197,28 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
           name     = "REDACTED_552ff583"
           interval = "5m"
           rules = [
+            {
+              # The PAGING forecast (IFRNLLEI01PRD-2850). SeaweedFSFreeSpaceForecast
+              # below fired three days before the 2026-09-21 outage and paged nobody.
+              # node-mixin shape: a 6h trend projected 72h ahead, gated on a level so
+              # a quiet disk with a noisy trend does not page. Projects to the FLOOR,
+              # not to zero: below -minFreeSpacePercent every volume is read-only.
+              alert = "SeaweedFSWillFillSoon"
+              expr  = "(100 * kubelet_volume_stats_available_bytes{persistentvolumeclaim=~\"data-seaweedfs-volume-.*\", cluster=\"\"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~\"data-seaweedfs-volume-.*\", cluster=\"\"} < ${var.REDACTED_71980370 + 20}) and (predict_linear(kubelet_volume_stats_available_bytes{persistentvolumeclaim=~\"data-seaweedfs-volume-.*\", cluster=\"\"}[6h], 72 * 3600) < ${var.REDACTED_71980370 / 100} * kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~\"data-seaweedfs-volume-.*\", cluster=\"\"})"
+              for   = "30m"
+              labels = {
+                severity  = "critical"
+                tier      = "1"
+                category  = "storage-capacity"
+                service   = "seaweedfs"
+                namespace = "seaweedfs"
+              }
+              annotations = {
+                summary     = "SeaweedFS PV {{ $labels.persistentvolumeclaim }} reaches the ${var.REDACTED_71980370}% write floor within 72h at the current rate"
+                description = "The last 6h of free-space trend on {{ $labels.persistentvolumeclaim }} ({{ $labels.node }}) crosses -minFreeSpacePercent (${var.REDACTED_71980370}%) within 72h, and free space is already under ${var.REDACTED_71980370 + 20}%. Below the floor every volume goes read-only and every S3 writer stops. Find the growing collection: sort_desc(sum by (collection)(delta(SeaweedFS_volumeServer_total_disk_size[24h]))), then its reclaimer (Thanos compactor, CNPG backups, Loki retention, Velero TTL). The seaweedfs-reconciler vacuums garbage hourly; if garbage is high and free is not rising, check its last run."
+                impact      = "At the floor the whole S3 write path stops (2052 / 2831 / 2850 class)."
+              }
+            },
             {
               # THE leading indicator this estate lacked. Linear projection of the
               # volume-server PV free bytes over the last 3 days: negative in 14
