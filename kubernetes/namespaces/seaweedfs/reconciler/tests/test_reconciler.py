@@ -100,6 +100,25 @@ class Plan(unittest.TestCase):
         self.assertNotIn(1606, ids)
 
 
+class Effect(unittest.TestCase):
+    """A refused vacuum prints nothing and exits 0 (first production run, 2026-09-21: 129
+    requests 'processed', 0 compacted). Only the data can tell."""
+
+    def test_silent_refusal_is_zero_effect(self):
+        ids = [x["id"] for x in LOWDISK[:50]]
+        self.assertEqual(r.vacuum_effect(LOWDISK, LOWDISK, ids), ([], 0))
+
+    def test_real_compaction_is_counted(self):
+        # vol 1606 went from ~2.2 GB garbage (lowdisk) to 0 (recovering)
+        done, rec = r.vacuum_effect(LOWDISK, RECOVERING, [1606])
+        self.assertEqual(done, [1606])
+        self.assertGreater(rec, 2 * 10 ** 9)
+
+    def test_only_chosen_ids_are_judged(self):
+        done, _ = r.vacuum_effect(LOWDISK, RECOVERING, [])
+        self.assertEqual(done, [])
+
+
 class Output(unittest.TestCase):
     def test_lock_error_with_rc0_is_an_error(self):
         self.assertTrue(r.output_errors('error: need to run "lock" first to continue\n'))

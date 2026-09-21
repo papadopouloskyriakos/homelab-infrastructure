@@ -14,17 +14,23 @@ keep up with a burst. Proven on a disposable SeaweedFS 4.44 the same evening:
 This job reclaims largest-garbage-first every hour, fails loudly in the no-room case,
 and gives the reclaim loop the success signal the master's vacuum never had:
 
-  1. vacuum by explicit -volumeId, largest garbage first, only volumes whose .dat+.idx
-     (plus a margin of one full volume) fits on EVERY replica's server, time-budgeted;
+  1. pause the master's own vacuum walk (`volume.vacuum.disable`): while it runs it holds
+     the vacuum lock for hours and every explicit request is refused SILENTLY (the shell
+     prints nothing, rc 0; the first production run on 2026-09-21 "processed" 129
+     volumes and reclaimed nothing); then vacuum by explicit -volumeId, largest garbage
+     first, only volumes whose .dat+.idx (plus a margin of one full volume) fits on
+     EVERY replica's server, time-budgeted; then VERIFY by re-reading volume.list, retry
+     what did not compact, and fail if requests had no effect;
   2. volume.deleteEmpty -quietFor=24h -apply (frees volume SLOTS);
-  3. volume.vacuum.enable (a forgotten `volume.vacuum.disable` heals within the hour);
+  3. volume.vacuum.enable, ALWAYS (resumes the master's walk as a backup between runs,
+     and heals a forgotten manual disable);
   4. s3.clean.uploads -timeAgo=24h (abandoned multipart uploads; the chart never ran it);
   5. drift: live volume -minFreeSpacePercent and thanos-compactor replicas must equal
      what Git says (a `kubectl scale` or a hand-edited StatefulSet fails the job).
 
-FAIL CLOSED, BY OUTPUT. `weed shell` exits 0 on command errors (verified 2026-09-21:
-`error: need to run "lock" first to continue`, rc 0), so every step's output is parsed.
-"Vacuum is already running" is the master's own loop and is benign. A step failing
+FAIL CLOSED, BY OUTPUT AND BY EFFECT. `weed shell` exits 0 on command errors (verified
+2026-09-21: `error: need to run "lock" first to continue`, rc 0), so every step's output
+is parsed; and a refused vacuum prints nothing at all, so vacuum is judged by its effect. A step failing
 never skips the others; any failure fails the Job, and the page keys on the CronJob's
 last SUCCESSFUL run (REDACTED_875a0962).
 
@@ -105,6 +111,20 @@ def plan_vacuum(replicas, free_by_node, threshold, margin, max_count):
         "total_garbage": sum(r["deleted"] for r in replicas),
     }
     return chosen, stats
+
+
+def vacuum_effect(before, after, ids):
+    """Which chosen volumes actually compacted, judged by the data: a volume counts when its
+    garbage (summed over replicas) dropped to at most half. Returns (compacted, reclaimed_bytes)."""
+    def garbage(reps):
+        g = {}
+        for r in reps:
+            g[r["id"]] = g.get(r["id"], 0) + r["deleted"]
+        return g
+    gb, ga = garbage(before), garbage(after)
+    compacted = [v for v in ids if gb.get(v, 0) > 0 and ga.get(v, 0) <= gb[v] / 2]
+    reclaimed = sum(gb[v] - ga.get(v, 0) for v in compacted)
+    return compacted, reclaimed
 
 
 def output_errors(text):
@@ -223,12 +243,14 @@ def main():
             failures.append(name)
         return out
 
-    # 1. vacuum by explicit id
+    # 1. vacuum by explicit id, with the master's own walk paused for the window
+    step("vacuum.disable", ["volume.vacuum.disable"], 120)
+    time.sleep(int(os.environ.get("PAUSE_SETTLE_SECONDS", "20")))  # the walk stops at its next volume (~10 s)
     try:
-        replicas = parse_volume_list(weed.run(["volume.list"], 300, lock=False))
-        nodes = sorted({r["node"] for r in replicas})
+        before = parse_volume_list(weed.run(["volume.list"], 300, lock=False))
+        nodes = sorted({x["node"] for x in before})
         free = {n: server_free(n) for n in nodes}
-        chosen, st = plan_vacuum(replicas, free, threshold, margin, max_count)
+        chosen, st = plan_vacuum(before, free, threshold, margin, max_count)
         print("reconciler: free " + ", ".join(f"{n.split('.')[0]}={free[n] / GIB:.0f}GiB" for n in nodes)
               + f"; garbage {st['total_garbage'] / GIB:.1f}GiB; {st['eligible']} volume(s) >= {threshold:g}, "
               f"{st['chosen']} chosen ({st['chosen_garbage'] / GIB:.1f}GiB), {st['no_room']} without room")
@@ -236,28 +258,50 @@ def main():
             print(f"reconciler: [vacuum] FAILED: {st['no_room']} volume(s) hold {st['no_room_garbage'] / GIB:.1f}GiB "
                   "of garbage but none fits in the free space of its servers: add space or free a volume by hand")
             failures.append("vacuum-no-room")
-        done = 0
-        for i in range(0, len(chosen), batch):
-            if time.time() - t0 > budget:
-                print(f"reconciler: [vacuum] time budget reached after {done} volume(s); the next run continues")
-                break
-            ids = ",".join(str(v) for v in chosen[i:i + batch])
-            out = weed.run([f"volume.vacuum -volumeId={ids} -garbageThreshold={threshold}"], 900)
-            errs = output_errors(out)
-            if errs:
-                print(f"reconciler: [vacuum {ids}] FAILED: {' | '.join(errs[:5])}")
-                failures.append("vacuum")
-                break
-            done += len(chosen[i:i + batch])
-        print(f"reconciler: [vacuum] {done} volume(s) processed")
+
+        def send(ids):
+            sent = []
+            for k in range(0, len(ids), batch):
+                if time.time() - t0 > budget:
+                    print(f"reconciler: [vacuum] time budget reached after {len(sent)} request(s); the next run continues")
+                    break
+                part = ids[k:k + batch]
+                errs = output_errors(weed.run([f"volume.vacuum -volumeId={','.join(map(str, part))} "
+                                               f"-garbageThreshold={threshold}"], 900))
+                if errs:
+                    print(f"reconciler: [vacuum] FAILED: {' | '.join(errs[:5])}")
+                    failures.append("vacuum")
+                    break
+                sent += part
+            return sent
+
+        sent = send(chosen)
+        if sent:
+            after = parse_volume_list(weed.run(["volume.list"], 300, lock=False))
+            done, _ = vacuum_effect(before, after, sent)
+            missing = [v for v in sent if v not in done]
+            if missing:  # refused silently (walk still holding the lock) or raced: one retry
+                time.sleep(int(os.environ.get("PAUSE_SETTLE_SECONDS", "20")))
+                send(missing)
+                after = parse_volume_list(weed.run(["volume.list"], 300, lock=False))
+            done, reclaimed = vacuum_effect(before, after, sent)
+            print(f"reconciler: [vacuum] {len(done)} of {len(sent)} volume(s) compacted, "
+                  f"{reclaimed / GIB:.1f}GiB reclaimed (verified from volume.list)")
+            if not done:
+                print("reconciler: [vacuum] FAILED: vacuum requests had no effect (refused silently?)")
+                failures.append("vacuum-no-effect")
+        else:
+            print("reconciler: [vacuum] nothing to do")
     except (ParseError, OSError, ValueError) as e:
         print(f"reconciler: [vacuum] FAILED: {e}")
         failures.append("vacuum")
+    finally:
+        # ALWAYS resume the master's own walk (backup between runs; heals a manual disable)
+        if os.environ.get("VACUUM_ENABLE", "1") == "1":
+            step("vacuum.enable", ["volume.vacuum.enable"], 120)
 
     # 2-4. housekeeping, each independent
     step("deleteEmpty", ["volume.deleteEmpty -quietFor=24h -apply"], 600)
-    if os.environ.get("VACUUM_ENABLE", "1") == "1":
-        step("vacuum.enable", ["volume.vacuum.enable"], 120)
     if weed.filer:
         step("clean.uploads", ["s3.clean.uploads -timeAgo=24h"], 600)
 
