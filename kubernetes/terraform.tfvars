@@ -157,7 +157,13 @@ REDACTED_d36a9dce     = 1800 # 1400 -> 1800 2026-09-15: 22 slots left of 2800 (I
 # exists so vacuum can run and the Thanos retention cleanup can land, NOT as the new normal. Raise
 # 1 -> 2 -> 5 as the PVs clear 5 % / 10 % free. New volumes seal at 8 GB, and compacting one needs
 # that much physical space, so never go below 1 %.
-REDACTED_6930756b = 1
+# 1 -> 0.5 (same day, 15:30 UTC): the flush of 12 h of refused writes (Loki, Thanos sidecars, Velero,
+# notrf01 WAL) took volume-0 from 19.3 GB back under the 1 % line in 11 min, before the vacuum walk
+# reached the 243 GB of Thanos garbage, and below the floor compaction is refused. The vacuum runs
+# at -garbageThreshold 0.5, so a compaction's temp copy is at most half a volume and fits in the
+# ~10 GB physically free. Exception to the line above, for the length of one vacuum pass only:
+# back to 1 as soon as volume-0 is above 5 % free.
+REDACTED_6930756b = 0.5
 # Staged 4.44 rollout (IFRNLLEI01PRD-2605): NO first, then NL, then GR.
 REDACTED_c1342204 = "4.44.0"
 REDACTED_a4f42897 = "4.44"
