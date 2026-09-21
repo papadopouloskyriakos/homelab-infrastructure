@@ -133,6 +133,62 @@ class Effect(unittest.TestCase):
         self.assertEqual(done, [])
 
 
+BUCKETS = """
+  awx-pg-dumps	size:3019554872	logical:2868988550	chunk:701
+  cluster-snapshots	size:121193148	logical:85423800	chunk:64	owner:"admin"
+  loki	size:83600000000	logical:63900000000	chunk:9000	quota:157286400000
+  thanos-nl	size:258500000000	logical:231600000000	chunk:90000
+"""
+
+
+class Quotas(unittest.TestCase):
+    def test_parse_real_format(self):
+        b = r.parse_bucket_list(BUCKETS)
+        self.assertEqual(set(b), {"awx-pg-dumps", "cluster-snapshots", "loki", "thanos-nl"})
+        self.assertEqual(b["loki"]["quota"], 157286400000)
+        self.assertIsNone(b["thanos-nl"]["quota"])
+        self.assertEqual(b["thanos-nl"]["logical"], 231600000000)
+
+    def test_set_enable_and_leave_matching_alone(self):
+        cmds, missing = r.plan_quotas({"thanos-nl": 409600, "loki": 150000}, r.parse_bucket_list(BUCKETS))
+        self.assertIn("s3.bucket.quota -name thanos-nl -op set -sizeMB 409600", cmds)
+        self.assertNotIn("s3.bucket.quota -name loki -op set -sizeMB 150000", cmds)  # already equal
+        self.assertIn("s3.bucket.quota -name loki -op enable", cmds)
+        self.assertEqual(missing, [])
+
+    def test_quota_dropped_from_git_is_removed(self):
+        cmds, _ = r.plan_quotas({}, r.parse_bucket_list(BUCKETS))
+        self.assertEqual(cmds, ["s3.bucket.quota -name loki -op remove"])
+
+    def test_missing_bucket_is_reported_never_created(self):
+        cmds, missing = r.plan_quotas({"thanos-gr": 1000}, r.parse_bucket_list(BUCKETS))
+        self.assertEqual(missing, ["thanos-gr"])
+        self.assertFalse(any("thanos-gr" in c for c in cmds))
+
+
+FS_CONFIGURE = """> fs.configure
+{
+  "locations": [
+    {"locationPrefix": "REDACTED_bc1a37a5", "readOnly": true},
+    {"locationPrefix": "/buckets/loki/", "readOnly": true},
+    {"locationPrefix": "REDACTED_f17b5ba5", "ttl": "7d"},
+    {"locationPrefix": "REDACTED_fcc24e81", "readOnly": true}
+  ]
+}
+"""
+
+
+class OrphanRules(unittest.TestCase):
+    def test_only_readonly_rules_of_missing_buckets(self):
+        # quota-drill: the exact leftover reproduced on notrf01 21 Sep; loki exists (a live quota);
+        # a non-readOnly rule and a sub-path rule are never touched
+        self.assertEqual(r.orphan_readonly_rules(FS_CONFIGURE, r.parse_bucket_list(BUCKETS)),
+                         ["REDACTED_bc1a37a5"])
+
+    def test_empty_config(self):
+        self.assertEqual(r.orphan_readonly_rules('{\n  "locations": []\n}\n', {}), [])
+
+
 class Output(unittest.TestCase):
     def test_lock_error_with_rc0_is_an_error(self):
         self.assertTrue(r.output_errors('error: need to run "lock" first to continue\n'))

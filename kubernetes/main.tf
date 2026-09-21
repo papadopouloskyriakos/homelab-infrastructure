@@ -402,6 +402,7 @@ module "seaweedfs" {
   REDACTED_fbcee600      = var.REDACTED_4c9c3cf5
   vacuum_schedule               = var.seaweedfs_vacuum_schedule
   REDACTED_8b4b9080   = var.REDACTED_bf135212
+  bucket_quotas_mb              = var.REDACTED_fd6d5350
   tolerate_disk_pressure        = var.REDACTED_5741a7a4
   master_storage_size           = var.seaweedfs_master_storage_size
   filer_storage_size            = var.REDACTED_b907bdb5

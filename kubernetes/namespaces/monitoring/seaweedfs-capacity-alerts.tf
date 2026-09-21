@@ -169,6 +169,44 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
               }
             },
             {
+              # --compact.skip-block-with-out-of-order-chunks (thanos.tf) marks such a block
+              # no-compact instead of halting everything; a skipped block is then never
+              # compacted or DOWNSAMPLED, so its data is lost once raw retention passes it.
+              alert = "REDACTED_dab4956a"
+              expr  = "sum(increase(thanos_compact_blocks_marked_total{marker=\"no-compact-mark.json\", cluster=\"\"}[24h])) > 0"
+              for   = "15m"
+              labels = {
+                severity  = "warning"
+                category  = "storage-capacity"
+                service   = "thanos"
+                namespace = "monitoring"
+              }
+              annotations = {
+                summary     = "Thanos compactor marked {{ $value }} block(s) no-compact in 24h"
+                description = "A block was skipped (out-of-order chunks or index too large) rather than halting the compactor. It will never be downsampled, so its history is lost when raw retention passes it. kubectl logs -n monitoring thanos-compactor-0 | grep -i 'no-compact'; repair or delete the block with `thanos tools bucket` before raw retention reaches it."
+                impact      = "A gap in long-term metrics for the time range of the skipped block."
+              }
+            },
+            {
+              # Retention never waits for downsampling (thanos retention.go): if downsampling
+              # falls behind raw retention, raw days are deleted with no 5m/1h copy. That is
+              # how NL lost 2026-08-25 -> 09-14 while the compactor was halted/parked.
+              alert = "REDACTED_1739a474"
+              expr  = "max(thanos_compact_todo_downsample_blocks{cluster=\"\"}) > 0"
+              for   = "24h"
+              labels = {
+                severity  = "warning"
+                category  = "storage-capacity"
+                service   = "thanos"
+                namespace = "monitoring"
+              }
+              annotations = {
+                summary     = "Thanos downsampling has had a backlog for 24h"
+                description = "thanos_compact_todo_downsample_blocks has been above zero for a day. Raw retention deletes blocks whether or not they were downsampled, so a persistent backlog becomes a permanent gap in long-term metrics. Check the compactor log and its CPU/memory limits; never run `thanos tools bucket retention` while this fires (it does not downsample first)."
+                impact      = "Long-term (5m/1h) metrics history is lost for every raw day that expires before it is downsampled."
+              }
+            },
+            {
               # Loki's compactor applies retention_period; if it never runs the
               # bucket is unbounded regardless of what the config says. Before
               # 2026-09-10 Loki was not scraped at all, so this could not be known.
@@ -226,6 +264,28 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
           name     = "REDACTED_552ff583"
           interval = "5m"
           rules = [
+            {
+              # The bulkhead's early warning (IFRNLLEI01PRD-2850). At 100 % the S3 gateway makes
+              # the bucket read-only, and for Thanos/Loki that also stops their OWN retention
+              # (deletion marks and index rewrites are writes), so a human must act before it.
+              # size (not logical) is exported and is always >= the logical size the quota
+              # enforces, so this errs early. Only buckets that have a quota have the series.
+              alert = "REDACTED_b3f2fec6"
+              expr  = "(max by (bucket) (SeaweedFS_s3_bucket_size_bytes{cluster=\"\"}) / max by (bucket) (SeaweedFS_s3_bucket_quota_bytes{cluster=\"\"} > 0)) > 0.85"
+              for   = "30m"
+              labels = {
+                severity  = "critical"
+                tier      = "1"
+                category  = "storage-capacity"
+                service   = "seaweedfs"
+                namespace = "seaweedfs"
+              }
+              annotations = {
+                summary     = "S3 bucket {{ $labels.bucket }} is at {{ $value | humanizePercentage }} of its quota"
+                description = "{{ $labels.bucket }} will go read-only at 100 % of its quota (REDACTED_fd6d5350 in terraform.tfvars). First check its reclaimer (Thanos compactor / Loki retention), because a bucket that grows to its quota usually has a dead one; raise the quota in Git only if the steady state really grew. Current use: weed shell `s3.bucket.list`."
+                impact      = "At 100 % the bucket refuses all writes, including its own retention markers, so it cannot shrink itself back."
+              }
+            },
             {
               # The PAGING forecast (IFRNLLEI01PRD-2850). SeaweedFSFreeSpaceForecast
               # below fired three days before the 2026-09-21 outage and paged nobody.

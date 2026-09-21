@@ -133,6 +133,52 @@ def vacuum_effect(before, after, ids):
     return compacted, reclaimed
 
 
+def parse_bucket_list(text):
+    """`s3.bucket.list` -> {bucket: {"logical": bytes, "quota": bytes or None}}."""
+    out = {}
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) < 2 or ":" in parts[0] or not any(p.startswith("size:") for p in parts[1:]):
+            continue
+        fields = dict(p.split(":", 1) for p in parts[1:] if ":" in p)
+        quota = int(fields["quota"]) if fields.get("quota", "").isdigit() else None
+        out[parts[0]] = {"logical": int(fields.get("logical", 0) or 0), "quota": quota}
+    return out
+
+
+def orphan_readonly_rules(fs_configure_text, buckets):
+    """Read-only path rules for buckets that no longer exist. SeaweedFS keeps a deleted bucket's
+    path rule, so a bucket re-created under the same name starts read-only (open upstream bug,
+    reproduced on notrf01 2026-09-21). Only readOnly rules for MISSING buckets are returned."""
+    start = fs_configure_text.find("{")
+    if start < 0:
+        return []
+    doc = json.loads(fs_configure_text[start:fs_configure_text.rfind("}") + 1])
+    out = []
+    for loc in doc.get("locations") or []:
+        m = re.match(r"^/buckets/([^/]+)/?$", loc.get("locationPrefix", ""))
+        if m and loc.get("readOnly") and m.group(1) not in buckets:
+            out.append(loc["locationPrefix"])
+    return out
+
+
+def plan_quotas(want_mb, buckets):
+    """Commands to make live quotas match `want_mb` ({bucket: MiB}). Buckets missing on this site
+    are reported, never created; quotas on buckets absent from `want_mb` are removed."""
+    cmds, missing = [], []
+    for b, mb in sorted(want_mb.items()):
+        if b not in buckets:
+            missing.append(b)
+            continue
+        if buckets[b]["quota"] != mb * 1024 * 1024:
+            cmds.append(f"s3.bucket.quota -name {b} -op set -sizeMB {mb}")
+        cmds.append(f"s3.bucket.quota -name {b} -op enable")
+    for b, info in sorted(buckets.items()):
+        if info["quota"] and b not in want_mb:
+            cmds.append(f"s3.bucket.quota -name {b} -op remove")
+    return cmds, missing
+
+
 def output_errors(text):
     """Error lines in a weed shell transcript (rc is meaningless: it is 0 on errors)."""
     errs = []
@@ -211,6 +257,40 @@ def k8s_get(path):
         raise
 
 
+def quota_step(weed, failures):
+    """Per-bucket quotas from QUOTAS_MB (JSON {bucket: MiB}) — the bulkhead of IFRNLLEI01PRD-2850.
+    Only on buckets excluded from filer.sync (a read-only path rule must never stall replication)."""
+    want = json.loads(os.environ.get("QUOTAS_MB", "{}") or "{}")
+    try:
+        buckets = parse_bucket_list(weed.run(["s3.bucket.list"], 120, lock=False))
+    except (ValueError, OSError) as e:
+        print(f"reconciler: [quotas] FAILED: {e}")
+        failures.append("quotas")
+        return
+    try:
+        for prefix in orphan_readonly_rules(weed.run(["fs.configure"], 60, lock=False), buckets):
+            out = weed.run([f"fs.configure -locationPrefix={prefix} -delete -apply"], 60)
+            errs = output_errors(out)
+            print(f"reconciler: [quotas] orphan read-only rule {prefix} "
+                  f"{'FAILED: ' + errs[0] if errs else 'removed (its bucket no longer exists)'}")
+            if errs:
+                failures.append("quotas")
+    except ValueError as e:
+        print(f"reconciler: [quotas] FAILED: fs.configure unreadable: {e}")
+        failures.append("quotas")
+    cmds, missing = plan_quotas(want, buckets)
+    for b in missing:
+        print(f"reconciler: [quotas] bucket {b} has a quota in Git but does not exist here (skipped)")
+    if not cmds:
+        print("reconciler: [quotas] ok (nothing to apply)" if want else "reconciler: [quotas] none configured")
+        return
+    out = weed.run(cmds, 300)
+    errs = output_errors(out)
+    print(f"reconciler: [quotas] {'FAILED: ' + ' | '.join(errs[:5]) if errs else 'ok'} ({len(cmds)} command(s))")
+    if errs:
+        failures.append("quotas")
+
+
 def drift_step():
     """Live StatefulSets vs the values Git passed in. True when clean."""
     try:
@@ -240,7 +320,7 @@ def main():
     threshold = float(os.environ.get("GARBAGE_THRESHOLD", "0.10"))
     margin = int(float(os.environ.get("MARGIN_GIB", "8")) * GIB)
     max_count = int(os.environ.get("MAX_VOLUMES_PER_RUN", "200"))
-    batch = int(os.environ.get("BATCH", "10"))
+    batch = int(os.environ.get("BATCH", "5"))
     weed = Weed()
     failures = []
 
@@ -275,8 +355,11 @@ def main():
                     print(f"reconciler: [vacuum] time budget reached after {len(sent)} request(s); the next run continues")
                     break
                 part = ids[k:k + batch]
-                errs = output_errors(weed.run([f"volume.vacuum -volumeId={','.join(map(str, part))} "
-                                               f"-garbageThreshold={threshold}"], 900))
+                cmd = [f"volume.vacuum -volumeId={','.join(map(str, part))} -garbageThreshold={threshold}"]
+                errs = output_errors(weed.run(cmd, 1200))
+                if errs:  # one retry: a long call can end in a transient gRPC cancel (NL 21 Sep 21:59)
+                    print(f"reconciler: [vacuum] batch retry after: {errs[0]}")
+                    errs = output_errors(weed.run(cmd, 1200))
                 if errs:
                     print(f"reconciler: [vacuum] FAILED: {' | '.join(errs[:5])}")
                     failures.append("vacuum")
@@ -333,6 +416,7 @@ def main():
     step("deleteEmpty", ["volume.deleteEmpty -quietFor=24h -apply"], 600)
     if weed.filer:
         step("clean.uploads", ["s3.clean.uploads -timeAgo=24h"], 600)
+        quota_step(weed, failures)
 
     # 5. drift, live vs Git (DRIFT_CHECK=0 only for the disposable drill cluster)
     if os.environ.get("DRIFT_CHECK", "1") == "1":

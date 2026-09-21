@@ -594,6 +594,10 @@ resource "REDACTED_2f6bdfa2" "thanos_compactor" {
             "--compact.concurrency=1",
             "--downsample.concurrency=1",
             "--delete-delay=${var.thanos_delete_delay}",
+            # Mark a block with out-of-order chunks no-compact and carry on, instead of halting
+            # the whole compactor (and with it all retention) on one bad block. Hidden flag,
+            # verified accepted by v0.42.4 on 2026-09-21 (IFRNLLEI01PRD-2850).
+            "--compact.skip-block-with-out-of-order-chunks",
             "--wait",
           ]
 

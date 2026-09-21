@@ -264,6 +264,12 @@ variable "vacuum_schedule" {
   default     = "17 * * * *"
 }
 
+variable "bucket_quotas_mb" {
+  description = "Per-bucket quotas in MiB, reconciled by the seaweedfs-reconciler (see the root var REDACTED_fd6d5350)."
+  type        = map(number)
+  default     = {}
+}
+
 variable "REDACTED_8b4b9080" {
   description = "REDACTED_bf135212 as Git sets it. The reconciler's drift step fails when the live StatefulSet differs (a `kubectl scale` parked the compactor on 2026-09-15 and nl-s3 filled six days later)."
   type        = number
