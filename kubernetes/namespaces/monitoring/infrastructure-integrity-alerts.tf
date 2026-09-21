@@ -11,6 +11,16 @@
 #   binding did not. Every site-to-site transit SYN was acl-dropped at
 #   ingress while BGP kept working (control-plane bypasses interface ACLs),
 #   masking the outage signal. These alerts close the observability gap.
+#
+# Second group, "reclaimer-integrity" (2026-09-21, IFRNLLEI01PRD-2850): a Thanos
+# compactor that is not running. ThanosCompactHalted / REDACTED_daccd521
+# (seaweedfs-capacity-alerts.tf) read thanos_compact_* series, and a StatefulSet
+# at 0 replicas emits none, so both were structurally unable to fire when the NL
+# compactor was parked "until nl-s3 has room" on 09-15. Nothing applied Thanos
+# retention for six days and nl-s3 filled again on 09-21. Keyed on
+# kube-state-metrics instead. Lives in this NL-only (mirror-exempt) file on
+# purpose: it covers NL and, via remote-write, notrf01; GR parks its compactor
+# deliberately (IFRGRSKG01PRD-313) and is non-production.
 # =============================================================================
 
 resource "kubernetes_manifest" "REDACTED_ddd03fc1" {
@@ -59,6 +69,27 @@ resource "kubernetes_manifest" "REDACTED_ddd03fc1" {
                 summary     = "ASA drift check metric stale (>1h since last update)"
                 description = "The check-asa-binding-drift cron (`*/15`) on nlclaude01 hasn't refreshed asa_binding_drift.prom in the node-exporter textfile collector for over an hour. Root: `tail /tmp/asa-drift.log` on nlclaude01 and check `crontab -l | grep asa-binding-drift`. Alerting on the drift itself goes blind while this is firing."
                 impact      = "ASABindingDrift alert cannot fire during the stale window."
+              }
+            },
+          ]
+        },
+        {
+          name     = "reclaimer-integrity"
+          interval = "5m"
+          rules = [
+            {
+              alert = "REDACTED_8fdc9a1c"
+              expr  = "max by (cluster) (kube_statefulset_replicas{namespace=\"monitoring\",statefulset=\"thanos-compactor\",cluster=~\"|notrf01\"}) == 0 or max by (cluster) (kube_statefulset_status_replicas_ready{namespace=\"monitoring\",statefulset=\"thanos-compactor\",cluster=~\"|notrf01\"}) == 0"
+              for   = "12h"
+              labels = {
+                severity = "critical"
+                tier     = "1" # same failure as ThanosCompactHalted, which pages since IFRNLLEI01PRD-2850
+                service  = "thanos"
+              }
+              annotations = {
+                summary     = "Thanos compactor not running on {{ if $labels.cluster }}{{ $labels.cluster }}{{ else }}nl{{ end }} for 12h"
+                description = "thanos-compactor has 0 desired or 0 ready replicas. The compactor is the only thing that applies --retention.resolution-* and downsamples, so while it is down the Thanos bucket grows without bound and raw days that were never downsampled are lost for good once retention finally runs. ThanosCompactHalted cannot see this state: a StatefulSet at 0 replicas exports no thanos_compact_* series. If it was parked deliberately (REDACTED_bf135212 = 0 in terraform.tfvars), the park needs a re-enable, not a silence: on 2026-09-21 a 'back to 1 once there is room' park filled nl-s3 in six days (IFRNLLEI01PRD-2850). Before re-enabling on a nearly full store, cut --delete-delay and expect a net-negative first hour."
+                impact      = "Unbounded growth of the site's Thanos bucket on SeaweedFS; when the store fills, every S3 writer (Velero, CNPG WAL, Loki, cv.omoikane.coach) stops."
               }
             },
           ]
