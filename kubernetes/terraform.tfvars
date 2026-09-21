@@ -151,7 +151,13 @@ REDACTED_d36a9dce     = 1800 # 1400 -> 1800 2026-09-15: 22 slots left of 2800 (I
 # RAISE BACK to 5 (then 7, variables.tf:47) once kubelet_volume_stats_available_bytes on both
 # data-seaweedfs-volume-* PVs is comfortably above 10 % (~110 GB) — SeaweedFSFreeSpaceForecast
 # and the weekly seaweedfs-vacuum CronJob are the guards in the meantime.
-REDACTED_6930756b = 2 # 3 -> 2 at 21:35 UTC same day: volume-0 re-locked at exactly the 3% line while vacuum reclaimed 298 GB of garbage; 2% = 21 GB still leaves ~20x the 1 GB a single-volume compaction needs
+# 2 -> 1 (2026-09-21, IFRNLLEI01PRD-2850): volume-0 crossed 2 % at ~03:10 UTC and every NL S3 write
+# stopped again, because the two reclaimers -2850 parked on 09-15 were never restarted (compactor at
+# 0 replicas, CNPG backups latched). 1 % (~10.7 GB) only buys about 12 h at the ~21 GB/day burn: it
+# exists so vacuum can run and the Thanos retention cleanup can land, NOT as the new normal. Raise
+# 1 -> 2 -> 5 as the PVs clear 5 % / 10 % free. New volumes seal at 8 GB, and compacting one needs
+# that much physical space, so never go below 1 %.
+REDACTED_6930756b = 1
 # Staged 4.44 rollout (IFRNLLEI01PRD-2605): NO first, then NL, then GR.
 REDACTED_c1342204 = "4.44.0"
 REDACTED_a4f42897 = "4.44"
