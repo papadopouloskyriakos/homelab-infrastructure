@@ -130,7 +130,9 @@ resource "kubernetes_manifest" "reconciler_cronjob" {
                     readOnlyRootFilesystem   = true
                     capabilities             = { drop = ["ALL"] }
                   }
-                  resources    = { requests = { cpu = "10m", memory = "32Mi" }, limits = { memory = "64Mi" } }
+                  # 512Mi, not 64Mi: copying the 212 MB binary goes through the page cache, which
+                  # counts against this container; on GR's slower disks 64Mi was OOM-killed (137).
+                  resources    = { requests = { cpu = "10m", memory = "64Mi" }, limits = { memory = "512Mi" } }
                   volumeMounts = [{ name = "tools", mountPath = "/tools" }]
                 }
               ]
