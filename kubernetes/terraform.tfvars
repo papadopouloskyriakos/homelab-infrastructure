@@ -144,26 +144,12 @@ REDACTED_a8217c41    = "1000Gi"
 REDACTED_323fe643 = 200  # 50 -> 200 2026-09-15: vacuum reclaimed 2 GiB per 10 min against 120 GiB of garbage (IFRNLLEI01PRD-2850)
 REDACTED_6db9426a   = 8000 # chart default 1000 made 1.8 TiB into 2778 volumes; new volumes seal at 8 GB (IFRNLLEI01PRD-2850)
 REDACTED_d36a9dce     = 1800 # 1400 -> 1800 2026-09-15: 22 slots left of 2800 (IFRNLLEI01PRD-2850); minFreeSpacePercent stays the disk guard
-# TEMPORARY 5 -> 3 (2026-09-10 20:01 UTC, IFRNLLEI01PRD-2831): both volume PVs sat at 45-50 GB free
-# with 248 GB of reclaimable garbage, and below the floor a server REFUSES to compact (the
-# 2052 deadlock), so the floor had to move under the free space for vacuum to run. Patched live
-# on the STS first; this line reconciles Git so the next apply does not re-lock the cluster.
-# RAISE BACK to 5 (then 7, variables.tf:47) once kubelet_volume_stats_available_bytes on both
-# data-seaweedfs-volume-* PVs is comfortably above 10 % (~110 GB) — SeaweedFSFreeSpaceForecast
-# and the weekly seaweedfs-vacuum CronJob are the guards in the meantime.
-# 2 -> 1 (2026-09-21, IFRNLLEI01PRD-2850): volume-0 crossed 2 % at ~03:10 UTC and every NL S3 write
-# stopped again, because the two reclaimers -2850 parked on 09-15 were never restarted (compactor at
-# 0 replicas, CNPG backups latched). 1 % (~10.7 GB) only buys about 12 h at the ~21 GB/day burn: it
-# exists so vacuum can run and the Thanos retention cleanup can land, NOT as the new normal. Raise
-# 1 -> 2 -> 5 as the PVs clear 5 % / 10 % free. New volumes seal at 8 GB, and compacting one needs
-# that much physical space, so never go below 1 %.
-# 1 -> 0.5 (same day, 15:30 UTC): the flush of 12 h of refused writes (Loki, Thanos sidecars, Velero,
-# notrf01 WAL) took volume-0 from 19.3 GB back under the 1 % line in 11 min, before the vacuum walk
-# reached the 243 GB of Thanos garbage, and below the floor compaction is refused. The vacuum runs
-# at -garbageThreshold 0.5, so a compaction's temp copy is at most half a volume and fits in the
-# ~10 GB physically free. Exception to the line above, for the length of one vacuum pass only:
-# back to 1 as soon as volume-0 is above 5 % free.
-REDACTED_6930756b = 0.5
+# Floor history: 5 -> 3 -> 2 on 2026-09-10 (IFRNLLEI01PRD-2831) and 2 -> 1 -> 0.5 on 2026-09-21
+# (IFRNLLEI01PRD-2850), each time so writes and vacuum could resume on a full store; back to 5 the
+# evening of 09-21 at ~20 % free. 5 % (~53 GB) is the standing reserve: it must exceed one full
+# 8 GB volume + idx so compaction always has room (an explicit -volumeId vacuum digs out even
+# below it). A value below 5 is an emergency override and must carry an expiry (plan Phase 7).
+REDACTED_6930756b = 5
 # Staged 4.44 rollout (IFRNLLEI01PRD-2605): NO first, then NL, then GR.
 REDACTED_c1342204 = "4.44.0"
 REDACTED_a4f42897 = "4.44"
