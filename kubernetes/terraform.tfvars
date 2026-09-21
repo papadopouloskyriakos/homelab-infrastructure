@@ -127,7 +127,7 @@ thanos_retention_5m       = "120d"
 thanos_retention_1h       = "365d"
 loki_retention_days       = 14   # 30 -> 14 2026-09-15 (IFRNLLEI01PRD-2850, owner decision)
 thanos_delete_delay       = "2h" # 48h -> 2h 2026-09-10 (IFRNLLEI01PRD-2831): 84 expired blocks were waiting 48h to be deleted while the compactor wrote new ones, eating the vacuum's reclaim on a 96%-full S3; NO already runs 2h
-REDACTED_bf135212 = 0    # TEMPORARY 2026-09-15 (IFRNLLEI01PRD-2850): back to 1 once nl-s3 has room; its uploads filled 16 GiB in 20 min at 95%
+REDACTED_bf135212 = 1    # 0 -> 1 2026-09-21 (IFRNLLEI01PRD-2850): the 09-15 park was never undone and nl-s3 filled again in six days; REDACTED_8fdc9a1c now pages on a park longer than 12h
 
 # --- prometheus remote-write (IFRNLLEI01PRD-2403 hub/satellite) ---
 prometheus_remote_write_url = "" # NL is a hub, not a satellite
