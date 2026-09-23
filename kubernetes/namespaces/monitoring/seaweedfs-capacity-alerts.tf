@@ -58,7 +58,7 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
               for   = "30m"
               labels = {
                 severity  = "critical"
-                tier      = "1" # pages: it sat critical and unread for two days on 2026-09-13 while the store filled (IFRNLLEI01PRD-2850)
+                tier      = "2" # quiet phone topic (2026-09-23): a dead reclaimer is a standing condition, not an event; tier 1 re-paged it every 6 h during the 09-22/23 volume-0 read-only incident (IFRNLLEI01PRD-2850)
                 category  = "storage-capacity"
                 service   = "thanos"
                 namespace = "monitoring"
@@ -157,7 +157,7 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
               for   = "90m"
               labels = {
                 severity  = "critical"
-                tier      = "1"
+                tier      = "2" # quiet phone topic since 2026-09-23 (was 1): standing condition, see ThanosCompactHalted
                 category  = "storage-capacity"
                 service   = "cnpg"
                 namespace = "cnpg-system"
@@ -222,7 +222,7 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
               for   = "2h"
               labels = {
                 severity  = "critical"
-                tier      = "1"
+                tier      = "2" # quiet phone topic since 2026-09-23 (was 1): standing condition, see ThanosCompactHalted
                 category  = "storage-capacity"
                 service   = "loki"
                 namespace = "logging"
@@ -247,7 +247,7 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
               for   = "90m"
               labels = {
                 severity  = "critical"
-                tier      = "1"
+                tier      = "2" # quiet phone topic since 2026-09-23 (was 1): standing condition, see ThanosCompactHalted
                 category  = "storage-capacity"
                 service   = "seaweedfs"
                 namespace = "seaweedfs"

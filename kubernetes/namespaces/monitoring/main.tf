@@ -512,6 +512,24 @@ resource "helm_release" "monitoring" {
             {
               source_matchers = ["alertname = InfoInhibitor"]
               target_matchers = ["severity = info"]
+            },
+            # One storage incident = one page (2026-09-23, IFRNLLEI01PRD-2850). On
+            # 22/23 Sep a single read-only filesystem on seaweedfs-volume-0 fired
+            # seven correlated tier-1 storage alerts (write assigns failing, disk
+            # low, trend, dead reclaimers) and the phone got 61 pushes in 43 h.
+            # While the write path itself is reported broken, the capacity/trend/
+            # reclaimer alerts of the same site are consequences, not news.
+            {
+              source_matchers = ["alertname =~ \"REDACTED_47595c82|REDACTED_8ea3848e|REDACTED_cc66fa91\""]
+              target_matchers = ["category =~ \"storage-.*\""]
+              equal           = ["site"]
+            },
+            # A volume server whose filesystem refuses writes is the ROOT of the
+            # other two write-path alerts; name the cause, mute the symptoms.
+            {
+              source_matchers = ["alertname = REDACTED_47595c82"]
+              target_matchers = ["alertname =~ \"REDACTED_8ea3848e|REDACTED_cc66fa91\""]
+              equal           = ["site"]
             }
           ]
           receivers = concat(
@@ -677,7 +695,10 @@ resource "helm_release" "monitoring" {
               # so a tier-1 critical still reaches Matrix/YouTrack as well as the phone.
               var.paging_bridge_url != "" ? [
                 {
-                  matchers = ["tier = 1", "severity = critical"]
+                  # tier 2 (2026-09-23) rides the same bridge to a SEPARATE quiet topic
+                  # (alrt-quiet, ntfy priority 2: visible, never rings, never SMS) for
+                  # standing conditions such as a dead reclaimer. IFRNLLEI01PRD-2850.
+                  matchers = ["tier =~ \"1|2\"", "severity = critical"]
                   receiver = "page-tier1"
                   continue = true
                   # Independent timing — escalate fast, don't wait for the
