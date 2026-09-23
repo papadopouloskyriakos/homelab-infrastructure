@@ -313,6 +313,9 @@ resource "REDACTED_08d34ae1" "gateway" {
           }
 
           security_context {
+            # The provider writes runAsNonRoot=false when this is omitted at the
+            # container level, and the restricted PSA rejects that (apply 2026-09-23).
+            run_as_non_root            = true
             allow_privilege_escalation = false
             read_only_root_filesystem  = true
             capabilities {
