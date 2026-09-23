@@ -352,6 +352,53 @@ To re-audit the paging surface: grep the custom rule files for `tier = "1"` co-l
 `severity = "critical"` (a header-comment mention does not count) and for `page     = "sms"`,
 plus the `alerts = local.ntfy_enabled` blocks in `gatus/main.tf`.
 
+## Off-estate object storage: Hetzner behind the crypt gateway (since 2026-09-23)
+
+**Rule (operator, permanent): nothing reaches Hetzner unencrypted, now or for any future
+consumer, and exactly one Hetzner credential exists in the estate, held only by the gateway.**
+Backups, metrics history and logs left nl-s3 (IFRNLLEI01PRD-2850, Known Gap 29 in root CLAUDE.md)
+for Hetzner Object Storage fsn1 (project `nuclearlighters`, bucket `estate-crypt-fsn1`) through the
+canonical module `namespaces/backup-gateway` (rclone `serve s3` over a `crypt` remote, 2 replicas
+NL/NO, 1 GR). Consumers talk plain S3 to `http://backup-gateway.backup-gateway.svc.cluster.local:8080`
+(path-style) with the gateway's LOCAL key pair (OpenBao `REDACTED_218b2888`); the Hetzner
+credential (`REDACTED_5fad4bd0`) and the crypt key (`REDACTED_0f78fd04`) are readable
+ONLY by OpenBao role `backup-gateway` through ClusterSecretStore `REDACTED_336e5cad`, and the
+general ESO policy carries an explicit deny on both. One shared crypt key for all sites; escrow =
+OpenBao + Vaultwarden note "Hetzner estate object storage". Losing the crypt key loses every backup.
+
+| Consumer | Where it points since 2026-09-23 |
+|---|---|
+| Velero (all sites) | BSL `hetzner` (default) via the gateway, bucket name unchanged; old BSL `default` read-only with `velero-s3-credentials-legacy` until its backups expire |
+| CNPG barman: omoikane-main, litellm, meshsat-hub-main, meshsat-tak-main (NO), seaweedfs-filer-meta (all) | `endpointURL` = gateway; `cnpg-barman-creds` / `REDACTED_073f5849` from `REDACTED_218b2888` |
+| Thanos (NL, NO) | `thanos_s3_endpoint` / `thanos_s3_secret_path` tfvars = gateway; GR stays on gr-s3 while its compactor is parked |
+| Loki (NL, NO) | two-store cut-over: `legacy` named store = old SeaweedFS for chunks before `REDACTED_a2a6f208` (2026-09-24), `s3` = gateway from that day. After retention + 1 d point `REDACTED_e934fd5d` at the gateway too; never remove the first schema period |
+
+**Enforcement:** CronJob `REDACTED_54583949` (6 h, the only namespace holding the key) lists the
+project as Hetzner sees it and fails on any extra bucket or any name that is not crypt-shaped
+(base32hex `[0-9a-v]{26,}`) -> `REDACTED_c95e2714` tier 1. `REDACTED_4e0a8ed8` writes
+1 MiB + 64 MiB through the gateway every 6 h. `BackupGatewayDown` tier 1.
+
+**Adding a consumer:** (1) endpoint = the gateway Service, path-style; (2) credentials =
+ExternalSecret from `REDACTED_218b2888`; (3) its namespace in
+`REDACTED_ff855352` (tfvars); (4) its own CiliumNetworkPolicy, if any, allows egress
+to `backup-gateway:8080`; (5) **create its bucket directory first** (`rclone mkdir crypt:<name>` with
+directory markers, from the runner with the crypt config): the gateway only knows a bucket once the
+directory exists, and Loki/Thanos/Velero never create buckets (Loki crashed `NoSuchBucket` on
+2026-09-23 until the 14 consumer directories were created); (6) NO new OpenBao path, tfvars value
+or CI variable that references Hetzner.
+
+**Traps paid for on 2026-09-23:** `REDACTED_08d34ae1` writes `runAsNonRoot=false` unless the
+container block sets it (restricted PSA rejects); rclone reads `RCLONE_AUTH_KEY` as CSV, so the
+pair must be quoted `"key,secret"`; crypt names are base32hex, not RFC-4648 base32; an ESO-rendered
+credential Secret only re-renders on its refreshInterval (1 h), so after a remoteRef change
+`kubectl annotate externalsecret <name> force-sync=<epoch>` or Velero validates with stale keys
+(`InvalidAccessKeyId`); Thanos sidecars keep `thanos.shipper.json`, delete it before restarting so
+the last 24 h of local blocks re-upload to the new bucket; a GR apply can lose objects to
+`etcdserver: request timed out` (delete the orphans, re-apply). History was deliberately NOT copied
+(Velero partial/corrupt, Thanos 3-week hole, Loki/filer-meta age out, omoikane/litellm 14 d of
+uncompressed bases); only meshsat-hub's 8.8 GiB was. **Deletion gate: nothing on nl-s3/gr-s3
+before 2026-12-15.** Memory [[project_hetzner_backup_gateway_20260923]].
+
 ## Known Issues
 
 - **SeaweedFS filer store = shared CNPG Postgres since 2026-08-23/24 (IFRNLLEI01PRD-2605).** The per-filer leveldb2 topology (2 filers + async meta-aggregator) was the root enabler of the 2026 object-corruption class (-2090 signatures: duplicate chunks at offset 0, index blobs failing decrypt): two private stores reconciled asynchronously commit inconsistent chunk lists under stalled-PUT client retries, and leveldb has no crash story. At cutover the two GR filers held **148k vs 109k directories** for the same bucket tree — two different truths. Now both filers are stateless readers of `seaweedfs-filer-meta` (CNPG, ns seaweedfs, 2 instances async; `filer_store = "postgres2"` in tfvars; `namespaces/seaweedfs/filer-postgres.tf`). Barman for that DB goes **cross-site** (never into the S3 it serves — its restore must not depend on the filer being up): NL→gr-s3 `filer-meta-nl`, GR→nl-s3 `filer-meta-gr`, NO→nl-s3 `filer-meta-no`. The old leveldb2 PVCs (`data-filer-seaweedfs-filer-{0,1}`) were left in place as rollback artifacts and can be reclaimed once the stores have soaked. SeaweedFS is on **4.44** (chart 4.44.0 — the 4.29 per-path locks/ObjectTransaction and 4.41 conditional chunk-set UpdateEntry fixes address exactly the retry race).
