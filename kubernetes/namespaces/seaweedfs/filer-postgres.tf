@@ -176,15 +176,15 @@ resource "kubernetes_manifest" "REDACTED_8eb77a2b" {
         {
           secretKey = "ACCESS_KEY_ID"
           remoteRef = {
-            key      = "k8s/seaweedfs/filer-meta-backup-s3"
-            property = "ACCESS_KEY_ID"
+            key      = "REDACTED_218b2888" # gateway LOCAL key pair since 2026-09-23 (IFRNLLEI01PRD-2850)
+            property = "access_key"
           }
         },
         {
           secretKey = "ACCESS_SECRET_KEY"
           remoteRef = {
-            key      = "k8s/seaweedfs/filer-meta-backup-s3"
-            property = "ACCESS_SECRET_KEY"
+            key      = "REDACTED_218b2888" # gateway LOCAL key pair since 2026-09-23 (IFRNLLEI01PRD-2850)
+            property = "secret_key"
           }
         }
       ]

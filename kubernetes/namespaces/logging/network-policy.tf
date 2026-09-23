@@ -106,7 +106,26 @@ resource "kubernetes_manifest" "REDACTED_46f7c9ba" {
             }
           ]
         },
-        # Allow Loki to reach SeaweedFS S3 (storage backend)
+        # Allow Loki to reach the backup gateway (crypt -> Hetzner), the `s3`
+        # store since 2026-09-23 (IFRNLLEI01PRD-2850)
+        {
+          toEndpoints = [
+            {
+              matchLabels = {
+                "k8s:io.kubernetes.pod.namespace" = "backup-gateway"
+                "app.kubernetes.io/name"          = "backup-gateway"
+              }
+            }
+          ]
+          toPorts = [
+            {
+              ports = [
+                { port = "8080", protocol = "TCP" }
+              ]
+            }
+          ]
+        },
+        # Allow Loki to reach SeaweedFS S3 (the `legacy` store until it ages out)
         {
           toEndpoints = [
             {

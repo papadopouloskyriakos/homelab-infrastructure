@@ -9,6 +9,35 @@
 apiVersion: velero.io/v1
 kind: BackupStorageLocation
 metadata:
+  name: hetzner
+  namespace: velero
+  labels:
+    environment: production
+    managed-by: argocd
+spec:
+  # Since 2026-09-23 (IFRNLLEI01PRD-2850): every new backup goes through the
+  # in-cluster crypt gateway to Hetzner Object Storage. Same bucket name as the
+  # legacy location, now an encrypted directory inside the Hetzner bucket. The
+  # credential is the gateway's LOCAL key pair; no Velero anywhere holds a
+  # Hetzner key. checksumAlgorithm is emptied because velero-plugin-for-aws
+  # v1.13 sends aws-chunked trailing checksums that S3-compatible servers
+  # reject (V0 pre-flight 2026-09-23).
+  provider: aws
+  default: true
+  objectStorage:
+    bucket: velero
+  credential:
+    name: velero-s3-credentials
+    key: cloud
+  config:
+    region: gateway
+    s3ForcePathStyle: "true"
+    s3Url: http://backup-gateway.backup-gateway.svc.cluster.local:8080
+    checksumAlgorithm: ""
+---
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
   name: default
   namespace: velero
   labels:
@@ -16,7 +45,13 @@ metadata:
     managed-by: argocd
 spec:
   provider: aws
-  default: true
+  default: false
+  # Read-only since 2026-09-23: old backups stay restorable until their TTL
+  # passes (last weekly ~2026-10-10 + 1440 h); nothing is deleted before 2026-12-15.
+  accessMode: ReadOnly
+  credential:
+    name: velero-s3-credentials-legacy
+    key: cloud
   objectStorage:
     bucket: velero
   config:

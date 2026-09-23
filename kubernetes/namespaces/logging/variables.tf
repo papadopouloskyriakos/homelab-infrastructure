@@ -59,3 +59,34 @@ variable "REDACTED_337e6630" {
   type        = string
   default     = "10.0.X.X"
 }
+
+variable "s3_secret_path" {
+  description = "OpenBao KV path with the S3 credentials for the primary (`s3`) store. ci/loki for SeaweedFS; REDACTED_218b2888 for the crypt gateway."
+  type        = string
+  default     = "ci/loki"
+}
+
+variable "s3_secret_access_key_property" {
+  description = "Property name of the access key at s3_secret_path (s3_access_key at ci/loki, access_key at REDACTED_218b2888)"
+  type        = string
+  default     = "s3_access_key"
+}
+
+variable "s3_secret_secret_key_property" {
+  description = "Property name of the secret key at s3_secret_path (s3_secret_key at ci/loki, secret_key at REDACTED_218b2888)"
+  type        = string
+  default     = "s3_secret_key"
+}
+
+variable "s3_legacy_endpoint" {
+  description = "Endpoint of the `legacy` named store holding chunks written before s3_cutover_date (the old cluster-local SeaweedFS). Only read when s3_cutover_date is set."
+  type        = string
+  default     = "seaweedfs-s3.seaweedfs.svc.cluster.local:8333"
+}
+
+variable "s3_cutover_date" {
+  description = "UTC day (YYYY-MM-DD) from which chunks go to the `s3` store; earlier days stay in `legacy`. Empty = single store, no cut-over."
+  type        = string
+  default     = ""
+}
+

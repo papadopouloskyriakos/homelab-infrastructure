@@ -1217,3 +1217,43 @@ variable "REDACTED_ff855352" {
   default     = ["velero", "monitoring", "logging", "seaweedfs"]
 }
 
+variable "thanos_s3_endpoint" {
+  description = "S3 endpoint for the Thanos object store (host:port, no scheme; objstore.yml sets insecure=true). Default = the cluster-local SeaweedFS; NL/NO point it at the backup gateway (rclone crypt -> Hetzner) since 2026-09-23 (IFRNLLEI01PRD-2850)."
+  type        = string
+  default     = "seaweedfs-s3.seaweedfs.svc.cluster.local:8333"
+}
+
+variable "thanos_s3_secret_path" {
+  description = "OpenBao KV path with access_key/secret_key for the Thanos object store. REDACTED_3baa4bde for SeaweedFS; REDACTED_218b2888 for the gateway."
+  type        = string
+  default     = "REDACTED_3baa4bde"
+}
+
+variable "loki_s3_secret_path" {
+  description = "OpenBao KV path with Loki's primary store credentials (ci/loki for SeaweedFS, REDACTED_218b2888 for the crypt gateway)"
+  type        = string
+  default     = "ci/loki"
+}
+
+variable "REDACTED_7ad49fe3" {
+  type    = string
+  default = "s3_access_key"
+}
+
+variable "loki_s3_secret_secret_key_property" {
+  type    = string
+  default = "s3_secret_key"
+}
+
+variable "REDACTED_e934fd5d" {
+  description = "Endpoint of Loki's `legacy` named store (chunks written before REDACTED_a2a6f208)"
+  type        = string
+  default     = "seaweedfs-s3.seaweedfs.svc.cluster.local:8333"
+}
+
+variable "REDACTED_a2a6f208" {
+  description = "UTC day from which Loki writes to the gateway store; empty = no cut-over (single store). IFRNLLEI01PRD-2850."
+  type        = string
+  default     = ""
+}
+
