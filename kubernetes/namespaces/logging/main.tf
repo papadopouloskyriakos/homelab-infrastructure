@@ -38,15 +38,32 @@ resource "kubernetes_manifest" "REDACTED_4d3fed8e" {
         deletionPolicy = "Retain"
       }
       data = [
+        # AWS_* = the backup gateway's LOCAL key pair (crypt -> Hetzner) since
+        # 2026-09-23; LEGACY_* = the old SeaweedFS pair, read by the `legacy`
+        # named store until its data has aged out (IFRNLLEI01PRD-2850).
         {
           secretKey = "AWS_ACCESS_KEY_ID"
+          remoteRef = {
+            key      = var.s3_secret_path
+            property = var.s3_secret_access_key_property
+          }
+        },
+        {
+          secretKey = "AWS_SECRET_ACCESS_KEY"
+          remoteRef = {
+            key      = var.s3_secret_path
+            property = var.s3_secret_secret_key_property
+          }
+        },
+        {
+          secretKey = "LEGACY_ACCESS_KEY_ID"
           remoteRef = {
             key      = "ci/loki"
             property = "s3_access_key"
           }
         },
         {
-          secretKey = "AWS_SECRET_ACCESS_KEY"
+          secretKey = "LEGACY_SECRET_ACCESS_KEY"
           remoteRef = {
             key      = "ci/loki"
             property = "s3_secret_key"
@@ -98,20 +115,58 @@ resource "helm_release" "loki" {
         }
       }
 
+      # Object-store cut-over (IFRNLLEI01PRD-2850, 2026-09-23): when
+      # s3_cutover_date is set, chunks written before that UTC day stay in the
+      # `legacy` named store (the old cluster-local SeaweedFS) and everything
+      # from that day on goes to `s3` (now the crypt gateway to Hetzner). Loki
+      # reads both; the first period is never removed. Once the legacy data has
+      # aged past retention, point s3_legacy_endpoint at the gateway too.
       schemaConfig = {
-        configs = [
-          {
-            from         = "2024-01-01"
-            store        = "tsdb"
-            object_store = "s3"
-            schema       = "v13"
-            index = {
-              prefix = "index_"
-              period = "24h"
+        configs = concat(
+          [
+            {
+              from         = "2024-01-01"
+              store        = "tsdb"
+              object_store = var.s3_cutover_date != "" ? "legacy" : "s3"
+              schema       = "v13"
+              index = {
+                prefix = "index_"
+                period = "24h"
+              }
+            }
+          ],
+          var.s3_cutover_date != "" ? [
+            {
+              from         = var.s3_cutover_date
+              store        = "tsdb"
+              object_store = "s3"
+              schema       = "v13"
+              index = {
+                prefix = "index_"
+                period = "24h"
+              }
+            }
+          ] : []
+        )
+      }
+
+      structuredConfig = var.s3_cutover_date != "" ? {
+        storage_config = {
+          named_stores = {
+            aws = {
+              legacy = {
+                endpoint          = var.s3_legacy_endpoint
+                bucketnames       = var.s3_bucket
+                region            = "us-east-1"
+                access_key_id     = "$${LEGACY_ACCESS_KEY_ID}"
+                secret_access_key = "$${LEGACY_SECRET_ACCESS_KEY}"
+                s3forcepathstyle  = true
+                insecure          = true
+              }
             }
           }
-        ]
-      }
+        }
+      } : {}
 
       limits_config = {
         retention_period        = "${var.loki_retention_days * 24}h"

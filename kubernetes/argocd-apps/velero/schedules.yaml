@@ -35,7 +35,7 @@ spec:
     - velero
     - seaweedfs
     includeClusterResources: true
-    storageLocation: default
+    storageLocation: hetzner
     volumeSnapshotLocations:
     - default
     # Opt-IN since IFRNLLEI01PRD-2605 phase 5: full-cluster fs-backup was the
@@ -67,7 +67,7 @@ spec:
     - velero
     - seaweedfs
     includeClusterResources: true
-    storageLocation: default
+    storageLocation: hetzner
     volumeSnapshotLocations:
     - default
     # Opt-IN since IFRNLLEI01PRD-2605 phase 5: full-cluster fs-backup was the
