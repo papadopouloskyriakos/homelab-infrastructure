@@ -149,7 +149,7 @@ REDACTED_d36a9dce     = 1800 # 1400 -> 1800 2026-09-15: 22 slots left of 2800 (I
 # evening of 09-21 at ~20 % free. 5 % (~53 GB) is the standing reserve: it must exceed one full
 # 8 GB volume + idx so compaction always has room (an explicit -volumeId vacuum digs out even
 # below it). A value below 5 is an emergency override and must carry an expiry (plan Phase 7).
-REDACTED_6930756b = 5
+REDACTED_6930756b = 3 # 5 -> 3 until 2026-09-30 (IFRNLLEI01PRD-2850, 2026-09-23): 20 GB of headroom so the Thanos compactor can be remounted (its PV went read-only 22 Sep) and resume retention while the reconciler compacts 470 GiB of garbage at ~3.5 GB/h; back to 5 once both PVs are >10 % free
 # Staged 4.44 rollout (IFRNLLEI01PRD-2605): NO first, then NL, then GR.
 REDACTED_c1342204 = "4.44.0"
 REDACTED_a4f42897 = "4.44"
@@ -258,7 +258,9 @@ pve_hosts = [
 # --- seaweedfs reclaim + storage-pinning (site values, 2026-09-20) ---
 REDACTED_4c9c3cf5 = "0.10" # measured: 142/1558 volumes already clear it
 # Below-standard settings must be registered here with an end date (lint + REDACTED_8e8e28d2).
-temporary_overrides = {}
+temporary_overrides = {
+  seaweedfs_floor_lowered = "2026-09-30" # floor 3 %, see REDACTED_6930756b
+}
 
 REDACTED_fd6d5350 = { # bulkhead, 2026-09-21 (IFRNLLEI01PRD-2850); both excluded from filer.sync
   "thanos-nl" = 409600         # 400 GiB: 232 GB live at the time, raw 7d + 5m 120d + 1h 365d, + compaction burst
