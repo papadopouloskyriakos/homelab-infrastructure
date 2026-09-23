@@ -57,7 +57,7 @@ ntfy runs **real auth** since 2026-08-25 (`auth-file` + `auth-default-access: de
 the yaml `access:`/`up-push-server:` keys were invalid ntfy options → every topic was world
 read/write). ACLs in `/srv/matrix/ntfy-data/user.db`:
 `everyone up* read-write` (UnifiedPush) · `alerts-pub alrt-* write-only` (publish token) ·
-`kyriakos alrt-* read-only` + `kyriakos up* read-write` (phone). Topic **`alrt-tier1`** carries
+`kyriakos alrt-* read-only` + `kyriakos up* read-write` (phone). **Since 2026-09-23 there are TWO alert topics** (both covered by the `alrt-*` ACLs, no server change): `alrt-tier1` (rings, priority 5) and **`alrt-quiet`** (`tier="2"` alerts, priority 2, never rings; the phone must subscribe to it separately with sound off; IFRNLLEI01PRD-2850). Topic **`alrt-tier1`** carries
 tier-1 infra pages: published by the paging bridge on nlclaude01 (LAN, `http://10.0.X.X:8880`),
 the GR bridge + `gr-inalan-wan-monitor.py` (public URL), and Gatus (NL k8s). ⛔ Never change
 `NTFY_BASE_URL` — the live Synapse pushers hold absolute root-level `up…` pushkeys.
