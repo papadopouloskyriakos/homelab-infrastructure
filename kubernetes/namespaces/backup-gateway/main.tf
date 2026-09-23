@@ -562,7 +562,7 @@ resource "kubernetes_manifest" "canary_cronjob" {
 # -----------------------------------------------------------------------------
 # The rule's enforcement: what does Hetzner actually hold? Runs in the only
 # namespace that may hold the Hetzner key. Fails on any bucket other than ours
-# or any object/directory name that is not crypt-shaped (unpadded base32).
+# or any object/directory name that is not crypt-shaped (unpadded base32hex, 0-9a-v).
 # -----------------------------------------------------------------------------
 resource "REDACTED_a9df2e77_v1" "REDACTED_8ad76e58" {
   metadata {

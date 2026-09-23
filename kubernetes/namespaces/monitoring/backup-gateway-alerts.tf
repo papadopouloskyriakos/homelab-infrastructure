@@ -63,7 +63,7 @@ resource "kubernetes_manifest" "REDACTED_1c38f1c8" {
               }
               annotations = {
                 summary     = "Hetzner holds something that did not come through the crypt gateway"
-                description = "The REDACTED_54583949 Job failed: the project lists a bucket other than ours, or a directory/object name under it is not crypt-shaped (rclone crypt standard names are unpadded base32). Read the log: kubectl -n backup-gateway logs job/<latest REDACTED_54583949-*>. Find the consumer that was pointed at Hetzner directly, repoint it at the gateway, delete the plaintext objects, and rotate the Hetzner credential if anything outside the gateway ever held it."
+                description = "The REDACTED_54583949 Job failed: the project lists a bucket other than ours, or a directory/object name under it is not crypt-shaped (rclone crypt standard names are unpadded base32hex, 0-9a-v). Read the log: kubectl -n backup-gateway logs job/<latest REDACTED_54583949-*>. Find the consumer that was pointed at Hetzner directly, repoint it at the gateway, delete the plaintext objects, and rotate the Hetzner credential if anything outside the gateway ever held it."
                 impact      = "Unencrypted estate data on a third party's storage."
               }
             },

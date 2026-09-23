@@ -3,7 +3,8 @@
 # Hetzner unencrypted" made measurable. Lists the project as Hetzner sees it:
 #   * exactly one bucket, ours;
 #   * every directory and object name under it is crypt-shaped (rclone crypt
-#     "standard" names: unpadded base32, [a-z2-7], 26+ chars).
+#     "standard" names: unpadded base32hex, [0-9a-v], 26+ chars; the first run
+#     on 2026-09-23 failed on the RFC-4648 alphabet, which rclone does not use).
 # A plaintext name, or a second bucket, means some consumer bypassed the
 # gateway. Runs in the only namespace that holds the Hetzner key.
 set -u
@@ -23,7 +24,7 @@ fi
 # a plaintext consumer without walking millions of Thanos chunks).
 names=$(rclone lsf -R --max-depth 3 "hetzner:${want}" 2>&1) || { echo "FAIL: cannot list ${want}: $names"; exit 2; }
 total=$(printf '%s\n' "$names" | sed '/^$/d' | wc -l)
-bad=$(printf '%s\n' "$names" | sed '/^$/d' | tr '/' '\n' | sed '/^$/d' | grep -v -E '^[a-z2-7]{26,}$' || true)
+bad=$(printf '%s\n' "$names" | sed '/^$/d' | tr '/' '\n' | sed '/^$/d' | grep -v -E '^[0-9a-v]{26,}$' || true)
 if [ -n "$bad" ]; then
   echo "FAIL: $(printf '%s\n' "$bad" | wc -l) non-crypt name segment(s) on Hetzner (first 20):"
   printf '%s\n' "$bad" | head -20
