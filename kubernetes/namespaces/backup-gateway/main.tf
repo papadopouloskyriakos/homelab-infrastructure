@@ -149,7 +149,10 @@ resource "kubernetes_manifest" "rclone_secret" {
               password = {{ .cr_password }}
               password2 = {{ .cr_password2 }}
             EOT
-            auth_key      = "{{ .gw_access_key }},{{ .gw_secret_key }}"
+            # rclone parses list flags from the environment as CSV, so the pair is
+            # CSV-quoted: without the quotes it splits at the comma and refuses to
+            # start ("expecting a single comma", first apply 2026-09-23).
+            auth_key      = "\"{{ .gw_access_key }},{{ .gw_secret_key }}\""
             bucket        = "{{ .hz_bucket }}"
             gw_access_key = "{{ .gw_access_key }}"
             gw_secret_key = "{{ .gw_secret_key }}"
