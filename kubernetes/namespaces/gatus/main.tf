@@ -586,6 +586,20 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             alerts = []
           },
           {
+            # Cluster-local: each site's Gatus checks its own crypt gateway to
+            # Hetzner (IFRNLLEI01PRD-2850). Unauthenticated GET / is a 403 from
+            # rclone serve s3, which is the healthy answer.
+            name     = "Backup Gateway (Hetzner crypt)"
+            group    = "💾 Storage & Backup"
+            url      = "http://backup-gateway.backup-gateway.svc.cluster.local:8080/"
+            interval = "60s"
+            conditions = [
+              "[STATUS] < 500",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = []
+          },
+          {
             name     = "Velero UI"
             group    = "💾 Storage & Backup"
             url      = "https://velero.example.net"
