@@ -213,6 +213,53 @@ resource "kubernetes_manifest" "REDACTED_78d971a7" {
           ]
         },
         {
+          # Per-volume-server WRITE probe (IFRNLLEI01PRD-2850, 2026-09-23). On
+          # 2026-09-22 seaweedfs-volume-0's ext4 went `emergency_ro` (mount still
+          # reads `rw`, node_filesystem_readonly stays 0). Nothing named it; seven
+          # downstream alerts paged 61 times in 43 h. namespaces/seaweedfs/
+          # write-probe.tf uploads 4 KiB straight to each data node every 10 min
+          # and fails the Job on an I/O-level refusal. Two consecutive failed
+          # runs (not one: a single 500 during a compaction is noise) page, and
+          # the Alertmanager inhibit rules mute the symptom alerts behind it.
+          name     = "seaweedfs-write-probe"
+          interval = "1m"
+          rules = [
+            {
+              alert = "REDACTED_47595c82"
+              expr  = "count((kube_job_status_failed{namespace=\"seaweedfs\", job_name=~\"seaweedfs-write-probe-.+\"} > 0) and on (job_name) ((time() - kube_job_status_start_time{namespace=\"seaweedfs\", job_name=~\"seaweedfs-write-probe-.+\"}) < 1800)) >= 2"
+              for   = "1m"
+              labels = {
+                severity  = "critical"
+                tier      = "1" # the page that should have fired on 2026-09-22 instead of the seven symptoms
+                category  = "storage-write-path"
+                service   = "seaweedfs"
+                namespace = "seaweedfs"
+              }
+              annotations = {
+                summary     = "A SeaweedFS volume server refuses direct writes (filesystem-level, not low space)"
+                description = "Two consecutive seaweedfs-write-probe runs failed to upload 4 KiB straight to a volume server. Read the log for WHICH server and the error: kubectl -n seaweedfs logs job/<latest seaweedfs-write-probe-*>. 'read-only file system' = the PV's ext4 aborted (emergency_ro; /proc/mounts inside the pod shows it, node_filesystem_readonly does NOT). Cure: delete that volume pod so kubelet unmounts and remounts the PV (proven 2026-09-23; if it comes back read-only, cordon the node, delete the pod, wait >= 6 min podless, uncordon; last resort fsck via an iSCSI session). Then run the reconciler by hand: kubectl -n seaweedfs create job --from=cronjob/seaweedfs-reconciler <name>."
+                impact      = "With replication 001 every S3 write needs both servers: writes fail cluster-wide, the healthy server fills with half-written replicas, no vacuum can compact (compaction needs both copies), and every reclaimer, the compactor and the read canary fail behind it. This is the ROOT of REDACTED_8ea3848e/DiskSpaceLow when it fires."
+              }
+            },
+            {
+              alert = "SeaweedFSWriteProbeStale"
+              expr  = "(time() - max(kube_job_status_completion_time{namespace=\"seaweedfs\", job_name=~\"seaweedfs-write-probe-.+\"}) > 7200) or absent(kube_job_status_completion_time{namespace=\"seaweedfs\", job_name=~\"seaweedfs-write-probe-.+\"})"
+              for   = "10m"
+              labels = {
+                severity  = "warning"
+                category  = "storage-write-path"
+                service   = "seaweedfs"
+                namespace = "seaweedfs"
+              }
+              annotations = {
+                summary     = "SeaweedFS write probe has not completed successfully in 2h (or has never run)"
+                description = "No seaweedfs-write-probe Job completion in 2 h (schedule every 10 min), or the metric is absent. While this fires a read-only volume server would go unnamed again."
+                impact      = "Per-server writability is unmonitored."
+              }
+            },
+          ]
+        },
+        {
           # MASTER raft health (IFRNLLEI01PRD-2605 follow-up, 2026-08-24). The
           # goraft election wedged leaderless TWICE in one day on peer churn:
           # every master healthy/0-restarts, all logging `topo leader: <nil>`,
