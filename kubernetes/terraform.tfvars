@@ -282,3 +282,9 @@ internal_ca_enabled     = false # no meshsat-hub NATS consumer
 # --- kyverno admission policy (site values, 2026-09-20) ---
 kyverno_enabled               = true  # AUDIT-ONLY here
 REDACTED_a1145f93 = false # cosign policy is notrf01-only (Enforce)
+
+# --- backup gateway: rclone crypt -> Hetzner Object Storage fsn1 (site values, 2026-09-23, IFRNLLEI01PRD-2850) ---
+REDACTED_b987a401            = true # NL hub: velero/thanos/loki/filer-meta consumers
+REDACTED_2eab95fd           = 2
+REDACTED_ff855352 = ["velero", "monitoring", "logging", "seaweedfs"]
+

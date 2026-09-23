@@ -1195,3 +1195,25 @@ variable "node_zone_basis" {
   type        = string
   default     = ""
 }
+
+# -----------------------------------------------------------------------------
+# Backup gateway (namespaces/backup-gateway, IFRNLLEI01PRD-2850)
+# -----------------------------------------------------------------------------
+variable "REDACTED_b987a401" {
+  description = "Run the rclone crypt gateway to Hetzner Object Storage on this site. Every S3 consumer that leaves the estate must go through it (the rule: nothing reaches Hetzner unencrypted; one Hetzner credential, held only by the gateway)."
+  type        = bool
+  default     = false
+}
+
+variable "REDACTED_2eab95fd" {
+  description = "Gateway replicas (stateless). 2 on production sites; 1 where the cluster is deliberately kept small."
+  type        = number
+  default     = 2
+}
+
+variable "REDACTED_ff855352" {
+  description = "Namespaces whose pods may reach the gateway on 8080. Every consumer must be listed here (network policy); see the new-consumer checklist in namespaces/backup-gateway/main.tf."
+  type        = list(string)
+  default     = ["velero", "monitoring", "logging", "seaweedfs"]
+}
+

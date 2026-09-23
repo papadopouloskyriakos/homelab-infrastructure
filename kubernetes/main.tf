@@ -339,6 +339,24 @@ module "external_secrets" {
   eso_auth_mount_path = var.eso_auth_mount_path
 }
 
+# Backup gateway: rclone `serve s3` over a crypt remote on Hetzner Object Storage
+# (IFRNLLEI01PRD-2850, 2026-09-23). Every backup/metrics/log consumer writes
+# through it; nothing reaches Hetzner unencrypted and only this module's SA can
+# read the Hetzner credential. Gated per site; new module, no moved {} needed.
+module "backup_gateway" {
+  count  = var.REDACTED_b987a401 ? 1 : 0
+  source = "./namespaces/backup-gateway"
+
+  common_labels       = local.common_labels
+  replicas            = var.REDACTED_2eab95fd
+  allowed_namespaces  = var.REDACTED_ff855352
+  openbao_address     = var.openbao_address
+  openbao_ca_cert     = var.openbao_ca_cert
+  eso_auth_mount_path = var.eso_auth_mount_path
+
+  depends_on = [module.external_secrets, module.reloader]
+}
+
 # CloudNativePG operator — DB tier (platform-only: operator + CRDs; Cluster CRs
 # are app-tier). Gated: only sites running an in-cluster Postgres tier enable it
 # (notrf01 = true for the omoikane migration; NL/GR = false). New module, so no
