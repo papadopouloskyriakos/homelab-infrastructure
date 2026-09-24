@@ -3,21 +3,21 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-09-23 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-09-24 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: CRITICAL ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 28 |
+| Unhealthy Pods | 29 |
 | Pending PVCs | 0 |
-| Total Restarts | 10530 |
+| Total Restarts | 10812 |
 
 ## Topology
 
 - **K8s:** v1.36.3 | **CNI:** Cilium 1.20.0
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 198
+- **Pods:** 207
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8002696Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -32,39 +32,40 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-awx                      awx-pg-dump-29832735-9kk5w                                        0/1   Error              0                  46h
-awx                      awx-pg-dump-29832735-fdmmq                                        0/1   Error              0                  46h
-awx                      awx-pg-dump-29832735-jtdwq                                        0/1   Error              0                  46h
-awx                      awx-pg-dump-29834175-7k7j8                                        0/1   Error              0                  22h
-awx                      awx-pg-dump-29834175-h4bmp                                        0/1   Error              0                  22h
-awx                      awx-pg-dump-29834175-hslcb                                        0/1   Error              0                  22h
-kube-system              kube-proxy-qn8md                                                  0/1   CrashLoopBackOff   8292 (3m57s ago)   37d
-monitoring               meshsat-status-heartbeat-29835484-jww2w                           0/1   Error              0                  56m
-monitoring               meshsat-status-heartbeat-29835485-2jdg6                           0/1   Error              0                  55m
-monitoring               meshsat-status-heartbeat-29835487-lfqkm                           0/1   Error              0                  53m
-seaweedfs                seaweedfs-read-canary-29834663-kqljw                              0/1   Error              0                  14h
-seaweedfs                seaweedfs-read-canary-29834663-krsdh                              0/1   Error              0                  14h
-seaweedfs                seaweedfs-read-canary-29835023-q4g2h                              0/1   Error              0                  8h
-seaweedfs                seaweedfs-read-canary-29835023-vqmn5                              0/1   Error              0                  8h
-seaweedfs                seaweedfs-read-canary-29835383-8jlf5                              0/1   Error              0                  157m
-seaweedfs                seaweedfs-read-canary-29835383-nfzbc                              0/1   Error              0                  157m
-seaweedfs                seaweedfs-reconciler-29835377-dtmmn                               0/1   Error              0                  163m
-seaweedfs                seaweedfs-reconciler-29835437-gxk6r                               0/1   Error              0                  103m
-seaweedfs                seaweedfs-reconciler-29835497-mjt6z                               0/1   Error              0                  43m
-velero                   awx-default-kopia-maintain-job-1790131609032-6pnxs                0/1   Error              0                  14m
-velero                   awx-default-kopia-maintain-job-1790131909033-xjt99                0/1   Error              0                  9m8s
-velero                   awx-default-kopia-maintain-job-1790132209034-hdh4r                0/1   Error              0                  4m8s
-velero                   monitoring-default-kopia-maintain-job-1790131613076-cfr64         0/1   Error              0                  14m
-velero                   monitoring-default-kopia-maintain-job-1790131913079-5x4xl         0/1   Error              0                  9m4s
-velero                   monitoring-default-kopia-maintain-job-1790132213076-94lrg         0/1   Error              0                  4m4s
-velero                   pihole-default-kopia-maintain-job-1790131617112-cl6vv             0/1   Error              0                  14m
-velero                   pihole-default-kopia-maintain-job-1790131917118-xjqtn             0/1   Error              0                  9m
-velero                   pihole-default-kopia-maintain-job-1790132217112-rrxcf             0/1   Error              0                  4m
+awx                      awx-pg-dump-29832735-9kk5w                                        0/1   Error              0                  2d22h
+awx                      awx-pg-dump-29832735-fdmmq                                        0/1   Error              0                  2d22h
+awx                      awx-pg-dump-29832735-jtdwq                                        0/1   Error              0                  2d22h
+awx                      awx-pg-dump-29834175-7k7j8                                        0/1   Error              0                  46h
+awx                      awx-pg-dump-29834175-h4bmp                                        0/1   Error              0                  46h
+awx                      awx-pg-dump-29834175-hslcb                                        0/1   Error              0                  46h
+awx                      awx-pg-dump-29835615-jsf4r                                        0/1   Error              0                  22h
+awx                      awx-pg-dump-29835615-sk6jx                                        0/1   Error              0                  22h
+awx                      awx-pg-dump-29835615-xjwgx                                        0/1   Error              0                  22h
+kube-system              kube-proxy-qn8md                                                  0/1   CrashLoopBackOff   8572 (2m29s ago)   38d
+monitoring               meshsat-status-heartbeat-29836648-wnhzp                           0/1   Error              0                  5h32m
+seaweedfs                seaweedfs-read-canary-29835383-8jlf5                              0/1   Error              0                  26h
+seaweedfs                seaweedfs-read-canary-29835383-nfzbc                              0/1   Error              0                  26h
+seaweedfs                seaweedfs-read-canary-29835743-7s7db                              0/1   Error              0                  20h
+seaweedfs                seaweedfs-read-canary-29835743-lxcfc                              0/1   Error              0                  20h
+seaweedfs                seaweedfs-read-canary-29836103-2wcwf                              0/1   Error              0                  14h
+seaweedfs                seaweedfs-read-canary-29836103-rlx6g                              0/1   Error              0                  14h
+seaweedfs                seaweedfs-reconciler-29836337-49ggb                               0/1   Error              0                  10h
+seaweedfs                seaweedfs-reconciler-29836397-vd4br                               0/1   Error              0                  9h
+seaweedfs                seaweedfs-reconciler-29836457-tdhb8                               0/1   Error              0                  8h
+velero                   awx-default-kopia-maintain-job-1790197609192-kgk5z                0/1   Error              0                  5h54m
+velero                   awx-default-kopia-maintain-job-1790197913232-l749m                0/1   Error              0                  5h49m
+velero                   awx-default-kopia-maintain-job-1790198218290-d2g6j                0/1   Error              0                  5h43m
+velero                   monitoring-default-kopia-maintain-job-1790197613242-pc7bq         0/1   Error              0                  5h54m
+velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                  5h48m
+velero                   monitoring-default-kopia-maintain-job-1790198209194-96r7j         0/1   Error              0                  5h44m
+velero                   pihole-default-kopia-maintain-job-1790197618280-wvmf6             0/1   Error              0                  5h53m
+velero                   pihole-default-kopia-maintain-job-1790197909193-mxplz             0/1   Error              0                  5h49m
+velero                   pihole-default-kopia-maintain-job-1790198213248-gg9tr             0/1   Error              0                  5h44m
 ```
 
 ### High Restart Pods (>3)
-argocd/argocd-application-controller-0: 7 restarts
-awx/awx-operator-controller-manager-6ffdf98f6-x8jtt: 15 restarts
+argocd/argocd-application-controller-0: 9 restarts
+awx/awx-operator-controller-manager-6ffdf98f6-x8jtt: 17 restarts
 awx/my-awx-task-756d768868-bslc2: 6 restarts
 cilium-spire/spire-agent-2xj9z: 258 restarts
 cilium-spire/spire-agent-bf7g7: 262 restarts
@@ -82,11 +83,11 @@ kube-system/cilium-operator-84c4fb58c7-jlhkp: 13 restarts
 kube-system/etcd-nlk8s-ctrl02: 5 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 14 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 11 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 9 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl02: 8 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl01: 10 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl02: 9 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl03: 9 restarts
 kube-system/kube-proxy-7jvns: 5 restarts
-kube-system/kube-proxy-qn8md: 8292 restarts
+kube-system/kube-proxy-qn8md: 8572 restarts
 kube-system/kube-scheduler-nlk8s-ctrl01: 6 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 5 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 9 restarts
@@ -114,8 +115,6 @@ monitoring/monitoring-prometheus-node-exporter-88hp8: 7 restarts
 monitoring/monitoring-prometheus-node-exporter-8bq88: 4 restarts
 monitoring/monitoring-prometheus-node-exporter-vgp6b: 4 restarts
 monitoring/monitoring-prometheus-node-exporter-wmcb8: 47 restarts
-monitoring/prometheus-REDACTED_6dfbe9fc-0: 9 restarts
-monitoring/prometheus-REDACTED_6dfbe9fc-1: 6 restarts
 nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-75b84759cfvtflq: 9 restarts
 synology-csi/synology-csi-node-4nxcz: 8 restarts
 synology-csi/synology-csi-node-kxrjb: 17 restarts
@@ -127,11 +126,11 @@ synology-csi/synology-csi-node-zch7n: 35 restarts
 
 ### Recent Warnings (5)
 ```
-velero                   4m6s        Warning   BackoffLimitExceeded   job/awx-default-kopia-maintain-job-1790132209034                        Job has reached the specified backoff limit
-velero                   4m2s        Warning   BackoffLimitExceeded   job/monitoring-default-kopia-maintain-job-1790132213076                 Job has reached the specified backoff limit
-velero                   3m58s       Warning   BackoffLimitExceeded   job/pihole-default-kopia-maintain-job-1790132217112                     Job has reached the specified backoff limit
-kube-system              2m21s       Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl01                                   Readiness probe failed: HTTP probe failed with statuscode: 500
-logging                  2m6s        Warning   Unhealthy              pod/loki-0                                                              Readiness probe failed: HTTP probe failed with statuscode: 503
+monitoring               55m         Warning   Unhealthy         pod/prometheus-REDACTED_6dfbe9fc-0                  Readiness probe failed: Get "http://10.0.3.81:9090/-/ready": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+monitoring               55m         Warning   Unhealthy         pod/prometheus-REDACTED_6dfbe9fc-0                  Liveness probe failed: Get "http://10.0.3.81:9090/-/healthy": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system              17m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Liveness probe failed: HTTP probe failed with statuscode: 500
+seaweedfs                14m         Warning   Unhealthy         pod/seaweedfs-filer-meta-2                                              Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system              5m4s        Warning   BackOff           pod/kube-proxy-qn8md                                                    Back-off restarting failed container kube-proxy in pod kube-proxy-qn8md_kube-system(70ae08f5-7949-459c-9670-ac69c6b03a55)
 ```
 
 ## Key Resources
