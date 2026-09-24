@@ -2,10 +2,7 @@
 
 ## Session Protocol
 
-**At the start of every session**, read `PROJECT_STATE.md` to understand current state.
-**At the end of every session** (or when significant changes are made), update:
-1. `PROJECT_STATE.md` — reflect current state, recent changes, open issues
-2. Memory files in `~/.claude/projects/-home-kyriakosp-gitlab-REDACTED_25022d4e/memory/` — if new persistent knowledge was learned
+**`PROJECT_STATE.md` does not exist** (neither here nor in `/srv/matrix/` on the host, verified 2026-09-24): this file IS the state. At the end of a session with significant changes, update this file and the memory files in `~/.claude/projects/-home-claude-runner-gitlab-REDACTED_25022d4e/memory/`.
 
 ## Project Overview
 
@@ -75,6 +72,36 @@ on 09-21 that cache was corrupt (`Error grabbing logs: log message is too large 
 config change). Independent check that never needs the log: poll the topic with the operator
 credential from `~/.config/gateway/ntfy-operator.cred` on nlclaude01,
 `curl -u USER:PASS 'http://10.0.X.X:8880/alrt-tier1/json?poll=1&since=15m'`.
+
+## "X cannot connect from the phone": check the user's session before the stack (2026-09-24, IFRNLLEI01PRD-2891)
+
+Worked example: George (`@zafeiridis.george`, Element X 26.09.1 on iPhone 15 Pro / iOS 27, Odido
+mobile IPv4) "cannot connect" while every server-side signal said he was connected and syncing.
+All read-only, ~5 min, in this order; report what the server SAW at what time, not a guess:
+
+1. **Edge + stack in one sweep:** `curl --resolve matrix.example.net:443:<VPS IP>` for
+   `/_matrix/client/versions` and `/.well-known/matrix/client` on each of the three VPS IPs, and
+   `mas.example.net/.well-known/openid-configuration` (MAS has NO `/health`; that 404 is
+   normal). HAProxy `matrix` backend per VPS: `curl -u admin:... http://<tunnel-ip>:8404/stats;csv`
+   (no sudo needed). On the host: `docker ps`, `cscli decisions list` (root, no password).
+2. **The user's MAS session** (`docker exec -i postgres psql -U mas -d mas`, password in
+   `mas-config/config.yaml`): `users` (`locked_at`, `deactivated_at`); `oauth2_sessions` per user
+   (`finished_at`, `last_active_at`, `last_active_ip`; Element X is an OAuth session, Element
+   classic/web is `compat_sessions`); `oauth2_refresh_tokens` per session (`created_at`,
+   `consumed_at`, `revoked_at`). Healthy Element X consumes one refresh every 5-10 min while
+   foregrounded; access tokens live 5 min. A refresh consumed within ~1 s of its creation is the
+   app and its notification extension racing: seen daily, always self-resolving, NOT a broken session.
+3. **What Synapse answered that client:** `docker logs --since 24h synapse | grep <client IP>` on
+   the `Processed request` lines: status per endpoint and per hour. Normal noise: `401 Token is
+   not active` in the seconds before a refresh, `429` on presence PUT, `200!` with a negative
+   time (a long-poll the client abandoned). Anything else is the finding.
+4. **nginx's access log is a FILE, not `docker logs`:** `/var/log/nginx/access.log` inside the
+   nginx container (daily rotation, 7 kept); `docker logs nginx` only ever shows startup warnings.
+   That emptiness is by design, not the 09-21 corrupt-cache class (IFRNLLEI01PRD-2885).
+
+All four clean = device side (app cache, captive network, or a specific feature such as calls); ask
+for the exact error text, time, network and whether it is chat or a call, and answer with the
+timestamp the server last saw the device syncing.
 
 ## Key Accounts
 
