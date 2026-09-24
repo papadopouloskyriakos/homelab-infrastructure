@@ -15,6 +15,10 @@ projects:
         # helm_release via templatefile() — a values-only change MUST trigger a plan, else
         # Atlantis reports "Ran Plan for 0 projects" and the change silently never applies.
         - "**/*.tpl"
+        # backup-gateway's canary.py + layout-assert.sh feed ConfigMaps via file(): a
+        # change there is a real diff that would otherwise never get a plan.
+        - "**/*.py"
+        - "**/*.sh"
     workflow: opentofu-k8s
 workflows:
   opentofu-k8s:
