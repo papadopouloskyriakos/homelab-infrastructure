@@ -397,10 +397,21 @@ the last 24 h of local blocks re-upload to the new bucket; a GR apply can lose o
 `etcdserver: request timed out` (delete the orphans, re-apply). History was deliberately NOT copied
 (Velero partial/corrupt, Thanos 3-week hole, Loki/filer-meta age out, omoikane/litellm 14 d of
 uncompressed bases); only meshsat-hub's 8.8 GiB was. **Deletion gate: nothing on nl-s3/gr-s3
-is deleted before BOTH hold: (1) a verified Velero restore from Hetzner on NL (only NO has been drilled),
+is deleted before BOTH hold: (1) a verified Velero restore from Hetzner on NL (**DONE 2026-09-25**: `pihole` into
+`pihole-drill`, kopia volume 13.6 MB byte-identical, restore `drill-nl-pihole-hetzner-20260925d` kept as the record),
 and (2) an explicit check that nothing older than Hetzner's oldest copy is still wanted; and never before
 2026-12-15** (the 60 d weekly Velero TTL is complete on Hetzner ~22 Nov, plus slack, clear of the holiday
 window). The date is a floor, not the condition. Memory [[project_hetzner_backup_gateway_20260923]].
+
+**Namespace-mapped restore of an Argo CD app (paid for 2026-09-25, four attempts):** Argo's automated prune is
+label-scoped cluster-wide, so the restored objects (still carrying `argocd.argoproj.io/instance`) AND the
+Namespace are pruned within a second, and Velero then waits forever on a pod-volume restore for a pod that
+is gone (delete its PodVolumeRestore to unstick it). Recipe: (a) pre-create the target namespace WITHOUT that
+label (Velero copies the source namespace's labels; no modifier reaches a Namespace); (b) `resourceModifier`
+ConfigMap removing the label, with an explicit `groupResource` rule per dotted kind (`deployments.apps`,
+`externalsecrets.external-secrets.io`): `"*"` matches only names without a dot; (c) never set
+`includeClusterResources: false`: it hides the PV, so the PVC keeps `volumeName` and stays Pending on
+`already bound to a different claim`. Argo-managed namespaces on NL: bentopdf, pihole, velero, echo-server.
 
 ## Known Issues
 
