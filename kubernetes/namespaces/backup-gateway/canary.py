@@ -4,6 +4,9 @@ Two objects: 1 MiB (small-object path) and 64 MiB (crosses the gateway's
 multipart cutoff, so the streaming upload to Hetzner is exercised). Both are
 verified by SHA256 on the way back and deleted afterwards. Uses the gateway's
 LOCAL key pair only; nothing here can reach Hetzner directly.
+Keys carry the pod name: all three sites share one bucket and one crypt key, so
+a fixed key is the SAME Hetzner object everywhere and the sites' canaries, all
+on one schedule, deleted and overwrote each other mid-check.
 Exit 1 on any mismatch or non-2xx. (IFRNLLEI01PRD-2850)
 """
 import datetime
@@ -19,6 +22,7 @@ import urllib.request
 AK, SK = os.environ["ACCESS_KEY_ID"], os.environ["ACCESS_SECRET_KEY"]
 ENDPOINT = os.environ["S3_ENDPOINT"].rstrip("/")
 BUCKET = os.environ.get("S3_BUCKET", "backup-canary")
+RUN = os.environ.get("HOSTNAME") or secrets.token_hex(8)
 REGION, SERVICE = "us-east-1", "s3"
 HOST = urllib.parse.urlparse(ENDPOINT).netloc
 
@@ -61,7 +65,7 @@ fail = 0
 for name, size in (("small.bin", 1 << 20), ("multipart.bin", 64 << 20)):
     blob = secrets.token_bytes(size)
     want = hashlib.sha256(blob).hexdigest()
-    key = "/%s/canary-%s" % (BUCKET, name)
+    key = "/%s/canary-%s-%s" % (BUCKET, RUN, name)
     st_put, body = sv4("PUT", key, blob)
     st_get, got = sv4("GET", key, stream=True)
     st_del, _ = sv4("DELETE", key)
