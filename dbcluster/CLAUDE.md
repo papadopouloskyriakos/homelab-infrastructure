@@ -137,8 +137,10 @@ _creators` left ON at runtime; reverts to OFF on next restart with the file gone
 archived at /home/claude-runner/archive/99-civicrm-mariadb0{1,2}.cnf.bak. Superseded plan below:
 decommission checklist — do not revert piecemeal before that.
 
-`mariadb.conf.d/99-civicrm.cnf` on **both** Galera nodes — see
-`docker/nlcivicrm01/civicrm/CLAUDE.md` for the full reasoning:
+`mariadb.conf.d/99-civicrm.cnf` on **both** Galera nodes. The full reasoning lived in
+`docker/nlcivicrm01/civicrm/CLAUDE.md`, deleted with the decommission (commit `cb31c7c9`,
+2026-08-29); read it from history with `git show cb31c7c9^:docker/nlcivicrm01/civicrm/CLAUDE.md`.
+The settings were:
 
 | Setting | Why |
 |---|---|
