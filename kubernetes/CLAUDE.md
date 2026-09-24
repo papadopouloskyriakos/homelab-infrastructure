@@ -397,7 +397,10 @@ the last 24 h of local blocks re-upload to the new bucket; a GR apply can lose o
 `etcdserver: request timed out` (delete the orphans, re-apply). History was deliberately NOT copied
 (Velero partial/corrupt, Thanos 3-week hole, Loki/filer-meta age out, omoikane/litellm 14 d of
 uncompressed bases); only meshsat-hub's 8.8 GiB was. **Deletion gate: nothing on nl-s3/gr-s3
-before 2026-12-15.** Memory [[project_hetzner_backup_gateway_20260923]].
+is deleted before BOTH hold: (1) a verified Velero restore from Hetzner on NL (only NO has been drilled),
+and (2) an explicit check that nothing older than Hetzner's oldest copy is still wanted; and never before
+2026-12-15** (the 60 d weekly Velero TTL is complete on Hetzner ~22 Nov, plus slack, clear of the holiday
+window). The date is a floor, not the condition. Memory [[project_hetzner_backup_gateway_20260923]].
 
 ## Known Issues
 
