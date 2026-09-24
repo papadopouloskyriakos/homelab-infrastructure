@@ -286,7 +286,8 @@ REDACTED_a1145f93 = false # cosign policy is notrf01-only (Enforce)
 # --- backup gateway: rclone crypt -> Hetzner Object Storage fsn1 (site values, 2026-09-23, IFRNLLEI01PRD-2850) ---
 REDACTED_b987a401            = true # NL hub: velero/thanos/loki/filer-meta consumers
 REDACTED_2eab95fd           = 2
-REDACTED_ff855352 = ["velero", "monitoring", "logging", "seaweedfs"]
+REDACTED_ff855352 = ["velero", "monitoring", "logging", "seaweedfs", "awx"] # awx: nightly pg_dump via the gateway since 2026-09-25 (IFRNLLEI01PRD-2887)
+REDACTED_ea08c35b = false                                                   # no host-level consumer on NL
 
 # --- off-estate object storage cut-over (site values, 2026-09-23, IFRNLLEI01PRD-2850) ---
 thanos_s3_endpoint                 = "backup-gateway.backup-gateway.svc.cluster.local:8080" # was seaweedfs-s3:8333; history NOT copied (3-week hole already, dashboards only)

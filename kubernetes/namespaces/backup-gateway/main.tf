@@ -33,6 +33,7 @@
 #   1. endpoint = http://backup-gateway.backup-gateway.svc.cluster.local:8080, path-style
 #   2. credentials = ExternalSecret from REDACTED_218b2888 (access_key/secret_key)
 #   3. its namespace in REDACTED_ff855352 (tfvars)
+#      (a HOST-level consumer instead needs REDACTED_ea08c35b = true)
 #   4. its own CiliumNetworkPolicy, if any, allows egress to backup-gateway:8080
 #   5. NO new OpenBao path, tfvars value or CI variable that references Hetzner
 # =============================================================================
@@ -456,7 +457,13 @@ resource "kubernetes_manifest" "network_policy" {
             }]
             toPorts = [{ ports = [{ port = "9090", protocol = "TCP" }] }]
           }
-        ]
+        ],
+        var.allow_host_ingress ? [
+          {
+            fromEntities = ["host", "remote-node"]
+            toPorts      = [{ ports = [{ port = "8080", protocol = "TCP" }] }]
+          }
+        ] : []
       )
       egress = [
         {

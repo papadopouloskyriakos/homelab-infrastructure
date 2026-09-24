@@ -1217,6 +1217,12 @@ variable "REDACTED_ff855352" {
   default     = ["velero", "monitoring", "logging", "seaweedfs"]
 }
 
+variable "REDACTED_ea08c35b" {
+  description = "Admit the nodes' host namespace (Cilium host + remote-node entities) to the gateway on 8080. Only for a site with a host-level consumer (notrf01: etcd-snapshot-ship.sh on the control-plane hosts reaches the Service ClusterIP)."
+  type        = bool
+  default     = false
+}
+
 variable "thanos_s3_endpoint" {
   description = "S3 endpoint for the Thanos object store (host:port, no scheme; objstore.yml sets insecure=true). Default = the cluster-local SeaweedFS; NL/NO point it at the backup gateway (rclone crypt -> Hetzner) since 2026-09-23 (IFRNLLEI01PRD-2850)."
   type        = string
