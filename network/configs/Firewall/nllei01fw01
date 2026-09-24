@@ -746,6 +746,15 @@ object network grxxx01demops01_ddns
 object network nlxxx01rtr01_ddns
  fqdn v4 nlxxx01rtr01.mytunnel.org
  description Mudi 7 travel router (Dynu), WireGuard site peer 10.0.X.X
+object network nlams01mac01_wg
+ host 10.0.X.X
+ description WireGuard peer .10, Green Mini rented Mac mini MXX1 (meshsat-ios CI runner); reaches ONLY NPM 443 + OpenBao VIP 8200 (MESHSAT-1332)
+object network nlams01mac01
+ host 45.148.168.174
+ description Green Mini rented Mac mini MXX1, Amsterdam, static public IP; WireGuard udp/51820 source (MESHSAT-1332)
+object network nl-openbao-vip
+ host 10.0.X.X
+ description OpenBao VIP (keepalived on nlk8s-haproxy01), tcp/8200
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -1046,6 +1055,7 @@ object-group network WHITELIST_WG
  network-object object nlxxx01rtr01_ddns
  network-object object grxxx01demops01_ddns
  network-object object defra01agri01
+ network-object object nlams01mac01
 object-group network WHITELIST_DEMOPS
  description grxxx01demops01 dyndns whitelist (udp/443 WireGuard fallback)
  network-object object grxxx01demops01_ddns
@@ -1089,6 +1099,9 @@ access-list outside_freedom_tv_access_in extended deny ip object-group BLACKLIST
 access-list outside_freedom_tv_access_in extended deny icmp object-group BLACKLIST_FAIL2BAN any 
 access-list outside_freedom_tv_access_in extended deny ip any any 
 access-list outside_freedom_tv_access_in extended deny icmp any any 
+access-list dmz_vpn01_access_in extended permit tcp object nlams01mac01_wg object nlnpm01-443-tcp eq https 
+access-list dmz_vpn01_access_in extended permit tcp object nlams01mac01_wg object nl-openbao-vip eq 8200 
+access-list dmz_vpn01_access_in extended deny ip object nlams01mac01_wg any 
 access-list dmz_vpn01_access_in extended deny ip object defra01agri01_wg any 
 access-list dmz_vpn01_access_in extended deny ip object grxxx01demops01_wg any 
 access-list dmz_vpn01_access_in extended permit ip object nl_strongswan_vpn_pool_01 object-group S2S_LEI_GRP_inside_mgmt 
