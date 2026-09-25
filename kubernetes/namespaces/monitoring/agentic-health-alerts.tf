@@ -523,6 +523,60 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               }
             },
             {
+              # IFRNLLEI01PRD-2893 (2026-09-25): gpu01's emulated e1000 NIC hung
+              # ("Detected Tx Unit Hang", driver reset failed) and the VM was off
+              # the network 21 min with nothing alerting - no rule keyed on this
+              # target, and the daily reboot believed to cover it had been
+              # disabled since 2026-07-03. Plex on the VM was healthy on
+              # localhost throughout: reachable != healthy. 5m: the 12 Jul
+              # single-poll ICMP blips (-1768/-1770) must not fire this.
+              alert = "REDACTED_f299b0f9"
+              expr  = "up{job=\"chatops-node\",instance=\"nlgpu01\"} == 0"
+              for   = "5m"
+              labels = {
+                severity = "critical"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "nlgpu01 node_exporter unreachable for 5m (VM off the network?)"
+                description = "Prometheus cannot scrape nlgpu01:9100. Every gpu01 service (Plex, Jellyfin, Ollama for HA voice, Immich, the runners) is unreachable with it. Check from pve03: `qm agent 103100606 ping` (guest alive?) then `qm guest exec 103100606 -- dmesg -T | grep 'Tx Unit Hang'`. The in-guest gpu01-net-watchdog.timer bounces enp6s19 itself after 3 dead probes + the hang signature; if this still fires, run `qm guest exec 103100606 -- ip link set enp6s19 down` then `... up` by hand. Runbook: native/servarr/CLAUDE.md Known Issue 18."
+              }
+            },
+            {
+              # The watchdog's own report: a bounce means the e1000 hung again
+              # and was recovered without a human. Counting them is how the
+              # NIC-model decision on -2893 (keep e1000 / offload tuning /
+              # virtio) gets its evidence.
+              alert = "Gpu01NetLinkBounced"
+              expr  = "increase(gpu01_net_watchdog_bounces_total{instance=\"nlgpu01\"}[1h]) > 0"
+              for   = "0m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "gpu01-net-watchdog bounced enp6s19 on nlgpu01 ({{ $value | printf \"%.0f\" }} in 1h)"
+                description = "The e1000 NIC of nlgpu01 hung (Tx Unit Hang) and the in-guest watchdog recovered it with a link bounce. Service impact was ~1 min. Read `journalctl -t gpu01-net-watchdog` on gpu01 for the strike/bounce trail and add the event to IFRNLLEI01PRD-2893: recurring bounces are the case for changing the NIC model."
+              }
+            },
+            {
+              # Dead-man for the watchdog itself. The 7d REDACTED_50695a0e
+              # rule is far too slow for a control that must act within a minute.
+              # `unless up == 0`: when the whole host is unreachable the series
+              # is absent for the honest reason and REDACTED_f299b0f9 owns it.
+              alert = "REDACTED_41e51367"
+              expr  = "((time() - gpu01_net_watchdog_last_run_seconds{instance=\"nlgpu01\"} > 300) or absent(gpu01_net_watchdog_last_run_seconds{instance=\"nlgpu01\"})) unless on() (up{job=\"chatops-node\",instance=\"nlgpu01\"} == 0)"
+              for   = "10m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "gpu01-net-watchdog has not run for 5m+ on nlgpu01 (host is up)"
+                description = "The 15 s gpu01-net-watchdog.timer stopped writing gpu01_net_watchdog.prom while node_exporter is still scraped, so the e1000 hang of IFRNLLEI01PRD-2893 is unguarded again. `systemctl status gpu01-net-watchdog.timer gpu01-net-watchdog.service` on gpu01; reinstall from native/servarr/nlgpu01/net-watchdog/."
+              }
+            },
+            {
               alert = "GovernanceChainBroken"
               expr  = "governance_chain_intact == 0"
               for   = "5m"
