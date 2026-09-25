@@ -387,20 +387,23 @@ module "cnpg_janitor" {
 module "logging" {
   source = "./namespaces/logging"
 
-  common_labels                 = local.common_labels
-  loki_storage_size             = var.loki_storage_size
-  loki_storage_class            = var.loki_storage_class
-  loki_retention_days           = var.loki_retention_days
-  s3_endpoint                   = var.loki_s3_endpoint
-  s3_bucket                     = var.loki_s3_bucket
-  s3_secret_path                = var.loki_s3_secret_path
-  s3_secret_access_key_property = REDACTED_7469d9a1
-  s3_secret_secret_key_property = REDACTED_3acd0951
-  s3_legacy_endpoint            = var.REDACTED_e934fd5d
-  s3_cutover_date               = var.REDACTED_a2a6f208
-  promtail_syslog_port          = var.promtail_syslog_port
-  REDACTED_337e6630         = var.REDACTED_337e6630
-  loki_ruler_enabled            = var.loki_ruler_enabled
+  common_labels                        = local.common_labels
+  loki_storage_size                    = var.loki_storage_size
+  loki_storage_class                   = var.loki_storage_class
+  loki_retention_days                  = var.loki_retention_days
+  s3_endpoint                          = var.loki_s3_endpoint
+  s3_bucket                            = var.loki_s3_bucket
+  s3_secret_path                       = var.loki_s3_secret_path
+  s3_secret_access_key_property        = REDACTED_7469d9a1
+  s3_secret_secret_key_property        = REDACTED_3acd0951
+  s3_legacy_endpoint                   = var.REDACTED_e934fd5d
+  REDACTED_e5ffe344                = var.REDACTED_6512c9a2
+  REDACTED_00bdd8a0 = var.REDACTED_573a99be
+  s3_legacy_secret_secret_key_property = REDACTED_7757e1fc
+  s3_cutover_date                      = var.REDACTED_a2a6f208
+  promtail_syslog_port                 = var.promtail_syslog_port
+  REDACTED_337e6630                = var.REDACTED_337e6630
+  loki_ruler_enabled                   = var.loki_ruler_enabled
 
   depends_on = [module.seaweedfs, module.external_secrets]
 }

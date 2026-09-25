@@ -58,15 +58,15 @@ resource "kubernetes_manifest" "REDACTED_4d3fed8e" {
         {
           secretKey = "LEGACY_ACCESS_KEY_ID"
           remoteRef = {
-            key      = "ci/loki"
-            property = "s3_access_key"
+            key      = REDACTED_759d8ca0
+            property = var.REDACTED_00bdd8a0
           }
         },
         {
           secretKey = "LEGACY_SECRET_ACCESS_KEY"
           remoteRef = {
-            key      = "ci/loki"
-            property = "s3_secret_key"
+            key      = REDACTED_759d8ca0
+            property = var.s3_legacy_secret_secret_key_property
           }
         }
       ]

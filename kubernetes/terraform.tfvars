@@ -290,12 +290,15 @@ REDACTED_ff855352 = ["velero", "monitoring", "logging", "seaweedfs", "awx"] # aw
 REDACTED_ea08c35b = false                                                   # no host-level consumer on NL
 
 # --- off-estate object storage cut-over (site values, 2026-09-23, IFRNLLEI01PRD-2850) ---
-thanos_s3_endpoint                 = "backup-gateway.backup-gateway.svc.cluster.local:8080" # was seaweedfs-s3:8333; history NOT copied (3-week hole already, dashboards only)
-thanos_s3_secret_path              = "REDACTED_218b2888"
-loki_s3_endpoint                   = "backup-gateway.backup-gateway.svc.cluster.local:8080" # `s3` store = gateway from the cut-over day
-loki_s3_secret_path                = "REDACTED_218b2888"
-REDACTED_7ad49fe3 = "access_key"
-loki_s3_secret_secret_key_property = "secret_key"
-REDACTED_e934fd5d            = "seaweedfs-s3.seaweedfs.svc.cluster.local:8333" # `legacy` store, read-only in practice; repoint at the gateway after retention + 1 d
-REDACTED_a2a6f208               = "2026-09-24"
+thanos_s3_endpoint                        = "backup-gateway.backup-gateway.svc.cluster.local:8080" # was seaweedfs-s3:8333; history NOT copied (3-week hole already, dashboards only)
+thanos_s3_secret_path                     = "REDACTED_218b2888"
+loki_s3_endpoint                          = "backup-gateway.backup-gateway.svc.cluster.local:8080" # `s3` store = gateway from the cut-over day
+loki_s3_secret_path                       = "REDACTED_218b2888"
+REDACTED_7ad49fe3        = "access_key"
+loki_s3_secret_secret_key_property        = "secret_key"
+REDACTED_e934fd5d                   = "backup-gateway.backup-gateway.svc.cluster.local:8080" # `legacy` store repointed at the gateway 2026-09-25 (operator: pre-cut-over chunks on SeaweedFS not needed); the first schema period is never removed
+REDACTED_6512c9a2                = "REDACTED_218b2888"
+REDACTED_573a99be = "access_key"
+REDACTED_bfd705f5 = "secret_key"
+REDACTED_a2a6f208                      = "2026-09-24"
 

@@ -1251,6 +1251,24 @@ variable "loki_s3_secret_secret_key_property" {
   default = "s3_secret_key"
 }
 
+variable "REDACTED_6512c9a2" {
+  description = "OpenBao path of the key pair Loki's `legacy` store uses (ci/loki for the old SeaweedFS; REDACTED_218b2888 once REDACTED_e934fd5d is the gateway)"
+  type        = string
+  default     = "ci/loki"
+}
+
+variable "REDACTED_573a99be" {
+  description = "Property of REDACTED_6512c9a2 holding the access key"
+  type        = string
+  default     = "s3_access_key"
+}
+
+variable "REDACTED_bfd705f5" {
+  description = "Property of REDACTED_6512c9a2 holding the secret key"
+  type        = string
+  default     = "s3_secret_key"
+}
+
 variable "REDACTED_e934fd5d" {
   description = "Endpoint of Loki's `legacy` named store (chunks written before REDACTED_a2a6f208)"
   type        = string
