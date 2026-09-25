@@ -373,7 +373,7 @@ OpenBao + Vaultwarden note "Hetzner estate object storage". Losing the crypt key
 | Thanos (NL, NO) | `thanos_s3_endpoint` / `thanos_s3_secret_path` tfvars = gateway; GR stays on gr-s3 while its compactor is parked |
 | Loki (NL, NO) | two-store cut-over: `legacy` named store = old SeaweedFS for chunks before `REDACTED_a2a6f208` (2026-09-24), `s3` = gateway from that day. After retention + 1 d point `REDACTED_e934fd5d` at the gateway too; never remove the first schema period |
 | AWX pg_dump (NL, wave 2) | `namespaces/awx/pg-dump.tf` (canonical): gateway endpoint, creds `REDACTED_218b2888`, `awx` allow-listed |
-| notrf01 etcd snapshots (HOST-level, wave 2) | `etcd-snapshot-ship.sh` on dmz03/04/05 hits the Service ClusterIP from the host: needs `REDACTED_ea08c35b = true` (Cilium `host` + `remote-node`); without it the host gets nothing back while other ClusterIPs answer |
+| notrf01 etcd snapshots (HOST-level, wave 2) | `etcd-snapshot-ship.sh` on dmz03/04/05 hits the Service ClusterIP from the host: needs `REDACTED_ea08c35b = true` (Cilium `host` + `remote-node`) |
 | omoikane object data (NO, wave 2, OMOIKANE-1670) | uploads, reactive-resume, auth-media, models: `S3_ENDPOINT` = gateway in the daemon repo `k8s/`, `omoikane` allow-listed. LIVE SaaS data: `BackupGatewayDown` = omoikane uploads fail |
 
 **Enforcement:** CronJob `REDACTED_54583949` (6 h, the only namespace holding the key) lists the
@@ -400,8 +400,8 @@ and (2) an explicit check that nothing older than Hetzner's oldest copy is still
 window). The date is a floor, not the condition. Memory [[project_hetzner_backup_gateway_20260923]].
 **Still on nl-s3 only (gate condition 2, full table on IFRNLLEI01PRD-2887):** `thanos-nl` 236 GB = the ONLY
 long-range metrics history, never copied; pre-cut-over Velero/barman/Loki history; `omoikane-sccache` = a LIVE writer
-(daemon CI `SCCACHE_ENDPOINT`); `omoikane-backups`, `cluster-snapshots`, `portfolio` unowned. Decide those before
-deleting. Two `omoikane-uploads` `.webm` were unreadable on nl-s3 itself: lost before the move.
+(daemon CI, now off); `omoikane-backups`, `cluster-snapshots`, `portfolio` unowned.
+Decided 2026-09-25: thanos history dropped, sccache off, portfolio + cluster-snapshots dropped. Two `omoikane-uploads` `.webm` were unreadable on nl-s3 itself: lost before the move.
 
 **Namespace-mapped restore of an Argo CD app (paid for 2026-09-25, four attempts):** Argo's automated prune is
 label-scoped cluster-wide, so the restored objects (still carrying `argocd.argoproj.io/instance`) AND the
