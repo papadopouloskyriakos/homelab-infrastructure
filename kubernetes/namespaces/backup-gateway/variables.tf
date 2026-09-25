@@ -109,7 +109,7 @@ variable "memory_request" {
 }
 
 variable "memory_limit" {
-  description = "Each in-flight upload holds chunk_size x upload_concurrency (64 MiB) plus out-of-order multipart parts; ten concurrent streams fit in 2 GiB."
+  description = "Each in-flight upload holds chunk_size x upload_concurrency (64 MiB) plus out-of-order multipart parts. 2 GiB was OOMKilled twice on 2026-09-25 by ONE bulk rclone copy of Thanos blocks (8 transfers) through the NO gateway, which also truncated the compactor's download mid-stream and halted it. 4 GiB: a limit, not a request."
   type        = string
-  default     = "2Gi"
+  default     = "4Gi"
 }
