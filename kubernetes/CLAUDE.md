@@ -372,6 +372,9 @@ OpenBao + Vaultwarden note "Hetzner estate object storage". Losing the crypt key
 | CNPG barman: omoikane-main, litellm, meshsat-hub-main, meshsat-tak-main (NO), seaweedfs-filer-meta (all) | `endpointURL` = gateway; `cnpg-barman-creds` / `REDACTED_073f5849` from `REDACTED_218b2888` |
 | Thanos (NL, NO) | `thanos_s3_endpoint` / `thanos_s3_secret_path` tfvars = gateway; GR stays on gr-s3 while its compactor is parked |
 | Loki (NL, NO) | two-store cut-over: `legacy` named store = old SeaweedFS for chunks before `REDACTED_a2a6f208` (2026-09-24), `s3` = gateway from that day. After retention + 1 d point `REDACTED_e934fd5d` at the gateway too; never remove the first schema period |
+| AWX pg_dump (NL, wave 2) | `namespaces/awx/pg-dump.tf` (canonical): gateway endpoint, creds `REDACTED_218b2888`, `awx` allow-listed |
+| notrf01 etcd snapshots (HOST-level, wave 2) | `etcd-snapshot-ship.sh` on dmz03/04/05 hits the Service ClusterIP from the host: needs `REDACTED_ea08c35b = true` (Cilium `host` + `remote-node`); without it the host gets nothing back while other ClusterIPs answer |
+| omoikane object data (NO, wave 2, OMOIKANE-1670) | uploads, reactive-resume, auth-media, models: `S3_ENDPOINT` = gateway in the daemon repo `k8s/`, `omoikane` allow-listed. LIVE SaaS data: `BackupGatewayDown` = omoikane uploads fail |
 
 **Enforcement:** CronJob `REDACTED_54583949` (6 h, the only namespace holding the key) lists the
 project as Hetzner sees it and fails on any extra bucket or any name that is not crypt-shaped
@@ -387,14 +390,7 @@ directory exists, and Loki/Thanos/Velero never create buckets (Loki crashed `NoS
 2026-09-23 until the 14 consumer directories were created); (6) NO new OpenBao path, tfvars value
 or CI variable that references Hetzner.
 
-**Traps paid for on 2026-09-23:** `REDACTED_08d34ae1` writes `runAsNonRoot=false` unless the
-container block sets it (restricted PSA rejects); rclone reads `RCLONE_AUTH_KEY` as CSV, so the
-pair must be quoted `"key,secret"`; crypt names are base32hex, not RFC-4648 base32; an ESO-rendered
-credential Secret only re-renders on its refreshInterval (1 h), so after a remoteRef change
-`kubectl annotate externalsecret <name> force-sync=<epoch>` or Velero validates with stale keys
-(`InvalidAccessKeyId`); Thanos sidecars keep `thanos.shipper.json`, delete it before restarting so
-the last 24 h of local blocks re-upload to the new bucket; a GR apply can lose objects to
-`etcdserver: request timed out` (delete the orphans, re-apply). History was deliberately NOT copied
+**Traps paid for on 2026-09-23** (verbatim in root `CLAUDE-archive.md`): `runAsNonRoot` must be set in the container block; `RCLONE_AUTH_KEY` is CSV, quote the pair; crypt names are base32hex; after a remoteRef change `kubectl annotate externalsecret <n> force-sync=<epoch>`; delete `thanos.shipper.json` before restarting a sidecar; a GR apply can lose objects to `etcdserver: request timed out` (delete orphans, re-apply). History was deliberately NOT copied
 (Velero partial/corrupt, Thanos 3-week hole, Loki/filer-meta age out, omoikane/litellm 14 d of
 uncompressed bases); only meshsat-hub's 8.8 GiB was. **Deletion gate: nothing on nl-s3/gr-s3
 is deleted before BOTH hold: (1) a verified Velero restore from Hetzner on NL (**DONE 2026-09-25**: `pihole` into
@@ -402,6 +398,10 @@ is deleted before BOTH hold: (1) a verified Velero restore from Hetzner on NL (*
 and (2) an explicit check that nothing older than Hetzner's oldest copy is still wanted; and never before
 2026-12-15** (the 60 d weekly Velero TTL is complete on Hetzner ~22 Nov, plus slack, clear of the holiday
 window). The date is a floor, not the condition. Memory [[project_hetzner_backup_gateway_20260923]].
+**Still on nl-s3 only (gate condition 2, full table on IFRNLLEI01PRD-2887):** `thanos-nl` 236 GB = the ONLY
+long-range metrics history, never copied; pre-cut-over Velero/barman/Loki history; `omoikane-sccache` = a LIVE writer
+(daemon CI `SCCACHE_ENDPOINT`); `omoikane-backups`, `cluster-snapshots`, `portfolio` unowned. Decide those before
+deleting. Two `omoikane-uploads` `.webm` were unreadable on nl-s3 itself: lost before the move.
 
 **Namespace-mapped restore of an Argo CD app (paid for 2026-09-25, four attempts):** Argo's automated prune is
 label-scoped cluster-wide, so the restored objects (still carrying `argocd.argoproj.io/instance`) AND the
