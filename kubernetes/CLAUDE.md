@@ -402,7 +402,7 @@ byte-identical, restore `drill-nl-pihole-hetzner-20260925d` kept as the record) 
 so far. Retirement recipe (paid for): StatefulSet PVCs survive a helm uninstall and the namespace controller does
 not delete them, so tofu's namespace destroy times out at 5 min: patch the PVs Retain -> Delete first, delete the
 PVCs by hand (CSI then removes the LUNs/zvols), re-plan; static NFS PVs need their PV objects and export dirs
-removed by hand. Owed: gate `CnpgMetricsMissing` (permanent on NL/GR now), delete the three `moved` blocks.
+removed by hand. `CnpgMetricsMissing` is gated on `REDACTED_0e952fda` (false NL/GR) and the `moved` blocks are gone (both 2026-09-25). ⚠ `kubectl get backups` resolves to CNPG's Backup here: Velero's are `backups.velero.io`.
 
 **Namespace-mapped restore of an Argo CD app (paid for 2026-09-25, four attempts):** Argo's automated prune is
 label-scoped cluster-wide, so the restored objects (still carrying `argocd.argoproj.io/instance`) AND the
