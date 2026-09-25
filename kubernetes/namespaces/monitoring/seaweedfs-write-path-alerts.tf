@@ -311,8 +311,3 @@ resource "kubernetes_manifest" "REDACTED_78d971a7" {
     }
   }
 }
-
-moved {
-  from = kubernetes_manifest.REDACTED_78d971a7
-  to   = kubernetes_manifest.REDACTED_78d971a7[0]
-}

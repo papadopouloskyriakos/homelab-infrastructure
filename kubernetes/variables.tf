@@ -712,6 +712,12 @@ variable "REDACTED_5741a7a4" {
   default     = false
 }
 
+variable "REDACTED_0e952fda" {
+  description = "Whether CNPG clusters are expected on this site (CnpgMetricsMissing fires on their absence). false on NL/GR since 2026-09-25: the operator stays, the filer-meta clusters are gone."
+  type        = bool
+  default     = true
+}
+
 variable "seaweedfs_enabled" {
   description = "Run the site's own SeaweedFS object store (namespace seaweedfs, its filer-meta CNPG cluster, reconciler, read canary, write probe, the SeaweedFS-specific alert rules and Gatus checks). false on NL and GR since 2026-09-25 (retired for Hetzner behind the crypt gateway, IFRNLLEI01PRD-2887); true on notrf01."
   type        = bool

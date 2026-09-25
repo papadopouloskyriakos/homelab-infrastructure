@@ -128,24 +128,6 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
               }
             },
             {
-              # The two rules above are blind when no CNPG cluster exports
-              # metrics — which was the estate-wide state until 2026-09-10
-              # (no Cluster had monitoring.enablePodMonitor). Say so.
-              alert = "CnpgMetricsMissing"
-              expr  = "absent(cnpg_collector_up{cluster=\"\"})"
-              for   = "30m"
-              labels = {
-                severity = "warning"
-                category = "storage-capacity"
-                service  = "cnpg"
-              }
-              annotations = {
-                summary     = "No CNPG cluster exports metrics — backup-age and WAL-archiving rules are blind"
-                description = "cnpg_collector_up has no series at this site. Every CNPG Cluster needs spec.monitoring.enablePodMonitor: true (the operator's PodMonitor only covers the operator itself). While this fires, REDACTED_2b95b756 and REDACTED_2a56445c cannot express the failure they exist for."
-                impact      = "A stuck ScheduledBackup or failing archiver is invisible."
-              }
-            },
-            {
               # The CNPG janitor (_core/cnpg-janitor, IFRNLLEI01PRD-2850) releases latched
               # Backups and FAILS its Job when any ScheduledBackup has not fired, or its
               # cluster has not backed up, within 30h. Keyed on the CronJob's last
@@ -233,7 +215,26 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
                 impact      = "The loki S3 bucket grows without bound (+4 GB/day at NL when this was found)."
               }
             },
-            ], var.seaweedfs_enabled ? [
+            ], var.REDACTED_0e952fda ? [
+            {
+              # The two rules above are blind when no CNPG cluster exports
+              # metrics — which was the estate-wide state until 2026-09-10
+              # (no Cluster had monitoring.enablePodMonitor). Say so.
+              alert = "CnpgMetricsMissing"
+              expr  = "absent(cnpg_collector_up{cluster=\"\"})"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                category = "storage-capacity"
+                service  = "cnpg"
+              }
+              annotations = {
+                summary     = "No CNPG cluster exports metrics — backup-age and WAL-archiving rules are blind"
+                description = "cnpg_collector_up has no series at this site. Every CNPG Cluster needs spec.monitoring.enablePodMonitor: true (the operator's PodMonitor only covers the operator itself). While this fires, REDACTED_2b95b756 and REDACTED_2a56445c cannot express the failure they exist for."
+                impact      = "A stuck ScheduledBackup or failing archiver is invisible."
+              }
+            },
+            ] : [], var.seaweedfs_enabled ? [
             {
               # The seaweedfs-reconciler (namespaces/seaweedfs/reconciler-cronjob.tf,
               # IFRNLLEI01PRD-2850) is the hourly reclaim loop: explicit-id vacuum,

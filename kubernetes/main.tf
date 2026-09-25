@@ -207,6 +207,7 @@ module "monitoring" {
   REDACTED_bf135212     = var.REDACTED_bf135212
   REDACTED_71980370       = var.REDACTED_6930756b
   seaweedfs_enabled             = var.seaweedfs_enabled
+  REDACTED_0e952fda        = var.REDACTED_0e952fda
   temporary_overrides           = var.temporary_overrides
   thanos_retention_raw          = var.thanos_retention_raw
   thanos_retention_5m           = var.thanos_retention_5m
@@ -535,12 +536,4 @@ module "well_known" {
   cert_issuer_kind    = "ClusterIssuer"
 
   depends_on = [module.ingress_nginx, module.cert_manager]
-}
-
-# The seaweedfs module gained a count gate on 2026-09-25 (NL/GR retired their
-# stores); this keeps notrf01's live state in place. Spent once every site has
-# applied it: delete then (the imports.tf/moved.tf lifecycle, k8s/CLAUDE.md).
-moved {
-  from = module.seaweedfs
-  to   = module.seaweedfs[0]
 }
