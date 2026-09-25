@@ -149,7 +149,7 @@ REDACTED_d36a9dce     = 1800 # 1400 -> 1800 2026-09-15: 22 slots left of 2800 (I
 # evening of 09-21 at ~20 % free. 5 % (~53 GB) is the standing reserve: it must exceed one full
 # 8 GB volume + idx so compaction always has room (an explicit -volumeId vacuum digs out even
 # below it). A value below 5 is an emergency override and must carry an expiry (plan Phase 7).
-REDACTED_6930756b = 3 # 5 -> 3 until 2026-09-30 (IFRNLLEI01PRD-2850, 2026-09-23): 20 GB of headroom so the Thanos compactor can be remounted (its PV went read-only 22 Sep) and resume retention while the reconciler compacts 470 GiB of garbage at ~3.5 GB/h; back to 5 once both PVs are >10 % free
+REDACTED_6930756b = 5 # module off since 2026-09-25 (seaweedfs_enabled = false); back at the 5 % reserve so the tfvars lint has nothing to register
 # Staged 4.44 rollout (IFRNLLEI01PRD-2605): NO first, then NL, then GR.
 seaweedfs_enabled       = false # RETIRED 2026-09-25 (IFRNLLEI01PRD-2887 Plan A): the store, its LUNs and the SeaweedFS alerts/checks are gone; every consumer uses the crypt gateway
 REDACTED_0e952fda  = false # CNPG operator + janitor stay, but no clusters since the filer-meta ones left with SeaweedFS (2026-09-25): CnpgMetricsMissing would be permanent
