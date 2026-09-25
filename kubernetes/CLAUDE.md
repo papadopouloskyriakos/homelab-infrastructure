@@ -371,7 +371,7 @@ OpenBao + Vaultwarden note "Hetzner estate object storage". Losing the crypt key
 | Velero (all sites) | BSL `hetzner` (default) via the gateway, bucket name unchanged; old BSL `default` read-only with `velero-s3-credentials-legacy` until its backups expire |
 | CNPG barman: omoikane-main, litellm, meshsat-hub-main, meshsat-tak-main (NO), seaweedfs-filer-meta (all) | `endpointURL` = gateway; `cnpg-barman-creds` / `REDACTED_073f5849` from `REDACTED_218b2888` |
 | Thanos (NL, NO) | `thanos_s3_endpoint` / `thanos_s3_secret_path` tfvars = gateway; GR stays on gr-s3 while its compactor is parked |
-| Loki (NL, NO) | two-store cut-over: `legacy` named store = old SeaweedFS for chunks before `REDACTED_a2a6f208` (2026-09-24), `s3` = gateway from that day. After retention + 1 d point `REDACTED_e934fd5d` at the gateway too; never remove the first schema period |
+| Loki (NL, NO) | two-store cut-over: `legacy` named store = old SeaweedFS for chunks before `REDACTED_a2a6f208` (2026-09-24), `s3` = gateway from that day. `legacy` repointed at the gateway 2026-09-25 (operator: logs before 09-24 no longer queryable); never remove the first schema period |
 | AWX pg_dump (NL, wave 2) | `namespaces/awx/pg-dump.tf` (canonical): gateway endpoint, creds `REDACTED_218b2888`, `awx` allow-listed |
 | notrf01 etcd snapshots (HOST-level, wave 2) | `etcd-snapshot-ship.sh` on dmz03/04/05 hits the Service ClusterIP from the host: needs `REDACTED_ea08c35b = true` (Cilium `host` + `remote-node`) |
 | omoikane object data (NO, wave 2, OMOIKANE-1670) | uploads, reactive-resume, auth-media, models: `S3_ENDPOINT` = gateway in the daemon repo `k8s/`, `omoikane` allow-listed. LIVE SaaS data: `BackupGatewayDown` = omoikane uploads fail |
