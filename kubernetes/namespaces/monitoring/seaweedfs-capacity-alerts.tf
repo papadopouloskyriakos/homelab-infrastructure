@@ -95,8 +95,12 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
               # stops scheduling (a Backup stuck in walArchivingFailing does
               # exactly this), retention prunes nothing and WAL grows forever —
               # omoikane-main: 17 days, 367 GB, +9 GB/day.
+              # CNPG series carry `cluster` = the CNPG cluster NAME (meshsat-hub-main, litellm, ...), not the site,
+              # so `{cluster=""}` never matched anything: REDACTED_2b95b756 and REDACTED_2a56445c could not
+              # fire and CnpgMetricsMissing fired forever (found 2026-09-25). Local-site scope on cnpg_* is `{site=""}`
+              # (remote-written satellite series carry the site external label, local ones do not).
               alert = "REDACTED_2b95b756"
-              expr  = "(time() - max by (namespace, cnpg_io_cluster) (cnpg_collector_last_available_backup_timestamp{cluster=\"\"})) > 2 * 86400"
+              expr  = "(time() - max by (namespace, cnpg_io_cluster) (cnpg_collector_last_available_backup_timestamp{site=\"\"})) > 2 * 86400"
               for   = "1h"
               labels = {
                 severity = "critical"
@@ -114,7 +118,7 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
               # archiver both breaks PITR and, once space is exhausted, is the
               # first casualty of a full S3 — so it doubles as an S3 write probe.
               alert = "REDACTED_2a56445c"
-              expr  = "cnpg_collector_pg_stat_archiver_last_failed_time{cluster=\"\"} > cnpg_collector_pg_stat_archiver_last_archived_time{cluster=\"\"}"
+              expr  = "cnpg_collector_pg_stat_archiver_last_failed_time{site=\"\"} > cnpg_collector_pg_stat_archiver_last_archived_time{site=\"\"}"
               for   = "1h"
               labels = {
                 severity = "critical"
@@ -221,7 +225,7 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
               # metrics — which was the estate-wide state until 2026-09-10
               # (no Cluster had monitoring.enablePodMonitor). Say so.
               alert = "CnpgMetricsMissing"
-              expr  = "absent(cnpg_collector_up{cluster=\"\"})"
+              expr  = "absent(cnpg_collector_up{site=\"\"})"
               for   = "30m"
               labels = {
                 severity = "warning"
