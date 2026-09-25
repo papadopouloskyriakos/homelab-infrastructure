@@ -541,6 +541,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
         # 💾 STORAGE & BACKUP
         # =====================================================================
         [
+          ], var.seaweedfs_enabled ? [
           {
             name     = "SeaweedFS Master (NL)"
             group    = "💾 Storage & Backup"
@@ -585,6 +586,7 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             ]
             alerts = []
           },
+          ] : [], [
           {
             # Cluster-local: each site's Gatus checks its own crypt gateway to
             # Hetzner (IFRNLLEI01PRD-2850). Unauthenticated GET / is a 403 from

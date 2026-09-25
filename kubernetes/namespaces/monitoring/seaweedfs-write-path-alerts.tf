@@ -57,6 +57,7 @@
 # =============================================================================
 
 resource "kubernetes_manifest" "REDACTED_78d971a7" {
+  count = var.seaweedfs_enabled ? 1 : 0
   manifest = {
     apiVersion = "monitoring.coreos.com/v1"
     kind       = "PrometheusRule"
@@ -309,4 +310,9 @@ resource "kubernetes_manifest" "REDACTED_78d971a7" {
       ]
     }
   }
+}
+
+moved {
+  from = kubernetes_manifest.REDACTED_78d971a7
+  to   = kubernetes_manifest.REDACTED_78d971a7[0]
 }

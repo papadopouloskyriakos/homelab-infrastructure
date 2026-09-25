@@ -712,6 +712,12 @@ variable "REDACTED_5741a7a4" {
   default     = false
 }
 
+variable "seaweedfs_enabled" {
+  description = "Run the site's own SeaweedFS object store (namespace seaweedfs, its filer-meta CNPG cluster, reconciler, read canary, write probe, the SeaweedFS-specific alert rules and Gatus checks). false on NL and GR since 2026-09-25 (retired for Hetzner behind the crypt gateway, IFRNLLEI01PRD-2887); true on notrf01."
+  type        = bool
+  default     = true
+}
+
 variable "REDACTED_c1342204" {
   description = "SeaweedFS Helm chart version"
   type        = string

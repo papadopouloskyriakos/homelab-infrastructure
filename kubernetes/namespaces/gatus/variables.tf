@@ -222,3 +222,9 @@ variable "ntfy_token" {
   default     = ""
   sensitive   = true
 }
+
+variable "seaweedfs_enabled" {
+  description = "Include the SeaweedFS master/S3 checks (NL + GR). false since 2026-09-25: both stores retired."
+  type        = bool
+  default     = true
+}
