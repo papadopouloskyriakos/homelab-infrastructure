@@ -397,9 +397,10 @@ IFRNLLEI01PRD-2887): GR Thanos/Loki moved to the gateway the same day (history d
 `default` BSLs went with them, `seaweedfs_enabled = false` on NL/GR (true on notrf01, whose local store stays),
 the nine syno01 LUNs and the two gr-pve02 NFS export dirs are gone, the `nl-s3`/`gr-s3`/`*-seaweedfs` DNS
 names deleted. Consequence: nothing written before 2026-09-23/24 exists anywhere; two `omoikane-uploads` `.webm`
-were unreadable before the move (lost). The NL restore drill (`pihole` into `pihole-drill`, kopia volume
-byte-identical, restore `drill-nl-pihole-hetzner-20260925d` kept as the record) is the only proof of restorability
-so far. Retirement recipe (paid for): StatefulSet PVCs survive a helm uninstall and the namespace controller does
+were unreadable before the move (lost). Restores proven from Hetzner so far: pihole (NL, `drill-nl-pihole-hetzner-20260925d`) and Grafana on all
+three sites (`drill-<site>-grafana-hetzner-20260925`: label-selected, mapped to `grafana-drill`, kopia volume
+byte-complete, `grafana.db` the size of the live one); the restored PVC inherits Retain on every storage class,
+so patch its PV to Delete before removing the drill namespace. Retirement recipe (paid for): StatefulSet PVCs survive a helm uninstall and the namespace controller does
 not delete them, so tofu's namespace destroy times out at 5 min: patch the PVs Retain -> Delete first, delete the
 PVCs by hand (CSI then removes the LUNs/zvols), re-plan; static NFS PVs need their PV objects and export dirs
 removed by hand. `CnpgMetricsMissing` is gated on `REDACTED_0e952fda` (false NL/GR) and the `moved` blocks are gone (both 2026-09-25). ⚠ `kubectl get backups` resolves to CNPG's Backup here: Velero's are `backups.velero.io`.
