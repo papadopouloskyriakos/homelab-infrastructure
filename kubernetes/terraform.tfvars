@@ -152,6 +152,7 @@ REDACTED_d36a9dce     = 1800 # 1400 -> 1800 2026-09-15: 22 slots left of 2800 (I
 REDACTED_6930756b = 3 # 5 -> 3 until 2026-09-30 (IFRNLLEI01PRD-2850, 2026-09-23): 20 GB of headroom so the Thanos compactor can be remounted (its PV went read-only 22 Sep) and resume retention while the reconciler compacts 470 GiB of garbage at ~3.5 GB/h; back to 5 once both PVs are >10 % free
 # Staged 4.44 rollout (IFRNLLEI01PRD-2605): NO first, then NL, then GR.
 seaweedfs_enabled       = false # RETIRED 2026-09-25 (IFRNLLEI01PRD-2887 Plan A): the store, its LUNs and the SeaweedFS alerts/checks are gone; every consumer uses the crypt gateway
+REDACTED_0e952fda  = false # CNPG operator + janitor stay, but no clusters since the filer-meta ones left with SeaweedFS (2026-09-25): CnpgMetricsMissing would be permanent
 REDACTED_c1342204 = "4.44.0"
 REDACTED_a4f42897 = "4.44"
 # Filer metadata store (IFRNLLEI01PRD-2605): flip to "postgres2" at this

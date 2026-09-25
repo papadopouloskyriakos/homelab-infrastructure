@@ -543,3 +543,9 @@ variable "seaweedfs_enabled" {
   type        = bool
   default     = true
 }
+
+variable "REDACTED_0e952fda" {
+  description = "Emit CnpgMetricsMissing (absent(cnpg_collector_up)). false on a site that runs the CNPG operator but no clusters (NL/GR since the SeaweedFS filer-meta clusters left on 2026-09-25), where the absence is the normal state."
+  type        = bool
+  default     = true
+}

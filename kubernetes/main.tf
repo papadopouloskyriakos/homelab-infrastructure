@@ -536,11 +536,3 @@ module "well_known" {
 
   depends_on = [module.ingress_nginx, module.cert_manager]
 }
-
-# The seaweedfs module gained a count gate on 2026-09-25 (NL/GR retired their
-# stores); this keeps notrf01's live state in place. Spent once every site has
-# applied it: delete then (the imports.tf/moved.tf lifecycle, k8s/CLAUDE.md).
-moved {
-  from = module.seaweedfs
-  to   = module.seaweedfs[0]
-}
