@@ -302,3 +302,4 @@ REDACTED_573a99be = "access_key"
 REDACTED_bfd705f5 = "secret_key"
 REDACTED_a2a6f208                      = "2026-09-24"
 
+# 2026-09-25 (2): no-op line so Atlantis applies the Velero cadence rule merged before its apply (IFRNLLEI01PRD-2887)
