@@ -138,7 +138,7 @@ resource "kubernetes_manifest" "REDACTED_e981a6a4" {
               # Trap C: bounds the age of the newest usable restore point, whatever the
               # phase. Daily schedule at 02:00 -> 26h covers a normal run plus slack.
               alert = "REDACTED_8cdf02da"
-              expr  = "time() - velero_backup_last_successful_timestamp > 129600"
+              expr  = "(time() - velero_backup_last_successful_timestamp > 129600) and velero_backup_last_successful_timestamp > 0" # the gauge is 0 for every schedule after a Velero pod restart until its next success (fired on all sites 2026-09-25 after a deliberate restart); a never-successful schedule is VeleroBackupAttemptMissing's job
               for   = "30m"
               labels = {
                 severity = "critical"
