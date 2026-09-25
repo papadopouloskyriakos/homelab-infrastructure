@@ -84,6 +84,24 @@ variable "s3_legacy_endpoint" {
   default     = "seaweedfs-s3.seaweedfs.svc.cluster.local:8333"
 }
 
+variable "REDACTED_e5ffe344" {
+  description = "OpenBao path of the `legacy` store's key pair. The old SeaweedFS pair (ci/loki) while the store is the old SeaweedFS; the gateway's pair (REDACTED_218b2888) once the legacy store is repointed at the gateway."
+  type        = string
+  default     = "ci/loki"
+}
+
+variable "REDACTED_00bdd8a0" {
+  description = "Property holding the legacy access key at REDACTED_e5ffe344"
+  type        = string
+  default     = "s3_access_key"
+}
+
+variable "s3_legacy_secret_secret_key_property" {
+  description = "Property holding the legacy secret key at REDACTED_e5ffe344"
+  type        = string
+  default     = "s3_secret_key"
+}
+
 variable "s3_cutover_date" {
   description = "UTC day (YYYY-MM-DD) from which chunks go to the `s3` store; earlier days stay in `legacy`. Empty = single store, no cut-over."
   type        = string
