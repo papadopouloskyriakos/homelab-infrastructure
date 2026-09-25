@@ -4,9 +4,11 @@
 # The AWX operator's CRD exposes no path to annotate the postgres StatefulSet
 # pod template, so the opt-in Velero flip would silently drop the one precious
 # AWX volume (job history, credentials, inventories). Instead: a nightly
-# application-consistent pg_dump to the site S3 bucket awx-pg-dumps
-# (identity awx-pg-dumps in the canonical seaweedfs s3-credentials JSON;
-# creds at OpenBao k8s/awx/pg-dump-s3), keep newest 14.
+# application-consistent pg_dump to the bucket awx-pg-dumps, since 2026-09-25
+# through the backup gateway (rclone crypt -> Hetzner; IFRNLLEI01PRD-2887 wave 2,
+# creds = the gateway's LOCAL pair at OpenBao REDACTED_218b2888; the crypt
+# directory awx-pg-dumps was pre-created), keep newest 14. The 2026-09-11..24
+# dumps stay readable on nl-s3 until the deletion gate.
 # =============================================================================
 
 resource "kubernetes_manifest" "REDACTED_7d10896b" {
@@ -35,15 +37,15 @@ resource "kubernetes_manifest" "REDACTED_7d10896b" {
         {
           secretKey = "ACCESS_KEY_ID"
           remoteRef = {
-            key      = "k8s/awx/pg-dump-s3"
-            property = "ACCESS_KEY_ID"
+            key      = "REDACTED_218b2888"
+            property = "access_key"
           }
         },
         {
           secretKey = "ACCESS_SECRET_KEY"
           remoteRef = {
-            key      = "k8s/awx/pg-dump-s3"
-            property = "ACCESS_SECRET_KEY"
+            key      = "REDACTED_218b2888"
+            property = "secret_key"
           }
         }
       ]
@@ -110,8 +112,8 @@ resource "kubernetes_manifest" "awx_pg_dump_cronjob" {
                   EOS
                   ]
                   env = [
-                    { name = "S3_ENDPOINT", value = "http://seaweedfs-s3.seaweedfs.svc.cluster.local:8333" },
-                    { name = "AWS_DEFAULT_REGION", value = "seaweedfs" },
+                    { name = "S3_ENDPOINT", value = "http://backup-gateway.backup-gateway.svc.cluster.local:8080" },
+                    { name = "AWS_DEFAULT_REGION", value = "us-east-1" },
                     { name = "AWS_ACCESS_KEY_ID", valueFrom = { REDACTED_5dfff400 = { name = "awx-pg-dump-s3", key = "ACCESS_KEY_ID" } } },
                     { name = "AWS_SECRET_ACCESS_KEY", valueFrom = { REDACTED_5dfff400 = { name = "awx-pg-dump-s3", key = "ACCESS_SECRET_KEY" } } },
                   ]

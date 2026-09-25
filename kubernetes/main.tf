@@ -352,6 +352,7 @@ module "backup_gateway" {
   common_labels       = local.common_labels
   replicas            = var.REDACTED_2eab95fd
   allowed_namespaces  = var.REDACTED_ff855352
+  allow_host_ingress  = var.REDACTED_ea08c35b
   openbao_address     = var.openbao_address
   openbao_ca_cert     = var.openbao_ca_cert
   eso_auth_mount_path = var.eso_auth_mount_path

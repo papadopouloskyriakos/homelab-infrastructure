@@ -34,6 +34,12 @@ variable "allowed_namespaces" {
   default     = ["velero", "monitoring", "logging", "seaweedfs"]
 }
 
+variable "allow_host_ingress" {
+  description = "Also admit the nodes' own host namespace (Cilium entities host + remote-node) on 8080, for a host-level consumer that reaches the Service ClusterIP from a node (notrf01's etcd-snapshot-ship.sh on the control-plane hosts). Off unless the site has such a consumer."
+  type        = bool
+  default     = false
+}
+
 variable "openbao_address" {
   description = "OpenBao address for the dedicated ClusterSecretStore"
   type        = string
