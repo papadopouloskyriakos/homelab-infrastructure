@@ -151,6 +151,7 @@ REDACTED_d36a9dce     = 1800 # 1400 -> 1800 2026-09-15: 22 slots left of 2800 (I
 # below it). A value below 5 is an emergency override and must carry an expiry (plan Phase 7).
 REDACTED_6930756b = 3 # 5 -> 3 until 2026-09-30 (IFRNLLEI01PRD-2850, 2026-09-23): 20 GB of headroom so the Thanos compactor can be remounted (its PV went read-only 22 Sep) and resume retention while the reconciler compacts 470 GiB of garbage at ~3.5 GB/h; back to 5 once both PVs are >10 % free
 # Staged 4.44 rollout (IFRNLLEI01PRD-2605): NO first, then NL, then GR.
+seaweedfs_enabled       = false # RETIRED 2026-09-25 (IFRNLLEI01PRD-2887 Plan A): the store, its LUNs and the SeaweedFS alerts/checks are gone; every consumer uses the crypt gateway
 REDACTED_c1342204 = "4.44.0"
 REDACTED_a4f42897 = "4.44"
 # Filer metadata store (IFRNLLEI01PRD-2605): flip to "postgres2" at this
@@ -258,9 +259,7 @@ pve_hosts = [
 # --- seaweedfs reclaim + storage-pinning (site values, 2026-09-20) ---
 REDACTED_4c9c3cf5 = "0.10" # measured: 142/1558 volumes already clear it
 # Below-standard settings must be registered here with an end date (lint + REDACTED_8e8e28d2).
-temporary_overrides = {
-  seaweedfs_floor_lowered = "2026-09-30" # floor 3 %, see REDACTED_6930756b
-}
+temporary_overrides = {} # the seaweedfs floor override ended with the store (2026-09-25)
 
 REDACTED_fd6d5350 = { # bulkhead, 2026-09-21 (IFRNLLEI01PRD-2850); both excluded from filer.sync
   "thanos-nl" = 409600         # 400 GiB: 232 GB live at the time, raw 7d + 5m 120d + 1h 365d, + compaction burst
@@ -286,8 +285,8 @@ REDACTED_a1145f93 = false # cosign policy is notrf01-only (Enforce)
 # --- backup gateway: rclone crypt -> Hetzner Object Storage fsn1 (site values, 2026-09-23, IFRNLLEI01PRD-2850) ---
 REDACTED_b987a401            = true # NL hub: velero/thanos/loki/filer-meta consumers
 REDACTED_2eab95fd           = 2
-REDACTED_ff855352 = ["velero", "monitoring", "logging", "seaweedfs", "awx"] # awx: nightly pg_dump via the gateway since 2026-09-25 (IFRNLLEI01PRD-2887)
-REDACTED_ea08c35b = false                                                   # no host-level consumer on NL
+REDACTED_ff855352 = ["velero", "monitoring", "logging", "awx"] # awx: nightly pg_dump via the gateway since 2026-09-25 (IFRNLLEI01PRD-2887)
+REDACTED_ea08c35b = false                                      # no host-level consumer on NL
 
 # --- off-estate object storage cut-over (site values, 2026-09-23, IFRNLLEI01PRD-2850) ---
 thanos_s3_endpoint                        = "backup-gateway.backup-gateway.svc.cluster.local:8080" # was seaweedfs-s3:8333; history NOT copied (3-week hole already, dashboards only)

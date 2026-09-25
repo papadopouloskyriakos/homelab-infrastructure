@@ -537,3 +537,9 @@ variable "pve_hosts" {
   }))
   default = []
 }
+
+variable "seaweedfs_enabled" {
+  description = "Emit the SeaweedFS-specific rules (write path, read canary, write probe, master raft, reconciler dead-man, capacity trend). false where the site has no SeaweedFS (NL/GR since 2026-09-25)."
+  type        = bool
+  default     = true
+}

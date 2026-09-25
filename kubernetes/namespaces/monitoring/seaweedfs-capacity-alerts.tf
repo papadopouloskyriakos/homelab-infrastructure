@@ -45,7 +45,7 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
         {
           name     = "REDACTED_c3c1b312"
           interval = "1m"
-          rules = [
+          rules = concat([
             {
               # The reclaimer for the single largest consumer. Halted = Thanos
               # found a state it refuses to compact through (overlapping or
@@ -233,6 +233,7 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
                 impact      = "The loki S3 bucket grows without bound (+4 GB/day at NL when this was found)."
               }
             },
+            ], var.seaweedfs_enabled ? [
             {
               # The seaweedfs-reconciler (namespaces/seaweedfs/reconciler-cronjob.tf,
               # IFRNLLEI01PRD-2850) is the hourly reclaim loop: explicit-id vacuum,
@@ -258,8 +259,9 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
                 impact      = "Deleted data stops turning back into free space; a burst of deletions (a retention catch-up) is not reclaimed, and the store drifts toward the write floor."
               }
             },
-          ]
+          ] : [])
         },
+        ], var.seaweedfs_enabled ? [
         {
           name     = "REDACTED_552ff583"
           interval = "5m"
@@ -370,7 +372,7 @@ resource "kubernetes_manifest" "REDACTED_8555c6b5" {
             },
           ]
         },
-        ], var.node_root_floor_alert_enabled ? [
+        ] : [], var.node_root_floor_alert_enabled ? [
         {
           name = "seaweedfs-node-floor"
           rules = [

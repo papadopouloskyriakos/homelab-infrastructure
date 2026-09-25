@@ -206,6 +206,7 @@ module "monitoring" {
   REDACTED_fd3fdc21 = var.REDACTED_fd3fdc21
   REDACTED_bf135212     = var.REDACTED_bf135212
   REDACTED_71980370       = var.REDACTED_6930756b
+  seaweedfs_enabled             = var.seaweedfs_enabled
   temporary_overrides           = var.temporary_overrides
   thanos_retention_raw          = var.thanos_retention_raw
   thanos_retention_5m           = var.thanos_retention_5m
@@ -412,6 +413,7 @@ module "logging" {
 # SeaweedFS - Distributed Object Storage (MinIO Replacement)
 # =============================================================================
 module "seaweedfs" {
+  count  = var.seaweedfs_enabled ? 1 : 0
   source = "./namespaces/seaweedfs"
 
   common_labels = local.common_labels
@@ -482,8 +484,9 @@ module "REDACTED_ac4dcdf5" {
 # Gatus - Status Page
 # =============================================================================
 module "gatus" {
-  source     = "./namespaces/gatus"
-  depends_on = [module.ingress_nginx, module.cert_manager, module.monitoring]
+  source            = "./namespaces/gatus"
+  seaweedfs_enabled = var.seaweedfs_enabled
+  depends_on        = [module.ingress_nginx, module.cert_manager, module.monitoring]
 
   # Site identity (gatus's site_code is the short site tag "nl"/"gr")
   site_code = var.site
@@ -532,4 +535,12 @@ module "well_known" {
   cert_issuer_kind    = "ClusterIssuer"
 
   depends_on = [module.ingress_nginx, module.cert_manager]
+}
+
+# The seaweedfs module gained a count gate on 2026-09-25 (NL/GR retired their
+# stores); this keeps notrf01's live state in place. Spent once every site has
+# applied it: delete then (the imports.tf/moved.tf lifecycle, k8s/CLAUDE.md).
+moved {
+  from = module.seaweedfs
+  to   = module.seaweedfs[0]
 }
