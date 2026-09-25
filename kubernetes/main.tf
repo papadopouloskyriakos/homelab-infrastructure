@@ -207,6 +207,7 @@ module "monitoring" {
   REDACTED_bf135212     = var.REDACTED_bf135212
   REDACTED_71980370       = var.REDACTED_6930756b
   seaweedfs_enabled             = var.seaweedfs_enabled
+  REDACTED_0e952fda        = var.REDACTED_0e952fda
   temporary_overrides           = var.temporary_overrides
   thanos_retention_raw          = var.thanos_retention_raw
   thanos_retention_5m           = var.thanos_retention_5m
