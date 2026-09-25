@@ -115,7 +115,7 @@ resource "kubernetes_manifest" "estate_alert_rules" {
           rules = [
             {
               alert = "REDACTED_50695a0e"
-              expr  = "(time() - node_textfile_mtime_seconds{file!~\".*pacemaker_standby.prom\"}) > 604800"
+              expr  = "(time() - node_textfile_mtime_seconds{file!~\".*(pacemaker_standby|omoikane_unit_failures).prom\"}) > 604800" # omoikane_unit_failures.prom is EVENT-driven (written by omoikane-alert.sh on a unit failure): a host with no failures for a week is healthy, not stale
               for   = "1h"
               labels = {
                 severity = "warning"

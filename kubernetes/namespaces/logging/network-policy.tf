@@ -57,7 +57,8 @@ resource "kubernetes_manifest" "REDACTED_46f7c9ba" {
             {
               ports = [
                 { port = "3100", protocol = "TCP" },
-                { port = "3101", protocol = "TCP" }
+                { port = "3101", protocol = "TCP" },
+                { port = "3500", protocol = "TCP" } # loki-canary /metrics: scraped by the ServiceMonitor, blocked here until 2026-09-25 (TargetDown since 09-10)
               ]
             }
           ]
