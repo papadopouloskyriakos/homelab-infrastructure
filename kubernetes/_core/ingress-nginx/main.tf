@@ -64,9 +64,20 @@ resource "helm_release" "ingress_nginx" {
 
           # === REAL IP FROM EDGE PROXIES ===
           # Enables accurate client IP logging through VPS edge proxies
-          enable-real-ip             = "true"
-          use-forwarded-headers      = "true"
-          compute-full-forwarded-for = "true"
+          enable-real-ip        = "true"
+          use-forwarded-headers = "true"
+          # The BACKEND receives X-Forwarded-For = $remote_addr: the ONE client
+          # address the realip walk below resolved, not the whole chain. With
+          # compute-full-forwarded-for on, nginx sent
+          # "<client>, <client>, $realip_remote_addr", and that last element is
+          # the peer BEFORE realip, i.e. the node's cilium_host router address
+          # on the SNAT'd relay hop. authentik reads the LAST element of the
+          # header (measured 2026-09-26 with a crafted chain against
+          # auth-server), so every sign-up and every login event was stamped
+          # with a 10.2.x node address. IFRNLLEI01PRD-2833 fixed what ingress
+          # itself logged; this fixes what it hands on (MESHSAT-1080). One
+          # address is what every backend behind this controller reads right.
+          compute-full-forwarded-for = "false"
           forwarded-for-header       = "X-Forwarded-For"
 
           # Trust edge VPS proxies (CH, NO, TX), their tunnel subnets and the
