@@ -3,15 +3,15 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-09-25 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-09-26 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: CRITICAL ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 21 |
+| Unhealthy Pods | 20 |
 | Pending PVCs | 0 |
-| Total Restarts | 11098 |
+| Total Restarts | 2252 |
 
 ## Topology
 
@@ -32,31 +32,30 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-awx                      awx-pg-dump-29832735-9kk5w                                        0/1   Error              0                  3d22h
-awx                      awx-pg-dump-29832735-fdmmq                                        0/1   Error              0                  3d22h
-awx                      awx-pg-dump-29832735-jtdwq                                        0/1   Error              0                  3d22h
-awx                      awx-pg-dump-29834175-7k7j8                                        0/1   Error              0                  2d22h
-awx                      awx-pg-dump-29834175-h4bmp                                        0/1   Error              0                  2d22h
-awx                      awx-pg-dump-29834175-hslcb                                        0/1   Error              0                  2d22h
-awx                      awx-pg-dump-29835615-jsf4r                                        0/1   Error              0                  46h
-awx                      awx-pg-dump-29835615-sk6jx                                        0/1   Error              0                  46h
-awx                      awx-pg-dump-29835615-xjwgx                                        0/1   Error              0                  46h
-backup-gateway           REDACTED_4e0a8ed8-29837921-2cnk8                              0/1   Error              0                  8h
-kube-system              kube-proxy-qn8md                                                  0/1   CrashLoopBackOff   8852 (3m38s ago)   39d
-monitoring               meshsat-status-heartbeat-29836648-wnhzp                           0/1   Error              0                  29h
-velero                   awx-default-kopia-maintain-job-1790197609192-kgk5z                0/1   Error              0                  29h
-velero                   awx-default-kopia-maintain-job-1790197913232-l749m                0/1   Error              0                  29h
-velero                   awx-default-kopia-maintain-job-1790198218290-d2g6j                0/1   Error              0                  29h
-velero                   monitoring-default-kopia-maintain-job-1790197613242-pc7bq         0/1   Error              0                  29h
-velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                  29h
-velero                   monitoring-default-kopia-maintain-job-1790198209194-96r7j         0/1   Error              0                  29h
-velero                   pihole-default-kopia-maintain-job-1790197618280-wvmf6             0/1   Error              0                  29h
-velero                   pihole-default-kopia-maintain-job-1790197909193-mxplz             0/1   Error              0                  29h
-velero                   pihole-default-kopia-maintain-job-1790198213248-gg9tr             0/1   Error              0                  29h
+awx                      awx-pg-dump-29832735-9kk5w                                        0/1   Error       0                4d22h
+awx                      awx-pg-dump-29832735-fdmmq                                        0/1   Error       0                4d22h
+awx                      awx-pg-dump-29832735-jtdwq                                        0/1   Error       0                4d22h
+awx                      awx-pg-dump-29834175-7k7j8                                        0/1   Error       0                3d22h
+awx                      awx-pg-dump-29834175-h4bmp                                        0/1   Error       0                3d22h
+awx                      awx-pg-dump-29834175-hslcb                                        0/1   Error       0                3d22h
+awx                      awx-pg-dump-29835615-jsf4r                                        0/1   Error       0                2d22h
+awx                      awx-pg-dump-29835615-sk6jx                                        0/1   Error       0                2d22h
+awx                      awx-pg-dump-29835615-xjwgx                                        0/1   Error       0                2d22h
+monitoring               meshsat-status-heartbeat-29839436-h44tt                           0/1   Error       0                7h4m
+monitoring               meshsat-status-heartbeat-29839464-q2zcb                           0/1   Error       0                6h36m
+velero                   awx-default-kopia-maintain-job-1790197609192-kgk5z                0/1   Error       0                2d5h
+velero                   awx-default-kopia-maintain-job-1790197913232-l749m                0/1   Error       0                2d5h
+velero                   awx-default-kopia-maintain-job-1790198218290-d2g6j                0/1   Error       0                2d5h
+velero                   monitoring-default-kopia-maintain-job-1790197613242-pc7bq         0/1   Error       0                2d5h
+velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error       0                2d5h
+velero                   monitoring-default-kopia-maintain-job-1790198209194-96r7j         0/1   Error       0                2d5h
+velero                   pihole-default-kopia-maintain-job-1790197618280-wvmf6             0/1   Error       0                2d5h
+velero                   pihole-default-kopia-maintain-job-1790197909193-mxplz             0/1   Error       0                2d5h
+velero                   pihole-default-kopia-maintain-job-1790198213248-gg9tr             0/1   Error       0                2d5h
 ```
 
 ### High Restart Pods (>3)
-argocd/argocd-application-controller-0: 12 restarts
+argocd/argocd-application-controller-0: 13 restarts
 awx/awx-operator-controller-manager-6ffdf98f6-x8jtt: 17 restarts
 awx/my-awx-task-756d768868-bslc2: 6 restarts
 cilium-spire/spire-agent-2xj9z: 258 restarts
@@ -76,10 +75,9 @@ kube-system/etcd-nlk8s-ctrl02: 5 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 14 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 11 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 11 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl02: 10 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl02: 11 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl03: 9 restarts
 kube-system/kube-proxy-7jvns: 5 restarts
-kube-system/kube-proxy-qn8md: 8852 restarts
 kube-system/kube-scheduler-nlk8s-ctrl01: 6 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 5 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 9 restarts
@@ -97,6 +95,7 @@ logging/promtail-br4rf: 4 restarts
 logging/promtail-hp5sc: 8 restarts
 logging/promtail-m2gzm: 7 restarts
 logging/promtail-ng69s: 10 restarts
+monitoring/bgpalerter-b7bc9c8c-j5mgh: 5 restarts
 monitoring/goldpinger-fjpnh: 4 restarts
 monitoring/goldpinger-rb96x: 5 restarts
 monitoring/goldpinger-t8x65: 5 restarts
@@ -118,11 +117,11 @@ synology-csi/synology-csi-node-zch7n: 35 restarts
 
 ### Recent Warnings (5)
 ```
-monitoring               60m         Warning   Unhealthy         pod/prometheus-REDACTED_6dfbe9fc-1                  Readiness probe failed: Get "http://10.0.0.189:9090/-/ready": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system              13m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl03                                   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system              13m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl02                                   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system              13m         Warning   Unhealthy         pod/etcd-nlk8s-ctrl03                                             Readiness probe failed: HTTP probe failed with statuscode: 503
-kube-system              6m10s       Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system              60m         Warning   Unhealthy         pod/etcd-nlk8s-ctrl01                                             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+monitoring               52m         Warning   FailedDelete      cronjob/meshsat-status-heartbeat                                        Deleted job: jobs.batch "REDACTED_1360d12d" not found
+kube-system              31m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Liveness probe failed: HTTP probe failed with statuscode: 500
+monitoring               7m47s       Warning   FailedDelete      cronjob/meshsat-status-heartbeat                                        Deleted job: jobs.batch "REDACTED_85de1eb1" not found
+kube-system              3m25s       Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
