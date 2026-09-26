@@ -103,6 +103,17 @@ All four clean = device side (app cache, captive network, or a specific feature 
 for the exact error text, time, network and whether it is chat or a call, and answer with the
 timestamp the server last saw the device syncing.
 
+**Second run 2026-09-26 (same complaint, same result):** three facts that shorten the next one.
+George is also OpenVPN user `georgez` (oas03), so his Element X **Mac** appears as `203.0.113.X`
+(the NL public IP) in Synapse and MAS, not as a home address; the iPhone does not use the VPN.
+An iPhone UA ending `Scale/2.00` is the notification extension fetching a push (it refreshes tokens
+too), not the app in the foreground: judge "was the app open" by `Scale/1.00` lines. Edge history
+without sudo: the HAProxy stats CSV columns `lastchg`, `chkdown` and `downtime` per server say when
+the `matrix` backend last flipped and for how long in total; the reason (`Layer4/6/7 timeout`)
+needs `/var/log/haproxy.log` through the safe sudo recipe in `edge/CLAUDE.md`. On 09-26 the phone's
+foreground app was silent 09:38-13:25 NL, then did a normal cold start (401 burst, one refresh,
+everything 200 within the same second); the only edge events were three sub-10 s backend blips.
+
 ## Key Accounts
 
 | Account | Role | Admin | Type |
