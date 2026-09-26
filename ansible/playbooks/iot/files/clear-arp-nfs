@@ -1,0 +1,14 @@
+# Allow the Pacemaker alert user (hacluster) to run the NFS (p_fs_iot) auto-heal
+# remediation as root. Pacemaker executes alert agents as hacluster (uid 110),
+# which cannot `arp -d`, read the 0600 /etc/exportfs-flush-webhook.token, or run
+# resource cleanup -- so clear_arp_nfs.sh's remediation must run with root
+# privileges. Without this the NFS fast-path auto-remediation was a silent no-op.
+#
+# Scoped to exactly the one helper, NOPASSWD so the non-interactive alert handler
+# (clear_arp_nfs.sh) can call `sudo -n`. Any args are accepted (the helper only
+# uses them to branch between the stale-fh and plain-cleanup paths).
+#
+# Installed at /etc/sudoers.d/clear-arp-nfs (mode 0440) on iot01/iot02/arb01.
+# Snapshot: native/haha/<host>/sudoers.d/clear-arp-nfs
+# Ref: HAHA NFS alert auto-heal privilege fix (2026-06-27).
+hacluster ALL=(root) NOPASSWD: /usr/local/sbin/clear_arp_nfs_action.sh
