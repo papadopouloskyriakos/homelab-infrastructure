@@ -3,21 +3,21 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-09-26 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-09-27 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: CRITICAL ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 20 |
+| Unhealthy Pods | 24 |
 | Pending PVCs | 0 |
-| Total Restarts | 2252 |
+| Total Restarts | 2263 |
 
 ## Topology
 
 - **K8s:** v1.36.3 | **CNI:** Cilium 1.20.0
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 191
+- **Pods:** 196
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8002696Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -32,31 +32,35 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-awx                      awx-pg-dump-29832735-9kk5w                                        0/1   Error       0                4d22h
-awx                      awx-pg-dump-29832735-fdmmq                                        0/1   Error       0                4d22h
-awx                      awx-pg-dump-29832735-jtdwq                                        0/1   Error       0                4d22h
-awx                      awx-pg-dump-29834175-7k7j8                                        0/1   Error       0                3d22h
-awx                      awx-pg-dump-29834175-h4bmp                                        0/1   Error       0                3d22h
-awx                      awx-pg-dump-29834175-hslcb                                        0/1   Error       0                3d22h
-awx                      awx-pg-dump-29835615-jsf4r                                        0/1   Error       0                2d22h
-awx                      awx-pg-dump-29835615-sk6jx                                        0/1   Error       0                2d22h
-awx                      awx-pg-dump-29835615-xjwgx                                        0/1   Error       0                2d22h
-monitoring               meshsat-status-heartbeat-29839436-h44tt                           0/1   Error       0                7h4m
-monitoring               meshsat-status-heartbeat-29839464-q2zcb                           0/1   Error       0                6h36m
-velero                   awx-default-kopia-maintain-job-1790197609192-kgk5z                0/1   Error       0                2d5h
-velero                   awx-default-kopia-maintain-job-1790197913232-l749m                0/1   Error       0                2d5h
-velero                   awx-default-kopia-maintain-job-1790198218290-d2g6j                0/1   Error       0                2d5h
-velero                   monitoring-default-kopia-maintain-job-1790197613242-pc7bq         0/1   Error       0                2d5h
-velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error       0                2d5h
-velero                   monitoring-default-kopia-maintain-job-1790198209194-96r7j         0/1   Error       0                2d5h
-velero                   pihole-default-kopia-maintain-job-1790197618280-wvmf6             0/1   Error       0                2d5h
-velero                   pihole-default-kopia-maintain-job-1790197909193-mxplz             0/1   Error       0                2d5h
-velero                   pihole-default-kopia-maintain-job-1790198213248-gg9tr             0/1   Error       0                2d5h
+awx                      awx-pg-dump-29832735-9kk5w                                        0/1   Error       0               5d22h
+awx                      awx-pg-dump-29832735-fdmmq                                        0/1   Error       0               5d22h
+awx                      awx-pg-dump-29832735-jtdwq                                        0/1   Error       0               5d22h
+awx                      awx-pg-dump-29834175-7k7j8                                        0/1   Error       0               4d22h
+awx                      awx-pg-dump-29834175-h4bmp                                        0/1   Error       0               4d22h
+awx                      awx-pg-dump-29834175-hslcb                                        0/1   Error       0               4d22h
+awx                      awx-pg-dump-29835615-jsf4r                                        0/1   Error       0               3d22h
+awx                      awx-pg-dump-29835615-sk6jx                                        0/1   Error       0               3d22h
+awx                      awx-pg-dump-29835615-xjwgx                                        0/1   Error       0               3d22h
+cnpg-system              cnpg-janitor-29840003-vz8sb                                       0/1   Error       0               21h
+cnpg-system              cnpg-janitor-29840063-gmm9v                                       0/1   Error       0               20h
+cnpg-system              cnpg-janitor-29840123-zttsm                                       0/1   Error       0               19h
+monitoring               meshsat-status-heartbeat-29840970-2gr8k                           0/1   Error       0               5h30m
+monitoring               meshsat-status-heartbeat-29841182-8b4fn                           0/1   Error       0               118m
+monitoring               meshsat-status-heartbeat-29841183-djlg6                           0/1   Error       0               117m
+velero                   awx-default-kopia-maintain-job-1790197609192-kgk5z                0/1   Error       0               3d5h
+velero                   awx-default-kopia-maintain-job-1790197913232-l749m                0/1   Error       0               3d5h
+velero                   awx-default-kopia-maintain-job-1790198218290-d2g6j                0/1   Error       0               3d5h
+velero                   monitoring-default-kopia-maintain-job-1790197613242-pc7bq         0/1   Error       0               3d5h
+velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error       0               3d5h
+velero                   monitoring-default-kopia-maintain-job-1790198209194-96r7j         0/1   Error       0               3d5h
+velero                   pihole-default-kopia-maintain-job-1790197618280-wvmf6             0/1   Error       0               3d5h
+velero                   pihole-default-kopia-maintain-job-1790197909193-mxplz             0/1   Error       0               3d5h
+velero                   pihole-default-kopia-maintain-job-1790198213248-gg9tr             0/1   Error       0               3d5h
 ```
 
 ### High Restart Pods (>3)
-argocd/argocd-application-controller-0: 13 restarts
-awx/awx-operator-controller-manager-6ffdf98f6-x8jtt: 17 restarts
+argocd/argocd-application-controller-0: 15 restarts
+awx/awx-operator-controller-manager-6ffdf98f6-x8jtt: 18 restarts
 awx/my-awx-task-756d768868-bslc2: 6 restarts
 cilium-spire/spire-agent-2xj9z: 258 restarts
 cilium-spire/spire-agent-bf7g7: 262 restarts
@@ -72,7 +76,7 @@ kube-system/cilium-envoy-dzx97: 5 restarts
 kube-system/cilium-g5h5t: 4 restarts
 kube-system/cilium-operator-84c4fb58c7-jlhkp: 14 restarts
 kube-system/etcd-nlk8s-ctrl02: 5 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 14 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 21 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 11 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 11 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl02: 11 restarts
@@ -89,6 +93,7 @@ kube-system/tetragon-mdsn9: 35 restarts
 kube-system/tetragon-tbcc7: 10 restarts
 kube-system/tetragon-vbs6v: 16 restarts
 kyverno/kyverno-reports-controller-7bbf4b866b-2ccd2: 4 restarts
+logging/loki-0: 5 restarts
 logging/loki-canary-bbplf: 7 restarts
 logging/promtail-5jr9j: 6 restarts
 logging/promtail-br4rf: 4 restarts
@@ -99,7 +104,8 @@ monitoring/bgpalerter-b7bc9c8c-j5mgh: 5 restarts
 monitoring/goldpinger-fjpnh: 4 restarts
 monitoring/goldpinger-rb96x: 5 restarts
 monitoring/goldpinger-t8x65: 5 restarts
-monitoring/monitoring-grafana-7d6c5795b8-6cvtn: 6 restarts
+monitoring/monitoring-grafana-7d6c5795b8-6cvtn: 11 restarts
+monitoring/monitoring-grafana-7d6c5795b8-bl4zl: 4 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 180 restarts
 monitoring/monitoring-prometheus-node-exporter-6sc8j: 10 restarts
 monitoring/monitoring-prometheus-node-exporter-88hp8: 7 restarts
@@ -117,11 +123,11 @@ synology-csi/synology-csi-node-zch7n: 35 restarts
 
 ### Recent Warnings (5)
 ```
+velero                   58m         Warning   PolicyViolation   deployment/velero-ui                                                    policy disallow-privilege-escalation/autogen-privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule autogen-privilege-escalation failed at path /spec/template/spec/containers/0/securityContext/
+velero                   58m         Warning   PolicyViolation   deployment/velero                                                       policy disallow-privilege-escalation/autogen-privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule autogen-privilege-escalation failed at path /spec/template/spec/initContainers/0/securityContext/
+velero                   58m         Warning   PolicyViolation   deployment/velero                                                       policy restrict-seccomp-strict/autogen-check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/initContainers/0/securityContext/
 kube-system              60m         Warning   Unhealthy         pod/etcd-nlk8s-ctrl01                                             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-monitoring               52m         Warning   FailedDelete      cronjob/meshsat-status-heartbeat                                        Deleted job: jobs.batch "meshsat-status-heartbeat-29839807" not found
-kube-system              31m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Liveness probe failed: HTTP probe failed with statuscode: 500
-monitoring               7m47s       Warning   FailedDelete      cronjob/meshsat-status-heartbeat                                        Deleted job: jobs.batch "meshsat-status-heartbeat-29839852" not found
-kube-system              3m25s       Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Readiness probe failed: HTTP probe failed with statuscode: 500
+monitoring               52m         Warning   Unhealthy         pod/bgpalerter-b7bc9c8c-j5mgh                                           Readiness probe failed: Get "http://10.0.2.34:8011/status": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
 ```
 
 ## Key Resources
