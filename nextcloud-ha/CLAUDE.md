@@ -329,6 +329,25 @@ affected:
 **Check:** `sudo -u www-data php /var/www/nextcloud/occ maintenance:mode`
 **Fix:** `sudo -u www-data php /var/www/nextcloud/occ maintenance:mode --off`
 
+### Calendar app: "An error occurred, unable to create the calendar" (per-user cap)
+
+`MKCOL /remote.php/dav/calendars/<uid>/<slug>` returns 403 `Calendar limit reached` and
+`nextcloud.log` logs `Maximum number of calendars/subscriptions reached` with
+`calendars + subscription >= limit`. The dav app caps calendars + subscriptions **per user**
+(`apps/dav/lib/CalDAV/Security/RateLimitingPlugin.php`, default 30, `-1` = unlimited); calendars
+shared TO the user do not count. Raised to **100** on 2026-09-28 (Kyriakos owned exactly 30
+distinct calendars and hit it creating `[TEAM] MeshSat`). It lives in `oc_appconfig`, so one
+`occ` run on either node covers the cluster:
+```bash
+sudo -u www-data php occ dav:list-calendars <uid>                    # what the user owns
+sudo -u www-data php occ config:app:get dav maximumCalendarsSubscriptions --details
+sudo -u www-data php occ config:app:set dav maximumCalendarsSubscriptions --value=100 --type=integer
+```
+The same plugin rate-limits creation ATTEMPTS to 10 per user per hour
+(`rateLimitCalendarCreation` / `rateLimitPeriodCalendarCreation`, counted in Redis BEFORE the cap
+check), so each refused retry burns one; ten refused clicks is a one-hour `429 Too many calendars
+created` lockout, not a new fault.
+
 ### Database connection errors / Galera write conflicts (`SQLSTATE[40001]`)
 Moved with the DB layer → [`../dbcluster/CLAUDE.md`](../dbcluster/CLAUDE.md) Troubleshooting.
 Quick check from a Nextcloud angle: `dig proxysql.example.net` (should return .152 +
