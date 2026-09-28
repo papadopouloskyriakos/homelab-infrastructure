@@ -336,7 +336,7 @@ affected:
 `calendars + subscription >= limit`. The dav app caps calendars + subscriptions **per user**
 (`apps/dav/lib/CalDAV/Security/RateLimitingPlugin.php`, default 30, `-1` = unlimited); calendars
 shared TO the user do not count. Raised to **100** on 2026-09-28 (Kyriakos owned exactly 30
-distinct calendars and hit it creating `[TEAM] MeshSat`). It lives in `oc_appconfig`, so one
+distinct calendars and hit it creating `[TEAM] MeshSat`, IFRNLLEI01PRD-2899). It lives in `oc_appconfig`, so one
 `occ` run on either node covers the cluster:
 ```bash
 sudo -u www-data php occ dav:list-calendars <uid>                    # what the user owns
