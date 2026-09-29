@@ -23,5 +23,5 @@
 10.0.X.X:/volume1/homes /mnt/homes nfs vers=4.1,rw,proto=tcp,hard,noatime,nconnect=8,fsc,rsize=1048576,wsize=1048576,timeo=300,retrans=2,acregmin=5,acregmax=60,acdirmin=2,acdirmax=30,actimeo=60 0 0
 10.0.X.X:/volume1/Media /mnt/Media nfs vers=4.1,rw,proto=tcp,hard,noatime,nconnect=8,fsc,rsize=1048576,wsize=1048576,timeo=300,retrans=2,acregmin=5,acregmax=60,acdirmin=2,acdirmax=30,actimeo=60 0 0
 #
-10.0.X.X:/mnt/ocfs2/nextcloud/nextcloud-app /var/www/nextcloud nfs vers=4.2,rw,proto=tcp,hard,noatime,nconnect=8,fsc,rsize=1048576,wsize=1048576,timeo=300,retrans=2,acregmin=5,acregmax=60,acdirmin=2,acdirmax=30,actimeo=60   0   0
-10.0.X.X:/mnt/ocfs2/nextcloud/nextcloud-data /mnt/nextcloud-data nfs vers=4.2,rw,proto=tcp,hard,noatime,nconnect=8,fsc,rsize=1048576,wsize=1048576,timeo=300,retrans=2,acregmin=5,acregmax=60,acdirmin=2,acdirmax=30,actimeo=60   0   0
+10.0.X.X:/mnt/ocfs2/nextcloud/nextcloud-app /var/www/nextcloud nfs vers=4.2,_netdev,nofail,x-systemd.automount,x-systemd.mount-timeout=300,rw,proto=tcp,hard,noatime,nconnect=8,fsc,rsize=1048576,wsize=1048576,timeo=300,retrans=2,acregmin=5,acregmax=60,acdirmin=2,acdirmax=30,actimeo=60   0   0
+10.0.X.X:/mnt/ocfs2/nextcloud/nextcloud-data /mnt/nextcloud-data nfs vers=4.2,_netdev,nofail,x-systemd.automount,x-systemd.mount-timeout=300,rw,proto=tcp,hard,noatime,nconnect=8,fsc,rsize=1048576,wsize=1048576,timeo=300,retrans=2,acregmin=5,acregmax=60,acdirmin=2,acdirmax=30,actimeo=60   0   0
