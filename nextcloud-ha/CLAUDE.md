@@ -252,7 +252,7 @@ Failure Domains.
 
 | Host | Service | Configs Tracked |
 |------|---------|-----------------|
-| nlnc01 | Nextcloud | apache/nextcloud.conf, apache/adminer.conf, php/php.ini, php/www.conf, nextcloud-config/config.php, nextcloud-config/redis_sentinel.config.php, fstab, crontabs, systemd/nextcloud-ai-worker@.service + scripts/taskprocessing.sh (live `/etc/systemd/system/` and `/opt/nextcloud-ai-worker/`, instances @1-4 enabled; added 2026-09-18) |
+| nlnc01 | Nextcloud | apache/nextcloud.conf, apache/adminer.conf, php/php.ini, php/www.conf, nextcloud-config/config.php, nextcloud-config/redis_sentinel.config.php, fstab, crontabs, systemd/nextcloud-ai-worker@.service + scripts/taskprocessing.sh (live `/etc/systemd/system/` and `/opt/nextcloud-ai-worker/`, instances @1-4 enabled on nc02, **DISABLED on nc01 2026-09-29 by operator order**; added 2026-09-18) |
 | nlnc02 | Nextcloud | Same as nlnc01 (shared OCFS2 storage, identical app) |
 
 ## Troubleshooting Quick Reference
@@ -260,8 +260,9 @@ Failure Domains.
 ### Nextcloud shows Apache default page, `File not found.`, or 404 on one node only
 **Cause:** that node's two `10.0.X.X` mounts are missing, so Apache and PHP-FPM serve the
 empty local mountpoints. Happens when an nc node **boots while the NFS VIP is unavailable**: the
-fstab entries are plain `hard` mounts with no `x-systemd.automount` or `mount-timeout`, so
-systemd kills them at its 90 s default (`Mounting timed out. Terminating.`) and **never retries**.
+fstab entries were plain `hard` mounts with no `x-systemd.automount` or `mount-timeout`, so
+systemd killed them at its 90 s default (`Mounting timed out. Terminating.`) and **never retried**.
+**Fixed 2026-09-29** (see the durable fix below); this section stays for hosts without the change.
 Nothing in the web stack depends on the mounts (no `RequiresMountsFor=`), so Apache starts anyway.
 
 **Symptom from outside is intermittent**, because each HAProxy prefers a different node
@@ -293,9 +294,15 @@ evidence that this recurs.
 self-fenced and nc02 rebooted at 23:01 while neither file node was serving. Its mounts timed out
 at 23:02:34, and nc02 served an empty tree for **~11.5 h** until it was fixed by hand on 09-18.
 
-**Durable fix, OPEN (operator decision pending):** give both fstab entries
-`x-systemd.automount` (or `x-systemd.mount-timeout=infinity`) and add a `RequiresMountsFor=/var/www/nextcloud /mnt/nextcloud-data`
-drop-in to `apache2` and `php8.4-fpm`, so a node cannot serve an unmounted tree.
+**Durable fix, APPLIED 2026-09-29 (operator-approved, IFRNLLEI01PRD-2900):** both `10.0.X.X`
+entries on both nodes now carry `_netdev,nofail,x-systemd.automount,x-systemd.mount-timeout=300`.
+The mountpoint becomes an `autofs` trigger at boot, so Apache and PHP can never see the empty local
+dir: the first access mounts the share and blocks until the VIP is there, and every later access
+retries if a mount attempt timed out. No `RequiresMountsFor=` is needed. `findmnt -T <path>` shows
+`autofs` + `nfs4` on a healthy node. Live-tested on nc02 (unmount → automount trigger → services
+back, `status.php` JSON); nc01 got the fstab + `daemon-reload` only and picks it up at its next boot.
+Recurrence that forced it: after drains #4 (09-28) and #5 (09-29) nc02 booted while the VIP was
+moving and served an empty tree again.
 
 ### Nextcloud AI workers `failed` after any NFS outage (both nodes)
 `nextcloud-ai-worker@1-4` (unit + script snapshotted under `<node>/nextcloud/systemd/` and
