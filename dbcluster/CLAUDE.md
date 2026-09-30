@@ -49,7 +49,7 @@ apps ──► proxysql.example.net:6033  (DNS RR .152 + .154, both ACTIVE — n
 | nlcl01mariadb02 | 101101006 | nl-pve03 | 10.0.X.X | MariaDB 11.8.8 Galera. Synced, Primary. InnoDB buffer pool 1536M. Upgraded 2026-08-01. |
 | nlcl01garbd01 | 101101007 | **nl-pve01** | 10.0.X.X | Galera Arbitrator (quorum voter, no data). galera-arbitrator-4 **26.4.27**, upgraded from Debian's 26.4.23 on 2026-08-01 — it had been left behind by the DB upgrade. The MariaDB 11.8 apt repo had to be added to this container; Debian bookworm only ships 26.4.23. ⚠ Runs on **pve01**, verified live 2026-08-28 — this line said pve02, which has been powered off since 2026-08-25; had that been true the cluster would have had no tiebreaker. **Backups fixed 2026-08-28 (IFRNLLEI01PRD-2818)**: moved from the dead pve02-pinned Tue 03:00 vzdump job into the pve01 Wed 03:00 job (`backup-1b54e7af-2d81`); the weekly PBS chain ran until 2026-08-18, missed only 08-25, and a manual run resumed it 08-28. NFS-raw rootfs → suspend-mode fallback; the brief pause is quorum-safe with both DB nodes up. Of the dead Tue job's other guests, 4 were re-homed to the pve04 Sat job the same day; the 2 quorum-critical ones (openbao02 = OpenBao raft leader, k8s-ctrl02) remain open in the same ticket. |
 
-**DNS:** `proxysql.example.net` → RR 10.0.X.X + .154 (apps connect here directly, NOT via HAProxy)
+**DNS:** `proxysql.example.net` → RR 10.0.X.X + .154 (apps connect here directly, NOT via HAProxy). ⚠ **.152 REMOVED 2026-09-30 while pve01 (proxysql01) is down**: a dead RR member costs every app a connect timeout. Re-add with `ipa dnsrecord-add example.net proxysql --a-rec=10.0.X.X` once proxysql01 answers (runbook `../ncha/CLAUDE.md` § Nextcloud slow while pve01 is down, IFRNLLEI01PRD-2902).
 **Galera cluster:** `eu-nl-mariadb01`, `gcomm://10.0.X.X,10.0.X.X,10.0.X.X`, SST method: rsync
 
 ## SSH Access
@@ -251,7 +251,7 @@ pve01 **and** either DB node partitions the survivor into non-Primary.
 ### Database connection errors
 **Check ProxySQL:** `docker exec proxysql mysql -h127.0.0.1 -P6032 -uradmin -pradmin -e "SELECT * FROM runtime_mysql_servers;"`
 **Check Galera:** `mysql -e "SHOW STATUS LIKE 'wsrep_cluster_size';"` (should be 3)
-**Check DNS:** `dig proxysql.example.net` (should return .152 + .154)
+**Check DNS:** `dig proxysql.example.net` (should return .152 + .154; .154 only while pve01 is down, see the DNS note above)
 
 **Testing which node a write lands on:** `SELECT @@hostname` alone is misleading — query rule 2
 routes `^SELECT` to the reader hostgroup, so it reports a *reader*. Wrap it to pin the session

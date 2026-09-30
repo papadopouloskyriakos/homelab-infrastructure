@@ -12,10 +12,13 @@ DNS RR: nextcloud.example.net
     │
     ▼
 NPM (Nginx Proxy Manager) — SSL termination, proxy to HAProxy
+    (custom `upstream nextcloud.example.net` in /data/nginx/custom/http_top.conf:
+     .140 + .158, on BOTH NL and GR NPM; NOT in git)
     │
     ▼
 HAProxy (L7, active/backup, Docker)
     ├─ 10.0.X.X  haproxy01 (pve01) — nc01 PRIMARY, nc02 BACKUP
+    │     ⚠ pve01 down 2026-09-30: marked `down` in both NPM upstreams (see § pve01 down)
     └─ 10.0.X.X  haproxy02 (pve03) — nc02 PRIMARY, nc01 BACKUP (cross-site)
     │
     ├── :443  → Nextcloud frontends
@@ -25,8 +28,8 @@ HAProxy (L7, active/backup, Docker)
     │
     ▼
 Nextcloud Frontends (Apache 2.4.58 + PHP 8.4.18 + PHP-FPM)
-    ├─ 10.0.X.X  nc01 (QEMU, pve01) — PRIMARY
-    └─ 10.0.X.X  nc02 (QEMU, pve03) — BACKUP
+    ├─ 10.0.X.X  nc01 (QEMU, pve04) — PRIMARY
+    └─ 10.0.X.X  nc02 (QEMU, pve01) — BACKUP
     │
     ├── DB  → proxysql.example.net:6033 (DNS RR, direct — not via HAProxy)
     ├── Cache → redis.example.net:6380 (DNS RR → HAProxy → Redis)
@@ -51,7 +54,7 @@ ssh -i ~/.ssh/one_key root@nlnc02
 
 | Host | VMID | PVE | IP | Role |
 |------|------|-----|-----|------|
-| nlnpm01 | 101100401 | nl-pve01 | 10.0.X.X | OpenResty 1.27.1. Proxies nextcloud.example.net to HAProxy. ~98 proxy configs total. |
+| nlnpm01 | 101100401 | nl-pve03 | 10.0.X.X | OpenResty 1.27.1. Proxies nextcloud.example.net to HAProxy. ~98 proxy configs total. |
 | grnpm01 | — | gr-pve01 | 10.0.X.X | GR site entry point (DNS RR partner) |
 
 ### Layer 2: Load Balancer (HAProxy, Docker)
@@ -65,14 +68,14 @@ ssh -i ~/.ssh/one_key root@nlnc02
 - `nextcloud_servers` — nlnc01(.148) PRIMARY, nlnc02(.149) BACKUP. Old nextcloud01(.20)/nextcloud02(.120) still listed but STOPPED — should be removed.
 - `proxysql_servers` — proxysql01(.152) PRIMARY, proxysql02(.154) BACKUP
 - `redis_servers` — redis03(.125) PRIMARY, redis01(.123)+redis02(.124) BACKUP. **Note:** HAProxy uses TCP PING, can't detect Redis master. As of 2026-08-28 the actual master IS redis03 (failover after pve02's shutdown), so backend and reality currently align — they can diverge again after any failover.
-- `collabora_backend` — code01(.126) only
+- `collabora_backend` — on haproxy02 (live 2026-09-30): **code02(.159) PRIMARY, code01(.126) BACKUP**. code02 has `onboot: 0`, so after a reboot of pve03 or code02 Collabora silently falls back to code01. The haproxy.cfg files are NOT in git (only the compose files are).
 
 ### Layer 3: Nextcloud Application (Native Apache + PHP)
 
 | Host | VMID | PVE | IPs | Version |
 |------|------|-----|-----|---------|
-| nlnc01 | 101101206 | nl-pve01 | 10.0.X.X, 10.0.X.X | Nextcloud **33.0.7**, PHP **8.4.24**, Apache 2.4.58 |
-| nlnc02 | 103101201 | nl-pve03 | 10.0.X.X, 10.0.X.X | Nextcloud **33.0.7**, PHP **8.4.24**, Apache 2.4.58 |
+| nlnc01 | 101101206 | nlpve04 | 10.0.X.X, 10.0.X.X | Nextcloud **33.0.7**, PHP **8.4.24**, Apache 2.4.58 |
+| nlnc02 | 103101201 | nl-pve01 | 10.0.X.X, 10.0.X.X | Nextcloud **33.0.7**, PHP **8.4.24**, Apache 2.4.58 |
 
 #### Upgrade status (2026-08-05: 32.0.6 → 32.0.13 → 33.0.7 DONE, IFRNLLEI01PRD-2235)
 
@@ -197,9 +200,9 @@ What Nextcloud needs to know: it connects to `proxysql.example.net:6033` (DNS RR
 | Host | VMID | PVE | IP | Service | Port |
 |------|------|-----|-----|---------|------|
 | nlcode01 | 101101205 | nl-pve01 | 10.0.X.X | Collabora CODE (Docker) | 9980 |
-| nlcode02 | 103101008 | nl-pve03 | 10.0.X.X | Collabora CODE (Docker, backup) | 9980 |
-| nlimaginary01 | 103101203 | nl-pve03 | 10.0.X.X | Imaginary image processing (Docker) | 9000 |
-| nlwhiteboard01 | 103101202 | nl-pve03 | 10.0.X.X | Nextcloud Whiteboard (Docker) | — |
+| nlcode02 | 103101008 | nl-pve03 | 10.0.X.X | Collabora CODE (Docker). haproxy02's PRIMARY Collabora backend, but `onboot: 0`; started by hand 2026-09-30 while pve01 is down | 9980 |
+| nlimaginary01 | 103101203 | nl-pve01 | 10.0.X.X | Imaginary image processing (Docker) | 9000 |
+| nlwhiteboard01 | 103101202 | nl-pve01 | 10.0.X.X | Nextcloud Whiteboard (Docker) | — |
 | nlhpb01 | 103101205 | nl-pve03 | 10.0.X.X | Talk HPB signaling (Docker). **QEMU VM, not an LXC** — use `qm`, not `pct` (`pct config 103101205` returns "config file does not exist" and sends you chasing a ghost). **Currently STOPPED with `onboot: 0`**, i.e. deliberately off, so `occ setupchecks` reports `✗ High-performance backend: Error: Server responded with: 502` and `signaling.example.net` (→ npm01 .43) 502s. Talk still works via internal signaling; STUN/TURN are separate (`stun.example.net:3478`). | 3478 (TURN), 8181 (signaling) |
 | nlgpu01 | VM | nl-pve03 | 10.0.X.X | AI backends (Docker) | 5000 (facerecog), 24002 (chat), 24003 (LLM), 24004 (text2image) |
 
@@ -231,22 +234,25 @@ What Nextcloud needs to know: it connects to `proxysql.example.net:6033` (DNS RR
 | Record | Resolves To | Purpose |
 |--------|-------------|---------|
 | `nextcloud.example.net` | .43 (npm01-NL) + 10.0.X.X (npm01-GR) | User entry point (RR) |
-| `redis.example.net` | .140 (nlhaproxy01) + .158 (nlhaproxy02) | Redis via HAProxy:6380 (RR) |
-| `proxysql.example.net` | .152 (proxysql01) + .154 (proxysql02) | DB via ProxySQL:6033 direct (RR) |
+| `redis.example.net` | .140 (nlhaproxy01) + .158 (nlhaproxy02) | Redis via HAProxy:6380 (RR). ⚠ .140 REMOVED 2026-09-30 while pve01 is down |
+| `proxysql.example.net` | .152 (proxysql01) + .154 (proxysql02) | DB via ProxySQL:6033 direct (RR). ⚠ .152 REMOVED 2026-09-30 while pve01 is down |
+| `code.example.net` | .140 (nlhaproxy01) + .158 (nlhaproxy02) | Collabora via HAProxy:9980 (RR, the richdocuments `wopi_url`). ⚠ .140 REMOVED 2026-09-30 while pve01 is down |
 | `smtp.example.net` | .71 (NL) + 10.0.X.X (GR) | Outbound email (RR) |
 
 ## PVE Host Distribution (Failure Domains)
 
-**nl-pve01 (10.0.X.X):** nlnpm01, nlhaproxy01, nlnc01, proxysql01, redis01, nlcl01file01, code01, nlfreeipa01
+Live placement verified 2026-09-30 (`pvesh get /cluster/resources`); nc01/nc02 have swapped hosts since the lists were written.
+
+**nl-pve01 (10.0.X.X):** nlhaproxy01, **nlnc02**, proxysql01, redis01, nlcl01file01, code01, **imaginary01, whiteboard01**, garbd01
 **nl-pve02 (10.0.X.X):** **POWERED OFF since 2026-08-25** (pending decommission decision). Its former guests migrated: garbd01 → pve01, redis02 → pve04 (both verified live 2026-08-28).
-**nl-pve03 (10.0.X.X):** nlhaproxy02, nlnc02, proxysql02, mariadb02, redis03, nlcl01file02, code02, imaginary01, whiteboard01, hpb01 (stopped), nlgpu01
-**nlpve04:** **mariadb01** — migrated off pve01; the host table (now in `../dbcluster/CLAUDE.md`) has said pve04 for a while but this list still said pve01. Verify placement with `pve_list_lxc`/`pvesh get /cluster/resources`, never from the VMID prefix.
+**nl-pve03 (10.0.X.X):** nlnpm01, nlfreeipa01, nlhaproxy02, proxysql02, mariadb02, redis03, nlcl01file02, code02, hpb01 (stopped), nlgpu01
+**nlpve04:** **nlnc01**, redis02, **mariadb01** — migrated off pve01; the host table (now in `../dbcluster/CLAUDE.md`) has said pve04 for a while but this list still said pve01. Verify placement with `pve_list_lxc`/`pvesh get /cluster/resources`, never from the VMID prefix.
 
 **⚠ The DB single writer (mariadb02) also sits on pve03** — losing pve03 costs the write path
 on top of half the HA cluster. Details in [`../dbcluster/CLAUDE.md`](../dbcluster/CLAUDE.md)
 Failure Domains.
 
-**Key risk:** nl-pve03 failure takes out half the HA cluster + ALL backend services (imaginary, whiteboard, hpb, gpu). nl-pve01 failure takes out the primary frontends + NFS server — and, since the pve02 shutdown, also the Galera arbiter (garbd01). pve02 is already off (2026-08-25) with its guests re-homed, so it is no longer a failure domain.
+**Key risk:** nl-pve03 failure takes out half the HA cluster + the NL entry point (npm01), FreeIPA-NL, the DB single writer and gpu. nl-pve01 failure takes out haproxy01, nc02, imaginary/whiteboard, code01 + the NFS data node file01 — and, since the pve02 shutdown, also the Galera arbiter (garbd01). pve02 is already off (2026-08-25) with its guests re-homed, so it is no longer a failure domain.
 
 ## Config Snapshots in This Directory
 
@@ -379,11 +385,19 @@ and the true node in one shot.
 **NFS VIP:** 10.0.X.X runs on whichever of file01/file02 Pacemaker chose (file02 as of 2026-09-18); either is normal. If both are down or file02 has lost DRBD quorum, NFS is down for every client, and afterwards the Nextcloud recovery checklist above applies.
 
 ### Collabora not loading documents
-**Check:** `docker logs collabora` on code01 (nl-pve01, VMID 101101205)
-**HAProxy:** only code01 in backend — no failover to code02 configured
+**Check:** `docker logs collabora` on code02 (nl-pve03, VMID 103101008, haproxy02's primary) or code01 (nl-pve01, VMID 101101205, backup)
+**HAProxy:** haproxy02 has code02 PRIMARY + code01 BACKUP. code02 is `onboot: 0`: if both are down, `pct start 103101008` on pve03 is the fix (done 2026-09-30).
+
+### Nextcloud slow (not down) while nl-pve01 is down (2026-09-30, IFRNLLEI01PRD-2902)
+**Signature:** nc01 answers `status.php` in ~15 ms direct (`curl --resolve nextcloud.example.net:443:10.0.X.X`) and via haproxy02 (.158), but through the public name it takes 3 s (NL NPM) or ~90 s (GR NPM) on some requests. nc01 load is idle. No layer is down; clients keep trying the dead pve01 members of every "HA" pair: DNS RR (`redis`, `proxysql`, `code` all list a pve01 IP) and nginx passive failover in the NPM upstream re-tries `.140` after every `fail_timeout`.
+**Stopgaps (applied 2026-09-30, all reversible):**
+1. FreeIPA (admin pw from OpenBao `secret/ci/freeipa`): `ipa dnsrecord-del example.net redis --a-rec=10.0.X.X`, same for `code` (.140) and `proxysql` (.152). Then `resolvectl flush-caches` on nc01.
+2. NL NPM (LXC 101100401 pve03) and GR NPM (LXC 201020401 gr-pve01), container `npm`: in `/data/nginx/custom/http_top.conf` mark `server 10.0.X.X:443 down;`, `nginx -t && nginx -s reload`. Backups `http_top.conf.bak-20260930-pve01-down`.
+3. `pct start 103101008` (code02) if Collabora is down.
+**Revert when pve01 is back** (after haproxy01 and proxysql01 answer): `ipa dnsrecord-add` the three records, restore both `http_top.conf` from the backups and reload. Not needed: imaginary. `REDACTED_08e8170a` points at imaginary01 but `OC\Preview\Imaginary` is not in `enabledPreviewProviders`, so it is inert.
 
 ### FreeIPA/LDAP auth failures
-**Check:** `ssh nl-pve01 "pct exec 101100301 -- ipactl status"` (all 9 services should be RUNNING)
+**Check:** `ssh nl-pve03 "pct exec 101100301 -- ipactl status"` (all 9 services should be RUNNING)
 **Realm:** `SEC.NUCLEARLIGHTERS.NET`, Base DN: `dc=sec,dc=nuclearlighters,dc=net`
 
 ### Old/decommissioned Nextcloud instances (DO NOT USE)
