@@ -3,15 +3,15 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-09-29 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-09-30 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: DEGRADED ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 5 |
+| Unhealthy Pods | 4 |
 | Pending PVCs | 0 |
-| Total Restarts | 2428 |
+| Total Restarts | 2520 |
 
 ## Topology
 
@@ -21,9 +21,9 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8002680Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
-- **nlk8s-ctrl02** (control-plane) 10.0.X.X | CPU:4 Mem:8092Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
+- **nlk8s-ctrl02** (control-plane) 10.0.X.X | CPU:4 Mem:8092Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule,node.kubernetes.io/unreachable=:NoSchedule,node.cilium.io/agent-not-ready=:NoSchedule,node.kubernetes.io/unreachable=:NoExecute
 - **nlk8s-ctrl03** (control-plane) 10.0.X.X | CPU:4 Mem:8003704Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
-- **nlk8s-node01** (worker) 10.0.X.X | CPU:8 Mem:10054388Ki | Taints:node.kubernetes.io/unschedulable=:NoSchedule,node.kubernetes.io/unreachable=:NoExecute,node.kubernetes.io/unreachable=:NoSchedule
+- **nlk8s-node01** (worker) 10.0.X.X | CPU:8 Mem:10054384Ki | Taints:node.kubernetes.io/unschedulable=:NoSchedule,node.kubernetes.io/unreachable=:NoSchedule,node.cilium.io/agent-not-ready=:NoSchedule,node.kubernetes.io/unreachable=:NoExecute
 - **nlk8s-node02** (worker) 10.0.X.X | CPU:8 Mem:10054404Ki | Taints:none
 - **nlk8s-node03** (worker) 10.0.X.X | CPU:8 Mem:10054404Ki | Taints:none
 - **nlk8s-node04** (worker) 10.0.X.X | CPU:8 Mem:10053380Ki | Taints:none
@@ -32,80 +32,81 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-cnpg-system              cnpg-janitor-29844023-rpqcp                                       0/1   Error       0                 157m
-monitoring               meshsat-status-heartbeat-29843131-7nn92                           0/1   Error       0                 17h
-monitoring               meshsat-status-heartbeat-29843828-8g5r9                           0/1   Error       0                 5h52m
-monitoring               meshsat-status-heartbeat-29843829-vccjg                           0/1   Error       0                 5h51m
-velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error       0                 5d5h
+monitoring               meshsat-status-heartbeat-29843829-vccjg                           0/1   Error       0                29h
+monitoring               meshsat-status-heartbeat-29844614-zcf86                           0/1   Error       0                16h
+monitoring               meshsat-status-heartbeat-29844908-r2qrd                           0/1   Error       0                11h
+velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error       0                6d5h
 ```
 
 ### High Restart Pods (>3)
-argocd/argocd-application-controller-0: 17 restarts
+argocd/argocd-application-controller-0: 20 restarts
+awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 4 restarts
 awx/my-awx-task-756d768868-bslc2: 6 restarts
 cilium-spire/spire-agent-2xj9z: 276 restarts
 cilium-spire/spire-agent-bf7g7: 278 restarts
 cilium-spire/spire-agent-hpld8: 275 restarts
-cilium-spire/spire-agent-hrngt: 15 restarts
+cilium-spire/spire-agent-hrngt: 17 restarts
 cilium-spire/spire-agent-sm9xs: 284 restarts
 cilium-spire/spire-agent-xk8cl: 280 restarts
-cilium-spire/spire-agent-zqpt4: 283 restarts
-cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-zl8gc: 7 restarts
-kube-system/cilium-c8kqc: 7 restarts
-kube-system/cilium-envoy-brdkr: 5 restarts
-kube-system/cilium-envoy-dzx97: 7 restarts
-kube-system/cilium-g5h5t: 5 restarts
-kube-system/cilium-operator-84c4fb58c7-jlhkp: 15 restarts
-kube-system/etcd-nlk8s-ctrl02: 6 restarts
+cilium-spire/spire-agent-zqpt4: 285 restarts
+cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-zl8gc: 9 restarts
+kube-system/cilium-c8kqc: 9 restarts
+kube-system/cilium-envoy-brdkr: 7 restarts
+kube-system/cilium-envoy-dzx97: 9 restarts
+kube-system/cilium-g5h5t: 7 restarts
+kube-system/cilium-operator-84c4fb58c7-jlhkp: 20 restarts
+kube-system/etcd-nlk8s-ctrl02: 8 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 22 restarts
-kube-system/kube-apiserver-nlk8s-ctrl02: 13 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 15 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl02: 13 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl03: 10 restarts
-kube-system/kube-proxy-7jvns: 7 restarts
-kube-system/kube-scheduler-nlk8s-ctrl01: 8 restarts
-kube-system/kube-scheduler-nlk8s-ctrl02: 6 restarts
-kube-system/kube-scheduler-nlk8s-ctrl03: 12 restarts
+kube-system/kube-apiserver-nlk8s-ctrl02: 15 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl01: 17 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl02: 17 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl03: 12 restarts
+kube-system/kube-proxy-7jvns: 9 restarts
+kube-system/kube-scheduler-nlk8s-ctrl01: 10 restarts
+kube-system/kube-scheduler-nlk8s-ctrl02: 9 restarts
+kube-system/kube-scheduler-nlk8s-ctrl03: 13 restarts
 kube-system/tetragon-5gk99: 9 restarts
-kube-system/tetragon-75hdg: 22 restarts
+kube-system/tetragon-75hdg: 26 restarts
 kube-system/tetragon-878gv: 8 restarts
 kube-system/tetragon-jz2b6: 12 restarts
-kube-system/tetragon-mdsn9: 36 restarts
+kube-system/tetragon-mdsn9: 39 restarts
 kube-system/tetragon-tbcc7: 10 restarts
 kube-system/tetragon-vbs6v: 18 restarts
-logging/loki-canary-bbplf: 9 restarts
+kyverno/kyverno-reports-controller-7bbf4b866b-rq8pt: 7 restarts
+logging/loki-canary-bbplf: 11 restarts
 logging/loki-canary-xbmzr: 4 restarts
 logging/promtail-5jr9j: 6 restarts
 logging/promtail-br4rf: 5 restarts
 logging/promtail-hp5sc: 9 restarts
-logging/promtail-m2gzm: 8 restarts
-logging/promtail-ng69s: 12 restarts
+logging/promtail-m2gzm: 10 restarts
+logging/promtail-ng69s: 14 restarts
 monitoring/goldpinger-fjpnh: 5 restarts
-monitoring/goldpinger-rb96x: 6 restarts
-monitoring/goldpinger-t8x65: 7 restarts
+monitoring/goldpinger-rb96x: 8 restarts
+monitoring/goldpinger-t8x65: 9 restarts
 monitoring/monitoring-grafana-7d6c5795b8-6cvtn: 11 restarts
-monitoring/monitoring-prometheus-node-exporter-6dl8r: 182 restarts
+monitoring/monitoring-prometheus-node-exporter-6dl8r: 184 restarts
 monitoring/monitoring-prometheus-node-exporter-6sc8j: 10 restarts
-monitoring/monitoring-prometheus-node-exporter-88hp8: 8 restarts
+monitoring/monitoring-prometheus-node-exporter-88hp8: 10 restarts
 monitoring/monitoring-prometheus-node-exporter-8bq88: 5 restarts
 monitoring/monitoring-prometheus-node-exporter-vgp6b: 5 restarts
 monitoring/monitoring-prometheus-node-exporter-wmcb8: 47 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-75b84759cfvtflq: 9 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-75b84759cfvtflq: 13 restarts
 synology-csi/synology-csi-node-4nxcz: 8 restarts
 synology-csi/synology-csi-node-kxrjb: 19 restarts
 synology-csi/synology-csi-node-l72f8: 9 restarts
-synology-csi/synology-csi-node-mrqzg: 14 restarts
+synology-csi/synology-csi-node-mrqzg: 18 restarts
 synology-csi/synology-csi-node-ptwb8: 10 restarts
 synology-csi/synology-csi-node-sfdmg: 12 restarts
-synology-csi/synology-csi-node-zch7n: 37 restarts
-velero/node-agent-54dn2: 5 restarts
+synology-csi/synology-csi-node-zch7n: 41 restarts
+velero/node-agent-54dn2: 7 restarts
 
 ### Recent Warnings (5)
 ```
-kube-system              60m         Warning   Unhealthy           pod/etcd-nlk8s-ctrl01                                             Readiness probe failed: Get "http://127.0.0.1:2381/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-kube-system              24m         Warning   Unhealthy           pod/kube-apiserver-nlk8s-ctrl01                                   Liveness probe failed: HTTP probe failed with statuscode: 500
-logging                  12m         Warning   Unhealthy           pod/promtail-ng69s                                                      Readiness probe failed: Get "http://10.0.2.231:3101/ready": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-default                  12m         Warning   ContainerGCFailed   node/nlk8s-node01                                                  rpc error: code = DeadlineExceeded desc = context deadline exceeded
-default                  10m         Warning   ImageGCFailed       node/nlk8s-node01                                                  rpc error: code = DeadlineExceeded desc = context deadline exceeded
+kube-system              59m         Warning   Unhealthy         pod/cilium-operator-84c4fb58c7-jlhkp                                    Readiness probe failed: Get "http://127.0.0.1:9234/healthz": dial tcp 127.0.0.1:9234: connect: connection refused
+monitoring               48m         Warning   Unhealthy         pod/monitoring-kube-state-metrics-75f9fff55b-prwns                      Liveness probe failed: HTTP probe failed with statuscode: 503
+kube-system              43m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl03                                   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system              43m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system              4m57s       Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl03                                   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
