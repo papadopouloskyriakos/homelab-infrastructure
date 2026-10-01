@@ -1,8 +1,8 @@
 Building configuration...
 
-Current configuration : 25081 bytes
+Current configuration : 25143 bytes
 !
-! Last configuration change at 00:50:40 CEST Mon Aug 17 2026 by kyriakosp
+! Last configuration change at 17:32:37 CEST Thu Oct 1 2026 by kyriakosp
 !
 version 17.9
 service timestamps debug datetime msec
@@ -692,6 +692,8 @@ ip access-list extended OUTSIDE_BUDGET_IN
  157 permit udp host 185.125.169.184 eq non500-isakmp any
  160 permit tcp any any established
  170 permit udp any any range 1024 65535
+ 171 permit udp host 162.159.200.1 eq ntp any eq ntp
+ 172 permit udp host 162.159.200.123 eq ntp any eq ntp
  180 permit icmp any any echo-reply
  190 permit icmp any any ttl-exceeded
  200 permit icmp any any unreachable
@@ -785,10 +787,8 @@ call-home
   destination transport-method http
 ntp logging
 ntp panic update
-ntp server 2.pool.ntp.org
-ntp server 1.pool.ntp.org
-ntp server 0.pool.ntp.org
-ntp server 3.pool.ntp.org
+ntp server 162.159.200.1 prefer
+ntp server 162.159.200.123
 !
 !
 !

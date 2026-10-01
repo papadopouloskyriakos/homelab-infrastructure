@@ -1971,8 +1971,8 @@ threat-detection basic-threat
 threat-detection scanning-threat shun except object-group whitelist_shun_nlgr_all_subnets
 threat-detection statistics
 threat-detection statistics tcp-intercept rate-interval 30 burst-rate 400 average-rate 200
-ntp server 86.59.80.170
-ntp server 148.251.69.59
+ntp server 162.159.200.1 prefer
+ntp server 162.159.200.123
 group-policy GroupPolicy_91.211.213.72 internal
 group-policy GroupPolicy_91.211.213.72 attributes
  vpn-tunnel-protocol ikev2 
@@ -2106,5 +2106,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:2d49409d169c625eb43997b314d479ae
+Cryptochecksum:caa465cb0acac1e92754fc8df91ab85b
 : end

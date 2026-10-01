@@ -1,9 +1,9 @@
 Building configuration...
 
-Current configuration : 25562 bytes
+Current configuration : 25568 bytes
 !
-! Last configuration change at 03:26:23 CEST Sat Sep 19 2026 by kyriakosp
-! NVRAM config last updated at 16:38:00 CEST Sat Aug 8 2026 by kyriakosp
+! Last configuration change at 17:31:32 CEST Thu Oct 1 2026 by kyriakosp
+! NVRAM config last updated at 17:31:32 CEST Thu Oct 1 2026 by kyriakosp
 !
 version 16.12
 no service pad
@@ -950,8 +950,8 @@ line vty 5 15
  transport input ssh
 !
 ntp logging
-ntp server 164.92.216.152
-ntp server 188.166.95.178
+ntp server 162.159.200.1 prefer
+ntp server 162.159.200.123
 !
 !
 !

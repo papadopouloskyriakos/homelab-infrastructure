@@ -1,4 +1,10 @@
+Building configuration...
+
+  
+  
+Current configuration : 10382 bytes
 !
+! Last configuration change at 02:42:07 CET Tue Mar 17 2026 by kyriakosp
 !
 version 15.6
 no service pad
@@ -12,7 +18,7 @@ boot-start-marker
 boot-end-marker
 !
 !
-logging discriminator OVERTEMP severity drops 3 facility drops FAN mnemonics drops TEMP_SENSOR_OVERTEMP
+logging discriminator OVERTEMP severity drops 3 facility drops FAN mnemonics drops TEMP_SENSOR_OVERTEMP 
 logging buffered discriminator OVERTEMP 100000
 logging rate-limit 100 except warnings
 logging console discriminator OVERTEMP
@@ -47,6 +53,7 @@ no ip source-route
 !
 !
 !
+
 
 !
 !
@@ -88,7 +95,7 @@ controller Cellular 0
  lte modem link-recovery debounce-count 6
 no cdp run
 !
-!
+! 
 !
 !
 !
@@ -175,6 +182,9 @@ ip access-list extended INTERNET-IN
  permit tcp any any established
  remark ---start dns---
  permit udp any eq domain any gt 1023
+ remark ---end---
+ permit udp host 162.159.200.1 eq ntp any eq ntp
+ permit udp host 162.159.200.123 eq ntp any eq ntp
  remark ---end dns---
  remark ---start ping---
  permit icmp any any echo-reply
@@ -185,7 +195,6 @@ ip access-list extended INTERNET-IN
  remark ---end ping---
  deny   icmp any any
  deny   ip any any
- remark ---end---
 ip access-list extended NAT_ACL
  permit ip 10.0.X.X 0.0.0.255 any
  permit ip 10.0.X.X 0.0.0.255 any
@@ -293,7 +302,7 @@ snmp-server enable traps nhrp nhs
 snmp-server enable traps nhrp nhc
 snmp-server enable traps nhrp nhp
 snmp-server enable traps nhrp quota-exceeded
-snmp-server enable traps waas
+snmp-server enable traps waas 
 snmp-server enable traps gdoi gm-start-registration
 snmp-server enable traps gdoi gm-registration-complete
 snmp-server enable traps gdoi gm-re-register
@@ -326,7 +335,7 @@ snmp-server enable traps srst
 snmp-server enable traps ethernet cfm alarm
 snmp-server enable traps mpls vpn
 snmp-server enable traps vrfmib vrf-up vrf-down vnet-trunk-up vnet-trunk-down
-snmp-server host 10.0.X.X version 2c uBnr@W9dKOu#7ifTdVbA
+snmp-server host 10.0.X.X version 2c uBnr@W9dKOu#7ifTdVbA 
 access-list 23 permit 10.0.X.X 0.0.0.255
 access-list 23 permit 10.0.X.X 0.0.0.255
 access-list 2222 permit ip 10.0.X.X 0.0.0.255 any
@@ -382,9 +391,7 @@ scheduler allocate 20000 1000
 ntp logging
 ntp panic update
 ntp server 2.pool.ntp.org
-ntp server 1.pool.ntp.org
 ntp server 3.pool.ntp.org
-ntp server 0.pool.ntp.org
 !
 !
 !
