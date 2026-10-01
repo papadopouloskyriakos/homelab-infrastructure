@@ -2,9 +2,10 @@ Building configuration...
 
   
   
-Current configuration : 10382 bytes
+Current configuration : 10462 bytes
 !
-! Last configuration change at 02:42:07 CET Tue Mar 17 2026 by kyriakosp
+! Last configuration change at 17:35:10 CEST Thu Oct 1 2026 by kyriakosp
+! NVRAM config last updated at 17:35:11 CEST Thu Oct 1 2026 by kyriakosp
 !
 version 15.6
 no service pad
@@ -390,8 +391,8 @@ line vty 5 15
 scheduler allocate 20000 1000
 ntp logging
 ntp panic update
-ntp server 2.pool.ntp.org
-ntp server 3.pool.ntp.org
+ntp server 162.159.200.1 prefer
+ntp server 162.159.200.123
 !
 !
 !

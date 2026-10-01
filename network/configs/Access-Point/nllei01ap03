@@ -1,10 +1,10 @@
 Building configuration...
 
-Current configuration : 11577 bytes
+Current configuration : 11346 bytes
 !
-! Last configuration change at 22:32:36 CEST Wed Sep 16 2026 by kyriakosp
-! NVRAM config last updated at 15:32:04 CEST Tue Sep 1 2026 by kyriakosp
-! NVRAM config last updated at 15:32:04 CEST Tue Sep 1 2026 by kyriakosp
+! Last configuration change at 17:36:13 CEST Thu Oct 1 2026 by kyriakosp
+! NVRAM config last updated at 17:36:13 CEST Thu Oct 1 2026 by kyriakosp
+! NVRAM config last updated at 17:36:13 CEST Thu Oct 1 2026 by kyriakosp
 version 15.3
 no service pad
 service tcp-keepalives-in
@@ -468,6 +468,6 @@ line vty 0 4
  transport input ssh
 !
 sntp logging
-sntp server 164.92.216.152
-sntp server 188.166.95.178
+sntp server 162.159.200.1
+sntp server 162.159.200.123
 end
