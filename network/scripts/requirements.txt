@@ -1,5 +1,6 @@
 # V1 pipeline (all devices)
-netmiko>=4.0
+netmiko>=4.0,<4.8   # 4.8.0 pulls paramiko 5: no sha1 kex, breaks IOS 15 + ASA SSH [IFRNLLEI01PRD-2908]
+paramiko<5
 
 # V2 pipeline (nlrtr01 test scope)
 hier-config>=3.0

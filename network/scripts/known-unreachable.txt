@@ -1,0 +1,4 @@
+# Devices the NL drift-sync may fail to reach WITHOUT failing the job. [IFRNLLEI01PRD-2908]
+# Format: <device> <YYYY-MM-DD expiry> <reason>
+# Every entry needs a reason and an expiry; an expired entry fails the job again.
+# Delete the line as soon as the device is reachable. Empty = every device must be reached.

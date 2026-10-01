@@ -41,17 +41,43 @@ auto_detect_and_sync_drift:
       echo "Device is source of truth - GitLab will be updated"
       echo "============================================================"
       
-      if python3 network/scripts/detect_drift.py 2>&1 | tee drift_report.txt; then
-        echo "All devices in sync with GitLab"
+      # Exit codes are captured explicitly (set +e around each pipe): `$?` after
+      # `| tee` is tee's status, so the old check could never see a failure.
+      # An unreachable device is exit 3, NOT in allow_failure, so the pipeline
+      # goes red instead of reading "in sync" (GR did that for 9 days,
+      # IFRNLLEI01PRD-2907). Acknowledge a known-dead device in
+      # network/scripts/known-unreachable.txt (reason + expiry). [IFRNLLEI01PRD-2908]
+      set +e
+      python3 network/scripts/detect_drift.py 2>&1 | tee drift_report.txt
+      rc=${PIPESTATUS[0]}
+      set -e
+      echo "detect_drift exit: $rc"
+      if [ "$rc" -eq 0 ]; then
+        echo "All reachable devices in sync with GitLab"
         exit 0
+      elif [ "$rc" -eq 3 ]; then
+        echo "FAIL - unacknowledged unreachable device(s): drift state NOT verified"
+        exit 3
+      elif [ "$rc" -ne 1 ]; then
+        echo "FAIL - detect_drift.py crashed (exit $rc)"
+        exit 4
       fi
-      
+
       echo "Drift detected - syncing device configs to GitLab..."
+      set +e
       python3 network/scripts/auto_sync_drift.py 2>&1 | tee auto_sync.log
-      
-      if [ $? -eq 0 ]; then
+      rc=${PIPESTATUS[0]}
+      set -e
+      echo "auto_sync_drift exit: $rc"
+      if [ "$rc" -eq 0 ]; then
         echo "Device configs synced to GitLab successfully"
         exit 0
+      elif [ "$rc" -eq 2 ]; then
+        echo "WHITELIST GUARDRAIL BLOCKED drift - see log above"
+        exit 2
+      elif [ "$rc" -eq 3 ]; then
+        echo "FAIL - unacknowledged unreachable device(s) could not be synced"
+        exit 3
       else
         echo "WARNING - Some changes require manual review"
         exit 1
@@ -64,7 +90,8 @@ auto_detect_and_sync_drift:
     expire_in: 7 days
   allow_failure:
     exit_codes:
-      - 1
+      - 1   # partial sync / manual review
+      - 2   # whitelist guardrail block (operator action required)
 
 # ===========================================================================
 # PRE-DEPLOY DRIFT GATE - Blocks deployment if device has manual changes

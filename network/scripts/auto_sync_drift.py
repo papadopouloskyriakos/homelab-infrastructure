@@ -22,6 +22,12 @@ from netmiko import ConnectHandler
 # Import centralized filter
 sys.path.insert(0, os.path.dirname(__file__))
 from filter_dynamic_content import DynamicContentFilter
+import known_unreachable
+
+# Exit codes: 0 ok; 1 git commit/push failed; 2 whitelist guardrail blocked a
+# Firewall sync; 3 a device could not be reached and is not acknowledged in
+# known-unreachable.txt (it used to be reported as "No drift"). [IFRNLLEI01PRD-2908]
+EXIT_UNREACHABLE = 3
 
 class DriftSyncer:
     """Sync device configurations to GitLab"""
@@ -119,8 +125,10 @@ class DriftSyncer:
                 return False, None
         
         except Exception as e:
+            # Never report an unreachable device as "no drift": re-raise so
+            # sync_device_to_gitlab records it in failed_devices.
             print(f"  ERROR checking {device_name}: {str(e)[:60]}")
-            return False, None
+            raise
     
     def sync_device_to_gitlab(self, device_type, device_name):
         """Sync device config to GitLab"""
@@ -292,6 +300,14 @@ class DriftSyncer:
         # job surfaces the failure even on partial success.
         if self.blocked_devices:
             return 2
+        if self.failed_devices:
+            print("Devices that could not be synced:")
+            bad = known_unreachable.report(
+                [(name, err.strip().splitlines()[0] if err.strip() else "error")
+                 for _t, name, err in self.failed_devices],
+                known_unreachable.load_acks())
+            if bad:
+                return EXIT_UNREACHABLE
         return 0
 
 def main():

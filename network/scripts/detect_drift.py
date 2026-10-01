@@ -20,12 +20,19 @@ from netmiko import ConnectHandler
 # Import centralized filter
 sys.path.insert(0, os.path.dirname(__file__))
 from filter_dynamic_content import DynamicContentFilter
+import known_unreachable
+
+# Exit codes: 0 = every device reached and in sync; 1 = drift found (sync runs);
+# 3 = no drift among the devices reached, but at least one device could not be
+# reached and is not acknowledged in known-unreachable.txt. [IFRNLLEI01PRD-2908]
+EXIT_UNREACHABLE = 3
 
 class DriftDetector:
     """Detect configuration drift between devices and GitLab"""
     
     def __init__(self):
         self.drift_found = False
+        self.unreachable = []  # [(device, error)]: a failure, never "in sync"
         self.filter = DynamicContentFilter()  # Use centralized filter
     
     def normalize_config(self, config):
@@ -132,6 +139,7 @@ class DriftDetector:
         
         except Exception as e:
             print(f"[ERROR] {str(e)[:60]}")
+            self.unreachable.append((device_name, str(e).strip().splitlines()[0] if str(e).strip() else type(e).__name__))
             return False, f"Error: {str(e)}"
     
     def check_all_devices(self):
@@ -171,7 +179,14 @@ class DriftDetector:
         
         print()
         print("=" * 70)
-        
+
+        bad = []
+        if self.unreachable:
+            print(f"{len(self.unreachable)} device(s) could not be checked:")
+            bad = known_unreachable.report(self.unreachable, known_unreachable.load_acks())
+            print("=" * 70)
+        compared = devices_checked - len(self.unreachable)
+
         if self.drift_found:
             print("DRIFT DETECTED")
             print("=" * 70)
@@ -186,10 +201,13 @@ class DriftDetector:
             print()
             return 1
         else:
-            print("ALL DEVICES IN SYNC")
+            if bad:
+                print(f"NOT VERIFIED: {len(bad)} unacknowledged unreachable device(s); "
+                      f"{compared}/{devices_checked} compared, no drift among those")
+                print("=" * 70)
+                return EXIT_UNREACHABLE
+            print(f"ALL REACHABLE DEVICES IN SYNC ({compared}/{devices_checked} compared)")
             print("=" * 70)
-            print()
-            print(f"Checked {devices_checked} devices - all in sync with GitLab")
             return 0
 
 def main():
@@ -203,6 +221,10 @@ def main():
         
         has_drift, message = detector.check_device(device_type, device_name)
         
+        if detector.unreachable:
+            print()
+            print("UNREACHABLE")
+            sys.exit(EXIT_UNREACHABLE)
         if has_drift:
             print()
             print("DRIFT DETECTED")
