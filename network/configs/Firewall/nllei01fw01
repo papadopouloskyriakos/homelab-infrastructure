@@ -751,7 +751,7 @@ object network grclaude01_wg
  description WireGuard site peer .10, GR stepping stone (reverse OOB), one-way trust
 object network grclaude01_ddns
  fqdn v4 grclaude01.freeddns.org
- description GR stepping stone public address (own Dynu account), WireGuard udp/51820 source
+ description GR stepping stone public address (Dynu account shared with demops01 + Mudi), WireGuard udp/51820 source
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -2114,5 +2114,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:d0f068c8d1e80dae593e1c383a4b0d4b
+Cryptochecksum:963ba6bda8ce8d05d339fb1e3ed82f27
 : end
