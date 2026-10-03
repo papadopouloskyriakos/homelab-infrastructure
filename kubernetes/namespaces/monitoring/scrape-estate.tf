@@ -364,6 +364,32 @@ locals {
       ]
     },
 
+    # Frigate recording health — node_exporter textfile on nlfrigate01.
+    # 27 September to 3 October 2026 Frigate recorded onto its LXC rootfs
+    # (docker started before the NFS mount) with every signal green.
+    # Producer: docker/nlfrigate01/frigate/host/frigate-recording-exporter/.
+    # metric_relabel keeps ONLY the frigate_* series and the textfile mtime: an
+    # LXC's node_exporter serves the HOST's load/PSI/memory, which would hand
+    # every unscoped host-pressure rule a false nlfrigate01.
+    {
+      job_name = "frigate-recording"
+      static_configs = [{
+        targets = [
+          "10.0.X.X:9100", # nlfrigate01 (LXC 101101404 on pve04)
+        ]
+        labels = {
+          role = "nvr"
+          site = "nl"
+        }
+      }]
+      relabel_configs = [
+        { source_labels = ["__address__"], regex = "192\\.168\\.181\\.179:.*", target_label = "instance", replacement = "nlfrigate01" },
+      ]
+      metric_relabel_configs = [
+        { source_labels = ["__name__"], regex = "frigate_.*|node_textfile_mtime_seconds|node_textfile_scrape_error", action = "keep" },
+      ]
+    },
+
     # (PVE-host exporter jobs moved OUT of the estate scrape 2026-08-26:
     # they are now per-site canonical jobs in main.tf driven by var.pve_hosts —
     # each cluster scrapes its own PVE hosts; see pve-host-alerts.tf.)

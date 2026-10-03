@@ -41,6 +41,66 @@ resource "kubernetes_manifest" "estate_alert_rules" {
     spec = {
       groups = [
         {
+          # Frigate NVR recording health (nlfrigate01). 27 September to
+          # 3 October 2026 dockerd started frigate before /volume1/frigate was
+          # mounted; the container bind-mounted the empty rootfs dir and
+          # recorded onto the 30 G LXC rootfs, pruned to minutes, for 6 days,
+          # container healthy throughout. Two independent signals: the
+          # container's own fs type, and segment freshness ON THE NAS.
+          # Producer + runbook: docker/nlfrigate01/frigate/CLAUDE.md.
+          name = "custom-frigate"
+          rules = [
+            {
+              alert = "REDACTED_42d1c7f0"
+              expr  = "frigate_recordings_storage_is_nfs == 0"
+              for   = "5m"
+              labels = {
+                severity = "critical"
+              }
+              annotations = {
+                summary     = "Frigate is recording onto the LXC rootfs, not the NAS"
+                description = "/media/frigate inside the frigate container on {{ $labels.instance }} is not NFS: footage goes to the 30 G LXC rootfs and Frigate prunes it to minutes. Usual cause: the container started before /volume1/frigate was mounted. Fix: confirm 'mountpoint /volume1/frigate' in the LXC, then 'docker compose -f /srv/frigate/docker-compose.yml restart'; recover the hidden underlay per docker/nlfrigate01/frigate/CLAUDE.md."
+              }
+            },
+            {
+              alert = "FrigateNotRecording"
+              expr  = "min by (instance) (frigate_recordings_newest_segment_age_seconds) > 900"
+              for   = "5m"
+              labels = {
+                severity = "critical"
+              }
+              annotations = {
+                summary     = "No Frigate camera has written a segment to the NAS in 15 min"
+                description = "The newest recording segment on the NAS across ALL cameras is {{ $value | humanizeDuration }} old on {{ $labels.instance }}. Frigate is down, recording elsewhere (see REDACTED_42d1c7f0), or the NFS mount is hung (frigate_recordings_nas_probe_ok)."
+              }
+            },
+            {
+              alert = "REDACTED_2b43de59"
+              expr  = "frigate_recordings_newest_segment_age_seconds > 3600"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+              }
+              annotations = {
+                summary     = "Frigate camera {{ $labels.camera }} has written no segment in over 1h"
+                description = "Camera {{ $labels.camera }} has no recording segment on the NAS for {{ $value | humanizeDuration }} while others may still record. GR cameras (05-08) cross the NL-GR IPsec mesh: check the tunnel and the camera's ffmpeg in 'docker logs frigate'."
+              }
+            },
+            {
+              alert = "REDACTED_f7eda4cb"
+              expr  = "up{job=\"frigate-recording\"} == 0 or (time() - node_textfile_mtime_seconds{job=\"frigate-recording\"}) > 300"
+              for   = "10m"
+              labels = {
+                severity = "warning"
+              }
+              annotations = {
+                summary     = "Frigate recording-health metrics on {{ $labels.instance }} are not fresh"
+                description = "node_exporter on nlfrigate01 is unreachable or frigate_recording.prom has not been rewritten in over 5 min, so the Frigate recording alerts are blind. Check 'systemctl status frigate-recording-exporter.timer prometheus-node-exporter' in the LXC."
+              }
+            }
+          ]
+        },
+        {
           # Pacemaker cluster (HAHA / IoT) — catches forgotten "crm node standby"
           # state. Today's incident: weekly-update playbook left iot02 in standby
           # for ~16h with zero alerting, so the cluster lost failover redundancy
