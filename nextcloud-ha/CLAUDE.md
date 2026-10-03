@@ -394,7 +394,7 @@ and the true node in one shot.
 1. FreeIPA (admin pw from OpenBao `secret/ci/freeipa`): `ipa dnsrecord-del example.net redis --a-rec=10.0.X.X`, same for `code` (.140) and `proxysql` (.152). Then `resolvectl flush-caches` on nc01.
 2. NL NPM (LXC 101100401 pve03) and GR NPM (LXC 201020401 gr-pve01), container `npm`: in `/data/nginx/custom/http_top.conf` mark `server 10.0.X.X:443 down;`, `nginx -t && nginx -s reload`. Backups `http_top.conf.bak-20260930-pve01-down`.
 3. `pct start 103101008` (code02) if Collabora is down.
-**Revert when pve01 is back** (after haproxy01 and proxysql01 answer): `ipa dnsrecord-add` the three records, restore both `http_top.conf` from the backups and reload. Not needed: imaginary. `REDACTED_08e8170a` points at imaginary01 but `OC\Preview\Imaginary` is not in `enabledPreviewProviders`, so it is inert.
+**Revert when pve01 is back** (after haproxy01 and proxysql01 answer): `ipa dnsrecord-add` the three records, restore both `http_top.conf` from the backups and reload. Done 3 October 2026 after the pve01 NVMe swap: DNS re-added, NL NPM restored from its backup, GR NPM by deleting the `down` marker (its `.bak` was written AFTER the edit, so it also says `down`: check a backup with `diff` before trusting it). code02 left running. Not needed: imaginary. `REDACTED_08e8170a` points at imaginary01 but `OC\Preview\Imaginary` is not in `enabledPreviewProviders`, so it is inert.
 
 ### FreeIPA/LDAP auth failures
 **Check:** `ssh nl-pve03 "pct exec 101100301 -- ipactl status"` (all 9 services should be RUNNING)
