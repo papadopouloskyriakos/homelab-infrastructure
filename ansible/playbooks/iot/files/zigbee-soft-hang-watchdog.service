@@ -1,0 +1,12 @@
+[Unit]
+Description=HAHA Zigbee coordinator soft-hang watchdog (detector + in-place healer)
+# Proactively catches CC2652P7 radio soft-hangs that Pacemaker cannot see (z2m
+# stays Started, web-UI monitor green) and heals them in place without a group
+# failover. See /usr/local/sbin/zigbee_soft_hang_watchdog.sh.
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/zigbee_soft_hang_watchdog.sh
+# Hard cap so a wedged sshpass/switch interaction can never stall the timer.
+TimeoutStartSec=300
