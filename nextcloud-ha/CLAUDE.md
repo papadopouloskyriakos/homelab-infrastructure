@@ -386,7 +386,7 @@ and the true node in one shot.
 
 ### Collabora not loading documents
 **Check:** `docker logs collabora` on code02 (nl-pve03, VMID 103101008, haproxy02's primary) or code01 (nl-pve01, VMID 101101205, backup)
-**HAProxy:** haproxy02 has code02 PRIMARY + code01 BACKUP. code02 is `onboot: 0`: if both are down, `pct start 103101008` on pve03 is the fix (done 2026-09-30).
+**HAProxy:** haproxy02 has code02 PRIMARY + code01 BACKUP. **BOTH are `onboot: 0`** (code01 101101205 on pve01 too, found 2026-10-03), so after any pve01 boot Collabora stays down until one is started by hand: after a pve01 reboot run `pct start 101101205` on pve01 and check discovery (`curl -sk https://10.0.X.X:9980/hosting/discovery` = 200). Fixing code01 to `onboot: 1` is pending an operator decision (IFRNLLEI01PRD-2902). `pct start 103101008` on pve03 is the other way out (done 2026-09-30).
 
 ### Nextcloud slow (not down) while nl-pve01 is down (2026-09-30, IFRNLLEI01PRD-2902)
 **Signature:** nc01 answers `status.php` in ~15 ms direct (`curl --resolve nextcloud.example.net:443:10.0.X.X`) and via haproxy02 (.158), but through the public name it takes 3 s (NL NPM) or ~90 s (GR NPM) on some requests. nc01 load is idle. No layer is down; clients keep trying the dead pve01 members of every "HA" pair: DNS RR (`redis`, `proxysql`, `code` all list a pve01 IP) and nginx passive failover in the NPM upstream re-tries `.140` after every `fail_timeout`.
@@ -394,7 +394,7 @@ and the true node in one shot.
 1. FreeIPA (admin pw from OpenBao `secret/ci/freeipa`): `ipa dnsrecord-del example.net redis --a-rec=10.0.X.X`, same for `code` (.140) and `proxysql` (.152). Then `resolvectl flush-caches` on nc01.
 2. NL NPM (LXC 101100401 pve03) and GR NPM (LXC 201020401 gr-pve01), container `npm`: in `/data/nginx/custom/http_top.conf` mark `server 10.0.X.X:443 down;`, `nginx -t && nginx -s reload`. Backups `http_top.conf.bak-20260930-pve01-down`.
 3. `pct start 103101008` (code02) if Collabora is down.
-**Revert when pve01 is back** (after haproxy01 and proxysql01 answer): `ipa dnsrecord-add` the three records, restore both `http_top.conf` from the backups and reload. Done 3 October 2026 after the pve01 NVMe swap: DNS re-added, NL NPM restored from its backup, GR NPM by deleting the `down` marker (its `.bak` was written AFTER the edit, so it also says `down`: check a backup with `diff` before trusting it). code02 left running. Not needed: imaginary. `REDACTED_08e8170a` points at imaginary01 but `OC\Preview\Imaginary` is not in `enabledPreviewProviders`, so it is inert.
+**Revert when pve01 is back** (after haproxy01 and proxysql01 answer): `ipa dnsrecord-add` the three records, restore both `http_top.conf` from the backups and reload. Done 3 October 2026 after the pve01 NVMe swap: DNS re-added, NL NPM restored from its backup, GR NPM by deleting the `down` marker (its `.bak` was written AFTER the edit, so it also says `down`: check a backup with `diff` before trusting it). code02 then stopped on operator order, which took Collabora down ~1 min because code01 was not running either (see Collabora above); code01 started by hand. Not needed: imaginary. `REDACTED_08e8170a` points at imaginary01 but `OC\Preview\Imaginary` is not in `enabledPreviewProviders`, so it is inert.
 
 ### FreeIPA/LDAP auth failures
 **Check:** `ssh nl-pve03 "pct exec 101100301 -- ipactl status"` (all 9 services should be RUNNING)
