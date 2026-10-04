@@ -36,7 +36,7 @@ apps ──► proxysql.example.net:6033  (DNS RR .152 + .154, both ACTIVE — n
  Galera "eu-nl-mariadb01" (MariaDB 11.8.8)
    ├─ nlcl01mariadb01  .150  (pve04)
    ├─ nlcl01mariadb02  .151  (pve03)  ← current single writer
-   └─ nlcl01garbd01    .153  (pve01)  ← arbitrator, quorum vote only
+   └─ nlcl01garbd01    .153  (pve03 since 4 October 2026)  ← arbitrator, quorum vote only
 ```
 
 ## Host Inventory
@@ -47,7 +47,7 @@ apps ──► proxysql.example.net:6033  (DNS RR .152 + .154, both ACTIVE — n
 | nlproxysql02 | 101101008 | nl-pve03 | 10.0.X.X | ProxySQL 3.0.10. Identical config. |
 | nlcl01mariadb01 | 101101002 | nlpve04 | 10.0.X.X | MariaDB 11.8.8 Galera. Synced, Primary. **InnoDB buffer pool 1536M** (the "128MB" in older docs has been wrong since the 2026-03-20 tuning). Upgraded 11.6.2→11.8.8 LTS 2026-08-01 (native VECTOR for healthops); CT lives on pve04, not pve01 as older docs said. |
 | nlcl01mariadb02 | 101101006 | nl-pve03 | 10.0.X.X | MariaDB 11.8.8 Galera. Synced, Primary. InnoDB buffer pool 1536M. Upgraded 2026-08-01. |
-| nlcl01garbd01 | 101101007 | **nl-pve01** | 10.0.X.X | Galera Arbitrator (quorum voter, no data). galera-arbitrator-4 **26.4.27**, upgraded from Debian's 26.4.23 on 2026-08-01 — it had been left behind by the DB upgrade. The MariaDB 11.8 apt repo had to be added to this container; Debian bookworm only ships 26.4.23. ⚠ Runs on **pve01**, verified live 2026-08-28 — this line said pve02, which has been powered off since 2026-08-25; had that been true the cluster would have had no tiebreaker. **Backups fixed 2026-08-28 (IFRNLLEI01PRD-2818)**: moved from the dead pve02-pinned Tue 03:00 vzdump job into the pve01 Wed 03:00 job (`backup-1b54e7af-2d81`); the weekly PBS chain ran until 2026-08-18, missed only 08-25, and a manual run resumed it 08-28. NFS-raw rootfs → suspend-mode fallback; the brief pause is quorum-safe with both DB nodes up. Of the dead Tue job's other guests, 4 were re-homed to the pve04 Sat job the same day; the 2 quorum-critical ones (openbao02 = OpenBao raft leader, k8s-ctrl02) remain open in the same ticket. |
+| nlcl01garbd01 | 101101007 | **nl-pve03** (moved off pve01 on 4 October 2026: NFS rootfs, so `pct migrate` takes 2 s) | 10.0.X.X | Galera Arbitrator (quorum voter, no data). galera-arbitrator-4 **26.4.27**, upgraded from Debian's 26.4.23 on 2026-08-01 — it had been left behind by the DB upgrade. The MariaDB 11.8 apt repo had to be added to this container; Debian bookworm only ships 26.4.23. ⚠ Runs on **pve01**, verified live 2026-08-28 — this line said pve02, which has been powered off since 2026-08-25; had that been true the cluster would have had no tiebreaker. **Backups fixed 2026-08-28 (IFRNLLEI01PRD-2818)**: moved from the dead pve02-pinned Tue 03:00 vzdump job into the pve01 Wed 03:00 job (`backup-1b54e7af-2d81`); the weekly PBS chain ran until 2026-08-18, missed only 08-25, and a manual run resumed it 08-28. NFS-raw rootfs → suspend-mode fallback; the brief pause is quorum-safe with both DB nodes up. Of the dead Tue job's other guests, 4 were re-homed to the pve04 Sat job the same day; the 2 quorum-critical ones (openbao02 = OpenBao raft leader, k8s-ctrl02) remain open in the same ticket. |
 
 **DNS:** `proxysql.example.net` → RR 10.0.X.X + .154 (apps connect here directly, NOT via HAProxy). ⚠ **.152 REMOVED 2026-09-30 while pve01 (proxysql01) is down**: a dead RR member costs every app a connect timeout. Re-add with `ipa dnsrecord-add example.net proxysql --a-rec=10.0.X.X` once proxysql01 answers (runbook `../ncha/CLAUDE.md` § Nextcloud slow while pve01 is down, IFRNLLEI01PRD-2902).
 **Galera cluster:** `eu-nl-mariadb01`, `gcomm://10.0.X.X,10.0.X.X,10.0.X.X`, SST method: rsync
@@ -118,6 +118,7 @@ native/dbcluster/nlproxysql02/proxysql/{...}
 native/dbcluster/nlcl01garbd01/garbd/default-garb                 # /etc/default/garb — GALERA_GROUP/GALERA_NODES
 native/dbcluster/nlcl01garbd01/garbd/garbd.service                # /etc/systemd/system/garbd.service (custom unit, SIGINT kill)
 native/dbcluster/nlcl01garbd01/garbd/mariadb.sources              # /etc/apt/sources.list.d/ — the 11.8 repo garbd 26.4.27 comes from
+native/dbcluster/nlcl01mariadb0{1,2}/bin/mariadb-galera-backup-pbs.sh  # /usr/local/bin, root cron (01 03:00, 02 04:00); identical on both
 ```
 
 `runtime-config.sql` is the important one: it carries `mysql_servers`, `mysql_users`,
@@ -242,11 +243,36 @@ agent didn't. Check `ps aux | grep mysqld_exporter` before touching anything nam
 2026-08-01 ProxySQL routes all writes to mariadb02 on pve03, which already hosts nc02,
 proxysql02, haproxy02, file02 and gpu01. Losing pve03 costs the write path as well as half the
 NCHA HA cluster — ProxySQL would promote mariadb01 (pve04) out of HG 30 automatically, but the
-blast radius of a pve03 failure is larger than older docs implied. garbd01 on pve01 is the
-quorum tiebreaker; losing pve01 leaves mariadb01+mariadb02 with 2/3 quorum (fine), but losing
-pve01 **and** either DB node partitions the survivor into non-Primary.
+blast radius of a pve03 failure is larger than older docs implied. garbd01 is the quorum
+tiebreaker and, **since 4 October 2026, also runs on pve03** (pve01 is powered off): losing pve03
+now takes mariadb02 AND garbd01, leaving mariadb01 alone and non-Primary. With two NL hosts
+no placement avoids this (pve04 would pair it with mariadb01 instead). Move garbd01 back to a
+third host (NFS rootfs, 2 s) once pve01 is rebuilt.
 
 ## Troubleshooting
+
+### Galera non-Primary / mysqld will not start (4 October 2026, Known Gap 37)
+**What happened:** the nightly `mariadb-galera-backup-pbs.sh` kept a 7-day mtime window of ~6 G
+tarballs and pruned only AFTER writing a 19 G raw copy. It filled mariadb02's 99 G rootfs at
+06:01 NL; mysqld aborted at 06:45 (`status=6/ABRT`) and the restart died in wsrep recovery.
+garbd01 was frozen on the hung pve01, so mariadb01 was left alone, non-Primary, `wsrep_ready OFF`:
+every Nextcloud request got `2013 Lost connection` (500) until 13:09.
+**Fixed in the script (both nodes, `.bak-20261004` kept):** prune before AND after, keep the newest
+2 tarballs (PBS keeps the nightly history of `/srv/backup`), remove raw dirs of failed runs, skip
+with a log line unless free space >= 150% of the datadir. Check `df -h /` and
+`tail /var/log/mariadb-backup.log` on both nodes if a DB node dies around 03:00-05:00.
+**Recovery recipe:**
+1. Free the space (a failed run's raw dir `/srv/backup/<today>` is garbage).
+2. Find the most advanced node: `REDACTED_9b24442e` on a running node; on a dead one
+   `sudo -u mysql mariadbd --wsrep-recover --log-error=/tmp/r.log; grep 'Recovered position' /tmp/r.log`.
+   Same cluster UUID, higher seqno wins (4 October: 01 = 30305658 > 02 = 30165805).
+3. If the winner is still running non-Primary, bootstrap it in place:
+   **`SET GLOBAL wsrep_provider_pc_bootstrap=ON;`** MariaDB 11.8 made `wsrep_provider_options`
+   read-only (`ERROR 1238`), so the old `SET GLOBAL wsrep_provider_options='pc.bootstrap=YES'`
+   no longer works. If the winner is stopped: `safe_to_bootstrap: 1` in its grastate.dat +
+   `galera_new_cluster`.
+4. Start the other node (it rejoins by IST in seconds), then `systemctl start garb` on garbd01
+   (it fails at boot when there is no Primary to join). Expect `wsrep_cluster_size 3`.
 
 ### Database connection errors
 **Check ProxySQL:** `docker exec proxysql mysql -h127.0.0.1 -P6032 -uradmin -pradmin -e "SELECT * FROM runtime_mysql_servers;"`

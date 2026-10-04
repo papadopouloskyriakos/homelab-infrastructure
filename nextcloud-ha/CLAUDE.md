@@ -243,8 +243,8 @@ What Nextcloud needs to know: it connects to `proxysql.example.net:6033` (DNS RR
 
 Live placement verified 2026-09-30 (`pvesh get /cluster/resources`); nc01/nc02 have swapped hosts since the lists were written.
 
-**nl-pve01 (10.0.X.X):** nlhaproxy01, **nlnc02**, proxysql01, redis01, nlcl01file01, code01, **imaginary01, whiteboard01**, garbd01
-**nl-pve02 (10.0.X.X):** **POWERED OFF since 2026-08-25** (pending decommission decision). Its former guests migrated: garbd01 → pve01, redis02 → pve04 (both verified live 2026-08-28).
+**nl-pve01 (10.0.X.X):** nlhaproxy01, **nlnc02**, proxysql01, redis01, nlcl01file01, code01, **imaginary01, whiteboard01**. **All STOPPED: pve01 is powered off since 4 October 2026** (failing NVMe, YT-2864); garbd01 moved to pve03 that day
+**nl-pve02 (10.0.X.X):** **POWERED OFF since 2026-08-25** (pending decommission decision). Its former guests migrated: garbd01 → pve01 (→ pve03 on 4 October 2026), redis02 → pve04 (verified live 2026-08-28).
 **nl-pve03 (10.0.X.X):** nlnpm01, nlfreeipa01, nlhaproxy02, proxysql02, mariadb02, redis03, nlcl01file02, code02, hpb01 (stopped), nlgpu01
 **nlpve04:** **nlnc01**, redis02, **mariadb01** — migrated off pve01; the host table (now in `../dbcluster/CLAUDE.md`) has said pve04 for a while but this list still said pve01. Verify placement with `pve_list_lxc`/`pvesh get /cluster/resources`, never from the VMID prefix.
 
@@ -394,7 +394,7 @@ and the true node in one shot.
 1. FreeIPA (admin pw from OpenBao `secret/ci/freeipa`): `ipa dnsrecord-del example.net redis --a-rec=10.0.X.X`, same for `code` (.140) and `proxysql` (.152). Then `resolvectl flush-caches` on nc01.
 2. NL NPM (LXC 101100401 pve03) and GR NPM (LXC 201020401 gr-pve01), container `npm`: in `/data/nginx/custom/http_top.conf` mark `server 10.0.X.X:443 down;`, `nginx -t && nginx -s reload`. Backups `http_top.conf.bak-20260930-pve01-down`.
 3. `pct start 103101008` (code02) if Collabora is down.
-**Revert when pve01 is back** (after haproxy01 and proxysql01 answer): `ipa dnsrecord-add` the three records, restore both `http_top.conf` from the backups and reload. Done 3 October 2026 after the pve01 NVMe swap: DNS re-added, NL NPM restored from its backup, GR NPM by deleting the `down` marker (its `.bak` was written AFTER the edit, so it also says `down`: check a backup with `diff` before trusting it). code02 then stopped on operator order, which took Collabora down ~1 min because code01 was not running either (see Collabora above); code01 started by hand. Not needed: imaginary. `REDACTED_08e8170a` points at imaginary01 but `OC\Preview\Imaginary` is not in `enabledPreviewProviders`, so it is inert.
+**APPLIED AGAIN 4 October 2026** for the pve01 power-off (pve01 stays off until new NVMe): only `proxysql` .152 needed deleting (`redis` and `code` already listed `.158` only), and both NPMs got `.140 down` with backups `http_top.conf.bak-20261004-pve01-off` taken BEFORE the edit. Nextcloud 200 in ~0.04 s on the nc01 half. **Revert when pve01 is back** (after haproxy01 and proxysql01 answer): `ipa dnsrecord-add` the three records, restore both `http_top.conf` from the backups and reload. Done 3 October 2026 after the pve01 NVMe swap: DNS re-added, NL NPM restored from its backup, GR NPM by deleting the `down` marker (its `.bak` was written AFTER the edit, so it also says `down`: check a backup with `diff` before trusting it). code02 then stopped on operator order, which took Collabora down ~1 min because code01 was not running either (see Collabora above); code01 started by hand. Not needed: imaginary. `REDACTED_08e8170a` points at imaginary01 but `OC\Preview\Imaginary` is not in `enabledPreviewProviders`, so it is inert.
 
 ### FreeIPA/LDAP auth failures
 **Check:** `ssh nl-pve03 "pct exec 101100301 -- ipactl status"` (all 9 services should be RUNNING)
