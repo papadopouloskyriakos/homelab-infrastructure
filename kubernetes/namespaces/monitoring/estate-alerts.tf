@@ -461,6 +461,26 @@ resource "kubernetes_manifest" "estate_alert_rules" {
               }
             },
             {
+              # A call the phone still counts as active after 2 h (operator limit,
+              # 4 October 2026): a handset left off its base or a call that never
+              # ended. While it lasts the phone refuses every settings save and its
+              # own web reboot. Push only, never an automatic reboot: in the logs
+              # since 2024 the counter stayed up for over 2 h about weekly and nearly
+              # always cleared by itself, sometimes during real long calls.
+              alert = "REDACTED_8f08474c"
+              expr  = "gr_sip_open_call_age_seconds > 7200"
+              for   = "5m"
+              labels = {
+                severity = "critical"
+                tier     = "1"
+                service  = "gr-sip-phone"
+              }
+              annotations = {
+                summary     = "GR phone: a call has been open for {{ $value | humanizeDuration }}"
+                description = "grskg02sip01 has counted a call as active for over 2 h (gr_sip_call_counter > 0). Check its syslog on grsyslogng01 (/mnt/logs/syslog-ng/grskg02sip01/) for a real long call first. If it is stuck: ask the family to put the handset back on its base; otherwise power-cycle the base via Home Assistant switch.gr_alcatel_socket (off ~15 s, on; lines back in ~1 min). Runbook: gr repo native/grskg02sip01/README.md."
+              }
+            },
+            {
               alert = "GrSipMetricsStale"
               expr  = "time() - gr_sip_metrics_last_run_timestamp_seconds > 1800 or absent(gr_sip_metrics_last_run_timestamp_seconds)"
               for   = "10m"
