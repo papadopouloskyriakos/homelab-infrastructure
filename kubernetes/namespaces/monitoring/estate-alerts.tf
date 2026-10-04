@@ -432,6 +432,49 @@ resource "kubernetes_manifest" "estate_alert_rules" {
             },
           ]
         },
+        {
+          # GR family phone lines (grskg02sip01, Alcatel IP2215 -> Yuboto). On 4, 8,
+          # 19, 22-23 and 29 September 2026 both lines failed every registration
+          # refresh for hours (provider side: the defra01agri01 Yuboto trunk went
+          # Unreachable in the same hours) and nothing alerted: GR LibreNMS only
+          # pings the phone. Producer: ~/scripts/gr-sip-registration-metrics.py
+          # on nlclaude01 (cron */5), parsing the phone's syslog on
+          # grsyslogng01; it fails closed, so a dead producer shows as
+          # GrSipMetricsStale, never as zeros. Blind spot: the phone's log is NOT
+          # a registration state; during the 7-11 August lockout (registration
+          # refused for 3.5 days) it logged nothing, so a line that is simply DOWN
+          # is not covered here (needs the phone's status page). Runbook:
+          # infrastructure/gr/production native/grskg02sip01/CLAUDE.md.
+          name = "gr-sip-phone"
+          rules = [
+            {
+              alert = "REDACTED_756169e9"
+              expr  = "gr_sip_register_failures_30m >= 3"
+              for   = "10m"
+              labels = {
+                severity = "warning"
+                service  = "gr-sip-phone"
+              }
+              annotations = {
+                summary     = "GR phone line {{ $labels.line }} keeps failing SIP registration ({{ $value }} in 30 min)"
+                description = "grskg02sip01 account {{ $labels.account }} ({{ $labels.line }}) logged {{ $value }} 'Register account: Failed' in 30 min; calls to it fail in each gap. Both lines at once = Yuboto or the GR WAN: compare defra01agri01 'docker logs ng_asterisk | grep Unreachable' (Yuboto from Frankfurt). NEVER probe via Yuboto portal logins (30-min lockout kills all lines)."
+              }
+            },
+            {
+              alert = "GrSipMetricsStale"
+              expr  = "time() - gr_sip_metrics_last_run_timestamp_seconds > 1800 or absent(gr_sip_metrics_last_run_timestamp_seconds)"
+              for   = "10m"
+              labels = {
+                severity = "warning"
+                service  = "gr-sip-phone"
+              }
+              annotations = {
+                summary     = "GR phone registration metrics are not being refreshed"
+                description = "gr-sip-registration-metrics.py on nlclaude01 has not completed in 30 min (log: ~/logs/gr-sip-registration-metrics.log), usually ssh to grsyslogng01 failing (NL-GR partition?). While this fires the gr-sip-phone alerts are blind."
+              }
+            },
+          ]
+        },
       ]
     }
   }
