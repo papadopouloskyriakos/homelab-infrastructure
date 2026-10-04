@@ -135,6 +135,43 @@ resource "kubernetes_manifest" "estate_alert_rules" {
           ]
         },
         {
+          # Home Assistant recorder (IFRNLLEI01PRD-2402). 30 Sep - 4 Oct 2026 the
+          # recorder wedged (StaleDataError on every commit) and wrote nothing for
+          # 4 days while HA, Gatus and Pacemaker all read green. The metric is the
+          # newest mtime of home-assistant_v2.db / -wal, emitted every 60s only by
+          # the node holding /mnt/iot (native/haha/ha-recorder-exporter/). Because
+          # the value IS a timestamp, a dead exporter on the active node ages it
+          # and fires the Stale rule too; Absent covers "no node emits at all".
+          # Healthy write cadence is seconds, so 15 min of silence is never normal.
+          name = "custom-homeassistant"
+          rules = [
+            {
+              alert = "REDACTED_8931647b"
+              expr  = "(time() - max(ha_recorder_db_last_write_timestamp_seconds)) > 900"
+              for   = "5m"
+              labels = {
+                severity = "warning"
+              }
+              annotations = {
+                summary     = "Home Assistant recorder has not written to its DB in >15m"
+                description = "home-assistant_v2.db and its WAL have not been modified for {{ $value | humanizeDuration }}. HA may still serve normally while recording no history (2026-09-30: StaleDataError wedge, 4 days lost). Check 'docker logs homeassistant | grep -i recorder' on the active node; the fix that worked is an HA core restart with 'crm resource maintenance g_iot_stack on' (native/haha/CLAUDE.md, Restarting Home Assistant safely). Also fires if HA itself is down."
+              }
+            },
+            {
+              alert = "REDACTED_74d3b956"
+              expr  = "absent(ha_recorder_db_last_write_timestamp_seconds)"
+              for   = "15m"
+              labels = {
+                severity = "warning"
+              }
+              annotations = {
+                summary     = "No IoT node reports the Home Assistant recorder last-write time"
+                description = "ha_recorder_db_last_write_timestamp_seconds is missing, so REDACTED_8931647b is blind. Either /mnt/iot is mounted nowhere (g_iot_stack down) or the active node lacks ha-recorder-exporter.timer: install it from native/haha/ha-recorder-exporter/ (it was installed on iot02 only on 2026-10-04, iot01 was offline)."
+              }
+            }
+          ]
+        },
+        {
           # OMOIKANE-1485 follow-up, 2026-08-23.
           #
           # Generalises REDACTED_d78e0784 above, which guards ONE
