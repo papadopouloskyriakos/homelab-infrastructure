@@ -174,6 +174,8 @@ resource "REDACTED_a9df2e77" "REDACTED_dae6e5e3" {
 # My Money — UNIFIED dashboard (uid finops). Fuses the former finops-simple +
 # (2026-08-10: + Projects&AI pay-cycle table, folder-OCR status, online-services slug rename)
 # (2026-08-10 r2: audit fixes — JOIN labels from categories.name, total-first cycle table)
+# (2026-09-18: Projects&AI table + project-robotics — the Microduck build, first shows once the Sep card month completes)
+# (2026-10-05: + REDACTED_df23b43d; the table now takes every project-% slug, so a new project shows without an edit)
 # finops-details + finops-behavior into ONE page: calm single-hue blue, plain-word
 # value mappings, variance-first, live SQL on the ledger, 30-min auto-refresh.
 # Sections: ① right now ② this month ③ where it goes ④ trends ⑤ data health.
