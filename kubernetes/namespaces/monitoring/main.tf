@@ -968,11 +968,13 @@ resource "helm_release" "monitoring" {
               timeInterval = "30s"
             }
           },
+          # finops-ledger: the DNS-RR alias, never one node — proxysql01 sits on pve01 (off since ~30 Sep 2026) and
+          # the alias drops a dead member (native/dbcluster/CLAUDE.md); pinned, the finops dashboard went dark.
           {
             name      = "finops-ledger"
             type      = "mysql"
             uid       = "finops-ledger"
-            url       = "nlproxysql01.example.net:6033"
+            url       = "proxysql.example.net:6033"
             database  = "finops"
             user      = "grafana_ro"
             access    = "proxy"
