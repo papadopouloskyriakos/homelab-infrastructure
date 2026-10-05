@@ -119,6 +119,12 @@ refuses to reboot if the symlink assertions fail. Nodes are done **serially** wi
 LibreNMS maintenance, so OS patching IS rolling (the shared-OCFS2 no-rolling constraint
 applies only to the Nextcloud code dir, not the OS). Verified worked 2026-08-05 (job 34099).
 
+**⚠ It does NOT stop when a node is unreachable (found 2026-10-05).** In job 40868 (2026-10-03)
+nc02 was down with pve01. Pre-flight dropped it silently, and the play then upgraded and **rebooted nc01, the only
+live frontend**, which caused a full Nextcloud outage. The summary still claimed both nodes were updated. Until the playbook
+aborts on an unreachable node, pause schedule 14 whenever nc01 or nc02 is down. Detail: common repo
+`CLAUDE.md`, Nextcloud weekly details.
+
 **🔴 THE APP TIER CANNOT BE ROLLING-UPGRADED.** `/var/www/nextcloud` is a **shared** NFSv4.2
 mount of `10.0.X.X:/mnt/ocfs2/nextcloud/nextcloud-app` on **both** nc01 and nc02 — they
 execute the *same files*, and both report the same version because there is only one copy. So:
