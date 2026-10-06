@@ -90,6 +90,7 @@ locals {
         targets = [
           "10.0.X.X:9100", # nlclaude01 - Claude Code + n8n
           "10.0.X.X:9100", # nlgpu01 - Ollama + RTX 3090 Ti
+          "10.0.X.X:9100",  # nlpaops01 - personal assistant voice stack (Asterisk + agent), paops.prom textfiles
         ]
         labels = {
           role = "chatops"
@@ -98,6 +99,7 @@ locals {
       relabel_configs = [
         { source_labels = ["__address__"], regex = "192\\.168\\.181\\.111:.*", target_label = "instance", replacement = "nlclaude01" },
         { source_labels = ["__address__"], regex = "192\\.168\\.181\\.181:.*", target_label = "instance", replacement = "nlgpu01" },
+        { source_labels = ["__address__"], regex = "192\\.168\\.181\\.98:.*", target_label = "instance", replacement = "nlpaops01" },
         { source_labels = ["__address__"], regex = "192\\.168\\.181\\..*", target_label = "site", replacement = "nl" },
       ]
     },
