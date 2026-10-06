@@ -3,21 +3,21 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-10-05 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-10-06 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: DEGRADED ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 5 |
+| Unhealthy Pods | 4 |
 | Pending PVCs | 0 |
-| Total Restarts | 3092 |
+| Total Restarts | 3094 |
 
 ## Topology
 
 - **K8s:** v1.36.3 | **CNI:** Cilium 1.20.0
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 176
+- **Pods:** 175
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8002680Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -32,15 +32,14 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-cnpg-system              cnpg-janitor-29851943-5qvdj                                       0/1   Error       0                14h
-monitoring               meshsat-status-heartbeat-29850312-jbpn8                           0/1   Error       0                41h
-monitoring               meshsat-status-heartbeat-29851410-v2lzg                           0/1   Error       0                23h
-monitoring               meshsat-status-heartbeat-29851857-cvf46                           0/1   Error       0                16h
-velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error       0                11d
+monitoring               meshsat-status-heartbeat-29850312-jbpn8                           0/1   Error       0                2d17h
+monitoring               meshsat-status-heartbeat-29851410-v2lzg                           0/1   Error       0                47h
+monitoring               meshsat-status-heartbeat-29851857-cvf46                           0/1   Error       0                40h
+velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error       0                12d
 ```
 
 ### High Restart Pods (>3)
-argocd/argocd-application-controller-0: 30 restarts
+argocd/argocd-application-controller-0: 32 restarts
 awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 47 restarts
 awx/my-awx-task-756d768868-bslc2: 6 restarts
 cert-manager/cert-manager-75944f484-k8x88: 18 restarts
@@ -115,7 +114,7 @@ velero                   42m         Warning   PolicyViolation   replicaset/vele
 velero                   42m         Warning   PolicyViolation   replicaset/velero-ui-7bcfc7d884                                         policy restrict-seccomp-strict/autogen-check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/containers/0/securityContext/
 velero                   42m         Warning   PolicyViolation   deployment/velero-ui                                                    policy disallow-privilege-escalation/autogen-privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule autogen-privilege-escalation failed at path /spec/template/spec/containers/0/securityContext/
 velero                   42m         Warning   PolicyViolation   deployment/velero-ui                                                    policy restrict-seccomp-strict/autogen-check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/containers/0/securityContext/
-velero                   42m         Warning   PolicyViolation   deployment/velero                                                       policy restrict-seccomp-strict/autogen-check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/initContainers/0/securityContext/
+velero                   42m         Warning   PolicyViolation   deployment/velero                                                       policy disallow-privilege-escalation/autogen-privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule autogen-privilege-escalation failed at path /spec/template/spec/initContainers/0/securityContext/
 ```
 
 ## Key Resources
