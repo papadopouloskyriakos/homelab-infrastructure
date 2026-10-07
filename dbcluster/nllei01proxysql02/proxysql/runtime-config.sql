@@ -41,6 +41,7 @@ INSERT INTO mysql_users (username,password,default_hostgroup,active,transaction_
 INSERT INTO mysql_users (username,password,default_hostgroup,active,transaction_persistent,max_connections) VALUES ('monitor','REDACTED_3585623d',1,1,1,10000);
 INSERT INTO mysql_users (username,password,default_hostgroup,active,transaction_persistent,max_connections) VALUES ('n8n_finops','REDACTED_8f6b408a',10,1,1,10000);
 INSERT INTO mysql_users (username,password,default_hostgroup,active,transaction_persistent,max_connections) VALUES ('nextcloud','REDACTED_4c3eafd9',0,1,1,10000);
+INSERT INTO mysql_users (username,password,default_hostgroup,active,transaction_persistent,max_connections) VALUES ('paops_ro','*E6BF0411D47F5D1FEBE8312CE06F86867A82B4BC',20,1,1,5);
 INSERT INTO mysql_users (username,password,default_hostgroup,active,transaction_persistent,max_connections) VALUES ('paperless','49433ffe662e7a8923fdfead6d6b2fee',10,1,1,10000);
 
 LOAD MYSQL SERVERS TO RUNTIME;      SAVE MYSQL SERVERS TO DISK;
