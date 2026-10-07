@@ -536,8 +536,6 @@ object network NAT_inside_room_d
  subnet 10.0.X.X 255.255.255.224
 object network nlplex01
  host 10.0.X.X
-object network MARIA_GEORGIADOU_INALAN
- fqdn v4 mewmewmewmew.mooo.com
 object network plex_sino_01
  host 154.57.9.129
 object network nlpihole02
@@ -898,7 +896,6 @@ object-group network WHITELIST_KYRIAKOS
  network-object object defra01agri01
 object-group network WHITELIST_OAS
  group-object WHITELIST_KYRIAKOS
- network-object object MARIA_GEORGIADOU_INALAN
  network-object object notrf01dmz01
  network-object object notrf01dmz02
  network-object object georgez_home
@@ -906,7 +903,6 @@ object-group network WHITELIST_OAS
 object-group network WHITELIST_PLEX
  group-object WHITELIST_KYRIAKOS
  network-object object plex_sino_01
- network-object object MARIA_GEORGIADOU_INALAN
  network-object object MARIA_GEORGIADOU_INALAN_IP
 object-group network S2S_SKG_GRP_inside_nfs
  network-object object GR_network-inside_nfs
@@ -2119,5 +2115,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:527890244fd8fb866561f279f3e44248
+Cryptochecksum:44c716024b8b27ffddb4d58d6e66cf88
 : end
