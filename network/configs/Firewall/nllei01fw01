@@ -752,6 +752,9 @@ object network grclaude01_wg
 object network grclaude01_ddns
  fqdn v4 grclaude01.freeddns.org
  description GR stepping stone public address (Dynu account shared with demops01 + Mudi), WireGuard udp/51820 source
+object network MARIA_GEORGIADOU_INALAN_IP
+ host 149.107.47.244
+ description Maria Georgiadou home (Inalan AS200736); mewmewmewmew.mooo.com lapsed after router swap; 2026-10-07
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -899,10 +902,12 @@ object-group network WHITELIST_OAS
  network-object object notrf01dmz01
  network-object object notrf01dmz02
  network-object object georgez_home
+ network-object object MARIA_GEORGIADOU_INALAN_IP
 object-group network WHITELIST_PLEX
  group-object WHITELIST_KYRIAKOS
  network-object object plex_sino_01
  network-object object MARIA_GEORGIADOU_INALAN
+ network-object object MARIA_GEORGIADOU_INALAN_IP
 object-group network S2S_SKG_GRP_inside_nfs
  network-object object GR_network-inside_nfs
 object-group network S2S_SKG_GRP_inside_corosync
@@ -2114,5 +2119,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:963ba6bda8ce8d05d339fb1e3ed82f27
+Cryptochecksum:527890244fd8fb866561f279f3e44248
 : end
