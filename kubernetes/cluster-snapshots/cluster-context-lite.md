@@ -3,25 +3,25 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-10-07 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-10-08 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
-## Health: DEGRADED ⚠️
+## Health: CRITICAL ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 4 |
+| Unhealthy Pods | 7 |
 | Pending PVCs | 0 |
-| Total Restarts | 3097 |
+| Total Restarts | 3125 |
 
 ## Topology
 
 - **K8s:** v1.36.3 | **CNI:** Cilium 1.20.0
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 175
+- **Pods:** 178
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8002680Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
-- **nlk8s-ctrl02** (control-plane) 10.0.X.X | CPU:4 Mem:8092Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule,node.kubernetes.io/unreachable=:NoSchedule,node.kubernetes.io/unreachable=:NoExecute,node.cilium.io/agent-not-ready=:NoSchedule
+- **nlk8s-ctrl02** (control-plane) 10.0.X.X | CPU:4 Mem:8092Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule,node.kubernetes.io/unreachable=:NoSchedule,node.cilium.io/agent-not-ready=:NoSchedule,node.kubernetes.io/unreachable=:NoExecute
 - **nlk8s-ctrl03** (control-plane) 10.0.X.X | CPU:4 Mem:8003704Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-node01** (worker) 10.0.X.X | CPU:8 Mem:10054396Ki | Taints:node.kubernetes.io/unschedulable=:NoSchedule,node.kubernetes.io/unreachable=:NoSchedule,node.cilium.io/agent-not-ready=:NoSchedule,node.kubernetes.io/unreachable=:NoExecute
 - **nlk8s-node02** (worker) 10.0.X.X | CPU:8 Mem:10054404Ki | Taints:none
@@ -32,18 +32,21 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-monitoring               meshsat-status-heartbeat-29851857-cvf46                           0/1   Error       0                 2d16h
-monitoring               meshsat-status-heartbeat-29854452-76r9j                           0/1   Error       0                 20h
-monitoring               meshsat-status-heartbeat-29854897-xrsvd                           0/1   Error       0                 13h
-velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error       0                 13d
+cnpg-system              cnpg-janitor-29856743-ztjdz                                       0/1   Error       0                 6h37m
+cnpg-system              cnpg-janitor-29856803-nh4q6                                       0/1   Error       0                 5h37m
+cnpg-system              cnpg-janitor-29856923-nnpdq                                       0/1   Error       0                 3h37m
+monitoring               meshsat-status-heartbeat-29854452-76r9j                           0/1   Error       0                 44h
+monitoring               meshsat-status-heartbeat-29854897-xrsvd                           0/1   Error       0                 37h
+monitoring               meshsat-status-heartbeat-29856398-vntsk                           0/1   Error       0                 12h
+velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error       0                 14d
 ```
 
 ### High Restart Pods (>3)
-argocd/argocd-application-controller-0: 35 restarts
-awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 47 restarts
+argocd/argocd-application-controller-0: 36 restarts
+awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 48 restarts
 awx/my-awx-task-756d768868-bslc2: 6 restarts
-cert-manager/cert-manager-75944f484-k8x88: 18 restarts
-cert-manager/cert-manager-cainjector-74f994b988-shnfp: 20 restarts
+cert-manager/cert-manager-75944f484-k8x88: 19 restarts
+cert-manager/cert-manager-cainjector-74f994b988-shnfp: 21 restarts
 cilium-spire/spire-agent-2xj9z: 276 restarts
 cilium-spire/spire-agent-bf7g7: 278 restarts
 cilium-spire/spire-agent-hpld8: 275 restarts
@@ -51,23 +54,23 @@ cilium-spire/spire-agent-hrngt: 20 restarts
 cilium-spire/spire-agent-sm9xs: 284 restarts
 cilium-spire/spire-agent-xk8cl: 280 restarts
 cilium-spire/spire-agent-zqpt4: 288 restarts
-cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-wzdfh: 32 restarts
-cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-zl8gc: 45 restarts
+cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-wzdfh: 35 restarts
+cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-zl8gc: 49 restarts
 kube-system/cilium-c8kqc: 12 restarts
 kube-system/cilium-envoy-brdkr: 10 restarts
 kube-system/cilium-envoy-dzx97: 12 restarts
 kube-system/cilium-g5h5t: 10 restarts
-kube-system/cilium-operator-84c4fb58c7-jlhkp: 65 restarts
+kube-system/cilium-operator-84c4fb58c7-jlhkp: 68 restarts
 kube-system/etcd-nlk8s-ctrl02: 11 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 25 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 26 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 18 restarts
-kube-system/kube-apiserver-nlk8s-ctrl03: 6 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 48 restarts
+kube-system/kube-apiserver-nlk8s-ctrl03: 7 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl01: 49 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl02: 20 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl03: 42 restarts
 kube-system/kube-proxy-7jvns: 12 restarts
 kube-system/kube-proxy-jvln5: 6 restarts
-kube-system/kube-scheduler-nlk8s-ctrl01: 39 restarts
+kube-system/kube-scheduler-nlk8s-ctrl01: 40 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 12 restarts
 kube-system/kube-scheduler-nlk8s-ctrl03: 45 restarts
 kube-system/tetragon-5gk99: 9 restarts
@@ -77,8 +80,8 @@ kube-system/tetragon-jz2b6: 12 restarts
 kube-system/tetragon-mdsn9: 44 restarts
 kube-system/tetragon-tbcc7: 10 restarts
 kube-system/tetragon-vbs6v: 18 restarts
-kyverno/kyverno-admission-controller-584d7f7684-6k9gg: 49 restarts
-kyverno/kyverno-reports-controller-7bbf4b866b-rq8pt: 48 restarts
+kyverno/kyverno-admission-controller-584d7f7684-6k9gg: 50 restarts
+kyverno/kyverno-reports-controller-7bbf4b866b-rq8pt: 49 restarts
 logging/loki-canary-bbplf: 14 restarts
 logging/loki-canary-xbmzr: 4 restarts
 logging/promtail-5jr9j: 6 restarts
@@ -86,19 +89,19 @@ logging/promtail-br4rf: 5 restarts
 logging/promtail-hp5sc: 9 restarts
 logging/promtail-m2gzm: 13 restarts
 logging/promtail-ng69s: 17 restarts
-monitoring/goldpinger-fjpnh: 5 restarts
+monitoring/goldpinger-fjpnh: 6 restarts
 monitoring/goldpinger-rb96x: 11 restarts
 monitoring/goldpinger-t8x65: 12 restarts
-monitoring/monitoring-grafana-7d6c5795b8-6cvtn: 16 restarts
-monitoring/monitoring-grafana-7d6c5795b8-vbrmn: 7 restarts
-monitoring/monitoring-kube-state-metrics-75f9fff55b-prwns: 33 restarts
+monitoring/monitoring-grafana-7d6c5795b8-6cvtn: 17 restarts
+monitoring/monitoring-grafana-7d6c5795b8-vbrmn: 9 restarts
+monitoring/monitoring-kube-state-metrics-75f9fff55b-prwns: 36 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 187 restarts
 monitoring/monitoring-prometheus-node-exporter-6sc8j: 10 restarts
 monitoring/monitoring-prometheus-node-exporter-88hp8: 13 restarts
 monitoring/monitoring-prometheus-node-exporter-8bq88: 5 restarts
 monitoring/monitoring-prometheus-node-exporter-vgp6b: 5 restarts
 monitoring/monitoring-prometheus-node-exporter-wmcb8: 47 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-75b84759cfvtflq: 58 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-75b84759cfvtflq: 59 restarts
 synology-csi/synology-csi-node-4nxcz: 8 restarts
 synology-csi/synology-csi-node-kxrjb: 19 restarts
 synology-csi/synology-csi-node-l72f8: 9 restarts
@@ -110,11 +113,11 @@ velero/node-agent-54dn2: 10 restarts
 
 ### Recent Warnings (5)
 ```
-velero                   42m         Warning   PolicyViolation   replicaset/velero-ui-7bcfc7d884                                         policy disallow-privilege-escalation/autogen-privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule autogen-privilege-escalation failed at path /spec/template/spec/containers/0/securityContext/
-velero                   42m         Warning   PolicyViolation   replicaset/velero-ui-7bcfc7d884                                         policy restrict-seccomp-strict/autogen-check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/containers/0/securityContext/
-velero                   42m         Warning   PolicyViolation   deployment/velero-ui                                                    policy restrict-seccomp-strict/autogen-check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/containers/0/securityContext/
-velero                   42m         Warning   PolicyViolation   deployment/velero-ui                                                    policy disallow-privilege-escalation/autogen-privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule autogen-privilege-escalation failed at path /spec/template/spec/containers/0/securityContext/
-velero                   42m         Warning   PolicyViolation   deployment/velero                                                       policy disallow-privilege-escalation/autogen-privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule autogen-privilege-escalation failed at path /spec/template/spec/initContainers/0/securityContext/
+velero                   46m         Warning   PolicyViolation   replicaset/velero-ui-7bcfc7d884                                         policy restrict-seccomp-strict/autogen-check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/containers/0/securityContext/
+velero                   46m         Warning   PolicyViolation   replicaset/velero-ui-7bcfc7d884                                         policy disallow-privilege-escalation/autogen-privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule autogen-privilege-escalation failed at path /spec/template/spec/containers/0/securityContext/
+velero                   46m         Warning   PolicyViolation   deployment/velero-ui                                                    policy disallow-privilege-escalation/autogen-privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule autogen-privilege-escalation failed at path /spec/template/spec/containers/0/securityContext/
+velero                   46m         Warning   PolicyViolation   deployment/velero-ui                                                    policy restrict-seccomp-strict/autogen-check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/containers/0/securityContext/
+velero                   46m         Warning   PolicyViolation   deployment/velero                                                       policy disallow-privilege-escalation/autogen-privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule autogen-privilege-escalation failed at path /spec/template/spec/initContainers/0/securityContext/
 ```
 
 ## Key Resources
