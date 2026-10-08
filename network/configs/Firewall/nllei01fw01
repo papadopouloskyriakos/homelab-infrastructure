@@ -753,6 +753,11 @@ object network grclaude01_ddns
 object network MARIA_GEORGIADOU_INALAN_IP
  host 149.107.47.244
  description Maria Georgiadou home (Inalan AS200736); mewmewmewmew.mooo.com lapsed after router swap; 2026-10-07
+object-group network NET_RFC1918
+ description RFC1918: dmz_vpn01 traffic to it via outside_budget stays untranslated (IFRNLLEI01PRD-2924)
+ network-object 10.0.0.0 255.0.0.0
+ network-object 10.1.X.X 255.240.0.0
+ network-object 10.0.X.X 255.255.0.0
 object-group network S2S_LEI_GRP_inside_mgmt
  network-object 10.0.X.X 255.255.255.0
 object-group network S2S_LEI_GRP_inside_room_a
@@ -1527,6 +1532,7 @@ nat (inside_nfs,outside_budget) source static any any destination static NET_no_
 nat (dmz_servers02,outside_freedom) source static any any destination static NET_no_k8s NET_no_k8s no-proxy-arp route-lookup
 nat (inside_mgmt,outside_freedom) source static any any destination static NET_no_k8s NET_no_k8s no-proxy-arp route-lookup
 nat (inside_k8s,outside_freedom) source static any any destination static NET_no_k8s NET_no_k8s no-proxy-arp route-lookup
+nat (dmz_vpn01,outside_budget) source static any any destination static NET_RFC1918 NET_RFC1918 no-proxy-arp route-lookup
 !
 object network NAT_dmz_servers01
  nat (dmz_servers01,outside_freedom) dynamic PUBLIC_dmz_servers01
@@ -1601,6 +1607,7 @@ nat (inside_guest,outside_budget) after-auto source dynamic any interface
 nat (inside_servers02,outside_budget) after-auto source dynamic any interface
 nat (inside_nfs,outside_budget) after-auto source dynamic any interface
 nat (dmz_servers03,outside_budget) after-auto source dynamic any interface
+nat (dmz_vpn01,outside_budget) after-auto source dynamic any interface
 access-group outside_budget_access_in in interface outside_budget
 access-group outside_lte_access_in in interface outside_lte
 access-group outside_freedom_tv_access_in in interface outside_freedom_tv
@@ -2115,5 +2122,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:44c716024b8b27ffddb4d58d6e66cf88
+Cryptochecksum:e73e4e4c9d1f607299f249b1ab5bbad1
 : end
