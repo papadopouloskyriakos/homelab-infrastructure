@@ -228,3 +228,117 @@ resource "kubernetes_manifest" "edge_firewall_alert_rules" {
     }
   }
 }
+
+# =============================================================================
+# WireGuard relay on chzrh01vps01 + notrf01vps01 (IFRNLLEI01PRD-2924)
+#
+# The CH/NO VPS DNAT udp/51820 to nlwg01 over the IPsec mesh so WireGuard
+# survives a Freedom outage (edge/docs/wg-relay.md). defra01agri01 uses it
+# permanently; road-warriors only after `wg-dns-flip.sh relay`. Its gate is an nft
+# set that mirrors the ASA WHITELIST_WG, refreshed every 30 s by wg-relay-refresh,
+# which writes wg_relay_* to the node_exporter textfile collector.
+#
+# Tier 2 (quiet topic), never a page: a broken relay costs nothing until Freedom
+# is down, and defra's own tunnel is not paging-grade. Kept in this NL-only,
+# mirror-exempt file because only the NL estate has the relay.
+# =============================================================================
+
+resource "kubernetes_manifest" "edge_wg_relay_alert_rules" {
+  manifest = {
+    apiVersion = "monitoring.coreos.com/v1"
+    kind       = "PrometheusRule"
+    metadata = {
+      name      = "edge-wg-relay-alert-rules"
+      namespace = "monitoring"
+      labels = {
+        "app.kubernetes.io/part-of" = "kube-prometheus"
+        "prometheus"                = "monitoring"
+        "role"                      = "alert-rules"
+        "release"                   = "monitoring"
+      }
+    }
+    spec = {
+      groups = [
+        {
+          name     = "edge-wg-relay"
+          interval = "1m"
+          rules = [
+            {
+              # Covers a dead timer, a deleted nft table (the set update fails) and a
+              # resolver outage alike: only a run that updated the set moves this.
+              alert = "WgRelayRefreshStale"
+              expr  = "time() - max by (instance) (wg_relay_refresh_success_timestamp_seconds) > 600"
+              for   = "5m"
+              labels = {
+                severity  = "warning"
+                tier      = "2"
+                category  = "wg-relay"
+                service   = "edge"
+                namespace = "edge-wg-relay"
+              }
+              annotations = {
+                summary     = "WireGuard relay allowlist not refreshed on {{ $labels.instance }}"
+                description = "wg-relay-refresh has not updated the nft set ip wg_relay allowed on {{ $labels.instance }} for over 10 minutes (timer: 30 s). Either the timer is dead, the table is gone (wg-relay.service stopped) or nothing resolves. Check `systemctl status wg-relay.service wg-relay-refresh.timer`, `nft list table ip wg_relay` and `journalctl -t wg-relay`. Doc: edge/docs/wg-relay.md."
+                impact      = "The Freedom-outage path into nlwg01 may be broken; defra01agri01 uses it permanently."
+              }
+            },
+            {
+              alert = "WgRelaySetEmpty"
+              expr  = "max by (instance) (wg_relay_allowed_sources) == 0"
+              for   = "5m"
+              labels = {
+                severity  = "warning"
+                tier      = "2"
+                category  = "wg-relay"
+                service   = "edge"
+                namespace = "edge-wg-relay"
+              }
+              annotations = {
+                summary     = "WireGuard relay allowlist is empty on {{ $labels.instance }}"
+                description = "The nft set ip wg_relay allowed on {{ $labels.instance }} holds no address, so the relay forwards nothing. /etc/wg-relay/allowed-sources mirrors the ASA WHITELIST_WG and contains the literal 118.91.186.185, so empty means the table was reloaded without a refresh, or the file was emptied. Run `systemctl start wg-relay-refresh.service`. Doc: edge/docs/wg-relay.md."
+                impact      = "No WireGuard peer can use this relay."
+              }
+            },
+            {
+              # A name dead for an hour has already dropped out of the set (cache expiry).
+              # A dead dyndns name is a lapsed name: whoever registers it inherits the gate.
+              alert = "REDACTED_e689d7cd"
+              expr  = "max by (instance) (wg_relay_unresolved_sources) > 0"
+              for   = "1h"
+              labels = {
+                severity  = "warning"
+                tier      = "2"
+                category  = "wg-relay"
+                service   = "edge"
+                namespace = "edge-wg-relay"
+              }
+              annotations = {
+                summary     = "{{ $value }} WireGuard relay source name(s) unresolvable for 1 h on {{ $labels.instance }}"
+                description = "{{ $value }} name(s) in /etc/wg-relay/allowed-sources on {{ $labels.instance }} have not resolved for an hour and were dropped from the relay set. `journalctl -t wg-relay` names them. The same names gate WHITELIST_WG on nlfw01: a name that stays dead is a LAPSED dyndns name, and whoever re-registers it inherits the gate (see root CLAUDE.md P0-1). Re-check it with dig, then remove it from WHITELIST_WG and from both relays' allowed-sources."
+                impact      = "That source can no longer use the relay; on the ASA side a lapsed name is a takeover risk."
+              }
+            },
+            {
+              # Dead-man: if the textfile vanishes, the rules above have no series and stay silent.
+              alert = "REDACTED_96c9fc24"
+              expr  = "(count(wg_relay_refresh_success_timestamp_seconds) or vector(0)) < 2"
+              for   = "15m"
+              labels = {
+                severity  = "warning"
+                tier      = "2"
+                category  = "wg-relay"
+                service   = "edge"
+                namespace = "edge-wg-relay"
+              }
+              annotations = {
+                summary     = "WireGuard relay metrics missing ({{ $value }} of 2 relays reporting)"
+                description = "Expected wg_relay_* from chzrh01vps01 AND notrf01vps01, found {{ $value }}. Either a VPS or its node_exporter is down, or /var/lib/prometheus/node-exporter/wg_relay.prom is gone, in which case the other relay alerts are blind for that host. Doc: edge/docs/wg-relay.md."
+                impact      = "Relay health is unmonitored on at least one VPS."
+              }
+            },
+          ]
+        },
+      ]
+    }
+  }
+}
