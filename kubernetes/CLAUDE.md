@@ -331,7 +331,7 @@ Claude Code L3 (reads YT comments, plans fix, waits for human approval)
 
 | Channel | Alerts |
 |------|--------|
-| ntfy only (`tier=1`+`critical`) — **9** | `REDACTED_06ec64ac`, `REDACTED_c39c23d4`, `REDACTED_e67edccb`, `REDACTED_578414e4`, `EdgeWafNotEnforcing`, `EdgeWafNotWired`, `EdgeCrowdSecDown`, `REDACTED_22590886`, `REDACTED_8f08474c` (GR family phone call open > 2 h, operator limit 4 October 2026; expect about one a week) |
+| ntfy only (`tier=1`+`critical`) — **11** | `REDACTED_06ec64ac`, `REDACTED_c39c23d4`, `REDACTED_e67edccb`, `REDACTED_578414e4`, `EdgeWafNotEnforcing`, `EdgeWafNotWired`, `EdgeCrowdSecDown`, `REDACTED_22590886`, `WgRelaySetEmpty`, `WgRelayRefreshStale` (the CH/NO WireGuard entrance, 2026-10-08, IFRNLLEI01PRD-2924), `REDACTED_8f08474c` (GR family phone call open > 2 h, operator limit 4 October 2026; expect about one a week) |
 | ntfy + SMS (`page="sms"`) — **3** | `PVEPmxcfsWedged`, `REDACTED_57cdabcd` (both restored 2026-08-25), `IntersiteBGPPartition` (newly tiered — a total NL↔GR partition finally pages) |
 | Gatus → ntfy — **4** | `NL Kubernetes API`, `FISHA file01`, `FISHA file02`, `Home Assistant` |
 | Bridge-internal SMS | `PagingPushDown` (ntfy probe dead ×3), own-site `PrometheusHeartbeatLost`, fail-over (cap 3/h) |

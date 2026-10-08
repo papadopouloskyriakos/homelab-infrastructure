@@ -238,9 +238,12 @@ resource "kubernetes_manifest" "edge_firewall_alert_rules" {
 # set that mirrors the ASA WHITELIST_WG, refreshed every 30 s by wg-relay-refresh,
 # which writes wg_relay_* to the node_exporter textfile collector.
 #
-# Tier 2 (quiet topic), never a page: a broken relay costs nothing until Freedom
-# is down, and defra's own tunnel is not paging-grade. Kept in this NL-only,
-# mirror-exempt file because only the NL estate has the relay.
+# Since 8 October 2026 the relays are the PERMANENT WireGuard entrance (the public
+# wg.example.net points at them), so a dead relay locks out every
+# road-warrior: WgRelaySetEmpty and WgRelayRefreshStale page (tier 1, operator
+# decision 2026-10-08). The lapsed-name and dead-man rules stay tier 2 (quiet
+# topic). Kept in this NL-only, mirror-exempt file because only the NL estate has
+# the relay.
 # =============================================================================
 
 resource "kubernetes_manifest" "edge_wg_relay_alert_rules" {
@@ -270,8 +273,8 @@ resource "kubernetes_manifest" "edge_wg_relay_alert_rules" {
               expr  = "time() - max by (instance) (wg_relay_refresh_success_timestamp_seconds) > 600"
               for   = "5m"
               labels = {
-                severity  = "warning"
-                tier      = "2"
+                severity  = "critical"
+                tier      = "1"
                 category  = "wg-relay"
                 service   = "edge"
                 namespace = "edge-wg-relay"
@@ -279,7 +282,7 @@ resource "kubernetes_manifest" "edge_wg_relay_alert_rules" {
               annotations = {
                 summary     = "WireGuard relay allowlist not refreshed on {{ $labels.instance }}"
                 description = "wg-relay-refresh has not updated the nft set ip wg_relay allowed on {{ $labels.instance }} for over 10 minutes (timer: 30 s). Either the timer is dead, the table is gone (wg-relay.service stopped) or nothing resolves. Check `systemctl status wg-relay.service wg-relay-refresh.timer`, `nft list table ip wg_relay` and `journalctl -t wg-relay`. Doc: edge/docs/wg-relay.md."
-                impact      = "The Freedom-outage path into nlwg01 may be broken; defra01agri01 uses it permanently."
+                impact      = "The relays are the permanent WireGuard entrance: road-warriors, defra01agri01 and the Mudi may be unable to connect, or the allowlist is stale."
               }
             },
             {
@@ -287,8 +290,8 @@ resource "kubernetes_manifest" "edge_wg_relay_alert_rules" {
               expr  = "max by (instance) (wg_relay_allowed_sources) == 0"
               for   = "5m"
               labels = {
-                severity  = "warning"
-                tier      = "2"
+                severity  = "critical"
+                tier      = "1"
                 category  = "wg-relay"
                 service   = "edge"
                 namespace = "edge-wg-relay"
@@ -296,7 +299,7 @@ resource "kubernetes_manifest" "edge_wg_relay_alert_rules" {
               annotations = {
                 summary     = "WireGuard relay allowlist is empty on {{ $labels.instance }}"
                 description = "The nft set ip wg_relay allowed on {{ $labels.instance }} holds no address, so the relay forwards nothing. /etc/wg-relay/allowed-sources mirrors the ASA WHITELIST_WG and contains the literal 118.91.186.185, so empty means the table was reloaded without a refresh, or the file was emptied. Run `systemctl start wg-relay-refresh.service`. Doc: edge/docs/wg-relay.md."
-                impact      = "No WireGuard peer can use this relay."
+                impact      = "No WireGuard peer can enter through this relay; road-warriors that resolved to it are locked out until it is fixed or they toggle onto the other relay."
               }
             },
             {
