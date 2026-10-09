@@ -1028,7 +1028,7 @@
             "uid": "finops-ledger"
           },
           "format": "table",
-          "rawSql": "SELECT DATE_FORMAT(booked_date,'%e %b') AS `When`, CONCAT('€ ',FORMAT(-base_amount,2,'de_DE')) AS `Amount`, LEFT(payee_raw,34) AS `Paid to` FROM v_spend_canonical WHERE booked_date >= DATE_FORMAT(CURDATE(),'%Y-%m-01') ORDER BY base_amount ASC LIMIT 8"
+          "rawSql": "SELECT DATE_FORMAT(booked_date,'%e %b') AS `When`, CONCAT('€ ',FORMAT(-base_amount,2,'de_DE')) AS `Amount`, LEFT(payee_raw,34) AS `Paid to` FROM v_spend_canonical WHERE booked_date >= DATE_FORMAT(CURDATE(),'%Y-%m-01') AND base_amount < 0 ORDER BY base_amount ASC LIMIT 8"
         }
       ]
     },
