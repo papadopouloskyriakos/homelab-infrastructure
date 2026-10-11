@@ -753,6 +753,8 @@ object network grclaude01_ddns
 object network MARIA_GEORGIADOU_INALAN_IP
  host 149.107.47.244
  description Maria Georgiadou home (Inalan AS200736); mewmewmewmew.mooo.com lapsed after router swap; 2026-10-07
+object network nlpaops01
+ host 10.0.X.X
 object-group network NET_RFC1918
  description RFC1918: dmz_vpn01 traffic to it via outside_budget stays untranslated (IFRNLLEI01PRD-2924)
  network-object 10.0.0.0 255.0.0.0
@@ -1063,6 +1065,7 @@ object-group network WHITELIST_DEMOPS
  description grxxx01demops01 dyndns whitelist (udp/443 WireGuard fallback)
  network-object object grxxx01demops01_ddns
 access-list inside_cctv_access_in extended permit tcp object nlunify01 object nln8n01 eq 5678 
+access-list inside_cctv_access_in extended permit tcp object nlunify01 object nlpaops01 eq 8097 
 access-list inside_cctv_access_in extended permit tcp object nlunify01 object nlsmtp-gpg01 eq smtp 
 access-list inside_cctv_access_in extended permit object-group TCPUDP object nlunify01 object-group eu-nlgr-freeipa01 eq domain 
 access-list inside_cctv_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp 
@@ -2122,5 +2125,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:e73e4e4c9d1f607299f249b1ab5bbad1
+Cryptochecksum:2ab2d4099ff18d6ff3f3f9f213ac1824
 : end
