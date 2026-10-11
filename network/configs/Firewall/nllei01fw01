@@ -1571,6 +1571,8 @@ object network nlwg01-wg
  nat (dmz_vpn01,outside_freedom) static PUBLIC_dmz_vpn01 service udp 51820 51820 
 object network nlwg01-wg443
  nat (dmz_vpn01,outside_freedom) static PUBLIC_dmz_vpn01 service udp 443 443 
+object network nlpaops01
+ host 10.0.X.X
 !
 nat (inside_mgmt,outside_freedom) after-auto source dynamic any interface
 nat (inside_k8s,outside_freedom) after-auto source dynamic any interface
