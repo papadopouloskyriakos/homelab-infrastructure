@@ -1,0 +1,39 @@
+---
+# Process a single certificate - extract domain name, save files
+- name: Extract domain from secret name
+  ansible.builtin.set_fact:
+    cert_domain: "{{ cert_secret.metadata.name | regex_replace('-tls$', '') | regex_replace('^wildcard-', '') | regex_replace('-', '.') }}"
+
+- name: Display processing certificate
+  ansible.builtin.debug:
+    msg: "Processing certificate for domain: {{ cert_domain }}"
+
+- name: Decode and save certificate
+  ansible.builtin.copy:
+    content: "{{ cert_secret.data['tls.crt'] | b64decode }}"
+    dest: "{{ temp_dir }}/{{ cert_domain }}.crt"
+    mode: '0644'
+  no_log: true
+
+- name: Decode and save private key
+  ansible.builtin.copy:
+    content: "{{ cert_secret.data['tls.key'] | b64decode }}"
+    dest: "{{ temp_dir }}/{{ cert_domain }}.key"
+    mode: '0600'
+  no_log: true
+
+- name: Create combined PEM for HAProxy (cert + key)
+  ansible.builtin.shell: |
+    cat "{{ temp_dir }}/{{ cert_domain }}.crt" "{{ temp_dir }}/{{ cert_domain }}.key" > "{{ temp_dir }}/{{ cert_domain }}.pem"
+    chmod 600 "{{ temp_dir }}/{{ cert_domain }}.pem"
+  no_log: true
+
+- name: Get certificate expiry
+  ansible.builtin.command:
+    cmd: openssl x509 -enddate -noout -in "{{ temp_dir }}/{{ cert_domain }}.crt"
+  register: cert_expiry
+  changed_when: false
+
+- name: Display certificate info
+  ansible.builtin.debug:
+    msg: "{{ cert_domain }}: {{ cert_expiry.stdout | regex_replace('notAfter=', 'expires ') }}"

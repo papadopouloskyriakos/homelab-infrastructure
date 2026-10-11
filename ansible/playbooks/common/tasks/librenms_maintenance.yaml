@@ -1,0 +1,40 @@
+---
+# Put a node into LibreNMS maintenance mode before reboot.
+#
+# Required variables:
+#   maintenance_node: hostname of the node to put in maintenance
+#
+# Runs from localhost (no SSH to the target needed).
+# Best-effort only - a LibreNMS outage never blocks updates.
+
+- name: "[LIBRENMS] Put {{ maintenance_node }} into maintenance mode"
+  uri:
+    url: "https://nlnms01.example.net/api/v0/devices/{{ maintenance_node }}/maintenance/"
+    method: POST
+    headers:
+      X-Auth-Token: "REDACTED_3c4fb781"
+      Content-Type: application/json
+    body_format: json
+    body:
+      title: "AWX weekly update - {{ maintenance_node }}"
+      notes: "Automated maintenance during weekly update reboot"
+      duration: "0:45"
+    status_code: [200, 201, 204]
+    validate_certs: no
+    timeout: 60
+  delegate_to: localhost
+  become: false
+  register: librenms_result
+  retries: 3
+  delay: 10
+  until: librenms_result.status | default(0) in [200, 201, 204]
+  ignore_errors: true
+
+- name: "[LIBRENMS] {{ maintenance_node }} maintenance mode result"
+  debug:
+    msg: >-
+      {% if librenms_result is failed %}
+      [LIBRENMS] WARNING: Failed to set maintenance for {{ maintenance_node }} - {{ librenms_result.msg | default('unknown error') }}. Continuing anyway.
+      {% else %}
+      [LIBRENMS] {{ maintenance_node }} put into maintenance mode for 45 minutes.
+      {% endif %}
