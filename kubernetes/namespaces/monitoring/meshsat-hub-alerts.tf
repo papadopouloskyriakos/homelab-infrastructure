@@ -400,7 +400,15 @@ locals {
     tak = { module = "tcp_connect", target = "%s:8089" }
   }
 
-  meshsat_edge_targets = flatten([
+  # Names served from the EU edges only (txhou01vps01 refuses them before TLS, the
+  # omoikane GDPR rule): probed on notrf01 and chzrh, never on txhou, where a failure
+  # is the design. twenty.meshsat.net = the MeshSat Support desk (MESHSAT-1533).
+  meshsat_eu_edges = { for edge_name, edge_ip in local.meshsat_edges : edge_name => edge_ip if edge_name != "txhou" }
+  meshsat_eu_edge_legs = {
+    twenty = { module = "http_twenty_edge", target = "https://%s/healthz", service = "meshsat-twenty" }
+  }
+
+  meshsat_edge_targets = concat(flatten([
     for edge_name, edge_ip in local.meshsat_edges : [
       for leg_name, leg in local.meshsat_edge_legs : {
         targets = [format(leg.target, edge_ip)]
@@ -413,7 +421,20 @@ locals {
         }
       }
     ]
-  ])
+    ]), flatten([
+    for edge_name, edge_ip in local.meshsat_eu_edges : [
+      for leg_name, leg in local.meshsat_eu_edge_legs : {
+        targets = [format(leg.target, edge_ip)]
+        labels = {
+          service = leg.service
+          env     = "production"
+          edge    = edge_name
+          leg     = leg_name
+          module  = leg.module
+        }
+      }
+    ]
+  ]))
 }
 
 resource "kubernetes_manifest" "meshsat_edge_scrape" {
