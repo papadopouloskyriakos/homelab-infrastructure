@@ -398,6 +398,22 @@ locals {
     # all three edges). Do not reuse this module against a HOSTNAME without adding
     # the ip4 preference first.
     tak = { module = "tcp_connect", target = "%s:8089" }
+
+    # Public Reticulum (MESHSAT-1555): rns.meshsat.net:4242, the second leg on its
+    # own port, opened on all three VPS on 13 October 2026 (frontend rns_in ->
+    # backend meshsat_rns -> the workers' relay hostPort 4242 -> the Hub's RNS
+    # node). The same plain TCP connect as tak, with the same limit: it asserts
+    # that the edge accepts 4242 (ufw open, haproxy up, the frontend present, the
+    # backend resolving the relay), not that a Reticulum session can be set up.
+    # There is nothing else to probe here by design: no TLS at the edge at all,
+    # stock clients speak plain HDLC and Reticulum encrypts end to end.
+    #
+    # Measured before arming (13 October 2026, with the scrape-timeout header):
+    # probe_success 1 and probe_ip_protocol 4 on all three edges (literal IPv4
+    # targets again, so the module's IPv6 preference stays harmless), 0 on a
+    # filtered port (4243) and on an unused one (4299). Until this line existed
+    # nothing alerted when an edge stopped accepting 4242.
+    rns = { module = "tcp_connect", target = "%s:4242" }
   }
 
   # Names served from the EU edges only (txhou01vps01 refuses them before TLS, the
@@ -506,7 +522,7 @@ resource "kubernetes_manifest" "meshsat_edge_alert_rules" {
                   Most likely cause: that VPS lost its IPsec tunnels to the notrf01 workers, so `nbsrv(meshsat_hub)` is 0 and haproxy silent-drops every request with no HTTP response at all.
 
                   Check: `swanctl --list-sas | grep no-dmz` on the VPS — expect six ESTABLISHED. If they are missing, `swanctl --initiate --child no-dmz0N`. Since IFRNLLEI01PRD-2833 charon retries a failed initiate every 60s, so a tunnel that is still down after a few minutes is a new fault, not the old one.
-                  Then: `nc -z 10.255.{4,5,10}.11 8443` from the VPS, then the notrf01 edge-relay DaemonSet, then ingress-nginx.
+                  Then: `nc -z 10.255.{4,5,10}.11 8443` from the VPS, then the notrf01 edge-relay DaemonSet, then ingress-nginx. For leg tak or rns the relay port is 9089 or 4242 and the haproxy backend meshsat_tak or meshsat_rns.
                 EOT
               }
             },
