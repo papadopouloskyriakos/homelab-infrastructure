@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-10-14 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-10-15 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: DEGRADED ⚠️
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 4 |
 | Pending PVCs | 0 |
-| Total Restarts | 3812 |
+| Total Restarts | 4081 |
 
 ## Topology
 
@@ -32,14 +32,14 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-monitoring               meshsat-status-heartbeat-29857150-m24b9                           0/1   Error              0                5d23h
-monitoring               meshsat-status-heartbeat-29860040-ppllf                           0/1   Error              0                3d23h
-velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                20d
-velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   502 (83s ago)    28d
+monitoring               meshsat-status-heartbeat-29857150-m24b9                           0/1   Error              0                 6d23h
+monitoring               meshsat-status-heartbeat-29860040-ppllf                           0/1   Error              0                 4d23h
+velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                 21d
+velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   767 (2m24s ago)   29d
 ```
 
 ### High Restart Pods (>3)
-argocd/argocd-application-controller-0: 53 restarts
+argocd/argocd-application-controller-0: 57 restarts
 awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 66 restarts
 awx/my-awx-task-756d768868-bslc2: 6 restarts
 cert-manager/cert-manager-75944f484-k8x88: 20 restarts
@@ -108,15 +108,15 @@ synology-csi/synology-csi-node-ptwb8: 10 restarts
 synology-csi/synology-csi-node-sfdmg: 12 restarts
 synology-csi/synology-csi-node-zch7n: 47 restarts
 velero/node-agent-54dn2: 10 restarts
-velero/velero-ui-687565868b-b9xr7: 502 restarts
+velero/velero-ui-687565868b-b9xr7: 767 restarts
 
 ### Recent Warnings (5)
 ```
-velero                   60m         Warning   Unhealthy         pod/velero-ui-687565868b-b9xr7                                          Readiness probe failed: Get "http://10.0.6.172:3000/": dial tcp 10.0.6.172:3000: connect: connection refused
-velero                   5m23s       Warning   BackOff           pod/velero-ui-687565868b-b9xr7                                          Back-off restarting failed container velero-ui in pod velero-ui-687565868b-b9xr7_velero(32280caf-839d-4113-832e-fdaf11b09a1a)
-kube-system              30s         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl03                                   Liveness probe failed: HTTP probe failed with statuscode: 500
-monitoring               28s         Warning   Unhealthy         pod/monitoring-kube-state-metrics-75f9fff55b-prwns                      Liveness probe failed: HTTP probe failed with statuscode: 503
-kube-system              28s         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl03                                   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system              36m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Liveness probe failed: HTTP probe failed with statuscode: 500
+monitoring               36m         Warning   Unhealthy         pod/monitoring-kube-state-metrics-75f9fff55b-prwns                      Liveness probe failed: HTTP probe failed with statuscode: 503
+kube-system              36m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Readiness probe failed: HTTP probe failed with statuscode: 500
+velero                   34m         Warning   Unhealthy         pod/velero-ui-687565868b-b9xr7                                          Readiness probe failed: Get "http://10.0.6.172:3000/": dial tcp 10.0.6.172:3000: connect: connection refused
+velero                   5m8s        Warning   BackOff           pod/velero-ui-687565868b-b9xr7                                          Back-off restarting failed container velero-ui in pod velero-ui-687565868b-b9xr7_velero(32280caf-839d-4113-832e-fdaf11b09a1a)
 ```
 
 ## Key Resources
