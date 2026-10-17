@@ -1,0 +1,314 @@
+---
+# Sync cert-manager wildcard certificate to Nginx Proxy Manager
+# Flow: K8s cert-manager secret → NPM master API → Syncthing → NPM slave
+#
+# Idempotent AND self-healing: instead of tracking a single "existing cert",
+# the playbook reconciles ALL NPM certificates named {{ cert_nice_name }}
+# against the current K8s certificate. A partially failed renewal run
+# (e.g. proxy-host update timeouts, IFRNLLEI01PRD-1949) leaves duplicate
+# certs and split proxy hosts behind — a rerun converges that state:
+#   1. pick the target cert (one matching the K8s cert's expiry; create if none)
+#   2. move every proxy host still on any other same-named cert to the target
+#   3. delete all other same-named certs
+#
+# Renewal day migrates ~114 proxy hosts; each PUT makes NPM regenerate config
+# and reload nginx, so latency degrades under the sequential storm. PUTs get
+# npm_api_timeout + retries; stale certs are only deleted after every host
+# has moved off them, so a persistent failure stays loud and leaves no host
+# pointing at a deleted cert.
+#
+# All credentials sourced from OpenBao via AWX custom credentials:
+#   - K8s API: host, token, CA cert
+#   - NPM API: email, password
+- name: Sync cert-manager certificate to NPM
+  hosts: localhost
+  gather_facts: false
+  vars:
+    k8s_secret_name: REDACTED_0d82b4df-tls
+    k8s_secret_namespace: cert-manager
+    npm_host: nlnpm01.example.net
+    npm_port: 81
+    npm_api_url: "http://{{ npm_host }}:{{ npm_port }}/api"
+    npm_api_timeout: 120
+    npm_api_retries: 3
+    npm_api_retry_delay: 10
+    cert_nice_name: "REDACTED_bebd934b"
+    temp_dir: "REDACTED_88f47687"
+
+  tasks:
+    - name: Create temp directory
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: directory
+        mode: '0700'
+
+    - name: Set credentials from environment
+      ansible.builtin.set_fact:
+        k8s_host: "{{ lookup('env', 'K8S_HOST') }}"
+        k8s_token: "{{ lookup('env', 'K8S_TOKEN') }}"
+        k8s_ca_cert: "{{ lookup('env', 'K8S_CA_CERT') }}"
+        npm_email: "{{ lookup('env', 'NPM_EMAIL') }}"
+        npm_password: "{{ lookup('env', 'NPM_PASSWORD') }}"
+      no_log: true
+
+    - name: Write CA cert to temp file
+      ansible.builtin.copy:
+        content: "{{ k8s_ca_cert }}"
+        dest: "{{ temp_dir }}/ca.crt"
+        mode: '0600'
+
+    - name: Get TLS secret from K8s API
+      ansible.builtin.uri:
+        url: "{{ k8s_host }}/api/v1/namespaces/{{ k8s_secret_namespace }}/secrets/{{ k8s_secret_name }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ k8s_token }}"
+        ca_path: "{{ temp_dir }}/ca.crt"
+        validate_certs: true
+        return_content: true
+      register: k8s_secret
+      no_log: true
+
+    - name: Decode and save certificate
+      ansible.builtin.copy:
+        content: "{{ k8s_secret.json.data['tls.crt'] | b64decode }}"
+        dest: "{{ temp_dir }}/tls.crt"
+        mode: '0600'
+      no_log: true
+
+    - name: Decode and save private key
+      ansible.builtin.copy:
+        content: "{{ k8s_secret.json.data['tls.key'] | b64decode }}"
+        dest: "{{ temp_dir }}/tls.key"
+        mode: '0600'
+      no_log: true
+
+    - name: Get K8s certificate expiry date
+      ansible.builtin.command:
+        cmd: openssl x509 -enddate -noout -in "{{ temp_dir }}/tls.crt"
+      register: k8s_cert_expiry_raw
+      changed_when: false
+
+    - name: Parse K8s certificate expiry to ISO format
+      ansible.builtin.command:
+        cmd: date -d "{{ k8s_cert_expiry_raw.stdout | regex_replace('notAfter=', '') }}" -u +%Y-%m-%dT%H:%M:%S
+      register: k8s_cert_expiry
+      changed_when: false
+
+    - name: Display K8s certificate expiry
+      ansible.builtin.debug:
+        msg: "K8s certificate expires: {{ k8s_cert_expiry.stdout }}"
+
+    - name: Get NPM API token
+      ansible.builtin.uri:
+        url: "{{ npm_api_url }}/tokens"
+        method: POST
+        body_format: json
+        body:
+          identity: "{{ npm_email }}"
+          secret: "{{ npm_password }}"
+        return_content: true
+      register: npm_auth
+      no_log: true
+
+    - name: Set NPM token fact
+      ansible.builtin.set_fact:
+        npm_token: "{{ npm_auth.json.token }}"
+      no_log: true
+
+    # no_log: NPM returns meta.certificate_key (the private key PEM) for
+    # every custom-uploaded cert in this response.
+    - name: Get existing NPM certificates
+      ansible.builtin.uri:
+        url: "{{ npm_api_url }}/nginx/certificates"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ npm_token }}"
+        return_content: true
+      register: npm_certs
+      no_log: true
+
+    - name: Strip secret material from certificate list
+      ansible.builtin.set_fact:
+        npm_cert_list: "{{ npm_certs.json | map('combine', {'meta': {}}) | list }}"
+
+    - name: Get all proxy hosts
+      ansible.builtin.uri:
+        url: "{{ npm_api_url }}/nginx/proxy-hosts"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ npm_token }}"
+        return_content: true
+      register: proxy_hosts
+
+    # Duplicates of cert_nice_name can exist after a partially failed run.
+    # current_certs = the subset already carrying the current K8s cert.
+    - name: Find all NPM certificates managed by this playbook
+      ansible.builtin.set_fact:
+        matching_certs: "{{ npm_cert_list | selectattr('nice_name', 'equalto', cert_nice_name) | list }}"
+
+    - name: Find managed certificates matching the current K8s expiry
+      ansible.builtin.set_fact:
+        current_certs: >-
+          {{ matching_certs
+             | selectattr('expires_on', 'defined')
+             | selectattr('expires_on', 'string')
+             | selectattr('expires_on', 'match', k8s_cert_expiry.stdout | regex_escape)
+             | list }}
+
+    - name: Display managed certificate inventory
+      ansible.builtin.debug:
+        msg: >-
+          Managed certs in NPM: {{ matching_certs | map(attribute='id') | list }},
+          of which current (expiry {{ k8s_cert_expiry.stdout }}): {{ current_certs | map(attribute='id') | list }}
+
+    # Prefer the current cert already serving the most proxy hosts to
+    # minimise churn; newest id wins a tie.
+    - name: Choose target certificate from current ones
+      ansible.builtin.set_fact:
+        target_cert_id: >-
+          {%- set best = namespace(id=-1, count=-1) -%}
+          {%- for cert in current_certs -%}
+          {%-   set n = proxy_hosts.json | selectattr('certificate_id', 'equalto', cert.id) | list | length -%}
+          {%-   if n > best.count or (n == best.count and cert.id > best.id) -%}
+          {%-     set best.id = cert.id -%}
+          {%-     set best.count = n -%}
+          {%-   endif -%}
+          {%- endfor -%}
+          {{ best.id }}
+      when: current_certs | length > 0
+
+    - name: Check if a new certificate must be created
+      ansible.builtin.set_fact:
+        create_needed: "{{ current_certs | length == 0 }}"
+
+    - name: Create new certificate entry in NPM
+      ansible.builtin.uri:
+        url: "{{ npm_api_url }}/nginx/certificates"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ npm_token }}"
+        body_format: json
+        body:
+          nice_name: "{{ cert_nice_name }}"
+          provider: "other"
+        status_code: [200, 201]
+        return_content: true
+      register: new_cert
+      when: create_needed
+
+    - name: Upload certificate files to NPM
+      ansible.builtin.command:
+        cmd: >
+          curl -fsS --max-time {{ npm_api_timeout }} -X POST
+          "{{ npm_api_url }}/nginx/certificates/{{ new_cert.json.id }}/upload"
+          -H "Authorization: Bearer {{ npm_token }}"
+          -F "certificate=@{{ temp_dir }}/tls.crt"
+          -F "certificate_key=@{{ temp_dir }}/tls.key"
+      changed_when: true
+      no_log: true
+      when: create_needed
+
+    # no_log: the single-cert response also carries meta.certificate_key.
+    # Failure stays loud (job goes red); the sanitized expiry is reported
+    # by the follow-up debug task.
+    - name: Verify uploaded certificate carries the K8s expiry
+      ansible.builtin.uri:
+        url: "{{ npm_api_url }}/nginx/certificates/{{ new_cert.json.id }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ npm_token }}"
+        return_content: true
+        timeout: "{{ npm_api_timeout }}"
+      register: uploaded_cert
+      no_log: true
+      until: >-
+        (((uploaded_cert.json | default({})).expires_on | default('') | string)[:19]) == k8s_cert_expiry.stdout
+      retries: "{{ npm_api_retries }}"
+      delay: "{{ npm_api_retry_delay }}"
+      when: create_needed
+
+    - name: Report verified NPM certificate expiry
+      ansible.builtin.debug:
+        msg: >-
+          NPM cert {{ new_cert.json.id }} expires_on
+          {{ (uploaded_cert.json | default({})).expires_on | default('unknown') }}
+          matches K8s expiry {{ k8s_cert_expiry.stdout }}
+      when: create_needed
+
+    - name: Set target certificate to the newly created one
+      ansible.builtin.set_fact:
+        target_cert_id: "{{ new_cert.json.id }}"
+      when: create_needed
+
+    - name: Identify stale managed certificates
+      ansible.builtin.set_fact:
+        stale_cert_ids: >-
+          {{ matching_certs | map(attribute='id') | map('int') | reject('equalto', target_cert_id | int) | list }}
+
+    - name: Find proxy hosts still attached to stale certificates
+      ansible.builtin.set_fact:
+        hosts_to_update: "{{ proxy_hosts.json | selectattr('certificate_id', 'in', stale_cert_ids) | list }}"
+
+    - name: Display reconciliation plan
+      ansible.builtin.debug:
+        msg: >-
+          Target cert ID: {{ target_cert_id }}{{ ' (newly created)' if create_needed else ' (already current)' }},
+          stale cert IDs: {{ stale_cert_ids }},
+          proxy hosts to migrate: {{ hosts_to_update | length }}
+
+    # Each PUT makes NPM regenerate config + reload nginx; under the renewal-day
+    # storm individual calls can stall well past 30s, so allow npm_api_timeout
+    # and retry before declaring the run failed.
+    - name: Update proxy hosts to use target certificate
+      ansible.builtin.uri:
+        url: "{{ npm_api_url }}/nginx/proxy-hosts/{{ item.id }}"
+        method: PUT
+        headers:
+          Authorization: "Bearer {{ npm_token }}"
+        body_format: json
+        body:
+          certificate_id: "{{ target_cert_id | int }}"
+        timeout: "{{ npm_api_timeout }}"
+        return_content: true
+      register: host_update
+      until: host_update.status == 200
+      retries: "{{ npm_api_retries }}"
+      delay: "{{ npm_api_retry_delay }}"
+      loop: "{{ hosts_to_update }}"
+      loop_control:
+        label: "{{ item.domain_names | first | default(item.id) }}"
+
+    # Only reached when every proxy host has moved off the stale certs, so
+    # deleting them can never orphan a proxy host. 404 counts as success:
+    # stale ids come from this run's own GET, so not-found only means an
+    # earlier attempt was applied server-side after its response was lost
+    # (the same timeout mode that broke job 32445's PUTs).
+    - name: Delete stale certificates from NPM
+      ansible.builtin.uri:
+        url: "{{ npm_api_url }}/nginx/certificates/{{ item }}"
+        method: DELETE
+        headers:
+          Authorization: "Bearer {{ npm_token }}"
+        status_code: [200, 204, 404]
+        timeout: "{{ npm_api_timeout }}"
+      register: cert_delete
+      until: cert_delete.status in [200, 204, 404]
+      retries: "{{ npm_api_retries }}"
+      delay: "{{ npm_api_retry_delay }}"
+      loop: "{{ stale_cert_ids }}"
+
+    - name: Cleanup temp directory
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: absent
+
+    - name: Final status
+      ansible.builtin.debug:
+        msg: >-
+          {{ 'No sync needed - certificate ' ~ target_cert_id ~ ' is current and all proxy hosts are aligned.'
+             if not (create_needed or stale_cert_ids | length > 0 or hosts_to_update | length > 0)
+             else 'Reconciliation complete. Target cert ID: ' ~ target_cert_id ~
+                  (' (newly created)' if create_needed else ' (already present)') ~
+                  ', proxy hosts migrated: ' ~ (hosts_to_update | length | string) ~
+                  ', stale certs deleted: ' ~ (stale_cert_ids | join(', ') if stale_cert_ids | length > 0 else 'none') }}

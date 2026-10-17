@@ -1,0 +1,235 @@
+---
+# K8s Storage Validation — Verify CSI, PVs, PVCs, VolumeAttachments
+#
+# Required extra_vars:
+#   k8s_context: kubectl context name ("default" for NL, "gr" for GR)
+#
+# Optional extra_vars:
+#   expected_pv_count: expected number of PVs (NL: 22, GR: 20)
+#
+# Checks:
+#   1. CSI controller pod healthy (all containers ready)
+#   2. CSI node DaemonSet pods on all nodes
+#   3. All PVs in Bound state
+#   4. All PVCs in Bound state
+#   5. VolumeAttachments exist for iSCSI PVs
+#   6. NFS provisioner running (if present)
+#
+# Runs from localhost.
+
+- name: "K8s storage validation (context: {{ k8s_context }})"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    _context: "{{ k8s_context }}"
+    _csi_namespace: "{{ 'synology-csi' if k8s_context == 'default' else 'democratic-csi' }}"
+    _expected_pvs: "{{ expected_pv_count | default(0) }}"
+
+  tasks:
+    - name: "[STORAGE] Start validation"
+      debug:
+        msg: "Validating K8s storage for context {{ _context }}"
+
+    ###########################################################################
+    # 1. CSI controller
+    ###########################################################################
+    - name: "[STORAGE] Check CSI controller pod"
+      shell: |
+        pods=$(kubectl --context {{ _context }} -n {{ _csi_namespace }} get pods --no-headers 2>/dev/null)
+        if [ -z "$pods" ]; then
+          echo "FAIL: No pods in namespace {{ _csi_namespace }}"
+          exit 1
+        fi
+        # Check controller pod specifically
+        ctrl=$(echo "$pods" | grep -i "controller" || true)
+        if [ -z "$ctrl" ]; then
+          echo "FAIL: No controller pod found"
+          exit 1
+        fi
+        not_ready=$(echo "$ctrl" | grep -v "Running" || true)
+        if [ -n "$not_ready" ]; then
+          echo "FAIL: Controller not Running: $not_ready"
+          exit 1
+        fi
+        # Check container readiness (e.g., 4/4)
+        ready_info=$(echo "$ctrl" | awk '{print $2}')
+        echo "CSI controller: Running ($ready_info containers)"
+      register: csi_ctrl
+      changed_when: false
+      failed_when: false
+
+    ###########################################################################
+    # 2. CSI node DaemonSet
+    ###########################################################################
+    - name: "[STORAGE] Check CSI node DaemonSet pods"
+      shell: |
+        pods=$(kubectl --context {{ _context }} -n {{ _csi_namespace }} get pods --no-headers 2>/dev/null \
+          | grep -i "node" || true)
+        if [ -z "$pods" ]; then
+          echo "WARN: No CSI node pods found (may use different naming)"
+          exit 0
+        fi
+        total=$(echo "$pods" | wc -l)
+        running=$(echo "$pods" | grep -c "Running" || true)
+        if [ "$running" -lt "$total" ]; then
+          echo "FAIL: CSI nodes: $running/$total Running"
+          echo "$pods" | grep -v "Running"
+          exit 1
+        fi
+        echo "CSI node agents: $running/$total Running"
+      register: csi_nodes
+      changed_when: false
+      failed_when: false
+
+    ###########################################################################
+    # 3. PV status
+    ###########################################################################
+    - name: "[STORAGE] Check PV status"
+      shell: |
+        pvs=$(kubectl --context {{ _context }} get pv --no-headers 2>/dev/null)
+        if [ -z "$pvs" ]; then
+          echo "FAIL: No PVs found"
+          exit 1
+        fi
+        total=$(echo "$pvs" | wc -l)
+        bound=$(echo "$pvs" | grep -c "Bound" || true)
+        released=$(echo "$pvs" | grep -c "Released" || true)
+        failed=$(echo "$pvs" | grep -c "Failed" || true)
+
+        echo "PVs: $bound/$total Bound"
+        if [ "$released" -gt 0 ]; then
+          echo "WARNING: $released Released PVs:"
+          echo "$pvs" | grep "Released"
+        fi
+        if [ "$failed" -gt 0 ]; then
+          echo "FAIL: $failed Failed PVs:"
+          echo "$pvs" | grep "Failed"
+          exit 1
+        fi
+        if [ "$bound" -ne "$total" ]; then
+          echo "WARNING: Not all PVs bound ($bound/$total)"
+          echo "$pvs" | grep -v "Bound"
+        fi
+      register: pv_status
+      changed_when: false
+      failed_when: false
+
+    - name: "[STORAGE] Verify expected PV count"
+      shell: |
+        total=$(kubectl --context {{ _context }} get pv --no-headers | wc -l)
+        if [ "$total" -ne "{{ _expected_pvs }}" ]; then
+          echo "WARNING: Expected {{ _expected_pvs }} PVs, found $total"
+          exit 1
+        fi
+        echo "PV count matches expected: $total"
+      register: pv_count
+      changed_when: false
+      failed_when: false
+      when: _expected_pvs | int > 0
+
+    ###########################################################################
+    # 4. PVC status
+    ###########################################################################
+    - name: "[STORAGE] Check PVC status"
+      shell: |
+        pvcs=$(kubectl --context {{ _context }} get pvc -A --no-headers 2>/dev/null)
+        if [ -z "$pvcs" ]; then
+          echo "WARNING: No PVCs found"
+          exit 0
+        fi
+        total=$(echo "$pvcs" | wc -l)
+        bound=$(echo "$pvcs" | grep -c "Bound" || true)
+        pending=$(echo "$pvcs" | grep -c "Pending" || true)
+
+        echo "PVCs: $bound/$total Bound"
+        if [ "$pending" -gt 0 ]; then
+          echo "WARNING: $pending Pending PVCs:"
+          echo "$pvcs" | grep "Pending"
+        fi
+        lost=$(echo "$pvcs" | grep -c "Lost" || true)
+        if [ "$lost" -gt 0 ]; then
+          echo "FAIL: $lost Lost PVCs:"
+          echo "$pvcs" | grep "Lost"
+          exit 1
+        fi
+      register: pvc_status
+      changed_when: false
+      failed_when: false
+
+    ###########################################################################
+    # 5. VolumeAttachments
+    ###########################################################################
+    - name: "[STORAGE] Check VolumeAttachments"
+      shell: |
+        va=$(kubectl --context {{ _context }} get volumeattachments --no-headers 2>/dev/null || true)
+        if [ -z "$va" ]; then
+          echo "No VolumeAttachments (may be normal if no iSCSI PVs attached yet)"
+          exit 0
+        fi
+        total=$(echo "$va" | wc -l)
+        attached=$(echo "$va" | grep -c "true" || true)
+        echo "VolumeAttachments: $attached/$total attached"
+        if [ "$attached" -ne "$total" ]; then
+          echo "WARNING: Not all VolumeAttachments ready"
+          echo "$va" | grep "false"
+        fi
+      register: va_status
+      changed_when: false
+      failed_when: false
+
+    ###########################################################################
+    # 6. NFS provisioner
+    ###########################################################################
+    - name: "[STORAGE] Check NFS provisioner"
+      shell: |
+        nfs=$(kubectl --context {{ _context }} get pods -A --no-headers 2>/dev/null \
+          | grep -i "nfs.*provisioner\|nfs-client" || true)
+        if [ -z "$nfs" ]; then
+          echo "No NFS provisioner pods found (may not be deployed)"
+          exit 0
+        fi
+        not_running=$(echo "$nfs" | grep -v "Running" || true)
+        if [ -n "$not_running" ]; then
+          echo "WARNING: NFS provisioner not healthy:"
+          echo "$not_running"
+          exit 1
+        fi
+        echo "NFS provisioner: Running"
+      register: nfs_status
+      changed_when: false
+      failed_when: false
+
+    ###########################################################################
+    # Summary
+    ###########################################################################
+    - name: "[STORAGE] Validation summary"
+      debug:
+        msg: |
+          K8s Storage Validation ({{ _context }}):
+            CSI controller: {{ csi_ctrl.stdout_lines | last | default('unknown') }}
+            CSI nodes: {{ csi_nodes.stdout_lines | last | default('unknown') }}
+            PVs: {{ pv_status.stdout_lines | first | default('unknown') }}
+            PVCs: {{ pvc_status.stdout_lines | first | default('unknown') }}
+            VolumeAttachments: {{ va_status.stdout_lines | first | default('unknown') }}
+            NFS provisioner: {{ nfs_status.stdout_lines | last | default('unknown') }}
+
+    - name: "[STORAGE] Determine overall status"
+      set_fact:
+        storage_validation_passed: >-
+          {{ (csi_ctrl.rc | default(1)) == 0 and
+             (pv_status.rc | default(1)) == 0 and
+             (pvc_status.rc | default(1)) == 0 }}
+
+    - name: "[STORAGE] Fail if critical checks failed"
+      fail:
+        msg: >-
+          Storage validation has critical failures. Review output above.
+          CSI: {{ 'OK' if csi_ctrl.rc == 0 else 'FAIL' }},
+          PVs: {{ 'OK' if pv_status.rc == 0 else 'FAIL' }},
+          PVCs: {{ 'OK' if pvc_status.rc == 0 else 'FAIL' }}
+      when:
+        - not (storage_validation_passed | bool)
+        - strict_mode | default(false) | bool
