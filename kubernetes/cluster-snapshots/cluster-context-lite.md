@@ -3,21 +3,21 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-10-16 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-10-17 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: CRITICAL ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 10 |
+| Unhealthy Pods | 8 |
 | Pending PVCs | 0 |
-| Total Restarts | 4367 |
+| Total Restarts | 4635 |
 
 ## Topology
 
 - **K8s:** v1.36.3 | **CNI:** Cilium 1.20.0
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 178
+- **Pods:** 179
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8002680Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -32,22 +32,20 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-backup-gateway           REDACTED_4e0a8ed8-29868521-xn2jh                              0/1   Error              0                  140m
-backup-gateway           REDACTED_54583949-29868491-b9n8r                              0/1   Error              0                  166m
-backup-gateway           REDACTED_54583949-29868491-hxxh5                              0/1   Error              0                  170m
-monitoring               meshsat-status-heartbeat-29860040-ppllf                           0/1   Error              0                  5d23h
-monitoring               meshsat-status-heartbeat-29868091-2l8kl                           0/1   Error              0                  9h
-velero                   awx-hetzner-kopia-maintain-job-1792109824330-wt8r9                0/1   Error              0                  164m
-velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                  22d
-velero                   monitoring-hetzner-kopia-maintain-job-1792109952543-n78b5         0/1   Error              0                  162m
-velero                   pihole-hetzner-kopia-maintain-job-1792109965705-j84p8             0/1   Error              0                  161m
-velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   1034 (3m47s ago)   30d
+backup-gateway           REDACTED_4e0a8ed8-29868521-xn2jh                              0/1   Error              0                  26h
+backup-gateway           REDACTED_54583949-29868491-b9n8r                              0/1   Error              0                  26h
+backup-gateway           REDACTED_54583949-29868491-hxxh5                              0/1   Error              0                  26h
+monitoring               meshsat-status-heartbeat-29868091-2l8kl                           0/1   Error              0                  33h
+monitoring               meshsat-status-heartbeat-29870064-bcxk7                           0/1   Error              0                  37m
+velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                  23d
+velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   1298 (4m55s ago)   31d
 ```
 
 ### High Restart Pods (>3)
-argocd/argocd-application-controller-0: 59 restarts
+argocd/argocd-application-controller-0: 61 restarts
 awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 68 restarts
-awx/my-awx-task-756d768868-bslc2: 6 restarts
+awx/my-awx-task-756d768868-bslc2: 7 restarts
+awx/my-awx-web-f9c4bb98d-wcn4j: 5 restarts
 cert-manager/cert-manager-75944f484-k8x88: 20 restarts
 cert-manager/cert-manager-cainjector-74f994b988-shnfp: 22 restarts
 cilium-spire/spire-agent-2xj9z: 276 restarts
@@ -104,7 +102,7 @@ monitoring/monitoring-prometheus-node-exporter-88hp8: 13 restarts
 monitoring/monitoring-prometheus-node-exporter-8bq88: 5 restarts
 monitoring/monitoring-prometheus-node-exporter-vgp6b: 5 restarts
 monitoring/monitoring-prometheus-node-exporter-wmcb8: 47 restarts
-monitoring/prometheus-REDACTED_6dfbe9fc-1: 15 restarts
+monitoring/prometheus-REDACTED_6dfbe9fc-1: 17 restarts
 nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-75b84759cfvtflq: 79 restarts
 synology-csi/synology-csi-node-4nxcz: 8 restarts
 synology-csi/synology-csi-node-kxrjb: 19 restarts
@@ -114,15 +112,15 @@ synology-csi/synology-csi-node-ptwb8: 10 restarts
 synology-csi/synology-csi-node-sfdmg: 12 restarts
 synology-csi/synology-csi-node-zch7n: 47 restarts
 velero/node-agent-54dn2: 10 restarts
-velero/velero-ui-687565868b-b9xr7: 1034 restarts
+velero/velero-ui-687565868b-b9xr7: 1298 restarts
 
 ### Recent Warnings (5)
 ```
-velero                   7m51s       Warning   BackOff           pod/velero-ui-687565868b-b9xr7                                          Back-off restarting failed container velero-ui in pod velero-ui-687565868b-b9xr7_velero(32280caf-839d-4113-832e-fdaf11b09a1a)
-velero                   3m53s       Warning   Unhealthy         pod/velero-ui-687565868b-b9xr7                                          Readiness probe failed: Get "http://10.0.6.172:3000/": dial tcp 10.0.6.172:3000: connect: connection refused
-kube-system              21s         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl03                                   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system              19s         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Readiness probe failed: HTTP probe failed with statuscode: 500
-monitoring               18s         Warning   Unhealthy         pod/monitoring-kube-state-metrics-75f9fff55b-prwns                      Liveness probe failed: HTTP probe failed with statuscode: 503
+kube-system              39m         Warning   Unhealthy              pod/etcd-nlk8s-ctrl03                                             Readiness probe failed: HTTP probe failed with statuscode: 503
+monitoring               36m         Warning   BackoffLimitExceeded   job/meshsat-status-heartbeat-29870064                                   Job has reached the specified backoff limit
+kube-system              20m         Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl01                                   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system              20m         Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl03                                   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system              20m         Warning   Unhealthy              pod/etcd-nlk8s-ctrl01                                             Readiness probe failed: HTTP probe failed with statuscode: 503
 ```
 
 ## Key Resources
