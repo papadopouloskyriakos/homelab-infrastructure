@@ -478,8 +478,6 @@ object network iqom2.dyndns.org
  fqdn v4 iqom2.dyndns.org
 object network pantheremobile.duckdns.org
  fqdn v4 pantheremobile.duckdns.org
-object network nlmattermost01
- host 10.0.X.X
 object network grnc01-80-tcp
  host 10.0.X.X
 object network grnc01-443-tcp

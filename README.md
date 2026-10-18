@@ -617,7 +617,7 @@ Exceptions: `666`, `777` are IoT cluster nodes (special-purpose IDs).
 
 ### Service Categories (51 hosts, 80+ services)
 
-**Communication:** nl-matrix01 (Synapse + 8 bridges), nlmattermost01, librechat01, openwebui01
+**Communication:** nl-matrix01 (Synapse + 8 bridges), librechat01, openwebui01
 **Media:** nlgpu01/jellyfin, navidrome01, lyrion01, feishin01, frigate01, pinchflat01, tautulli01
 **AI/GPU** (all on nlgpu01, 21 services): Ollama, Stable Diffusion, Immich ML, Whisper, Piper, Milvus, LibreTranslate, Audiomuse, Viseron, Beszel, GPU-Hot, Onlogs
 **Productivity:** nlnc01/nlnc02 (Nextcloud), mealie01, docuseal01, excalidraw01, calibre01, audiobookshelf01, bookwyrm01, linkwarden02, twenty01
@@ -655,7 +655,7 @@ deploy:
 
 - **BookWyrm** — Django app, multi-stage build
 - **LibreChat** — Node.js + React, jemalloc optimization
-- **Matrix** — Mattermost bridge (currently disabled)
+- **Matrix** — Mattermost bridge (disabled; Mattermost retired 18 October 2026)
 
 All other services use prebuilt public images.
 
