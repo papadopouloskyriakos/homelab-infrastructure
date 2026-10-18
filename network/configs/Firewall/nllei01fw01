@@ -229,7 +229,7 @@ interface Tunnel4
  tunnel source interface outside_freedom
  tunnel destination 91.211.213.72
  tunnel mode ipsec ipv4
- tunnel protection ipsec profile VTI-PROFILE
+ tunnel protection ipsec profile VTI-PROFILE-GR
 !
 interface Tunnel5
  nameif vti-no-f
@@ -1826,6 +1826,10 @@ service sw-reset-button
 crypto ipsec ikev2 ipsec-proposal VTI-PROPOSAL
  protocol esp encryption aes-256
  protocol esp integrity sha-256
+crypto ipsec profile VTI-PROFILE-GR
+ set ikev2 ipsec-proposal VTI-PROPOSAL
+ set security-association lifetime kilobytes unlimited
+ set security-association lifetime seconds 21600
 crypto ipsec profile VTI-PROFILE
  set ikev2 ipsec-proposal VTI-PROPOSAL
  set security-association lifetime seconds 28800
