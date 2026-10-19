@@ -77,6 +77,17 @@ ssh -i ~/.ssh/one_key root@nlnc02
 | nlnc01 | 101101206 | nlpve04 | 10.0.X.X, 10.0.X.X | Nextcloud **33.0.7**, PHP **8.4.24**, Apache 2.4.58 |
 | nlnc02 | 103101201 | nl-pve01 | 10.0.X.X, 10.0.X.X | Nextcloud **33.0.7**, PHP **8.4.24**, Apache 2.4.58 |
 
+**PHP-FPM sizing and VM memory (fixed 2026-10-19):** nlnc01 runs `pm.max_children = 20`
+(start 4, spare 4/8), sized for its 4 GB at about 75 MB per worker; Apache's
+`MaxRequestWorkers 30` stays above it. Until 2026-10-19 this repo said 1500 while the live pool
+had been cut to 10 on 2026-03-27 (backup `www.conf.bak.20260327-161551` on the host, reason not
+recorded). With nc01 serving alone, 10 workers ran out under ordinary CalDAV sync bursts
+(Thunderbird syncs every calendar at once): the limit was hit up to 61 times a day. The VM also
+had `balloon: 2048` against `memory: 4096`, so nlpve04's auto-ballooning held the guest at
+1.8 GB whenever the host was above 80 % used; it is now `balloon: 4096` (equal to memory, so it
+never shrinks). ⚠ nc02's copy here still says 1500: when nl-pve01 returns, check nc02's live
+value and set it to the same 20 (nc02 has 4 GB and no balloon floor).
+
 #### Upgrade status (2026-08-05: 32.0.6 → 32.0.13 → 33.0.7 DONE, IFRNLLEI01PRD-2235)
 
 The EOL-driven chain ran in one window 2026-08-05 ~02:30–04:00 CEST. Next major is 34.0.2 —
@@ -371,6 +382,8 @@ created` lockout, not a new fault.
 Moved with the DB layer → [`../dbcluster/CLAUDE.md`](../dbcluster/CLAUDE.md) Troubleshooting.
 Quick check from a Nextcloud angle: `dig proxysql.example.net` (should return .152 +
 .154 — Nextcloud connects to both proxies directly, there is no standby).
+**HAProxy 503 plus `1205 Lock wait timeout` in `nextcloud.log`** = a cluster-wide DDL stall (another
+app's ALTER on the Galera cluster), not a web-tier fault: see the 2026-10-19 entry there.
 
 ### `pct` says a guest's config file does not exist
 It is probably a **QEMU VM**, not an LXC — use `qm config` / `qm status`. `nlhpb01`

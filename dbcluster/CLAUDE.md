@@ -291,3 +291,21 @@ Serialization failures are the app-visible face of Galera certification conflict
 *climbing*, writes are reaching more than one node. Verify `max_writers=1` in
 `runtime_mysql_galera_hostgroups` on **both** proxies (they must agree, or you still have two
 writers cluster-wide). Fixed 2026-08-01; the counters have been flat since.
+
+### Every app's writes stall at once: `1205 Lock wait timeout`, "Waiting for certification" (2026-10-19)
+`wsrep_OSU_method=TOI`: a DDL on ANY schema is applied by every node at the same point in the
+replication order, and every other commit on every schema waits until it finishes. A rebuild of
+one big table is therefore an outage for every consumer at once. 19 October 2026 16:33-16:53 NL:
+the career/elli re-embed (user `careerelli` from nlclaude01) ran `ALTER TABLE
+posting_chunks_az ADD VECTOR INDEX` (528 s) and then `MODIFY id … AUTO_INCREMENT` (a full table
+copy, ~10 min) on a 437k-row, 4.3 GB table. Nextcloud's writes hit the 50 s lock-wait timeout,
+nlnc01's PHP workers all blocked, haproxy02 marked nc01 down, and users got HAProxy's 503
+(`finops_agora` writes were seen stalled the same way).
+**Find it:** on both nodes, `SELECT id,user,host,db,time,state,LEFT(info,100) FROM
+information_schema.processlist WHERE command<>'Sleep' ORDER BY time DESC LIMIT 10;`. The DDL
+shows as `copy to tmp table` on the node that issued it and as `system user` (the applier) on
+the other; app writes queue behind it in `Waiting for certification`. **Do not KILL it** once the
+other node is applying it: let it finish. **Prevention:** never ALTER or add an index to a
+populated table during the day. Create the new table with its indexes in the `CREATE TABLE`,
+fill it with ordinary INSERTs, and swap with `RENAME TABLE` (metadata only). The career re-embed
+was changed to do exactly this (career/elli repo, 2026-10-19).
