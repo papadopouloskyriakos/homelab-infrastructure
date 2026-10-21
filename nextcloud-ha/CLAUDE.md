@@ -74,7 +74,7 @@ ssh -i ~/.ssh/one_key root@nlnc02
 
 | Host | VMID | PVE | IPs | Version |
 |------|------|-----|-----|---------|
-| nlnc01 | 101101206 | nlpve04 | 10.0.X.X, 10.0.X.X | Nextcloud **33.0.7**, PHP **8.4.24**, Apache 2.4.58 |
+| nlnc01 | 101101206 | nlpve04 | 10.0.X.X, 10.0.X.X | Nextcloud **33.0.7**, PHP **8.4.26** (sury PPA; 8.4.27 = php2shell fix pending AWX 51, 21 October 2026), Apache 2.4.58 |
 | nlnc02 | 103101201 | nl-pve01 | 10.0.X.X, 10.0.X.X | Nextcloud **33.0.7**, PHP **8.4.24**, Apache 2.4.58 |
 
 **PHP-FPM sizing and VM memory (fixed 2026-10-19):** nlnc01 runs `pm.max_children = 20`
@@ -87,6 +87,14 @@ had `balloon: 2048` against `memory: 4096`, so nlpve04's auto-ballooning held th
 1.8 GB whenever the host was above 80 % used; it is now `balloon: 4096` (equal to memory, so it
 never shrinks). ⚠ nc02's copy here still says 1500: when nl-pve01 returns, check nc02's live
 value and set it to the same 20 (nc02 has 4 GB and no balloon floor).
+
+**php2shell interim mitigation (21 October 2026, CVE-2026-109618/-109619, IFRNLLEI01PRD-2949):** `www.conf` on nc01
+carries `php_admin_value[session.upload_progress.enabled] = 0` (backup `www.conf.bak-20261021-php2shell`); Nextcloud
+does not use session upload progress (chunked WebDAV uploads), so keep it. It lives in the pool file, not php.ini, because
+the SAPI php.ini are symlinks (§ OS patching). The real fix is php8.4 8.4.27 from the sury PPA via AWX template 51 (which
+runs fine with nc02 unreachable: the job ends "failed" on nc02 only). **nc01's unattended-upgrades allows only Ubuntu
+origins, so a sury security build is NOT auto-installed; the weekly AWX 51 run (Saturday 04:00 NL) is what patches PHP.**
+Set the same pool line on nc02 when pve01 returns.
 
 #### Upgrade status (2026-08-05: 32.0.6 → 32.0.13 → 33.0.7 DONE, IFRNLLEI01PRD-2235)
 

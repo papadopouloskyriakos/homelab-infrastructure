@@ -194,6 +194,16 @@ Two things future maintainers must know:
    needs restarting. Full execution record:
    `docker/nlcivicrm01/civicrm/civicrm-timezone-runbook.md`.
 
+## Apache + mod_php + phpMyAdmin on both nodes: DISABLED 21 October 2026
+
+Both `nlcl01mariadb01` and `02` carried an undocumented `apache2` on `:80` with `libapache2-mod-php8.2`
+(Debian 8.2.29) serving `/var/www/html/phpMyAdmin` (installed November 2024; `conf.d/phpmyadmin_advisor.cnf` below
+is its advice output). Last real use June 2025. On 21 October 2026 (php2shell, CVE-2026-109618/-109619, pre-auth
+RCE worst under mod_php, IFRNLLEI01PRD-2949) it was `systemctl disable --now apache2` on both nodes, MariaDB
+untouched (`wsrep_cluster_size` 3 before and after). The php8.2 packages are still installed and get the Debian LTS
+fix (DLA-4848-1, 8.2.35) with the next apt run. For a one-off phpMyAdmin session: `systemctl start apache2`, use it,
+`systemctl stop apache2`; do not re-enable it. ProxySQL and the health checks never used this port.
+
 ## MariaDB config file layout — read this before editing any `.cnf`
 
 `/etc/mysql/my.cnf` includes `conf.d/` **first**, then `mariadb.conf.d/`, and **last definition
