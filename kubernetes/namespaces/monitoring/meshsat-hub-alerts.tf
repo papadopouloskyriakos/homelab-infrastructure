@@ -502,11 +502,53 @@ resource "kubernetes_manifest" "meshsat_edge_alert_rules" {
           interval = "1m"
           rules = [
             {
+              # The ROOT alert of this group (IFRNLLEI01PRD-2950, 21 October 2026).
+              # A leg that fails on EVERY edge at once is not an edge problem: the
+              # three VPS share nothing but the Norway backend (the notrf01 relays,
+              # ingress-nginx, the Hub and its CNPG primary), so this is notrf01 or
+              # the Terrahost network between its hosts. On 21 October 2026 a
+              # four-minute packet loss inside Terrahost stalled the notrf01 etcd
+              # peer link, the API server on dmz05 died, the hub/tak Postgres
+              # primaries restarted and the hub answered 503 behind all three
+              # edges for six minutes; the page said "edge txhou is down" and sent
+              # the responder to TX's tunnels, which were fine.
+              #
+              # count by (leg): the twenty leg exists on the two EU edges only, so
+              # "every edge" is per leg, never a literal three.
+              # for 3m: shorter than the per-edge 5m because this is every customer,
+              # longer than the one-minute blips a single edge shows a few times a day.
+              alert = "MeshSatBackendDown"
+              expr  = "count by (leg) (probe_success{job=\"meshsat-edge\"} == 0) == count by (leg) (probe_success{job=\"meshsat-edge\"})"
+              for   = "3m"
+              labels = {
+                severity = "critical"
+                service  = "meshsat-hub"
+                tier     = "1"
+                page     = "sms" # every customer, not a third: at least what one dead edge gets (owner decision 2026-09-14 extended by Plan A of IFRNLLEI01PRD-2950)
+              }
+              annotations = {
+                summary     = "MeshSat {{ $labels.leg }} is down on EVERY edge: the Norway backend, not a VPS (3m)"
+                description = <<-EOT
+                  The {{ $labels.leg }} probe fails through all of chzrh, notrf01 and txhou at the same time. The edges share only the Norway backend, so do not start at a VPS: start at notrf01cl01k8s.
+
+                  Check, in this order: `kubectl --context notrf01 get nodes` (NotReady nodes = the control plane is losing its peers); `kubectl --context notrf01 -n meshsat-hub get pods` and `kubectl --context notrf01 get cluster -A` (hub crash-looping on "postgres connection failed" = the CNPG primary restarted); the Prometheus series `etcd_network_peer_sent_failures_total{cluster="notrf01"}` and `etcd_server_leader_changes_seen_total{cluster="notrf01"}` (a burst = the etcd peer link between the control-plane nodes, which rides per-pair xfrm tunnels over Terrahost); `rate(node_netstat_Tcp_RetransSegs{cluster="notrf01"}[1m])` per node (a spike on several nodes = the Terrahost network, not us). The relays (`meshsat-edge-relay` DaemonSet, hostPort 8443) and ingress-nginx come after that.
+
+                  On the VPS side you will only see the consequence: `journalctl -u haproxy` shows `backend meshsat_hub has no server available` and the access log shows the probes as `https_in/<NOSRV> ... PR--` (silent-dropped because nbsrv is 0). Post-mortem of the first occurrence: IFRNLLEI01PRD-2950.
+                EOT
+              }
+            },
+            {
               # tier 1: this is the failure that hid for hours. One dead edge is
               # a third of customers and a third of Stripe's webhooks, and the
               # service looks fine to anyone who happens to resolve elsewhere.
+              #
+              # `and on (leg)`: fires only while at least one OTHER edge still
+              # serves that leg, so a backend-wide outage raises MeshSatBackendDown
+              # alone instead of three edge pages that all point at the wrong host
+              # (IFRNLLEI01PRD-2950). When the last edge fails, the pending timers
+              # of the earlier ones reset, which is the intent.
               alert = "MeshSatEdgeDown"
-              expr  = "probe_success{job=\"meshsat-edge\"} == 0"
+              expr  = "probe_success{job=\"meshsat-edge\"} == 0 and on (leg) (count by (leg) (probe_success{job=\"meshsat-edge\"} == 1) > 0)"
               for   = "5m"
               labels = {
                 severity = "critical"
@@ -515,9 +557,9 @@ resource "kubernetes_manifest" "meshsat_edge_alert_rules" {
                 page     = "sms" # a third of customers dropped with no error is worth a phone on silent (owner decision 2026-09-14)
               }
               annotations = {
-                summary     = "MeshSat edge {{ $labels.edge }} is not serving {{ $labels.leg }} (5m)"
+                summary     = "MeshSat {{ $labels.leg }} probe through edge {{ $labels.edge }} failed 5m while another edge still serves it"
                 description = <<-EOT
-                  The blackbox exporter cannot complete the {{ $labels.leg }} probe against edge {{ $labels.edge }} ({{ $labels.instance }}) while the other edges may be fine, so the service looks healthy to anyone who resolves elsewhere. A third of clients are being dropped.
+                  The blackbox exporter cannot complete the {{ $labels.leg }} probe against edge {{ $labels.edge }} ({{ $labels.instance }}) while at least one other edge still serves that leg, so the service looks healthy to anyone who resolves elsewhere. A third of clients are being dropped. (If every edge had failed you would be reading MeshSatBackendDown instead: that one is the Norway backend, this one is this VPS.)
 
                   Most likely cause: that VPS lost its IPsec tunnels to the notrf01 workers, so `nbsrv(meshsat_hub)` is 0 and haproxy silent-drops every request with no HTTP response at all.
 
@@ -527,7 +569,7 @@ resource "kubernetes_manifest" "meshsat_edge_alert_rules" {
               }
             },
             {
-              # Negative control: while this fires, MeshSatEdgeDown cannot.
+              # Negative control: while this fires, neither MeshSatBackendDown nor MeshSatEdgeDown can.
               alert = "REDACTED_e80a8dbf"
               expr  = "absent(probe_success{job=\"meshsat-edge\"})"
               for   = "10m"
