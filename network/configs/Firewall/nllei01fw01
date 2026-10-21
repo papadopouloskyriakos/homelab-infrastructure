@@ -613,8 +613,6 @@ object network nlhaproxy01
  host 10.0.X.X
 object network nlhaproxy02
  host 10.0.X.X
-object network papaniil.ddns.net
- fqdn v4 papaniil.ddns.net
 object network nln8n01
  host 10.0.X.X
 object network nlfreeipa01
@@ -894,7 +892,6 @@ object-group network WHITELIST_GR_PUBLIC_SUBNETS
 object-group network WHITELIST_KYRIAKOS
  group-object USR_KYRIAKOSP_PUBLIC_IP_ADDRESSES
  group-object WHITELIST_GR_PUBLIC_SUBNETS
- network-object object papaniil.ddns.net
  network-object object panthere.dedyn.io
  network-object object sorotos.cloudns.nz
  network-object object PUBLIC_budget
@@ -2126,5 +2123,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:2ab2d4099ff18d6ff3f3f9f213ac1824
+Cryptochecksum:c71d989ac5ed659a43a0edc0782f4454
 : end
