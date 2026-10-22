@@ -93,6 +93,32 @@ resource "kubernetes_manifest" "REDACTED_a6ca0194" {
               }
             },
             {
+              alert = "REDACTED_b1b3eeee"
+              expr  = "gateway_flywheel_identity_ok == 0"
+              for   = "2h"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "Eval flywheel stage missing for sessions that ended in the last day"
+                description = "scripts/check-flywheel-identity.py found dispatched sessions that ended 2h..26h ago without a judgment, transcript archive, outcome row, reflection record or harness stamp (stage ratio < 0.8), or duplicate judgments. A flywheel stage stopped producing (the 2026-08-26 failure class). Run the script for the broken stage list; holistic section 49; runbook docs/runbooks/harness2-reuse.md (claude-gateway)."
+              }
+            },
+            {
+              alert = "REDACTED_f81d26ac"
+              expr  = "time() - gateway_flywheel_last_run_timestamp_seconds > 7200"
+              for   = "15m"
+              labels = {
+                severity = "warning"
+                category = "agentic-platform"
+              }
+              annotations = {
+                summary     = "flywheel-identity writer has not run in 2+ hours"
+                description = "The hourly Cronicle job flywheel-identity (scripts/check-flywheel-identity.py --out) is wedged or disabled; REDACTED_b1b3eeee is blind while this fires."
+              }
+            },
+            {
               alert = "REDACTED_3297f03e"
               expr  = "max by (category) (chatops_jailbreak_detector_match_total{status=\"miss\"}) > 0"
               for   = "30m"
