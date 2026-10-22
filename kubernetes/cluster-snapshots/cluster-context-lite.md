@@ -3,21 +3,21 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-10-21 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-10-22 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
-## Health: CRITICAL ⚠️
+## Health: DEGRADED ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 7 |
+| Unhealthy Pods | 5 |
 | Pending PVCs | 0 |
-| Total Restarts | 6087 |
+| Total Restarts | 6359 |
 
 ## Topology
 
 - **K8s:** v1.36.3 | **CNI:** Cilium 1.20.0
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 177
+- **Pods:** 175
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8002648Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -32,18 +32,16 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-cnpg-system              cnpg-janitor-29874983-rdnf4                                       0/1   Error              0                  14h
-cnpg-system              cnpg-janitor-29875043-7v6gl                                       0/1   Error              0                  13h
-monitoring               meshsat-status-heartbeat-29875100-5c54x                           0/1   Error              0                  12h
-monitoring               meshsat-status-heartbeat-29875101-b6p9r                           0/1   Error              0                  12h
-monitoring               meshsat-status-heartbeat-29875102-2rtc6                           0/1   Error              0                  12h
-velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                  27d
-velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   2357 (2m14s ago)   35d
+monitoring               meshsat-status-heartbeat-29875890-lfrfn                           0/1   Error              0                  23h
+monitoring               meshsat-status-heartbeat-29875891-b875k                           0/1   Error              0                  23h
+monitoring               meshsat-status-heartbeat-29877118-vsmkc                           0/1   Error              0                  3h2m
+velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                  28d
+velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   2622 (3m56s ago)   36d
 ```
 
 ### High Restart Pods (>3)
-argocd/argocd-application-controller-0: 69 restarts
-awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 102 restarts
+argocd/argocd-application-controller-0: 72 restarts
+awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 103 restarts
 awx/my-awx-task-756d768868-bslc2: 7 restarts
 awx/my-awx-web-f9c4bb98d-wcn4j: 5 restarts
 cert-manager/cert-manager-75944f484-k8x88: 25 restarts
@@ -56,7 +54,7 @@ cilium-spire/spire-agent-sm9xs: 284 restarts
 cilium-spire/spire-agent-xk8cl: 280 restarts
 cilium-spire/spire-agent-zqpt4: 288 restarts
 cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-wzdfh: 67 restarts
-cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-zl8gc: 88 restarts
+cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-zl8gc: 90 restarts
 kube-system/cilium-c8kqc: 12 restarts
 kube-system/cilium-envoy-brdkr: 10 restarts
 kube-system/cilium-envoy-dzx97: 12 restarts
@@ -68,7 +66,7 @@ kube-system/etcd-nlk8s-ctrl02: 11 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 27 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 18 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 11 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 85 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl01: 86 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl02: 20 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl03: 78 restarts
 kube-system/kube-proxy-7jvns: 12 restarts
@@ -106,7 +104,7 @@ monitoring/monitoring-prometheus-node-exporter-88hp8: 13 restarts
 monitoring/monitoring-prometheus-node-exporter-8bq88: 6 restarts
 monitoring/monitoring-prometheus-node-exporter-vgp6b: 6 restarts
 monitoring/monitoring-prometheus-node-exporter-wmcb8: 47 restarts
-monitoring/prometheus-REDACTED_6dfbe9fc-1: 22 restarts
+monitoring/prometheus-REDACTED_6dfbe9fc-1: 24 restarts
 nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-75b84759cfvtflq: 113 restarts
 synology-csi/synology-csi-node-4nxcz: 8 restarts
 synology-csi/synology-csi-node-kxrjb: 21 restarts
@@ -116,15 +114,15 @@ synology-csi/synology-csi-node-ptwb8: 10 restarts
 synology-csi/synology-csi-node-sfdmg: 14 restarts
 synology-csi/synology-csi-node-zch7n: 47 restarts
 velero/node-agent-54dn2: 10 restarts
-velero/velero-ui-687565868b-b9xr7: 2357 restarts
+velero/velero-ui-687565868b-b9xr7: 2622 restarts
 
 ### Recent Warnings (5)
 ```
-velero                   52m         Warning   PolicyViolation   replicaset/velero-ui-7bcfc7d884                                         policy restrict-seccomp-strict/autogen-check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/containers/0/securityContext/
-kube-system              60m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl03                                   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system              60m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system              60m         Warning   Unhealthy         pod/etcd-nlk8s-ctrl03                                             Readiness probe failed: HTTP probe failed with statuscode: 503
-velero                   13m         Warning   Unhealthy         pod/velero-ui-687565868b-b9xr7                                          Readiness probe failed: Get "http://10.0.6.172:3000/": dial tcp 10.0.6.172:3000: connect: connection refused
+velero                   52m         Warning   PolicyViolation   deployment/velero-ui                                                    policy restrict-seccomp-strict/autogen-check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/containers/0/securityContext/
+velero                   52m         Warning   PolicyViolation   deployment/velero                                                       policy restrict-seccomp-strict/autogen-check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/initContainers/0/securityContext/
+velero                   52m         Warning   PolicyViolation   deployment/velero                                                       policy disallow-privilege-escalation/autogen-privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule autogen-privilege-escalation failed at path /spec/template/spec/initContainers/0/securityContext/
+kube-system              53m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Readiness probe failed: HTTP probe failed with statuscode: 500
+velero                   52m         Warning   Unhealthy         pod/velero-ui-687565868b-b9xr7                                          Readiness probe failed: Get "http://10.0.6.172:3000/": dial tcp 10.0.6.172:3000: connect: connection refused
 ```
 
 ## Key Resources
