@@ -1,0 +1,840 @@
+---
+# Matrix Server - Weekly Update
+#
+# Performs TLS certificate sync from K8s cert-manager, OS package updates,
+# Docker image pulls with container recreation, mandatory reboot, and
+# post-update verification on the standalone Matrix server.
+#
+# NOT a cluster - no Corosync, no Pacemaker, no DRBD.
+# Single node running a Docker Compose stack.
+#
+# Node: nl-matrix01
+# Compose file: /srv/matrix/docker-compose.yml
+#
+# Docker Compose services:
+#   nginx          - reverse proxy, serves mas + matrix on 443
+#   mas            - Matrix Authentication Service, port 9090
+#   synapse        - Matrix homeserver, port 8008
+#   postgres       - database
+#   element-web    - web client, port 8088
+#   matrix-hookshot - webhook bridge
+#   hookshot-redis - Redis for hookshot
+#   ntfy           - push notifications, port 8880
+#   synapse-admin  - admin UI
+#
+# TLS certificate:
+#   Wildcard *.example.net from K8s cert-manager.
+#   Mounted into nginx at:
+#     /srv/matrix/synapse-data/tls/fullchain6.pem
+#     /srv/matrix/synapse-data/tls/privkey6.pem
+#   Used by both mas.example.net and matrix.example.net.
+#   If the cert expires, Synapse cannot introspect MAS tokens and all
+#   clients receive 503 errors.
+#
+# CRITICAL: Certificate sync is checked FIRST. If the cert on the server
+# differs from K8s (expired or near expiry), the K8s cert is deployed
+# before anything else happens.
+#
+# Credentials from AWX/OpenBao custom credentials:
+#   K8s API: K8S_HOST, K8S_TOKEN, K8S_CA_CERT
+#   SSH: SSH Lab Common (credential ID 6)
+
+###############################################################################
+# Play 1: Pre-flight checks
+###############################################################################
+- name: Pre-flight checks on Matrix server
+  hosts: matrix_nodes
+  become: yes
+  gather_facts: yes
+
+  vars:
+    compose_file: /srv/matrix/docker-compose.yml
+    cert_path: /srv/matrix/synapse-data/tls/fullchain6.pem
+    cert_renewal_threshold_days: 14
+    expected_services:
+      - nginx
+      - mas
+      - synapse
+      - postgres
+      - element-web
+      - matrix-hookshot
+      - hookshot-redis
+      - ntfy
+      - synapse-admin
+
+  tasks:
+    - name: Record update start time
+      set_fact:
+        matrix_update_start: "{{ now(utc=true) }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+    # --- Certificate expiry check ---
+
+    - name: Read certificate expiry date
+      command: openssl x509 -in {{ cert_path }} -noout -enddate
+      register: cert_enddate_raw
+      changed_when: false
+      check_mode: false
+
+    - name: Read certificate subject
+      command: openssl x509 -in {{ cert_path }} -noout -subject
+      register: cert_subject_raw
+      changed_when: false
+      check_mode: false
+
+    - name: Parse certificate expiry to ISO format
+      command: date -d "{{ cert_enddate_raw.stdout | regex_replace('notAfter=', '') }}" -u +%Y-%m-%dT%H:%M:%S
+      register: cert_expiry_iso
+      changed_when: false
+      check_mode: false
+
+    - name: Calculate days until certificate expiry
+      shell: |
+        expiry_epoch=$(date -d "{{ cert_enddate_raw.stdout | regex_replace('notAfter=', '') }}" +%s)
+        now_epoch=$(date +%s)
+        days_remaining=$(( (expiry_epoch - now_epoch) / 86400 ))
+        echo "$days_remaining"
+      register: cert_days_remaining_raw
+      changed_when: false
+      check_mode: false
+
+    - name: Store certificate facts
+      set_fact:
+        cert_days_remaining: "{{ cert_days_remaining_raw.stdout | int }}"
+        cert_needs_renewal: "{{ cert_days_remaining_raw.stdout | int < cert_renewal_threshold_days }}"
+        cert_expiry_iso: "{{ cert_expiry_iso.stdout }}"
+
+    - name: Log certificate status
+      debug:
+        msg: |
+          Certificate status:
+            Subject: {{ cert_subject_raw.stdout }}
+            Expiry: {{ cert_enddate_raw.stdout | regex_replace('notAfter=', '') }}
+            Days remaining: {{ cert_days_remaining }}
+            Needs sync: {{ cert_needs_renewal }}
+
+    - name: Store cert facts for subsequent plays
+      set_fact:
+        cert_needs_renewal: "{{ cert_needs_renewal }}"
+        cert_days_remaining: "{{ cert_days_remaining }}"
+        cert_expiry_iso: "{{ cert_expiry_iso }}"
+        cert_expiry_str: "{{ cert_enddate_raw.stdout | regex_replace('notAfter=', '') }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+    # --- Docker container health checks ---
+
+    - name: Get Docker Compose service status
+      command: docker compose -f {{ compose_file }} ps --format json
+      register: compose_ps_raw
+      changed_when: false
+      check_mode: false
+
+    - name: Check for containers not in running state
+      shell: |
+        cd /srv/matrix
+        not_running=""
+        for svc in {{ expected_services | join(' ') }}; do
+          state=$(docker compose -f {{ compose_file }} ps --format json "$svc" 2>/dev/null | python3 -c "import sys,json; data=json.load(sys.stdin); print(data.get('State','unknown'))" 2>/dev/null || echo "missing")
+          if [ "$state" != "running" ]; then
+            not_running="${not_running}${svc}(${state}) "
+          fi
+        done
+        if [ -n "$not_running" ]; then
+          echo "NOT RUNNING: ${not_running}"
+          exit 1
+        fi
+        echo "All {{ expected_services | length }} services running"
+      register: container_check
+      changed_when: false
+      check_mode: false
+
+    - name: Assert all Docker containers are running
+      assert:
+        that:
+          - container_check.rc == 0
+        fail_msg: >-
+          Not all Docker containers are running before update.
+          {{ container_check.stdout }}
+          Manual investigation required before proceeding.
+
+    # --- Service health endpoints ---
+
+    - name: Check Synapse health endpoint
+      uri:
+        url: http://localhost:8008/health
+        method: GET
+        return_content: yes
+        status_code: 200
+        timeout: 30
+      register: synapse_health
+      check_mode: false
+
+    - name: Check MAS health endpoint
+      uri:
+        url: http://localhost:9090/health
+        method: GET
+        return_content: yes
+        timeout: 30
+      register: mas_health
+      failed_when: false
+      check_mode: false
+
+    - name: Check MAS root if health endpoint unavailable
+      uri:
+        url: http://localhost:9090/
+        method: GET
+        return_content: yes
+        timeout: 30
+      register: mas_root
+      when: mas_health.status | default(0) != 200
+      failed_when: false
+      check_mode: false
+
+    - name: Assert MAS is reachable
+      assert:
+        that:
+          - (mas_health.status | default(0) == 200) or (mas_root.status | default(0) in [200, 302, 404])
+        fail_msg: >-
+          MAS is not reachable on port 9090.
+          Health status: {{ mas_health.status | default('N/A') }},
+          Root status: {{ mas_root.status | default('N/A') }}.
+          Manual investigation required.
+
+    - name: Check Matrix HTTPS serving
+      uri:
+        url: https://matrix.example.net/health
+        method: GET
+        validate_certs: no
+        timeout: 30
+      register: matrix_https
+      failed_when: false
+      check_mode: false
+
+    - name: Log Matrix HTTPS status
+      debug:
+        msg: "Matrix HTTPS status: {{ matrix_https.status | default('unreachable') }}"
+
+    # --- Disk space check ---
+
+    - name: Check root filesystem usage
+      shell: df -P / | awk 'NR==2 {gsub(/%/,""); print $5}'
+      register: disk_usage
+      changed_when: false
+      check_mode: false
+
+    - name: Assert root filesystem usage below 85%
+      assert:
+        that:
+          - disk_usage.stdout | int < 85
+        fail_msg: >-
+          Root filesystem usage is {{ disk_usage.stdout }}% - exceeds 85% threshold.
+          Free up space before proceeding with updates.
+
+    # --- Pending packages (informational) ---
+
+    - name: Check pending apt packages
+      command: apt list --upgradable
+      register: pending_packages
+      changed_when: false
+      check_mode: false
+
+    - name: Log pending packages count
+      debug:
+        msg: >-
+          Pending apt packages:
+          {{ (pending_packages.stdout_lines | length) - 1 }}
+          ({{ 'none' if (pending_packages.stdout_lines | length) <= 1
+              else pending_packages.stdout_lines[1:] | join(', ') }})
+
+    - name: Pre-flight summary
+      debug:
+        msg: |
+          Pre-flight checks passed for nl-matrix01:
+            Cert days remaining: {{ cert_days_remaining }}
+            Cert needs sync: {{ cert_needs_renewal }}
+            All {{ expected_services | length }} containers: running
+            Synapse health: OK
+            MAS reachable: OK
+            Disk usage: {{ disk_usage.stdout }}%
+            Pending packages: {{ (pending_packages.stdout_lines | length) - 1 }}
+
+###############################################################################
+# Play 2a: Fetch certificate from K8s cert-manager (conditional, localhost)
+###############################################################################
+- name: Fetch certificate from K8s cert-manager
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    k8s_secret_name: REDACTED_0d82b4df-tls
+    k8s_secret_namespace: cert-manager
+    temp_dir: REDACTED_88f47687
+
+  tasks:
+    - name: Skip cert fetch if not needed
+      meta: end_play
+      when: not (cert_needs_renewal | default(false) | bool)
+
+    - name: Log cert sync from K8s triggered
+      debug:
+        msg: >-
+          Certificate expires in {{ cert_days_remaining }} days
+          ({{ cert_expiry_str }}).
+          Threshold: 14 days. Fetching fresh cert from K8s cert-manager.
+
+    - name: Create temp directory
+      file:
+        path: "{{ temp_dir }}"
+        state: directory
+        mode: '0700'
+
+    - name: Set credentials from environment
+      set_fact:
+        k8s_host: "{{ lookup('env', 'K8S_HOST') }}"
+        k8s_token: "{{ lookup('env', 'K8S_TOKEN') }}"
+        k8s_ca_cert: "{{ lookup('env', 'K8S_CA_CERT') }}"
+      no_log: true
+
+    - name: Write CA cert to temp file
+      copy:
+        content: "{{ k8s_ca_cert }}"
+        dest: "{{ temp_dir }}/ca.crt"
+        mode: '0600'
+
+    - name: Get TLS secret from K8s API
+      uri:
+        url: "{{ k8s_host }}/api/v1/namespaces/{{ k8s_secret_namespace }}/secrets/{{ k8s_secret_name }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ k8s_token }}"
+        ca_path: "{{ temp_dir }}/ca.crt"
+        validate_certs: true
+        return_content: true
+      register: k8s_secret
+      no_log: true
+
+    - name: Decode and save fullchain cert
+      copy:
+        content: "{{ k8s_secret.json.data['tls.crt'] | b64decode }}"
+        dest: "{{ temp_dir }}/fullchain.pem"
+        mode: '0600'
+      no_log: true
+
+    - name: Decode and save private key
+      copy:
+        content: "{{ k8s_secret.json.data['tls.key'] | b64decode }}"
+        dest: "{{ temp_dir }}/privkey.pem"
+        mode: '0600'
+      no_log: true
+
+    - name: Get K8s certificate expiry
+      command: openssl x509 -enddate -noout -in "{{ temp_dir }}/fullchain.pem"
+      register: k8s_cert_expiry_raw
+      changed_when: false
+
+    - name: Parse K8s certificate expiry to ISO format
+      command: date -d "{{ k8s_cert_expiry_raw.stdout | regex_replace('notAfter=', '') }}" -u +%Y-%m-%dT%H:%M:%S
+      register: k8s_cert_expiry
+      changed_when: false
+
+    - name: Display K8s certificate expiry
+      debug:
+        msg: "K8s wildcard certificate expires: {{ k8s_cert_expiry.stdout }}"
+
+    - name: Store K8s cert info
+      set_fact:
+        k8s_cert_fetched: true
+        k8s_cert_expiry_iso: "{{ k8s_cert_expiry.stdout }}"
+
+###############################################################################
+# Play 2b: Deploy certificate to Matrix server (conditional)
+###############################################################################
+- name: Deploy certificate to Matrix server
+  hosts: matrix_nodes
+  become: yes
+  gather_facts: no
+
+  vars:
+    compose_file: /srv/matrix/docker-compose.yml
+    cert_dir: /srv/matrix/synapse-data/tls
+    temp_dir: REDACTED_88f47687
+
+  tasks:
+    - name: Skip cert deploy if not needed
+      meta: end_host
+      when: not (hostvars['localhost']['k8s_cert_fetched'] | default(false) | bool)
+
+    - name: Check if K8s cert is newer than current
+      set_fact:
+        sync_needed: >-
+          {{ hostvars['localhost']['cert_expiry_iso'] == 'NONE'
+             or hostvars['localhost']['k8s_cert_expiry_iso'] != hostvars['localhost']['cert_expiry_iso'] }}
+
+    - name: Log sync decision
+      debug:
+        msg: >-
+          {{ 'Sync needed - K8s cert expiry differs from current. Deploying.'
+             if sync_needed | bool else
+             'Sync NOT needed - cert already matches K8s (' ~ hostvars['localhost']['k8s_cert_expiry_iso'] ~ ')' }}
+
+    # --- LibreNMS maintenance ---
+
+    - name: Put node into LibreNMS maintenance for cert sync
+      include_tasks: ../common/tasks/librenms_maintenance.yaml
+      vars:
+        maintenance_node: "{{ inventory_hostname }}"
+      when: sync_needed | bool
+
+    - name: Track that LibreNMS maintenance is already active
+      set_fact:
+        REDACTED_46df6e24: true
+      delegate_to: localhost
+      delegate_facts: true
+      when: sync_needed | bool
+
+    # --- Deploy cert ---
+
+    - name: Deploy fullchain cert from K8s
+      copy:
+        src: "{{ temp_dir }}/fullchain.pem"
+        dest: "{{ cert_dir }}/fullchain6.pem"
+        mode: '0644'
+        owner: root
+        group: root
+      no_log: true
+      when: sync_needed | bool
+
+    - name: Deploy private key from K8s
+      copy:
+        src: "{{ temp_dir }}/privkey.pem"
+        dest: "{{ cert_dir }}/privkey6.pem"
+        mode: '0600'
+        owner: root
+        group: root
+      no_log: true
+      when: sync_needed | bool
+
+    # --- Reload nginx and verify ---
+
+    - name: Reload nginx with new certificate
+      command: docker compose -f {{ compose_file }} exec nginx nginx -s reload
+      when: sync_needed | bool
+
+    - name: Wait for nginx to stabilize after reload
+      pause:
+        seconds: 10
+      when: sync_needed | bool
+
+    - name: Read new certificate expiry
+      command: openssl x509 -in {{ cert_dir }}/fullchain6.pem -noout -enddate
+      register: new_cert_enddate
+      changed_when: false
+      check_mode: false
+      when: sync_needed | bool
+
+    - name: Calculate new certificate days remaining
+      shell: |
+        expiry_epoch=$(date -d "{{ new_cert_enddate.stdout | regex_replace('notAfter=', '') }}" +%s)
+        now_epoch=$(date +%s)
+        days_remaining=$(( (expiry_epoch - now_epoch) / 86400 ))
+        echo "$days_remaining"
+      register: new_cert_days
+      changed_when: false
+      check_mode: false
+      when: sync_needed | bool
+
+    - name: Assert synced certificate is valid for more than 14 days
+      assert:
+        that:
+          - new_cert_days.stdout | int > 14
+        fail_msg: >-
+          CERT SYNC FAILED - K8s certificate only valid for {{ new_cert_days.stdout }} days.
+          Expected > 14 days. The K8s cert-manager wildcard may need renewal.
+          Matrix will be down when cert expires. Investigate cert-manager immediately.
+      when: sync_needed | bool
+
+    - name: Verify MAS introspect endpoint works with new cert
+      uri:
+        url: https://mas.example.net/oauth2/introspect
+        method: GET
+        validate_certs: no
+        timeout: 30
+      register: mas_introspect_check
+      failed_when: false
+      check_mode: false
+      when: sync_needed | bool
+
+    - name: Assert MAS introspect is not a TLS failure
+      assert:
+        that:
+          - mas_introspect_check.status | default(0) != -1
+          - mas_introspect_check.status | default(0) != 0
+        fail_msg: >-
+          CERT SYNC FAILED - MAS introspect endpoint returned TLS error
+          after cert deployment. Synapse token introspection will fail.
+          Status: {{ mas_introspect_check.status | default('connection failed') }}.
+      when: sync_needed | bool
+
+    - name: Log certificate sync success
+      debug:
+        msg: >-
+          Certificate synced from K8s cert-manager.
+          New expiry: {{ new_cert_enddate.stdout | default('unchanged') | regex_replace('notAfter=', '') }}
+          ({{ new_cert_days.stdout | default('N/A') }} days remaining).
+      when: sync_needed | bool
+
+    - name: Store renewal results
+      set_fact:
+        cert_renewed: "{{ sync_needed | bool }}"
+        cert_new_expiry: "{{ new_cert_enddate.stdout | default('') | regex_replace('notAfter=', '') }}"
+        cert_new_days: "{{ new_cert_days.stdout | default('0') }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+###############################################################################
+# Play 2c: Cleanup cert temp directory
+###############################################################################
+- name: Cleanup cert temp directory
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    temp_dir: REDACTED_88f47687
+
+  tasks:
+    - name: Remove temp directory
+      file:
+        path: "{{ temp_dir }}"
+        state: absent
+
+###############################################################################
+# Play 3: OS update + container image pull
+###############################################################################
+- name: OS update and Docker image pull
+  hosts: matrix_nodes
+  become: yes
+  gather_facts: no
+
+  vars:
+    compose_file: /srv/matrix/docker-compose.yml
+
+  tasks:
+    # --- LibreNMS maintenance (if not already active from cert sync) ---
+
+    - name: Put node into LibreNMS maintenance for OS update
+      include_tasks: ../common/tasks/librenms_maintenance.yaml
+      vars:
+        maintenance_node: "{{ inventory_hostname }}"
+      when: not (hostvars['localhost']['REDACTED_46df6e24'] | default(false) | bool)
+
+    # --- Docker image pull ---
+
+    - name: Pull latest Docker images for all services
+      command: docker compose -f {{ compose_file }} pull
+      register: docker_pull_result
+      async: 600
+      poll: 30
+
+    - name: Log Docker pull result
+      debug:
+        msg: "Docker image pull completed (changed={{ docker_pull_result.changed | default('N/A') }})"
+
+    # --- OS package updates ---
+
+    - name: Update apt cache and upgrade all packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      register: apt_result
+
+    - name: Clean up unnecessary packages
+      apt:
+        autoremove: yes
+        autoclean: yes
+
+    - name: Log apt upgrade result
+      debug:
+        msg: "APT upgrade changed: {{ apt_result.changed | default(false) }}"
+
+    # --- Recreate containers with new images ---
+
+    - name: Recreate containers with updated images
+      command: docker compose -f {{ compose_file }} up -d
+      register: compose_up_result
+
+    - name: Wait for containers to stabilize before reboot
+      pause:
+        seconds: 30
+
+    # --- Store pre-reboot state ---
+
+    - name: Store update results for summary
+      set_fact:
+        apt_changed: "{{ apt_result.changed | default(false) }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+    # --- Reboot ---
+
+    - name: Reboot node
+      reboot:
+        reboot_timeout: 300
+        msg: "Matrix weekly update - rebooting nl-matrix01"
+
+    - name: Wait for SSH to come back (up to 5 minutes)
+      wait_for_connection:
+        timeout: 300
+        delay: 10
+
+###############################################################################
+# Play 4: Post-update verification
+###############################################################################
+- name: Post-update verification
+  hosts: matrix_nodes
+  become: yes
+  gather_facts: no
+  ignore_unreachable: false
+
+  vars:
+    compose_file: /srv/matrix/docker-compose.yml
+    cert_path: /srv/matrix/synapse-data/tls/fullchain6.pem
+    expected_services:
+      - nginx
+      - mas
+      - synapse
+      - postgres
+      - element-web
+      - matrix-hookshot
+      - hookshot-redis
+      - ntfy
+      - synapse-admin
+
+  tasks:
+    - name: Wait 60 seconds for Docker to start all containers
+      pause:
+        seconds: 60
+
+    # --- Track verification failures ---
+
+    - name: Initialize verification results
+      set_fact:
+        verify_failures: []
+
+    # --- Container health ---
+
+    - name: Check all Docker containers are running
+      shell: |
+        cd /srv/matrix
+        not_running=""
+        for svc in {{ expected_services | join(' ') }}; do
+          state=$(docker compose -f {{ compose_file }} ps --format json "$svc" 2>/dev/null | python3 -c "import sys,json; data=json.load(sys.stdin); print(data.get('State','unknown'))" 2>/dev/null || echo "missing")
+          if [ "$state" != "running" ]; then
+            not_running="${not_running}${svc}(${state}) "
+          fi
+        done
+        if [ -n "$not_running" ]; then
+          echo "NOT RUNNING: ${not_running}"
+          exit 1
+        fi
+        echo "All {{ expected_services | length }} services running"
+      register: post_container_check
+      changed_when: false
+      check_mode: false
+      failed_when: false
+
+    - name: Record container check result
+      set_fact:
+        verify_failures: "{{ verify_failures + ['Containers not all running: ' ~ post_container_check.stdout] }}"
+      when: post_container_check.rc != 0
+
+    # --- Synapse health ---
+
+    - name: Check Synapse health endpoint
+      uri:
+        url: http://localhost:8008/health
+        method: GET
+        return_content: yes
+        status_code: 200
+        timeout: 30
+      register: post_synapse_health
+      failed_when: false
+      check_mode: false
+
+    - name: Record Synapse health result
+      set_fact:
+        verify_failures: "{{ verify_failures + ['Synapse health check failed: HTTP ' ~ (post_synapse_health.status | default('unreachable'))] }}"
+      when: post_synapse_health.status | default(0) != 200
+
+    # --- MAS reachable ---
+
+    - name: Check MAS health endpoint
+      uri:
+        url: http://localhost:9090/health
+        method: GET
+        return_content: yes
+        timeout: 30
+      register: post_mas_health
+      failed_when: false
+      check_mode: false
+
+    - name: Check MAS root if health endpoint unavailable
+      uri:
+        url: http://localhost:9090/
+        method: GET
+        return_content: yes
+        timeout: 30
+      register: post_mas_root
+      when: post_mas_health.status | default(0) != 200
+      failed_when: false
+      check_mode: false
+
+    - name: Record MAS check result
+      set_fact:
+        verify_failures: "{{ verify_failures + ['MAS not reachable on port 9090'] }}"
+      when: >-
+        (post_mas_health.status | default(0) != 200) and
+        (post_mas_root.status | default(0) not in [200, 302, 404])
+
+    # --- MAS introspect (the critical check from the outage) ---
+
+    - name: Check MAS introspect endpoint (TLS validation)
+      uri:
+        url: https://mas.example.net/oauth2/introspect
+        method: GET
+        validate_certs: no
+        timeout: 30
+      register: post_mas_introspect
+      failed_when: false
+      check_mode: false
+
+    - name: Record MAS introspect result
+      set_fact:
+        verify_failures: "{{ verify_failures + ['MAS introspect TLS failure - Synapse token introspection broken (status: ' ~ (post_mas_introspect.status | default('connection failed')) ~ ')'] }}"
+      when: post_mas_introspect.status | default(0) in [0, -1]
+
+    - name: Log MAS introspect status
+      debug:
+        msg: >-
+          MAS introspect endpoint: HTTP {{ post_mas_introspect.status | default('unreachable') }}
+          (any non-TLS-error response is acceptable: 401/405 = OK, 0/-1 = TLS failure)
+
+    # --- Matrix HTTPS ---
+
+    - name: Check Matrix HTTPS serving
+      uri:
+        url: https://matrix.example.net
+        method: GET
+        validate_certs: no
+        timeout: 30
+        follow_redirects: none
+      register: post_matrix_https
+      failed_when: false
+      check_mode: false
+
+    - name: Record Matrix HTTPS result
+      set_fact:
+        verify_failures: "{{ verify_failures + ['Matrix HTTPS not serving: HTTP ' ~ (post_matrix_https.status | default('unreachable'))] }}"
+      when: post_matrix_https.status | default(0) in [0, -1, 500, 502, 503]
+
+    # --- Certificate expiry re-check ---
+
+    - name: Read certificate expiry date
+      command: openssl x509 -in {{ cert_path }} -noout -enddate
+      register: post_cert_enddate
+      changed_when: false
+      check_mode: false
+
+    - name: Calculate post-update cert days remaining
+      shell: |
+        expiry_epoch=$(date -d "{{ post_cert_enddate.stdout | regex_replace('notAfter=', '') }}" +%s)
+        now_epoch=$(date +%s)
+        days_remaining=$(( (expiry_epoch - now_epoch) / 86400 ))
+        echo "$days_remaining"
+      register: post_cert_days
+      changed_when: false
+      check_mode: false
+
+    - name: Store final cert days for summary
+      set_fact:
+        final_cert_days: "{{ post_cert_days.stdout }}"
+        final_cert_expiry: "{{ post_cert_enddate.stdout | regex_replace('notAfter=', '') }}"
+
+    - name: Record cert expiry result
+      set_fact:
+        verify_failures: "{{ verify_failures + ['Certificate expires in ' ~ post_cert_days.stdout ~ ' days (expected > 14)'] }}"
+      when: post_cert_days.stdout | int <= 14
+
+    # --- Summary ---
+
+    - name: Store all results for final summary
+      set_fact:
+        matrix_verify_failures: "{{ verify_failures }}"
+        matrix_containers_ok: "{{ post_container_check.rc == 0 }}"
+        matrix_synapse_ok: "{{ post_synapse_health.status | default(0) == 200 }}"
+        matrix_mas_ok: "{{ (post_mas_health.status | default(0) == 200) or (post_mas_root.status | default(0) in [200, 302, 404]) }}"
+        matrix_introspect_ok: "{{ post_mas_introspect.status | default(0) not in [0, -1] }}"
+        matrix_https_ok: "{{ post_matrix_https.status | default(0) not in [0, -1, 500, 502, 503] }}"
+        matrix_cert_days: "{{ post_cert_days.stdout }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+    - name: Log failed checks
+      debug:
+        msg: |
+          WARNING: The following post-update checks failed:
+          {% for failure in verify_failures %}
+            - {{ failure }}
+          {% endfor %}
+      when: verify_failures | length > 0
+
+    - name: Log all checks passed
+      debug:
+        msg: "All post-update verification checks passed."
+      when: verify_failures | length == 0
+
+###############################################################################
+# Play 5: Summary
+###############################################################################
+- name: Matrix weekly update summary
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Display completion summary
+      debug:
+        msg: |
+          Matrix weekly update completed.
+
+          Update start: {{ matrix_update_start }}
+          Update end:   {{ now(utc=true) }}
+
+          Node: nl-matrix01
+
+          Certificate:
+            Synced from K8s: {{ cert_renewed | default(false) }}
+            Expiry: {{ matrix_cert_days | default('unknown') }} days remaining
+          {% if cert_renewed | default(false) %}
+            New expiry date: {{ cert_new_expiry | default('unknown') }}
+          {% endif %}
+
+          OS update:
+            Packages upgraded: {{ apt_changed | default('unknown') }}
+
+          Post-update verification:
+            Containers healthy: {{ matrix_containers_ok | default('unknown') }}
+            Synapse health: {{ matrix_synapse_ok | default('unknown') }}
+            MAS reachable: {{ matrix_mas_ok | default('unknown') }}
+            MAS introspect (TLS): {{ matrix_introspect_ok | default('unknown') }}
+            Matrix HTTPS: {{ matrix_https_ok | default('unknown') }}
+            Cert days remaining: {{ matrix_cert_days | default('unknown') }}
+
+          {% if matrix_verify_failures | default([]) | length > 0 %}
+          WARNINGS:
+          {% for failure in matrix_verify_failures %}
+            - {{ failure }}
+          {% endfor %}
+          {% else %}
+          All health checks passed.
+          {% endif %}

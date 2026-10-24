@@ -1,0 +1,102 @@
+---
+# Install and configure SNMPD on hosts that don't already have a working
+# SNMP configuration monitored by LibreNMS.
+#
+# Required variables (inject via AWX credential or extra_vars):
+#   snmp_community_string  - SNMP community string
+#   librenms_api_url       - LibreNMS API base URL (e.g. https://nlnms01.example.net/api/v0)
+#   librenms_api_token     - LibreNMS API token
+#
+# Optional variables:
+#   snmp_trap_hosts        - list of trap destinations (defaults per site below)
+#   snmp_template          - template file to use (default: snmpd.conf.j2)
+
+- name: Query LibreNMS for hosts with working SNMP
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Fetch all devices from LibreNMS
+      uri:
+        url: "{{ librenms_api_url }}/devices?columns=hostname,snmp_disable"
+        method: GET
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        validate_certs: false
+        timeout: 30
+      register: librenms_devices
+
+    - name: Build list of hosts with working SNMP
+      set_fact:
+        snmp_working_hosts: >-
+          {{ librenms_devices.json.devices
+             | selectattr('snmp_disable', 'equalto', 0)
+             | map(attribute='hostname')
+             | list }}
+
+    - name: Show hosts that will be skipped
+      debug:
+        msg: "Hosts with working SNMP (will be skipped): {{ snmp_working_hosts | join(', ') }}"
+
+- name: Install and configure SNMPD
+  hosts: all
+  become: true
+  vars:
+    snmp_community: "{{ snmp_community_string }}"
+    snmp_trap_hosts:
+      - "10.0.X.X"
+      - "10.0.X.X"
+    snmp_template: snmpd.conf.j2
+  tasks:
+    - name: Skip hosts with working SNMP in LibreNMS
+      meta: end_host
+      when: >-
+        inventory_hostname in hostvars['localhost']['snmp_working_hosts'] | default([])
+        or inventory_hostname | regex_replace('\.nuclearlighters\.net$', '')
+           in hostvars['localhost']['snmp_working_hosts'] | default([])
+
+    - name: Skip unsupported OS families
+      meta: end_host
+      when: ansible_os_family not in ["Debian", "RedHat"]
+
+    - name: Check if snmpd is installed
+      package_facts:
+        manager: auto
+
+    - name: Update apt cache and install snmpd (Debian)
+      apt:
+        name: snmpd
+        state: present
+        update_cache: true
+      when:
+        - ansible_os_family == "Debian"
+        - "'snmpd' not in ansible_facts.packages"
+
+    - name: Install net-snmp (RedHat)
+      dnf:
+        name: net-snmp
+        state: present
+      when:
+        - ansible_os_family == "RedHat"
+        - "'net-snmp' not in ansible_facts.packages"
+
+    - name: Deploy snmpd.conf from template
+      template:
+        src: "{{ snmp_template }}"
+        dest: /etc/snmp/snmpd.conf
+        owner: root
+        group: root
+        mode: "0600"
+        backup: true
+      notify: Restart snmpd
+
+    - name: Ensure snmpd is enabled and running
+      service:
+        name: snmpd
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Restart snmpd
+      service:
+        name: snmpd
+        state: restarted

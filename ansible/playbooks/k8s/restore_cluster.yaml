@@ -1,0 +1,234 @@
+---
+# K8s Restore — Uncordon nodes + wait for cluster health after maintenance
+#
+# Required extra_vars:
+#   k8s_context: kubectl context name ("default" for NL, "gr" for GR)
+#
+# Optional extra_vars:
+#   wait_timeout: max seconds to wait for each health gate (default: 600)
+#   skip_argocd: true to skip ArgoCD sync check (default: false)
+#
+# Steps:
+#   1. Wait for all nodes to become Ready
+#   2. Uncordon all nodes
+#   3. Wait for CSI controller healthy
+#   4. Wait for all PVs Bound
+#   5. Wait for CoreDNS Running
+#   6. Wait for ingress-nginx Running
+#   7. Wait for ArgoCD apps Synced (optional)
+#   8. Verify K8s health summary
+#
+# Runs from localhost (kubectl available on claude-runner).
+
+- name: "K8s restore (context: {{ k8s_context }})"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    _context: "{{ k8s_context }}"
+    _timeout: "{{ wait_timeout | default(600) }}"
+    _skip_argocd: "{{ skip_argocd | default(false) | bool }}"
+    # CSI namespace differs by site
+    _csi_namespace: "{{ 'synology-csi' if k8s_context == 'default' else 'democratic-csi' }}"
+    _csi_label: "{{ 'app.kubernetes.io/name=synology-csi' if k8s_context == 'default' else 'app.kubernetes.io/name=democratic-csi' }}"
+
+  tasks:
+    - name: Record restore start time
+      set_fact:
+        restore_start: "{{ now(utc=true) }}"
+
+    ###########################################################################
+    # Wait for nodes Ready
+    ###########################################################################
+    - name: Wait for all nodes to become Ready (up to {{ _timeout }}s)
+      shell: |
+        not_ready=$(kubectl --context {{ _context }} get nodes --no-headers 2>/dev/null \
+          | grep -v " Ready" | awk '{print $1}' || true)
+        if [ -n "$not_ready" ]; then
+          echo "NOT_READY: $not_ready"
+          exit 1
+        fi
+        total=$(kubectl --context {{ _context }} get nodes --no-headers | wc -l)
+        echo "ALL_READY: $total nodes"
+      register: nodes_ready
+      until: nodes_ready.rc == 0
+      retries: "{{ ((_timeout | int) / 15) | int }}"
+      delay: 15
+      changed_when: false
+
+    - name: Get node list
+      command: kubectl --context {{ _context }} get nodes -o jsonpath='{.items[*].metadata.name}'
+      register: node_names
+      changed_when: false
+
+    ###########################################################################
+    # Uncordon all nodes
+    ###########################################################################
+    - name: Uncordon all nodes
+      command: kubectl --context {{ _context }} uncordon {{ item }}
+      loop: "{{ node_names.stdout.split() }}"
+      register: uncordon_results
+      changed_when: "'uncordoned' in uncordon_results.stdout"
+      failed_when: false
+
+    - name: Verify no nodes are cordoned
+      shell: |
+        cordoned=$(kubectl --context {{ _context }} get nodes --no-headers 2>/dev/null \
+          | grep "SchedulingDisabled" | awk '{print $1}' || true)
+        if [ -n "$cordoned" ]; then
+          echo "STILL_CORDONED: $cordoned"
+          exit 1
+        fi
+        echo "ALL_UNCORDONED"
+      register: uncordon_verify
+      changed_when: false
+      failed_when: uncordon_verify.rc != 0
+
+    ###########################################################################
+    # Wait for CSI controller
+    ###########################################################################
+    - name: Wait for CSI controller pod Running
+      shell: |
+        pods=$(kubectl --context {{ _context }} -n {{ _csi_namespace }} get pods \
+          -l "{{ _csi_label }}" --no-headers 2>/dev/null || true)
+        if [ -z "$pods" ]; then
+          echo "NO_CSI_PODS"
+          exit 1
+        fi
+        not_running=$(echo "$pods" | grep -v "Running" | grep -v "Completed" || true)
+        if [ -n "$not_running" ]; then
+          echo "NOT_READY: $not_running"
+          exit 1
+        fi
+        echo "CSI_HEALTHY"
+      register: csi_ready
+      until: csi_ready.rc == 0
+      retries: "{{ ((_timeout | int) / 15) | int }}"
+      delay: 15
+      changed_when: false
+
+    ###########################################################################
+    # Wait for PVs Bound
+    ###########################################################################
+    - name: Wait for all PVs to be Bound (up to {{ _timeout }}s)
+      shell: |
+        non_bound=$(kubectl --context {{ _context }} get pv --no-headers 2>/dev/null \
+          | grep -v "Bound" | grep -v "Available" || true)
+        if [ -n "$non_bound" ]; then
+          echo "NOT_BOUND:"
+          echo "$non_bound"
+          exit 1
+        fi
+        total=$(kubectl --context {{ _context }} get pv --no-headers | wc -l)
+        bound=$(kubectl --context {{ _context }} get pv --no-headers | grep -c "Bound" || true)
+        echo "PVs: $bound/$total Bound"
+      register: pvs_bound
+      until: pvs_bound.rc == 0
+      retries: "{{ ((_timeout | int) / 20) | int }}"
+      delay: 20
+      changed_when: false
+
+    ###########################################################################
+    # Wait for CoreDNS
+    ###########################################################################
+    - name: Wait for CoreDNS pods Running
+      shell: |
+        coredns=$(kubectl --context {{ _context }} -n kube-system get pods \
+          -l k8s-app=kube-dns --no-headers 2>/dev/null || true)
+        running=$(echo "$coredns" | grep -c "Running" || true)
+        if [ "$running" -lt 2 ]; then
+          echo "COREDNS_NOT_READY: $running/2 Running"
+          exit 1
+        fi
+        echo "COREDNS_HEALTHY: $running replicas Running"
+      register: coredns_ready
+      until: coredns_ready.rc == 0
+      retries: 20
+      delay: 15
+      changed_when: false
+
+    ###########################################################################
+    # Wait for ingress-nginx
+    ###########################################################################
+    - name: Wait for ingress-nginx controller Running
+      shell: |
+        nginx=$(kubectl --context {{ _context }} -n ingress-nginx get pods \
+          -l app.kubernetes.io/component=controller --no-headers 2>/dev/null || true)
+        if [ -z "$nginx" ]; then
+          echo "NO_INGRESS_PODS"
+          exit 1
+        fi
+        not_running=$(echo "$nginx" | grep -v "Running" || true)
+        if [ -n "$not_running" ]; then
+          echo "NOT_READY: $not_running"
+          exit 1
+        fi
+        count=$(echo "$nginx" | grep -c "Running" || true)
+        echo "INGRESS_HEALTHY: $count controllers Running"
+      register: ingress_ready
+      until: ingress_ready.rc == 0
+      retries: 20
+      delay: 15
+      changed_when: false
+
+    ###########################################################################
+    # ArgoCD sync check (optional)
+    ###########################################################################
+    - name: Check ArgoCD app sync status
+      shell: |
+        apps=$(kubectl --context {{ _context }} -n argocd get applications \
+          -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.sync.status}{" "}{.status.health.status}{"\n"}{end}' 2>/dev/null || true)
+        if [ -z "$apps" ]; then
+          echo "NO_ARGOCD_APPS (may not be installed)"
+          exit 0
+        fi
+        not_synced=$(echo "$apps" | grep -v "Synced" || true)
+        if [ -n "$not_synced" ]; then
+          echo "NOT_SYNCED:"
+          echo "$not_synced"
+          exit 1
+        fi
+        count=$(echo "$apps" | wc -l)
+        echo "ARGOCD_HEALTHY: $count apps Synced"
+      register: argocd_status
+      until: argocd_status.rc == 0
+      retries: 20
+      delay: 30
+      changed_when: false
+      failed_when: false
+      when: not _skip_argocd
+
+    ###########################################################################
+    # Final health summary
+    ###########################################################################
+    - name: Get final cluster status
+      shell: |
+        echo "=== Nodes ==="
+        kubectl --context {{ _context }} get nodes
+        echo ""
+        echo "=== PV Summary ==="
+        total=$(kubectl --context {{ _context }} get pv --no-headers | wc -l)
+        bound=$(kubectl --context {{ _context }} get pv --no-headers | grep -c "Bound" || true)
+        echo "$bound/$total PVs Bound"
+        echo ""
+        echo "=== Unhealthy Pods ==="
+        kubectl --context {{ _context }} get pods -A --no-headers \
+          | grep -v "Running\|Completed" | head -20 || echo "None"
+      register: final_status
+      changed_when: false
+
+    - name: Display restore summary
+      debug:
+        msg: |
+          K8s restore complete (context: {{ _context }}).
+          Duration: {{ restore_start }} — {{ now(utc=true) }}
+
+          {{ final_status.stdout }}
+
+    - name: Store restore results for orchestrator
+      set_fact:
+        k8s_restore_completed: true
+        k8s_restore_start: "{{ restore_start }}"
+        k8s_restore_end: "{{ now(utc=true) }}"

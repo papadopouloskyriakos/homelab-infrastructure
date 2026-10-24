@@ -1,0 +1,122 @@
+---
+# Nextcloud HA — Maintenance Mode On/Off + NFS Mount Recovery
+#
+# Required extra_vars:
+#   action: "on" or "off"
+#
+# When action=on:
+#   - Enables NC maintenance mode via occ on nc01
+#   - Stops nc01 + nc02 (optional, via stop_nodes=true)
+#
+# When action=off:
+#   - Recovers NFS mounts on nc01 + nc02 (mount -a)
+#   - Disables NC maintenance mode via occ on nc01
+#   - Verifies web UI responds
+#
+# Known issue: NFS mounts from FISHA VIP (10.0.X.X) don't auto-recover
+# after the VIP goes down. Must run `mount -a` before NC can serve.
+#
+# Runs from localhost (delegates via SSH).
+
+
+
+- name: Set NC maintenance defaults
+  set_fact:
+    _action: "{{ action | default('off') }}"
+    _stop_nodes: "{{ stop_nodes | default(false) | bool }}"
+  when: _action is not defined
+
+###########################################################################
+# Enable maintenance mode
+###########################################################################
+- name: "[NC] Enable Nextcloud maintenance mode"
+  block:
+    - name: "[NC] Run occ maintenance:mode --on"
+      shell: |
+        ssh nlnc01 "sudo -u www-data php /var/www/nextcloud/occ maintenance:mode --on" 2>&1
+      register: nc_maint_on
+
+    - name: "[NC] Verify maintenance mode enabled"
+      shell: |
+        ssh nlnc01 "sudo -u www-data php /var/www/nextcloud/occ maintenance:mode" 2>&1
+      register: nc_maint_verify
+      changed_when: false
+
+    - name: "[NC] Maintenance mode enabled"
+      debug:
+        msg: "{{ nc_maint_verify.stdout }}"
+  when: _action == "on"
+
+###########################################################################
+# Disable maintenance mode (with NFS recovery)
+###########################################################################
+- name: "[NC] Disable Nextcloud maintenance mode"
+  block:
+    # CRITICAL: Recover NFS mounts first (known issue)
+    - name: "[NC] Recover NFS mounts on nc01"
+      shell: |
+        ssh nlnc01 "mount -a 2>&1; mount | grep '10.0.X.X'" 2>&1
+      register: nc01_nfs
+      retries: 3
+      delay: 15
+      until: "'10.0.X.X' in nc01_nfs.stdout"
+
+    - name: "[NC] Recover NFS mounts on nc02"
+      shell: |
+        ssh nlnc02 "mount -a 2>&1; mount | grep '10.0.X.X'" 2>&1
+      register: nc02_nfs
+      retries: 3
+      delay: 15
+      until: "'10.0.X.X' in nc02_nfs.stdout"
+
+    - name: "[NC] Verify NFS mounts on nc01"
+      shell: |
+        ssh nlnc01 "
+          echo '=== Nextcloud mounts ==='
+          mount | grep -E '192.168.88|10.0.X.X' | head -10
+          echo '=== Nextcloud data dir ==='
+          ls /var/www/nextcloud/data/ 2>/dev/null | head -5 || echo 'DATA DIR EMPTY/INACCESSIBLE'
+        " 2>&1
+      register: nc01_mount_check
+      changed_when: false
+
+    - name: "[NC] Display NFS mount status"
+      debug:
+        msg: "{{ nc01_mount_check.stdout }}"
+
+    # Disable maintenance mode
+    - name: "[NC] Run occ maintenance:mode --off"
+      shell: |
+        ssh nlnc01 "sudo -u www-data php /var/www/nextcloud/occ maintenance:mode --off" 2>&1
+      register: nc_maint_off
+
+    # Restart web services
+    - name: "[NC] Restart apache2 on nc01"
+      shell: ssh nlnc01 "systemctl restart apache2" 2>&1
+      failed_when: false
+
+    - name: "[NC] Restart apache2 on nc02"
+      shell: ssh nlnc02 "systemctl restart apache2" 2>&1
+      failed_when: false
+
+    # Verify
+    - name: "[NC] Wait for Nextcloud web UI (up to 2 min)"
+      uri:
+        url: "https://nextcloud.example.net"
+        method: GET
+        validate_certs: no
+        timeout: 30
+        status_code: [200, 302, 303]
+      register: nc_web_check
+      retries: 8
+      delay: 15
+      until: nc_web_check.status | default(0) in [200, 302, 303]
+      failed_when: false
+
+    - name: "[NC] Maintenance mode disabled"
+      debug:
+        msg: >-
+          Nextcloud maintenance mode OFF.
+          NFS mounts recovered on both nodes.
+          Web UI: {{ 'responding' if nc_web_check.status | default(0) in [200, 302, 303] else 'NOT RESPONDING — check manually' }}
+  when: _action == "off"
