@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-10-27 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-10-28 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: DEGRADED ⚠️
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 3 |
 | Pending PVCs | 0 |
-| Total Restarts | 8082 |
+| Total Restarts | 8351 |
 
 ## Topology
 
@@ -32,14 +32,14 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-monitoring               meshsat-status-heartbeat-29882019-q74xb                           0/1   Error              0                 41h
-velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                 33d
-velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   3948 (105s ago)   41d
+monitoring               meshsat-status-heartbeat-29882019-q74xb                           0/1   Error              0                  2d17h
+velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                  34d
+velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   4213 (4m44s ago)   42d
 ```
 
 ### High Restart Pods (>3)
-argocd/argocd-application-controller-0: 81 restarts
-awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 138 restarts
+argocd/argocd-application-controller-0: 83 restarts
+awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 139 restarts
 awx/my-awx-task-756d768868-bslc2: 7 restarts
 awx/my-awx-web-f9c4bb98d-wcn4j: 5 restarts
 cert-manager/cert-manager-75944f484-k8x88: 39 restarts
@@ -80,7 +80,7 @@ kube-system/tetragon-jz2b6: 14 restarts
 kube-system/tetragon-mdsn9: 44 restarts
 kube-system/tetragon-tbcc7: 10 restarts
 kube-system/tetragon-vbs6v: 20 restarts
-kyverno/kyverno-admission-controller-584d7f7684-6k9gg: 128 restarts
+kyverno/kyverno-admission-controller-584d7f7684-6k9gg: 129 restarts
 kyverno/kyverno-reports-controller-7bbf4b866b-rq8pt: 130 restarts
 logging/loki-0: 8 restarts
 logging/loki-canary-bbplf: 14 restarts
@@ -113,15 +113,15 @@ synology-csi/synology-csi-node-ptwb8: 10 restarts
 synology-csi/synology-csi-node-sfdmg: 14 restarts
 synology-csi/synology-csi-node-zch7n: 47 restarts
 velero/node-agent-54dn2: 10 restarts
-velero/velero-ui-687565868b-b9xr7: 3948 restarts
+velero/velero-ui-687565868b-b9xr7: 4213 restarts
 
 ### Recent Warnings (5)
 ```
-kube-system              60m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl03                                   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system              37m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl03                                   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system              37m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Liveness probe failed: HTTP probe failed with statuscode: 500
-kube-system              37m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Readiness probe failed: HTTP probe failed with statuscode: 500
-velero                   7m8s        Warning   Unhealthy         pod/velero-ui-687565868b-b9xr7                                          Readiness probe failed: Get "http://10.0.6.172:3000/": dial tcp 10.0.6.172:3000: connect: connection refused
+kube-system              60m         Warning   Unhealthy         pod/etcd-nlk8s-ctrl01                                             Readiness probe failed: HTTP probe failed with statuscode: 503
+awx                      60m         Warning   Unhealthy         pod/awx-operator-controller-manager-6ffdf98f6-8jv8s                     Readiness probe failed: Get "http://10.0.0.198:6789/readyz": dial tcp 10.0.0.198:6789: connect: connection refused
+kube-system              60m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Readiness probe failed: HTTP probe failed with statuscode: 500
+kyverno                  60m         Warning   Unhealthy         pod/kyverno-admission-controller-584d7f7684-6k9gg                       Startup probe failed: Get "https://10.0.0.1:9443/health/liveness": dial tcp 10.0.0.1:9443: connect: connection refused
+velero                   52m         Warning   Unhealthy         pod/velero-ui-687565868b-b9xr7                                          Readiness probe failed: Get "http://10.0.6.172:3000/": dial tcp 10.0.6.172:3000: connect: connection refused
 ```
 
 ## Key Resources
