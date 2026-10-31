@@ -1,0 +1,30 @@
+---
+- name: Cleanup SNMPD config comment on Debian/Ubuntu
+  hosts: all  # Targets all in your inventory; change to a group if needed
+  become: yes  # Run with sudo
+  tasks:
+    - name: Check if snmpd.conf exists
+      stat:
+        path: /etc/snmp/snmpd.conf
+      register: conf_file  # Saves result to variable
+
+    - name: Remove comment from sysName line if file exists
+      replace:
+        path: /etc/snmp/snmpd.conf
+        regexp: '  # Dynamically uses the host''s name'  # Matches the exact comment (note: escaped apostrophe)
+        replace: ''  # Replaces with empty string
+        backup: yes  # Backs up original if changed
+      when: conf_file.stat.exists  # Only run if file exists
+      notify: Restart snmpd  # Triggers restart if changed
+
+    - name: Ensure snmpd is running (if config exists)
+      service:
+        name: snmpd
+        state: started
+      when: conf_file.stat.exists
+
+  handlers:
+    - name: Restart snmpd
+      service:
+        name: snmpd
+        state: restarted

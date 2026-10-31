@@ -1,0 +1,67 @@
+---
+# ┌──────────────────────────────────────────────────────────┐
+# │  PLAY 1: API calls run 100% locally (no SSH/sudo)        │
+# └──────────────────────────────────────────────────────────┘
+- name: Schedule 45-minute maintenance in LibreNMS for all hosts
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    librenms_api_url:  "https://nlnms01.example.net/api/v0"
+    librenms_api_token: "REDACTED_3c4fb781"
+    ansible_remote_tmp: /tmp
+
+  tasks:
+    - name: Put {{ item }} into 45min maintenance
+      uri:
+        url: "{{ librenms_api_url }}/devices/{{ item }}/maintenance/"
+        method: POST
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+          Content-Type: application/json
+        body_format: json
+        body:
+          title:  "Automated shutdown maintenance for {{ item }}"
+          notes:  "Suppress alerts during shutdown"
+          duration: "0:45"
+        status_code: [200,201,204]
+        validate_certs: no
+        timeout: 60
+      loop: "{{ query('inventory_hostnames','all') }}"
+      register: maintenance_results
+      retries: 3
+      delay: 10
+      until: maintenance_results.status in [200,201,204]
+      loop_control:
+        label: "{{ item }}"
+
+    - debug:
+        msg: "{{ item.item }} → {{ item.json.message | default(item.json) }}"
+      loop: "{{ maintenance_results.results }}"
+
+# ┌───────────────────────────────────────────────────┐
+# │  PLAY 2: Shutdown on the real hosts over SSH      │
+# └───────────────────────────────────────────────────┘
+- name: Power off each host under maintenance
+  hosts: all
+  gather_facts: yes
+  become: yes
+
+  tasks:
+    - name: Check host reachability
+      ping:
+      ignore_errors: true
+
+    - name: Clear any host errors so unreachable dont block
+      meta: clear_host_errors
+
+    - name: Shutdown the host asynchronously
+      command: poweroff
+      async: 1
+      poll: 0
+      failed_when: false
+
+    - debug:
+        msg: "Poweroff command dispatched for {{ inventory_hostname }}."
