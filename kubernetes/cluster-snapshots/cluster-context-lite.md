@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-10-30 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-10-31 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: DEGRADED ⚠️
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 5 |
 | Pending PVCs | 0 |
-| Total Restarts | 8932 |
+| Total Restarts | 9204 |
 
 ## Topology
 
@@ -32,16 +32,16 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-monitoring               meshsat-status-heartbeat-29882019-q74xb                           0/1   Error              0                 4d17h
-monitoring               meshsat-status-heartbeat-29887392-lwk4f                           0/1   Error              0                 23h
-monitoring               meshsat-status-heartbeat-29887393-rdfwm                           0/1   Error              0                 23h
-velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                 36d
-velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   4744 (2m4s ago)   44d
+monitoring               meshsat-status-heartbeat-29887392-lwk4f                           0/1   Error              0                 47h
+monitoring               meshsat-status-heartbeat-29887393-rdfwm                           0/1   Error              0                 47h
+monitoring               meshsat-status-heartbeat-29889520-8ldz5                           0/1   Error              0                 12h
+velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                 37d
+velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   5010 (3s ago)     45d
 ```
 
 ### High Restart Pods (>3)
-argocd/argocd-application-controller-0: 86 restarts
-awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 145 restarts
+argocd/argocd-application-controller-0: 88 restarts
+awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 146 restarts
 awx/my-awx-task-756d768868-bslc2: 7 restarts
 awx/my-awx-web-f9c4bb98d-wcn4j: 5 restarts
 cert-manager/cert-manager-75944f484-k8x88: 39 restarts
@@ -53,14 +53,14 @@ cilium-spire/spire-agent-hrngt: 20 restarts
 cilium-spire/spire-agent-sm9xs: 284 restarts
 cilium-spire/spire-agent-xk8cl: 280 restarts
 cilium-spire/spire-agent-zqpt4: 288 restarts
-cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-wzdfh: 95 restarts
+cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-wzdfh: 96 restarts
 cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-zl8gc: 121 restarts
 kube-system/cilium-c8kqc: 12 restarts
 kube-system/cilium-envoy-brdkr: 10 restarts
 kube-system/cilium-envoy-dzx97: 12 restarts
 kube-system/cilium-envoy-z9854: 4 restarts
 kube-system/cilium-g5h5t: 10 restarts
-kube-system/cilium-operator-84c4fb58c7-jlhkp: 163 restarts
+kube-system/cilium-operator-84c4fb58c7-jlhkp: 164 restarts
 kube-system/cilium-qw7d6: 4 restarts
 kube-system/etcd-nlk8s-ctrl02: 11 restarts
 kube-system/kube-apiserver-nlk8s-ctrl01: 31 restarts
@@ -106,7 +106,7 @@ monitoring/monitoring-prometheus-node-exporter-8bq88: 6 restarts
 monitoring/monitoring-prometheus-node-exporter-vgp6b: 6 restarts
 monitoring/monitoring-prometheus-node-exporter-wmcb8: 47 restarts
 monitoring/prometheus-REDACTED_6dfbe9fc-1: 25 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-75b84759cfvtflq: 159 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-75b84759cfvtflq: 160 restarts
 synology-csi/synology-csi-node-4nxcz: 8 restarts
 synology-csi/synology-csi-node-kxrjb: 21 restarts
 synology-csi/synology-csi-node-l72f8: 9 restarts
@@ -115,15 +115,15 @@ synology-csi/synology-csi-node-ptwb8: 10 restarts
 synology-csi/synology-csi-node-sfdmg: 14 restarts
 synology-csi/synology-csi-node-zch7n: 47 restarts
 velero/node-agent-54dn2: 10 restarts
-velero/velero-ui-687565868b-b9xr7: 4744 restarts
+velero/velero-ui-687565868b-b9xr7: 5010 restarts
 
 ### Recent Warnings (5)
 ```
-kyverno                  40s         Warning   Unhealthy         pod/kyverno-admission-controller-584d7f7684-6k9gg                       Readiness probe failed: Get "https://10.0.0.1:9443/health/readiness": context deadline exceeded
-kube-system              40s         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system              39s         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl03                                   Readiness probe failed: HTTP probe failed with statuscode: 500
-kube-system              39s         Warning   Unhealthy         pod/etcd-nlk8s-ctrl03                                             Readiness probe failed: HTTP probe failed with statuscode: 503
-kube-system              39s         Warning   Unhealthy         pod/etcd-nlk8s-ctrl01                                             Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system              3m15s       Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl03                                   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system              3m13s       Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl03                                   Readiness probe failed: HTTP probe failed with statuscode: 500
+monitoring               3m12s       Warning   Unhealthy         pod/monitoring-kube-state-metrics-75f9fff55b-prwns                      Liveness probe failed: HTTP probe failed with statuscode: 503
+kube-system              3m12s       Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system              3m12s       Warning   Unhealthy         pod/etcd-nlk8s-ctrl03                                             Readiness probe failed: HTTP probe failed with statuscode: 503
 ```
 
 ## Key Resources
