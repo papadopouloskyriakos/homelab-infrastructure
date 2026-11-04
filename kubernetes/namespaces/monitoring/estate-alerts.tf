@@ -433,6 +433,46 @@ resource "kubernetes_manifest" "estate_alert_rules" {
           ]
         },
         {
+          # Atlantis (IFRNLLEI01PRD-2983): atlantis (:4141, this repo) and atlantis-no
+          # (:4142, notrf01) on nlatlantis01 crash-looped 2026-10-25 -> 11-04
+          # ("tofu not found in $PATH" after a watchtower image update) and nothing
+          # noticed: no k8s MR could be planned or applied for 10 days. Probed from
+          # outside via the atlantis-health blackbox job (scrape-estate.tf).
+          name     = "atlantis"
+          interval = "1m"
+          rules = [
+            {
+              # 15m so a watchtower image update or compose restart (~10 s) never fires.
+              alert = "AtlantisDown"
+              expr  = "probe_success{job=\"atlantis-health\"} == 0"
+              for   = "15m"
+              labels = {
+                severity = "warning"
+                service  = "atlantis"
+              }
+              annotations = {
+                summary     = "Atlantis is down: {{ $labels.instance }} unreachable (15m)"
+                description = "No k8s MR can be planned or applied while this fires. On nlpve04: pct exec 101100107 -- docker ps; docker logs --tail 20 atlantis (or atlantis-no). Compose: /srv/atlantis/docker-compose.yml = docker/nlatlantis01/atlantis/ in this repo. 2026-11-04 cause was a missing /usr/local/bin/tofu mount after an atlantis:latest update."
+              }
+            },
+            {
+              # The watcher needs watching: if the scrape job or blackbox exporter dies,
+              # probe_success goes ABSENT (not 0) and AtlantisDown cannot fire.
+              alert = "AtlantisProbeAbsent"
+              expr  = "absent(probe_success{job=\"atlantis-health\"})"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                service  = "atlantis"
+              }
+              annotations = {
+                summary     = "Atlantis liveness probing has stopped (30m)"
+                description = "No probe_success series for job=atlantis-health. The blackbox exporter (nlclaude01:9115) is down or the scrape job was removed; while this is true AtlantisDown cannot fire."
+              }
+            },
+          ]
+        },
+        {
           # GR family phone lines (grskg02sip01, Alcatel IP2215 -> Yuboto). On 4, 8,
           # 19, 22-23 and 29 September 2026 both lines failed every registration
           # refresh for hours (provider side: the defra01agri01 Yuboto trunk went
