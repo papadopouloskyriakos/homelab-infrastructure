@@ -652,6 +652,17 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             alerts = []
           },
           {
+            name     = "Safer Together"
+            group    = "📱 Applications"
+            url      = "https://safertogether.eu"
+            interval = "30s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = []
+          },
+          {
             name     = "Nextcloud"
             group    = "📱 Applications"
             url      = "https://nextcloud.example.net"

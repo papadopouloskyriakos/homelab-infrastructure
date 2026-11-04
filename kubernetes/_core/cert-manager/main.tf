@@ -826,6 +826,33 @@ resource "kubernetes_manifest" "REDACTED_b6fbec6d" {
   }
 }
 
+# Wildcard Certificate - safertogether.eu (MeshSat Treffpunkt campaign site,
+# MESHSAT-1793, 4 Nov 2026). Served from the EU VPS edges only (CH + NO):
+# txhou01vps01 refuses the SNI before TLS, so its HAProxy never loads this pem.
+resource "kubernetes_manifest" "REDACTED_8cc8d62a" {
+  count      = var.acme_issuer_enabled ? 1 : 0
+  depends_on = [kubernetes_manifest.letsencrypt_prod]
+  manifest = {
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "REDACTED_0b56fffb"
+      namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    }
+    spec = {
+      secretName = "REDACTED_0b56fffb-tls"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "*.safertogether.eu",
+        "safertogether.eu"
+      ]
+    }
+  }
+}
+
 # Wildcard Certificate - ellizg.com (portfolio.ellizg.com + card.ellizg.com)
 #
 # ADOPTED, not created: this Certificate has existed in the cluster since
