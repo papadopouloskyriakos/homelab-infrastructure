@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-11-03 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-11-04 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: DEGRADED ⚠️
 
@@ -11,7 +11,7 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 3 |
 | Pending PVCs | 0 |
-| Total Restarts | 10348 |
+| Total Restarts | 10616 |
 
 ## Topology
 
@@ -32,13 +32,13 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-monitoring               meshsat-status-heartbeat-29890510-9rrjw                           0/1   Error              0                  2d19h
-velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                  40d
-velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   5805 (3m29s ago)   48d
+monitoring               meshsat-status-heartbeat-29890510-9rrjw                           0/1   Error              0                 3d19h
+velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                 41d
+velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   6069 (5m ago)     49d
 ```
 
 ### High Restart Pods (>3)
-argocd/argocd-application-controller-0: 92 restarts
+argocd/argocd-application-controller-0: 95 restarts
 awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 176 restarts
 awx/my-awx-task-756d768868-bslc2: 7 restarts
 awx/my-awx-web-f9c4bb98d-wcn4j: 5 restarts
@@ -90,7 +90,7 @@ logging/promtail-br4rf: 6 restarts
 logging/promtail-hp5sc: 10 restarts
 logging/promtail-m2gzm: 13 restarts
 logging/promtail-ng69s: 17 restarts
-monitoring/bgpalerter-b7bc9c8c-kdlv5: 6 restarts
+monitoring/bgpalerter-b7bc9c8c-kdlv5: 7 restarts
 monitoring/goldpinger-fjpnh: 7 restarts
 monitoring/goldpinger-rb96x: 11 restarts
 monitoring/goldpinger-t8x65: 12 restarts
@@ -113,15 +113,15 @@ synology-csi/synology-csi-node-ptwb8: 10 restarts
 synology-csi/synology-csi-node-sfdmg: 14 restarts
 synology-csi/synology-csi-node-zch7n: 47 restarts
 velero/node-agent-54dn2: 10 restarts
-velero/velero-ui-687565868b-b9xr7: 5805 restarts
+velero/velero-ui-687565868b-b9xr7: 6069 restarts
 
 ### Recent Warnings (5)
 ```
+velero                   31m         Warning   PolicyViolation   deployment/velero-ui                                                    policy restrict-seccomp-strict/autogen-check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/containers/0/securityContext/
 velero                   31m         Warning   PolicyViolation   deployment/velero-ui                                                    policy disallow-privilege-escalation/autogen-privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule autogen-privilege-escalation failed at path /spec/template/spec/containers/0/securityContext/
-velero                   31m         Warning   PolicyViolation   deployment/velero                                                       policy restrict-seccomp-strict/autogen-check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/initContainers/0/securityContext/
 velero                   31m         Warning   PolicyViolation   deployment/velero                                                       policy disallow-privilege-escalation/autogen-privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule autogen-privilege-escalation failed at path /spec/template/spec/initContainers/0/securityContext/
-velero                   8m28s       Warning   BackOff           pod/velero-ui-687565868b-b9xr7                                          Back-off restarting failed container velero-ui in pod velero-ui-687565868b-b9xr7_velero(32280caf-839d-4113-832e-fdaf11b09a1a)
-monitoring               5m44s       Warning   Unhealthy         pod/bgpalerter-b7bc9c8c-kdlv5                                           Readiness probe failed: Get "http://10.0.0.50:8011/status": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+velero                   31m         Warning   PolicyViolation   deployment/velero                                                       policy restrict-seccomp-strict/autogen-check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/initContainers/0/securityContext/
+velero                   32m         Warning   Unhealthy         pod/velero-ui-687565868b-b9xr7                                          Readiness probe failed: Get "http://10.0.6.172:3000/": dial tcp 10.0.6.172:3000: connect: connection refused
 ```
 
 ## Key Resources
