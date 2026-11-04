@@ -204,6 +204,38 @@ resource "kubernetes_manifest" "host_pressure_alert_rules" {
                 description = "vzdump/PBS writes and guest disk allocation are about to start failing on {{ $labels.storage }}."
               }
             },
+            # LXC rootfs fill (IFRNLLEI01PRD-2983): nlgitlab01 filled its rootfs on 2026-11-04
+            # at 06:51 UTC and served HTTP 500 for ~3.5 h, unpaged (the LXC is
+            # not in LibreNMS). PVE reports real rootfs usage for containers
+            # only (QEMU usage needs a guest agent, so qemu/* is left out).
+            # Thresholds sit below 1.0 on purpose: ext4's 5% root reserve means
+            # non-root writes fail at a ratio of ~0.95 (gitlab01 peaked at 0.955).
+            {
+              alert = "REDACTED_1ea8f531"
+              expr  = "(max by (id) (pve_disk_usage_bytes{job=\"pve-exporter\", id=~\"lxc/.*\"}) / max by (id) (pve_disk_size_bytes{job=\"pve-exporter\", id=~\"lxc/.*\"} > 0)) * on (id) group_left (name, node) max by (id, name, node) (pve_guest_info{job=\"pve-exporter\"}) > 0.85"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                service  = "pve-host"
+              }
+              annotations = {
+                summary     = "LXC {{ $labels.name }} rootfs at {{ $value | humanizePercentage }} ({{ $labels.node }})"
+                description = "Container rootfs above 85% of its size. On an ext4 rootfs the last 5% is root-reserved, so services running as non-root users fail at ~95%. Find the grower with du inside the guest; grow with pct resize if the host storage has room. At rollout 2026-11-04 nlinfluxdb01 was already at 89.5% (known finding)."
+              }
+            },
+            {
+              alert = "REDACTED_bb6906f0"
+              expr  = "(max by (id) (pve_disk_usage_bytes{job=\"pve-exporter\", id=~\"lxc/.*\"}) / max by (id) (pve_disk_size_bytes{job=\"pve-exporter\", id=~\"lxc/.*\"} > 0)) * on (id) group_left (name, node) max by (id, name, node) (pve_guest_info{job=\"pve-exporter\"}) > 0.92"
+              for   = "10m"
+              labels = {
+                severity = "critical"
+                service  = "pve-host"
+              }
+              annotations = {
+                summary     = "LXC {{ $labels.name }} rootfs at {{ $value | humanizePercentage }} ({{ $labels.node }}), writes about to fail"
+                description = "Container rootfs above 92%; non-root writes fail at ~95% on ext4. nlgitlab01 went from here to HTTP 500 on every authenticated request on 2026-11-04."
+              }
+            },
             {
               alert = "PVEGuestNotBackedUp"
               expr  = "max (pve_not_backed_up_total{job=\"pve-exporter\"}) > 0"
