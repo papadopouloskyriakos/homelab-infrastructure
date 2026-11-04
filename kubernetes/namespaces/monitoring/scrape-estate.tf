@@ -205,6 +205,30 @@ locals {
       ]
     },
 
+    # Atlantis liveness (IFRNLLEI01PRD-2983): both instances on nlatlantis01
+    # crash-looped 2026-10-25 -> 11-04 unnoticed; MRs just got no plan comment.
+    # Own job so AtlantisProbeAbsent can key on it (estate-alerts.tf, group atlantis).
+    {
+      job_name        = "atlantis-health"
+      scrape_interval = "60s"
+      scrape_timeout  = "30s"
+      metrics_path    = "/probe"
+      params = {
+        module = ["http_2xx"]
+      }
+      static_configs = [{
+        targets = [
+          "http://nlatlantis01.example.net:4141/healthz",
+          "http://nlatlantis01.example.net:4142/healthz",
+        ]
+      }]
+      relabel_configs = [
+        { source_labels = ["__address__"], target_label = "__param_target" },
+        { source_labels = ["__param_target"], target_label = "instance" },
+        { target_label = "__address__", replacement = "10.0.X.X:9115" },
+      ]
+    },
+
     # Omoikane public surfaces — OUTSIDE-IN availability (OMOIKANE-8).
     # Every other omoikane check watches an INTERNAL mesh IP or the
     # daemon's own /metrics; an edge or DMZ outage with a healthy daemon
