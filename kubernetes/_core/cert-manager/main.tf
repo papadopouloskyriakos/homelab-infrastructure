@@ -445,6 +445,10 @@ resource "kubernetes_manifest" "REDACTED_af7e0fe5" {
     }
     spec = {
       secretName = "REDACTED_eb368cbd-tls"
+      # New key at every issuance: these keys sat on the US edge (IFRNLLEI01PRD-2242).
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -472,6 +476,10 @@ resource "kubernetes_manifest" "REDACTED_93434549" {
     }
     spec = {
       secretName = "REDACTED_21a6c4fc-tls"
+      # New key at every issuance: these keys sat on the US edge (IFRNLLEI01PRD-2242).
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -499,6 +507,10 @@ resource "kubernetes_manifest" "REDACTED_5e8d96e9" {
     }
     spec = {
       secretName = "REDACTED_b4121ee5-tls"
+      # New key at every issuance: these keys sat on the US edge (IFRNLLEI01PRD-2242).
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -526,6 +538,10 @@ resource "kubernetes_manifest" "REDACTED_79a1dc6b" {
     }
     spec = {
       secretName = "REDACTED_d39fbd43-tls"
+      # New key at every issuance: these keys sat on the US edge (IFRNLLEI01PRD-2242).
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -553,6 +569,10 @@ resource "kubernetes_manifest" "REDACTED_b082092e" {
     }
     spec = {
       secretName = "REDACTED_983d7ee1-tls"
+      # New key at every issuance: these keys sat on the US edge (IFRNLLEI01PRD-2242).
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -841,6 +861,10 @@ resource "kubernetes_manifest" "REDACTED_8cc8d62a" {
     }
     spec = {
       secretName = "REDACTED_0b56fffb-tls"
+      # New key at every issuance: these keys sat on the US edge (IFRNLLEI01PRD-2242).
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
