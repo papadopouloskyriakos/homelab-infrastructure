@@ -175,6 +175,10 @@ resource "kubernetes_manifest" "wildcard_cert" {
     }
     spec = {
       secretName = "REDACTED_0d82b4df-tls"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -202,6 +206,10 @@ resource "kubernetes_manifest" "REDACTED_501d268e" {
     }
     spec = {
       secretName = "REDACTED_e5e9325b-tls"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -229,6 +237,10 @@ resource "kubernetes_manifest" "REDACTED_c7e1769b" {
     }
     spec = {
       secretName = "REDACTED_e8f1187c-tls"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -256,6 +268,10 @@ resource "kubernetes_manifest" "REDACTED_52b9873f" {
     }
     spec = {
       secretName = "REDACTED_e905fc27"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -283,6 +299,10 @@ resource "kubernetes_manifest" "REDACTED_b497be54" {
     }
     spec = {
       secretName = "REDACTED_6b2b1d03-tls"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -310,6 +330,10 @@ resource "kubernetes_manifest" "REDACTED_8e7851d8" {
     }
     spec = {
       secretName = "REDACTED_f751a1db-tls"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -337,6 +361,10 @@ resource "kubernetes_manifest" "REDACTED_cbe107a9" {
     }
     spec = {
       secretName = "REDACTED_b48b36cd-tls"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -364,6 +392,10 @@ resource "kubernetes_manifest" "REDACTED_62f27f39" {
     }
     spec = {
       secretName = "REDACTED_3afb42ed-tls"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -391,6 +423,10 @@ resource "kubernetes_manifest" "REDACTED_a6df7556" {
     }
     spec = {
       secretName = "REDACTED_7f4f46e4"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -418,6 +454,10 @@ resource "kubernetes_manifest" "REDACTED_56d1f068" {
     }
     spec = {
       secretName = "REDACTED_b2fe5f0b-tls"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -758,6 +798,10 @@ resource "kubernetes_manifest" "REDACTED_8ca647ff" {
     }
     spec = {
       secretName = "REDACTED_b21912a4-tls"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -784,6 +828,10 @@ resource "kubernetes_manifest" "REDACTED_233e2f0b" {
     }
     spec = {
       secretName = "REDACTED_7dede78a-tls"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -809,6 +857,10 @@ resource "kubernetes_manifest" "REDACTED_7a64a702" {
     }
     spec = {
       secretName = "REDACTED_9774d43a-tls"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -834,6 +886,10 @@ resource "kubernetes_manifest" "REDACTED_b6fbec6d" {
     }
     spec = {
       secretName = "REDACTED_04774445-tls"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -897,6 +953,10 @@ resource "kubernetes_manifest" "REDACTED_1c3fab10" {
     }
     spec = {
       secretName = "REDACTED_cd95cdbc"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
