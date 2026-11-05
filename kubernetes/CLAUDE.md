@@ -255,6 +255,7 @@ k8s/
 - ClusterSecretStore name is `openbao` — reference it in all ExternalSecret specs
 - OpenBao paths follow `secret/k8s/<namespace>/<secret-name>` or `secret/k8s/shared/` for cross-namespace
 - cert-manager pushes the wildcard cert to OpenBao via PushSecret for GR cluster consumption
+- **Private keys do NOT rotate on renewal by default:** cert-manager v1.17.1 defaults `privateKey.rotationPolicy` to `Never`, so a renewal re-signs the same key. Only the six EU-only Certificates (omoikane .coach/.careers/.nl/.tech/.gr, safertogether.eu) set `Always` (!680, 5 November 2026, IFRNLLEI01PRD-2242); they were reissued once with `cmctl renew` (operator-approved) because those keys had sat on txhou01vps01. Rotating any other cert = set `Always` via MR, then one `cmctl renew` with operator OK; estate-wide `Always` (or cert-manager >= 1.18) is an open decision.
 
 ## BGP & Networking
 
