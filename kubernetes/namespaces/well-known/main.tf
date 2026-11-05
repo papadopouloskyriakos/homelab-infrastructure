@@ -425,6 +425,10 @@ resource "kubernetes_manifest" "REDACTED_72c40b12" {
     }
     spec = {
       secretName = "well-known-tls"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = var.cert_issuer_name
         kind = var.cert_issuer_kind

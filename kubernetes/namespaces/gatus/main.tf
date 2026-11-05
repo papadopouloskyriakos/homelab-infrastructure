@@ -1076,6 +1076,10 @@ resource "kubernetes_manifest" "gatus_certificate" {
     }
     spec = {
       secretName = "gatus-tls"
+      # New key at every issuance: cert-manager 1.17 defaults to Never, which re-signs the old key.
+      privateKey = {
+        rotationPolicy = "Always"
+      }
       issuerRef = {
         name = var.cert_issuer_name
         kind = var.cert_issuer_kind
