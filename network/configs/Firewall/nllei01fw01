@@ -1823,13 +1823,13 @@ service sw-reset-button
 crypto ipsec ikev2 ipsec-proposal VTI-PROPOSAL
  protocol esp encryption aes-256
  protocol esp integrity sha-256
+crypto ipsec profile VTI-PROFILE
+ set ikev2 ipsec-proposal VTI-PROPOSAL
+ set security-association lifetime seconds 28800
 crypto ipsec profile VTI-PROFILE-GR
  set ikev2 ipsec-proposal VTI-PROPOSAL
  set security-association lifetime kilobytes unlimited
  set security-association lifetime seconds 21600
-crypto ipsec profile VTI-PROFILE
- set ikev2 ipsec-proposal VTI-PROPOSAL
- set security-association lifetime seconds 28800
 crypto ipsec security-association pmtu-aging 10
 crypto ipsec df-bit clear-df outside_freedom
 crypto dynamic-map LTE-OOB-DYN 10 set pfs 
@@ -2123,5 +2123,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:c71d989ac5ed659a43a0edc0782f4454
+Cryptochecksum:6124bbd15800842318223febc6119d1e
 : end

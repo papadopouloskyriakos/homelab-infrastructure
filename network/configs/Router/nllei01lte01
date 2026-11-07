@@ -2,10 +2,7 @@ Building configuration...
 
   
   
-Current configuration : 10462 bytes
-!
-! Last configuration change at 17:35:10 CEST Thu Oct 1 2026 by kyriakosp
-! NVRAM config last updated at 17:35:11 CEST Thu Oct 1 2026 by kyriakosp
+Current configuration : 10314 bytes
 !
 version 15.6
 no service pad
