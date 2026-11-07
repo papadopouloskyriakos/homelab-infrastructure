@@ -1194,6 +1194,10 @@ access-list dmz_servers02_access_in extended permit tcp host 10.0.X.X host 10.0.
 access-list dmz_servers02_access_in extended permit tcp any object nlsmtp-gpg01 eq smtp inactive 
 access-list dmz_servers02_access_in extended permit object-group TCPUDP object nlk8s-frr01 object nlpihole02 eq domain 
 access-list dmz_servers02_access_in extended permit object-group TCPUDP object nlk8s-frr02 object nlpihole02 eq domain 
+access-list dmz_servers02_access_in extended permit object-group TCPUDP object nlk8s-frr01 object nlfreeipa01 eq domain 
+access-list dmz_servers02_access_in extended permit object-group TCPUDP object nlk8s-frr01 object grfreeipa01 eq domain 
+access-list dmz_servers02_access_in extended permit object-group TCPUDP object nlk8s-frr02 object nlfreeipa01 eq domain 
+access-list dmz_servers02_access_in extended permit object-group TCPUDP object nlk8s-frr02 object grfreeipa01 eq domain 
 access-list dmz_servers02_access_in extended permit tcp object nl-matrix01 object nlsmtp-gpg01 eq smtp 
 access-list dmz_servers02_access_in extended permit tcp object nl-matrix01 object grafana.example.net eq https 
 access-list dmz_servers02_access_in extended permit ip object-group S2S_LEI_GRP_dmz_servers02 object-group S2S_SKG_GRP_dmz_servers02 
@@ -2123,5 +2127,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:6124bbd15800842318223febc6119d1e
+Cryptochecksum:16e2a4dd00f4c024da2eb6f69403f209
 : end
