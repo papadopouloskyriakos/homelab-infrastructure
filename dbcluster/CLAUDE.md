@@ -262,6 +262,30 @@ third host (NFS rootfs, 2 s) once pve01 is rebuilt.
 
 ## Troubleshooting
 
+### `GaleraNoPrimary` alert + the guarded bootstrap (since 7 November 2026, IFRNLLEI01PRD-2992)
+After the 6-7 November 2026 power loss both nodes sat at the same seqno (32351129), stuck in a
+gcomm reconnect loop (mariadb02 `deactivating`, `TimeoutStopSec` 15 min), and nothing alerted.
+Now: `write-galera-metrics.py` (claude-gateway, Cronicle `galera-metrics`, every minute on
+nlclaude01, read-only) exports `galera_node_{primary,reachable,host_reachable,cluster_size,ready,local_state,last_committed}`;
+`GaleraNoPrimary` (critical, untiered: Matrix + n8n, no page) fires after 5 min with no Primary
+while a DB host answers (`k8s/namespaces/monitoring/galera-sel-alerts.tf`). The recipe below is
+scripted, **never automatic** (operator decision): on nlclaude01
+
+```bash
+~/gitlab/n8n/claude-gateway/scripts/galera-guarded-bootstrap.py            # PLAN, read-only
+~/gitlab/n8n/claude-gateway/scripts/galera-guarded-bootstrap.py --recover  # + wsrep-recover on STOPPED nodes
+~/gitlab/n8n/claude-gateway/scripts/galera-guarded-bootstrap.py --execute  # operator only
+```
+
+It refuses (exit 2) on a cluster UUID mismatch, next to a live Primary, or when a DB host cannot
+be read (`--exclude <node>` is accepted only for a host that does not answer SSH, and loses that
+node's last transactions). It picks the highest seqno, a tie goes to mariadb02
+(`--tie-prefer`). `--execute` then runs steps 2-4 below: stuck units get `systemctl stop` and a
+SIGKILL after `--grace` (60 s), positions come from `--wsrep-recover`, the winner is bootstrapped
+in place or with `galera_new_cluster` (grastate backup in `/root`), the other node and `garb`
+are started, and it verifies size 3 / Primary / Synced. Exit 0 = nothing to do or verified, 3 =
+plan needs action. Tests: `scripts/qa/suites/test-galera-guarded-bootstrap.sh` (fake SSH).
+
 ### Galera non-Primary / mysqld will not start (4 October 2026, Known Gap 37)
 **What happened:** the nightly `mariadb-galera-backup-pbs.sh` kept a 7-day mtime window of ~6 G
 tarballs and pruned only AFTER writing a 19 G raw copy. It filled mariadb02's 99 G rootfs at
