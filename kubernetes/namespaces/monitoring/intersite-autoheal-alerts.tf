@@ -29,6 +29,9 @@
 #     nlclaude01) detects a powered-but-dark Freedom ONT on nlsw01
 #     Gi1/0/36 and, when armed, PoE-cycles it (max 3 per 24 h). Same NL-only,
 #     mirror-exempt edge auto-heal layer as the group above, so it lives here.
+#   - Later the same day the operator decided the ONT heal runs past the gateway
+#     master switch (only a real maintenance window blocks it); the
+#     FreedomOntWedged description now lists the gates that still suppress it.
 # =============================================================================
 
 resource "kubernetes_manifest" "intersite_autoheal_alert_rules" {
@@ -114,7 +117,7 @@ resource "kubernetes_manifest" "intersite_autoheal_alert_rules" {
               }
               annotations = {
                 summary     = "Freedom ONT powered but dark on nlsw01 Gi1/0/36"
-                description = "nlsw01 Gi1/0/36 (Freedom ONT) has been notconnect with PoE on for 10+ min and nlfw01 Track 1 is not Up — the post-power-loss wedge. If the auto-heal is armed it PoE-cycles the port itself; if freedom_ont_autoheal_suppressed is 1 (master switch, shadow, or disarmed) run the recipe by hand: interface Gi1/0/36 / power inline never / wait 15 s / power inline auto / shutdown / no shutdown. Runbook: docs/runbooks/REDACTED_6616a81a.md."
+                description = "nlsw01 Gi1/0/36 (Freedom ONT) has been notconnect with PoE on for 10+ min and nlfw01 Track 1 is not Up — the post-power-loss wedge. If the auto-heal is armed it PoE-cycles the port itself; if freedom_ont_autoheal_suppressed is 1 (maintenance window, chaos, shadow, or disarmed) run the recipe by hand: interface Gi1/0/36 / power inline never / wait 15 s / power inline auto / shutdown / no shutdown. Runbook: docs/runbooks/REDACTED_6616a81a.md."
               }
             },
             {
