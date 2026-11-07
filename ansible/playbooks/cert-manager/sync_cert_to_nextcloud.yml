@@ -1,0 +1,173 @@
+---
+# Sync cert-manager wildcard certificate to Nextcloud Apache frontend nodes
+# Flow: K8s cert-manager secret -> Apache SSL cert paths via SSH (root)
+# Idempotent: skips if Apache cert expiry matches K8s cert expiry
+#
+# Hosts group required: nextcloud
+#   nlnc01
+#   nlnc02
+#
+# Apache vhost SSL paths (from SSLCertificateFile / SSLCertificateKeyFile):
+#   Cert: /etc/ssl/certs/example.net_fullchain.pem
+#   Key:  /etc/ssl/private/example.net_cert.pem.key
+# Reload: systemctl reload apache2
+#
+# Credentials from AWX/OpenBao custom credentials:
+#   K8s API: K8S_HOST, K8S_TOKEN, K8S_CA_CERT
+
+- name: Fetch certificate from Kubernetes
+  hosts: localhost
+  gather_facts: false
+  vars:
+    k8s_secret_name: REDACTED_0d82b4df-tls
+    k8s_secret_namespace: cert-manager
+    temp_dir: REDACTED_88f47687
+
+  tasks:
+    - name: Create temp directory
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: directory
+        mode: '0700'
+
+    - name: Set credentials from environment
+      ansible.builtin.set_fact:
+        k8s_host: "{{ lookup('env', 'K8S_HOST') }}"
+        k8s_token: "{{ lookup('env', 'K8S_TOKEN') }}"
+        k8s_ca_cert: "{{ lookup('env', 'K8S_CA_CERT') }}"
+      no_log: true
+
+    - name: Write CA cert to temp file
+      ansible.builtin.copy:
+        content: "{{ k8s_ca_cert }}"
+        dest: "{{ temp_dir }}/ca.crt"
+        mode: '0600'
+
+    - name: Get TLS secret from K8s API
+      ansible.builtin.uri:
+        url: "{{ k8s_host }}/api/v1/namespaces/{{ k8s_secret_namespace }}/secrets/{{ k8s_secret_name }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ k8s_token }}"
+        ca_path: "{{ temp_dir }}/ca.crt"
+        validate_certs: true
+        return_content: true
+      register: k8s_secret
+      no_log: true
+
+    - name: Decode and save fullchain cert
+      ansible.builtin.copy:
+        content: "{{ k8s_secret.json.data['tls.crt'] | b64decode }}"
+        dest: "{{ temp_dir }}/fullchain.pem"
+        mode: '0600'
+      no_log: true
+
+    - name: Decode and save private key
+      ansible.builtin.copy:
+        content: "{{ k8s_secret.json.data['tls.key'] | b64decode }}"
+        dest: "{{ temp_dir }}/privkey.pem"
+        mode: '0600'
+      no_log: true
+
+    - name: Get K8s certificate expiry
+      ansible.builtin.command:
+        cmd: openssl x509 -enddate -noout -in "{{ temp_dir }}/fullchain.pem"
+      register: k8s_cert_expiry_raw
+      changed_when: false
+
+    - name: Parse K8s certificate expiry to ISO format
+      ansible.builtin.command:
+        cmd: date -d "{{ k8s_cert_expiry_raw.stdout | regex_replace('notAfter=', '') }}" -u +%Y-%m-%dT%H:%M:%S
+      register: k8s_cert_expiry
+      changed_when: false
+
+    - name: Display K8s certificate expiry
+      ansible.builtin.debug:
+        msg: "K8s certificate expires: {{ k8s_cert_expiry.stdout }}"
+
+
+- name: Deploy certificate to Nextcloud nodes
+  hosts: nextcloud
+  gather_facts: false
+  vars:
+    temp_dir: REDACTED_88f47687
+    cert_path: /etc/ssl/certs/example.net_fullchain.pem
+    key_path: /etc/ssl/private/example.net_cert.pem.key
+    k8s_cert_expiry: "{{ hostvars['localhost']['k8s_cert_expiry']['stdout'] }}"
+
+  tasks:
+    - name: Check current Apache cert expiry
+      ansible.builtin.shell:
+        cmd: |
+          if [ -f {{ cert_path }} ]; then
+            DATE=$(openssl x509 -enddate -noout -in {{ cert_path }} | sed 's/notAfter=//')
+            date -d "$DATE" -u +%Y-%m-%dT%H:%M:%S
+          else
+            echo "NONE"
+          fi
+      register: nc_cert_expiry
+      changed_when: false
+
+    - name: Display current Nextcloud cert expiry
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} current cert expires: {{ nc_cert_expiry.stdout }}"
+
+    - name: Set sync flag
+      ansible.builtin.set_fact:
+        sync_needed: "{{ nc_cert_expiry.stdout == 'NONE' or k8s_cert_expiry != nc_cert_expiry.stdout }}"
+
+    - name: Display sync decision
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}: {{
+            'Sync needed - deploying new certificate'
+            if sync_needed else
+            'Sync NOT needed - certificate already current (' + k8s_cert_expiry + ')'
+          }}
+
+    - name: Deploy fullchain cert
+      ansible.builtin.copy:
+        src: "{{ temp_dir }}/fullchain.pem"
+        dest: "{{ cert_path }}"
+        mode: '0644'
+        owner: root
+        group: root
+      when: sync_needed
+
+    - name: Deploy private key
+      ansible.builtin.copy:
+        src: "{{ temp_dir }}/privkey.pem"
+        dest: "{{ key_path }}"
+        mode: '0600'
+        owner: root
+        group: root
+      no_log: true
+      when: sync_needed
+
+    - name: Reload Apache to apply new certificate
+      ansible.builtin.systemd:
+        name: apache2
+        state: reloaded
+      when: sync_needed
+
+    - name: Final status
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}: {{
+            'Certificate deployed and Apache reloaded.'
+            if sync_needed else
+            'No sync needed - certificate already current.'
+          }}
+
+
+- name: Cleanup temp directory
+  hosts: localhost
+  gather_facts: false
+  vars:
+    temp_dir: REDACTED_88f47687
+
+  tasks:
+    - name: Remove temp directory
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: absent

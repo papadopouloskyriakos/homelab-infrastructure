@@ -1,0 +1,207 @@
+---
+# Sync cert-manager wildcard certificate to the Pi-hole DNS hosts
+# Flow: K8s cert-manager secret -> combined key+fullchain PEM in the pihole
+#       container's /etc/pihole volume -> docker restart pihole
+# Idempotent: skips if the deployed tls.pem expiry matches the K8s cert expiry
+#
+# Hosts group required: pihole
+#   nlpihole01
+#   grpihole01
+#
+# Pi-hole v6: FTL's embedded webserver reads /etc/pihole/tls.pem (combined
+# private key + fullchain). Volume on host: /srv/pihole/pihole_etc/tls.pem,
+# owned by uid 1000 (container pihole user), mode 0600.
+# Restart: docker restart pihole (single container by name, never compose) —
+# causes a few seconds of DNS downtime, so it only happens on actual renewal.
+# After restart the play VERIFIES the served cert fingerprint matches the
+# deployed file and that DNS (53) is listening again — a restart that silently
+# keeps the old cert must fail the play, not pass it.
+#
+# Both hosts authorize only the ED25519 one_key (AWX credential 24).
+#
+# Credentials from AWX/OpenBao custom credentials:
+#   K8s API: K8S_HOST, K8S_TOKEN, K8S_CA_CERT
+
+- name: Fetch certificate from Kubernetes
+  hosts: localhost
+  gather_facts: false
+  vars:
+    k8s_secret_name: REDACTED_0d82b4df-tls
+    k8s_secret_namespace: cert-manager
+    temp_dir: REDACTED_88f47687
+
+  tasks:
+    - name: Create temp directory
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: directory
+        mode: '0700'
+
+    - name: Set credentials from environment
+      ansible.builtin.set_fact:
+        k8s_host: "{{ lookup('env', 'K8S_HOST') }}"
+        k8s_token: "{{ lookup('env', 'K8S_TOKEN') }}"
+        k8s_ca_cert: "{{ lookup('env', 'K8S_CA_CERT') }}"
+      no_log: true
+
+    - name: Write CA cert to temp file
+      ansible.builtin.copy:
+        content: "{{ k8s_ca_cert }}"
+        dest: "{{ temp_dir }}/ca.crt"
+        mode: '0600'
+
+    - name: Get TLS secret from K8s API
+      ansible.builtin.uri:
+        url: "{{ k8s_host }}/api/v1/namespaces/{{ k8s_secret_namespace }}/secrets/{{ k8s_secret_name }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ k8s_token }}"
+        ca_path: "{{ temp_dir }}/ca.crt"
+        validate_certs: true
+        return_content: true
+      register: k8s_secret
+      no_log: true
+
+    - name: Build combined key plus fullchain PEM for Pi-hole
+      ansible.builtin.copy:
+        content: "{{ k8s_secret.json.data['tls.key'] | b64decode }}{{ k8s_secret.json.data['tls.crt'] | b64decode }}"
+        dest: "{{ temp_dir }}/pihole-tls.pem"
+        mode: '0600'
+      no_log: true
+
+    - name: Save fullchain separately for expiry and fingerprint checks
+      ansible.builtin.copy:
+        content: "{{ k8s_secret.json.data['tls.crt'] | b64decode }}"
+        dest: "{{ temp_dir }}/fullchain.pem"
+        mode: '0600'
+      no_log: true
+
+    - name: Get K8s certificate expiry
+      ansible.builtin.command:
+        cmd: openssl x509 -enddate -noout -in "{{ temp_dir }}/fullchain.pem"
+      register: k8s_cert_expiry_raw
+      changed_when: false
+
+    - name: Parse K8s certificate expiry to ISO format
+      ansible.builtin.command:
+        cmd: date -d "{{ k8s_cert_expiry_raw.stdout | regex_replace('notAfter=', '') }}" -u +%Y-%m-%dT%H:%M:%S
+      register: k8s_cert_expiry
+      changed_when: false
+
+    - name: Get K8s certificate fingerprint
+      ansible.builtin.shell:
+        cmd: openssl x509 -noout -fingerprint -sha256 -in "{{ temp_dir }}/fullchain.pem" | cut -d= -f2
+      register: REDACTED_aa2efaca
+      changed_when: false
+
+    - name: Display K8s certificate expiry
+      ansible.builtin.debug:
+        msg: "K8s certificate expires: {{ k8s_cert_expiry.stdout }}"
+
+
+- name: Deploy certificate to Pi-hole nodes
+  hosts: pihole
+  gather_facts: false
+  vars:
+    temp_dir: REDACTED_88f47687
+    tls_path: /srv/pihole/pihole_etc/tls.pem
+    k8s_cert_expiry: "{{ hostvars['localhost']['k8s_cert_expiry']['stdout'] }}"
+    REDACTED_aa2efaca: "{{ hostvars['localhost']['REDACTED_aa2efaca']['stdout'] }}"
+
+  tasks:
+    - name: Check current tls.pem expiry
+      ansible.builtin.shell:
+        cmd: |
+          if [ -f {{ tls_path }} ]; then
+            DATE=$(openssl x509 -enddate -noout -in {{ tls_path }} | sed 's/notAfter=//')
+            date -d "$DATE" -u +%Y-%m-%dT%H:%M:%S
+          else
+            echo "NONE"
+          fi
+      register: pihole_cert_expiry
+      changed_when: false
+
+    - name: Set sync flag
+      ansible.builtin.set_fact:
+        sync_needed: "{{ pihole_cert_expiry.stdout == 'NONE' or k8s_cert_expiry != pihole_cert_expiry.stdout }}"
+
+    - name: Display sync decision
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}: {{
+            'Sync needed - deploying new certificate (pihole container will restart, brief DNS blip)'
+            if sync_needed else
+            'Sync NOT needed - certificate already current (' + k8s_cert_expiry + ')'
+          }}
+
+    - name: Deploy combined tls.pem
+      ansible.builtin.copy:
+        src: "{{ temp_dir }}/pihole-tls.pem"
+        dest: "{{ tls_path }}"
+        mode: '0600'
+        owner: '1000'
+        group: '1000'
+      no_log: true
+      when: sync_needed
+
+    - name: Restart pihole container
+      ansible.builtin.command:
+        argv:
+          - docker
+          - restart
+          - pihole
+      when: sync_needed
+
+    - name: Wait for DNS (53) and web (443) to listen again
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ item }}"
+        timeout: 60
+      loop:
+        - 53
+        - 443
+      when: sync_needed
+
+    - name: Verify the webserver is actually serving the new certificate
+      ansible.builtin.shell:
+        cmd: |
+          echo | openssl s_client -connect 127.0.0.1:443 2>/dev/null \
+            | openssl x509 -noout -fingerprint -sha256 | cut -d= -f2
+      register: served_fingerprint
+      changed_when: false
+      retries: 3
+      delay: 5
+      until: served_fingerprint.stdout | length > 0
+      when: sync_needed
+
+    - name: Fail if the served certificate does not match the deployed one
+      ansible.builtin.assert:
+        that:
+          - served_fingerprint.stdout == REDACTED_aa2efaca
+        fail_msg: >-
+          {{ inventory_hostname }}: pihole restarted but is serving fingerprint
+          {{ served_fingerprint.stdout }} instead of {{ REDACTED_aa2efaca }}.
+        success_msg: "{{ inventory_hostname }}: served certificate matches deployed certificate."
+      when: sync_needed
+
+    - name: Final status
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}: {{
+            'Certificate deployed, pihole restarted, serving verified.'
+            if sync_needed else
+            'No sync needed - certificate already current.'
+          }}
+
+
+- name: Cleanup temp directory
+  hosts: localhost
+  gather_facts: false
+  vars:
+    temp_dir: REDACTED_88f47687
+
+  tasks:
+    - name: Remove temp directory
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: absent

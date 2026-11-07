@@ -1,0 +1,269 @@
+---
+# Deploy terminal session logging and root purple theme to all NL hosts.
+#
+# Play 1: Deploy .bashrc theme + PROMPT_COMMAND, rsyslog config, and logrotate
+#          to all reachable NL hosts with a supported OS and bash as root shell.
+# Play 2: Configure syslog-ng on the central log server (nlsyslogng01)
+#          to receive, filter, and store terminal session logs per host per day.
+#
+# Scope: NL site only (use AWX limit site_nl or equivalent).
+#         Skips Synology (DSM), UniFi OS, and any host where root does not use bash.
+#
+# Optional variables:
+#   syslog_target  - central syslog-ng hostname (default: nlsyslogng01)
+#   syslog_port    - TCP port for syslog forwarding (default: 514)
+#   log_retention_days - days to keep central logs (default: 90)
+
+###############################################################################
+# Play 1: Deploy to all hosts
+###############################################################################
+- name: Deploy terminal theme and session logging
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    syslog_target: nlsyslogng01
+    syslog_port: 514
+
+  pre_tasks:
+    # Recovery: if a previous run deployed .bashrc blocks without the
+    # interactive shell guard ($- == *i*), the escape sequences corrupt
+    # Ansible's sftp/scp file transfers. The raw module does not need
+    # file transfer, so it works even with a broken .bashrc.
+    - name: Check if .bashrc has blocks missing interactive guard
+      raw: |
+        if grep -q 'ANSIBLE MANAGED BLOCK - terminal-theme' /root/.bashrc 2>/dev/null && \
+           ! grep -q '\$- ==' /root/.bashrc 2>/dev/null; then
+          echo NEEDS_CLEANUP
+        else
+          echo OK
+        fi
+      register: bashrc_state
+      changed_when: false
+
+    - name: Remove broken .bashrc blocks (recovery)
+      raw: |
+        sed -i '/# BEGIN ANSIBLE MANAGED BLOCK - terminal-theme/,/# END ANSIBLE MANAGED BLOCK - terminal-theme/d' /root/.bashrc
+        sed -i '/# BEGIN ANSIBLE MANAGED BLOCK - session-logging/,/# END ANSIBLE MANAGED BLOCK - session-logging/d' /root/.bashrc
+      when: "'NEEDS_CLEANUP' in bashrc_state.stdout"
+
+    - name: Gather facts
+      setup:
+
+  tasks:
+    # --- Pre-flight checks ---------------------------------------------------
+
+    - name: Skip unsupported OS families
+      meta: end_host
+      when: ansible_os_family not in ["Debian", "RedHat"]
+
+    - name: Check root login shell
+      command: getent passwd root
+      register: root_passwd
+      changed_when: false
+
+    - name: Skip hosts where root does not use bash
+      meta: end_host
+      when: "'/bash' not in root_passwd.stdout"
+
+    - name: Check for existing local6 usage in rsyslog
+      shell: grep -r 'local6' /etc/rsyslog.conf /etc/rsyslog.d/ --exclude='60-terminal-sessions.conf' 2>/dev/null || true
+      register: local6_check
+      changed_when: false
+
+    - name: Warn if local6 already in use
+      debug:
+        msg: >-
+          WARNING: local6 facility already referenced on {{ inventory_hostname }}.
+          Existing usage: {{ local6_check.stdout_lines | join(', ') }}
+      when: local6_check.stdout | length > 0
+
+    - name: Verify logger binary is available
+      command: which logger
+      register: logger_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install bsdutils if logger is missing (Debian)
+      apt:
+        name: bsdutils
+        state: present
+      when:
+        - logger_check.rc != 0
+        - ansible_os_family == "Debian"
+
+    - name: Install util-linux if logger is missing (RedHat)
+      dnf:
+        name: util-linux
+        state: present
+      when:
+        - logger_check.rc != 0
+        - ansible_os_family == "RedHat"
+
+    - name: Check installed packages
+      package_facts:
+        manager: auto
+
+    - name: Install rsyslog if no syslog daemon present (Debian)
+      apt:
+        name: rsyslog
+        state: present
+      when:
+        - ansible_os_family == "Debian"
+        - "'rsyslog' not in ansible_facts.packages"
+        - "'syslog-ng' not in ansible_facts.packages"
+        - "'syslog-ng-core' not in ansible_facts.packages"
+
+    - name: Install rsyslog if no syslog daemon present (RedHat)
+      dnf:
+        name: rsyslog
+        state: present
+      when:
+        - ansible_os_family == "RedHat"
+        - "'rsyslog' not in ansible_facts.packages"
+        - "'syslog-ng' not in ansible_facts.packages"
+
+    - name: Refresh package facts after rsyslog install
+      package_facts:
+        manager: auto
+      when: "'rsyslog' not in ansible_facts.packages"
+
+    # --- .bashrc: purple terminal theme --------------------------------------
+
+    - name: Deploy root terminal purple theme
+      blockinfile:
+        path: /root/.bashrc
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - terminal-theme"
+        block: |
+          # Visual indicator for root sessions - dark purple terminal theme
+          # Guard: only run in interactive shells to avoid breaking Ansible/scp/sftp
+          if [[ $- == *i* ]] && { [[ "$TERM" == *-256color ]] || [[ "$TERM" == xterm-* ]]; }; then
+              printf '\033]11;#190A1C\033\\'   # background: dark purple
+              printf '\033]10;#DCC8E6\033\\'   # foreground: soft lavender
+              printf '\033]12;#CC55DD\033\\'   # cursor: magenta
+
+              # Reset to terminal defaults when shell exits
+              trap 'printf "\033]110\033\\"; printf "\033]111\033\\"; printf "\033]112\033\\"' EXIT
+          fi
+        create: true
+        mode: "0644"
+        owner: root
+        group: root
+
+    # --- .bashrc: session logging via PROMPT_COMMAND (root) -------------------
+    # Kept for root since /etc/profile.d/ may not be sourced by all root shells.
+
+    - name: Deploy terminal session logging PROMPT_COMMAND (root .bashrc)
+      blockinfile:
+        path: /root/.bashrc
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - session-logging"
+        block: |
+          # Terminal session logging - send every command to syslog
+          if [ -n "$PS1" ]; then
+              PROMPT_COMMAND='RETRN_VAL=$?; logger -p local6.info -t terminal-session "user=$USER tty=$(tty) pwd=$PWD ssh=${SSH_CLIENT%% *} cmd=$(history 1 | sed "s/^[ ]*[0-9]\+[ ]*//")" 2>/dev/null'
+          fi
+        create: true
+        mode: "0644"
+        owner: root
+        group: root
+
+    # --- /etc/profile.d: session logging for ALL users ----------------------
+
+    - name: Deploy terminal session logging for all users
+      copy:
+        dest: /etc/profile.d/terminal-session-logging.sh
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          # Ansible managed - terminal session logging for all users
+          # Logs every interactive command to syslog (local6.info)
+          if [ -n "$PS1" ] && [ -z "$TERMINAL_SESSION_LOGGING" ]; then
+              TERMINAL_SESSION_LOGGING=1
+              export TERMINAL_SESSION_LOGGING
+              PROMPT_COMMAND='RETRN_VAL=$?; logger -p local6.info -t terminal-session "user=$USER tty=$(tty) pwd=$PWD ssh=${SSH_CLIENT%% *} cmd=$(history 1 | sed "s/^[ ]*[0-9]\+[ ]*//")" 2>/dev/null'
+          fi
+
+    # --- rsyslog: forward local6 to file + central syslog-ng ----------------
+    # Skip rsyslog tasks on hosts running syslog-ng (e.g. nlsyslogng01)
+
+    - name: Deploy rsyslog terminal session config
+      template:
+        src: templates/60-terminal-sessions.conf.j2
+        dest: /etc/rsyslog.d/60-terminal-sessions.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart rsyslog
+      when: "'rsyslog' in ansible_facts.packages"
+
+    # --- logrotate: rotate local terminal session log ------------------------
+
+    - name: Deploy logrotate config for terminal session log
+      template:
+        src: templates/terminal-sessions-logrotate
+        dest: /etc/logrotate.d/terminal-sessions
+        owner: root
+        group: root
+        mode: "0644"
+      when: "'rsyslog' in ansible_facts.packages"
+
+    # --- Ensure rsyslog is running -------------------------------------------
+
+    - name: Ensure rsyslog is enabled and running
+      service:
+        name: rsyslog
+        state: started
+        enabled: true
+      when: "'rsyslog' in ansible_facts.packages"
+
+  handlers:
+    - name: Restart rsyslog
+      service:
+        name: rsyslog
+        state: restarted
+
+###############################################################################
+# Play 2: Configure syslog-ng on central log server
+###############################################################################
+- name: Configure syslog-ng for terminal session logs
+  hosts: nlsyslogng01
+  become: true
+  gather_facts: false
+  vars:
+    log_retention_days: 90
+
+
+  tasks:
+    - name: Deploy syslog-ng terminal session config
+      template:
+        src: templates/syslog-ng-terminal-sessions.conf.j2
+        dest: /etc/syslog-ng/conf.d/terminal-sessions.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload syslog-ng
+
+    - name: Ensure central log directory exists
+      file:
+        path: /var/log/central/terminal-sessions
+        state: directory
+        owner: root
+        group: adm
+        mode: "0750"
+
+    - name: Deploy cleanup cron for old terminal session logs
+      cron:
+        name: "Cleanup old terminal session logs"
+        minute: "30"
+        hour: "3"
+        job: >-
+          find /var/log/central/terminal-sessions -name '*.log' -mtime +{{ log_retention_days }} -delete
+          && find /var/log/central/terminal-sessions -type d -empty -delete
+        user: root
+
+  handlers:
+    - name: Reload syslog-ng
+      service:
+        name: syslog-ng
+        state: reloaded

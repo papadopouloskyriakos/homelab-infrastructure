@@ -1,0 +1,816 @@
+---
+# GR Full Site Maintenance — End-to-end PVE kernel update orchestration
+#
+# Scope: gr-pve01 (36 guests) + gr-pve02 (3 guests, iSCSI server)
+# K8s: 6 nodes, ALL on gr-pve01
+# Storage: democratic-csi iSCSI on pve02, NFS on pve01
+#
+# Required extra_vars:
+#   api_token: LibreNMS API token (GR instance)
+#   matrix_api_token: Matrix bot token for maintenance notices
+#
+# Optional extra_vars:
+#   duration: LibreNMS maintenance duration (default: "1:30")
+#   operator: who is running this (default: "AWX")
+#   skip_email: true to skip email report (default: false)
+#   dry_run: true to skip actual reboots (default: false)
+#
+# Procedure (from maintenance plan section 3):
+#   1. Pre-maintenance: LibreNMS, ChatOps, snapshots
+#   2. K8s graceful drain (all 6 nodes on pve01)
+#   3. Shutdown all guests on pve01
+#   4. Update + reboot pve02, validate iSCSI/ZFS/NFS
+#   5. Update + reboot pve01, guests auto-start
+#   6. K8s restore + storage validation
+#   7. Post-maintenance: clear maintenance, email report
+#
+# Estimated duration: ~60 minutes
+
+###############################################################################
+# Play 1: Pre-maintenance
+###############################################################################
+- name: "GR Pre-maintenance"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    site: "gr"
+    gr_librenms_url: "https://grnms01.example.net/api/v0"
+    gr_librenms_token: "{{ gr_api_token | default('REDACTED_c7cb035f') }}"
+    maint_duration: "{{ duration | default('1:30') }}"
+    _operator: "{{ operator | default('AWX') }}"
+
+  tasks:
+    ###########################################################################
+    # SSH config: ensure key and host-checking are set correctly
+    # In AWX EE: key is mounted at /runner/.ssh/one_key via K8s secret
+    # On claude-runner: key is at ~/.ssh/one_key natively
+    ###########################################################################
+    - name: "Ensure ~/.ssh directory exists"
+      file:
+        path: "~/.ssh"
+        state: directory
+        mode: '0700'
+
+    - name: "Configure SSH defaults (key path, no host checking)"
+      copy:
+        content: |
+          Host nlclaude01
+            User claude-runner
+            IdentityFile ~/.ssh/one_key
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+          Host nl* 192.168.181.* 192.168.88.*
+            User root
+            IdentityFile ~/.ssh/one_key
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+          Host gr* 192.168.2.* 192.168.58.*
+            User root
+            IdentityFile ~/.ssh/one_key
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+          Host *
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+            IdentityFile ~/.ssh/one_key
+        dest: "~/.ssh/config"
+        mode: '0600'
+        force: false
+
+    - name: Record maintenance start
+      set_fact:
+        maint_start: "{{ now(utc=true) }}"
+        maint_timeline: []
+        maint_issues: []
+
+    - name: Add timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'GR maintenance started'}] }}"
+
+    ###########################################################################
+    # STEP 1: LibreNMS maintenance on ALL GR devices
+    ###########################################################################
+    - name: "Set LibreNMS maintenance on ALL GR devices (parallel)"
+      shell: |
+        API_URL="{{ gr_librenms_url }}"
+        TOKEN="{{ gr_librenms_token }}"
+        DURATION="{{ maint_duration }}"
+
+        devices=$(curl -sk -H "X-Auth-Token: $TOKEN" \
+          "$API_URL/devices?columns=hostname,device_id" 2>/dev/null \
+          | python3 -c "import json,sys; [print(d['device_id']) for d in json.load(sys.stdin).get('devices',[])]" 2>/dev/null)
+
+        total=$(echo "$devices" | wc -l)
+        echo "Setting maintenance on $total GR devices (parallel, 10 at a time)..."
+
+        count=0
+        for did in $devices; do
+          curl -sk -X POST \
+            -H "X-Auth-Token: $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"title\":\"PVE kernel maintenance — GR\",\"notes\":\"Automated\",\"duration\":\"$DURATION\"}" \
+            "$API_URL/devices/$did/maintenance/" \
+            -o /dev/null -w "" 2>/dev/null &
+          count=$((count + 1))
+          if [ $((count % 10)) -eq 0 ]; then
+            wait
+          fi
+        done
+        wait
+        echo "Done: $count devices processed"
+      register: librenms_maint
+      changed_when: false
+      ignore_errors: true
+
+    ###########################################################################
+    # STEP 2: ChatOps maintenance mode
+    ###########################################################################
+    - name: "Set ChatOps maintenance mode"
+      shell: |
+        ssh claude-runner@nlclaude01 "echo '{\"started\":\"{{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}\",\"reason\":\"GR PVE kernel updates\",\"eta_minutes\":60,\"operator\":\"{{ _operator }}\",\"site\":\"gr\"}' > /home/claude-runner/gateway.maintenance"
+      ignore_errors: true
+
+    - name: "Post maintenance notice to Matrix #infra-gr-prod"
+      uri:
+        url: "https://matrix.example.net/_matrix/client/v3/rooms/!NKosBPujbWMevzHaaM:matrix.example.net/send/m.room.message"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ matrix_api_token }}"
+          Content-Type: application/json
+        body_format: json
+        body:
+          msgtype: "m.notice"
+          body: "Scheduled maintenance starting: GR PVE kernel updates. ETA: 60 minutes. Operator: {{ _operator }}."
+        status_code: [200]
+        timeout: 30
+      ignore_errors: true
+
+    ###########################################################################
+    # STEP 3: Snapshot pre-maintenance state
+    ###########################################################################
+    - name: "Capture pre-maintenance snapshot"
+      include_tasks: ../common/tasks/snapshot_state.yaml
+      vars:
+        site: "gr"
+
+    - name: Add timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'Pre-maintenance complete'}] }}"
+
+###############################################################################
+# Play 2: K8s graceful drain
+###############################################################################
+- name: "GR K8s drain"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+  vars:
+
+  tasks:
+    - name: "Cordon all GR K8s nodes"
+      command: "kubectl --context gr cordon {{ item }}"
+      loop:
+        - grk8s-ctrl01
+        - grk8s-ctrl02
+        - grk8s-ctrl03
+        - grk8s-node01
+        - grk8s-node02
+        - grk8s-node03
+      changed_when: true
+      failed_when: false
+
+    - name: "Drain GR K8s workers"
+      command: >-
+        kubectl --context gr drain {{ item }}
+        --ignore-daemonsets --delete-emptydir-data --disable-eviction --timeout=300s --force
+      loop:
+        - grk8s-node01
+        - grk8s-node02
+        - grk8s-node03
+      register: drain_results
+      async: 360
+      poll: 15
+
+    - name: "Verify workers drained (no user pods)"
+      shell: |
+        for node in grk8s-node01 grk8s-node02 grk8s-node03; do
+          non_ds=$(kubectl --context gr get pods -A \
+            --field-selector spec.nodeName=$node --no-headers 2>/dev/null \
+            | grep -v "DaemonSet" || true)
+          if [ -n "$non_ds" ]; then
+            echo "WARNING: Non-DaemonSet pods on $node"
+          fi
+        done
+        echo "Drain verification complete"
+      register: drain_verify
+      changed_when: false
+
+    - name: Add timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'K8s drained'}] }}"
+
+###############################################################################
+# Play 3: Shutdown all guests on pve01
+###############################################################################
+- name: "GR shutdown guests on pve01"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    _dry_run: "{{ dry_run | default(false) | bool }}"
+
+  tasks:
+    - name: "Get running guest list from pve01"
+      shell: |
+        ssh -i ~/.ssh/one_key root@gr-pve01 "
+          echo '=== QEMU ==='
+          qm list 2>/dev/null | grep running | awk '{print \$1}'
+          echo '=== LXC ==='
+          pct list 2>/dev/null | grep running | awk '{print \$1}'
+        "
+      register: guest_list
+      changed_when: false
+
+    - name: "Display guests to stop"
+      debug:
+        msg: "{{ guest_list.stdout }}"
+
+    - name: "Shutdown all QEMU VMs on pve01 (unlock if backup-locked)"
+      shell: |
+        ssh -i ~/.ssh/one_key root@gr-pve01 "
+          for vmid in \$(qm list 2>/dev/null | grep running | awk '{print \$1}'); do
+            echo \"Stopping VM \$vmid...\"
+            qm unlock \$vmid 2>/dev/null
+            qm shutdown \$vmid --timeout 120 2>/dev/null || qm stop \$vmid 2>/dev/null
+          done
+        "
+      register: vm_shutdown
+      when: not _dry_run
+
+    - name: "Shutdown all LXC containers on pve01 (unlock if backup-locked)"
+      shell: |
+        ssh -i ~/.ssh/one_key root@gr-pve01 "
+          for ctid in \$(pct list 2>/dev/null | grep running | awk '{print \$1}'); do
+            echo \"Stopping LXC \$ctid...\"
+            pct unlock \$ctid 2>/dev/null
+            pct shutdown \$ctid --timeout 60 2>/dev/null || pct stop \$ctid 2>/dev/null
+          done
+        "
+      register: lxc_shutdown
+      when: not _dry_run
+
+    - name: "Wait for all guests to stop (force-kill stragglers after 3 min)"
+      shell: |
+        ssh -i ~/.ssh/one_key root@gr-pve01 "
+          running_vms=\$(qm list 2>/dev/null | grep -c running || true)
+          running_cts=\$(pct list 2>/dev/null | grep -c running || true)
+          total=\$((running_vms + running_cts))
+          echo \"Still running: \$total (VMs: \$running_vms, LXC: \$running_cts)\"
+          if [ \$total -gt 0 ]; then
+            echo 'Force-stopping stragglers...'
+            for vmid in \$(qm list 2>/dev/null | grep running | awk '{print \$1}'); do
+              qm unlock \$vmid 2>/dev/null; qm stop \$vmid 2>/dev/null
+              echo \"Force-stopped VM \$vmid\"
+            done
+            for ctid in \$(pct list 2>/dev/null | grep running | awk '{print \$1}'); do
+              pct unlock \$ctid 2>/dev/null; pct stop \$ctid 2>/dev/null
+              echo \"Force-stopped LXC \$ctid\"
+            done
+          fi
+          # Re-check
+          running_vms=\$(qm list 2>/dev/null | grep -c running || true)
+          running_cts=\$(pct list 2>/dev/null | grep -c running || true)
+          total=\$((running_vms + running_cts))
+          echo \"After force-stop: \$total still running\"
+          [ \$total -eq 0 ]
+        "
+      register: all_stopped
+      until: all_stopped.rc == 0
+      retries: 12
+      delay: 15
+      when: not _dry_run
+
+    - name: Add timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'All pve01 guests stopped'}] }}"
+
+###############################################################################
+# Play 4: Update + reboot pve02
+###############################################################################
+- name: "GR update + reboot pve02"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    _dry_run: "{{ dry_run | default(false) | bool }}"
+
+  tasks:
+    - name: "Stop pve02 guests (3 running)"
+      shell: |
+        ssh -i ~/.ssh/one_key root@gr-pve02 "
+          for ctid in \$(pct list 2>/dev/null | grep running | awk '{print \$1}'); do
+            echo \"Stopping LXC \$ctid...\"
+            pct shutdown \$ctid --timeout 60 2>/dev/null || pct stop \$ctid 2>/dev/null
+          done
+          for vmid in \$(qm list 2>/dev/null | grep running | awk '{print \$1}'); do
+            echo \"Stopping VM \$vmid...\"
+            qm shutdown \$vmid --timeout 60 2>/dev/null || qm stop \$vmid 2>/dev/null
+          done
+        "
+      when: not _dry_run
+
+    - name: "Record pve02 state before update"
+      shell: ssh -i ~/.ssh/one_key root@gr-pve02 "uname -r; echo '---'; pveversion -v 2>/dev/null | head -5"
+      register: pve02_kernel_before
+      changed_when: false
+
+    - name: "Update pve02 packages"
+      shell: |
+        ssh -i ~/.ssh/one_key root@gr-pve02 "
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update && \
+          apt-get dist-upgrade -y -o Dpkg::Options::='--force-confold' && \
+          apt-get autoremove --purge -y
+        "
+      register: pve02_update
+      async: 600
+      poll: 30
+      when: not _dry_run
+
+    - name: "Pin latest kernel + refresh bootloader on pve02"
+      shell: |
+        ssh -i ~/.ssh/one_key root@gr-pve02 "
+          latest=\$(proxmox-boot-tool kernel list 2>/dev/null | grep -E '^[0-9]+.*-pve' | sort -V | tail -1 | xargs)
+          if [ -z \"\$latest\" ]; then
+            echo 'WARNING: Could not determine latest kernel, skipping pin'
+            exit 0
+          fi
+          echo \"Latest kernel: \$latest\"
+          pinned=\$(proxmox-boot-tool kernel list 2>/dev/null | grep -A1 'Pinned kernel' | tail -1 | xargs)
+          echo \"Currently pinned: \$pinned\"
+          if [ \"\$pinned\" != \"\$latest\" ]; then
+            proxmox-boot-tool kernel pin \"\$latest\"
+            echo \"Pinned kernel to \$latest\"
+          else
+            echo \"Already pinned to latest\"
+          fi
+          proxmox-boot-tool refresh
+          echo 'Bootloader refreshed'
+        "
+      register: pve02_kernel_pin
+      when: not _dry_run
+
+    - name: "Reboot pve02"
+      shell: ssh -i ~/.ssh/one_key root@gr-pve02 "reboot" || true
+      when: not _dry_run
+
+    - name: "Wait for pve02 SSH (up to 10 min)"
+      ansible.builtin.wait_for:
+        host: gr-pve02
+        port: 22
+        timeout: 600
+        state: started
+      when: not _dry_run
+
+    - name: "Wait for pve02 to be fully ready (30s settle)"
+      pause:
+        seconds: 30
+      when: not _dry_run
+
+    - name: "Record pve02 state after update"
+      shell: ssh -i ~/.ssh/one_key root@gr-pve02 "uname -r; echo '---'; pveversion -v 2>/dev/null | head -5"
+      register: pve02_kernel_after
+      changed_when: false
+
+    ###########################################################################
+    # Post-pve02 validation
+    ###########################################################################
+    - name: "Verify pve02 iSCSI targets"
+      shell: |
+        count=$(ssh -i ~/.ssh/one_key root@gr-pve02 "targetcli ls /iscsi 2>/dev/null | grep -c 'iqn'" 2>/dev/null || echo "0")
+        echo "iSCSI targets: $count (expected 15)"
+        [ "$count" -ge 15 ]
+      register: iscsi_check
+      retries: 5
+      delay: 15
+      until: iscsi_check.rc == 0
+      changed_when: false
+
+    - name: "Verify pve02 ZFS ssd-pool"
+      shell: |
+        status=$(ssh -i ~/.ssh/one_key root@gr-pve02 "zpool status ssd-pool" 2>/dev/null)
+        echo "$status"
+        echo "$status" | grep -q "ONLINE"
+      register: zfs_check
+      changed_when: false
+
+    - name: "Verify pve02 NFS exports"
+      shell: |
+        exports=$(ssh -i ~/.ssh/one_key root@gr-pve02 "showmount -e localhost" 2>/dev/null)
+        echo "$exports"
+        count=$(echo "$exports" | grep -c "/" || true)
+        echo "NFS exports: $count"
+      register: nfs_check
+      changed_when: false
+      failed_when: false
+
+    - name: "Verify PVE API on pve02"
+      ansible.builtin.wait_for:
+        host: gr-pve02
+        port: 8006
+        timeout: 120
+        state: started
+      register: pve02_api
+
+    - name: Add timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'pve02 updated + validated'}] }}"
+
+###############################################################################
+# Play 5: Update + reboot pve01
+###############################################################################
+- name: "GR update + reboot pve01"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    _dry_run: "{{ dry_run | default(false) | bool }}"
+
+  tasks:
+    - name: "Record pve01 state before update"
+      shell: ssh -i ~/.ssh/one_key root@gr-pve01 "uname -r; echo '---'; pveversion -v 2>/dev/null | head -5"
+      register: pve01_kernel_before
+      changed_when: false
+
+    - name: "Update pve01 packages"
+      shell: |
+        ssh -i ~/.ssh/one_key root@gr-pve01 "
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update && \
+          apt-get dist-upgrade -y -o Dpkg::Options::='--force-confold' && \
+          apt-get autoremove --purge -y
+        "
+      register: pve01_update
+      async: 600
+      poll: 30
+      when: not _dry_run
+
+    - name: "Pin latest kernel + refresh bootloader on pve01"
+      shell: |
+        ssh -i ~/.ssh/one_key root@gr-pve01 "
+          latest=\$(proxmox-boot-tool kernel list 2>/dev/null | grep -E '^[0-9]+.*-pve' | sort -V | tail -1 | xargs)
+          if [ -z \"\$latest\" ]; then
+            echo 'WARNING: Could not determine latest kernel, skipping pin'
+            exit 0
+          fi
+          echo \"Latest kernel: \$latest\"
+          pinned=\$(proxmox-boot-tool kernel list 2>/dev/null | grep -A1 'Pinned kernel' | tail -1 | xargs)
+          echo \"Currently pinned: \$pinned\"
+          if [ \"\$pinned\" != \"\$latest\" ]; then
+            proxmox-boot-tool kernel pin \"\$latest\"
+            echo \"Pinned kernel to \$latest\"
+          else
+            echo \"Already pinned to latest\"
+          fi
+          proxmox-boot-tool refresh
+          echo 'Bootloader refreshed'
+        "
+      register: pve01_kernel_pin
+      when: not _dry_run
+
+    - name: "Reboot pve01 (guests will auto-start)"
+      shell: ssh -i ~/.ssh/one_key root@gr-pve01 "reboot" || true
+      when: not _dry_run
+
+    - name: "Wait for pve01 SSH (up to 10 min)"
+      ansible.builtin.wait_for:
+        host: gr-pve01
+        port: 22
+        timeout: 600
+        state: started
+      when: not _dry_run
+
+    - name: "Wait for PVE and guests to settle (2 min)"
+      pause:
+        seconds: 120
+      when: not _dry_run
+
+    - name: "Record pve01 state after update"
+      shell: ssh -i ~/.ssh/one_key root@gr-pve01 "uname -r; echo '---'; pveversion -v 2>/dev/null | head -5"
+      register: pve01_kernel_after
+      changed_when: false
+
+    - name: "Verify PVE API on pve01"
+      ansible.builtin.wait_for:
+        host: gr-pve01
+        port: 8006
+        timeout: 120
+        state: started
+      register: pve01_api
+
+    - name: Add timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'pve01 updated, guests auto-starting'}] }}"
+
+###############################################################################
+# Play 6: K8s restore + storage validation
+###############################################################################
+- name: "GR K8s restore"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+  vars:
+
+  tasks:
+    ###########################################################################
+    # Wait for K8s CP to come up
+    ###########################################################################
+    - name: "Wait for K8s API (up to 10 min)"
+      command: "kubectl --context gr get nodes"
+      register: k8s_api
+      until: k8s_api.rc == 0
+      retries: 40
+      delay: 15
+      changed_when: false
+
+    - name: "Wait for all 6 GR K8s nodes Ready"
+      shell: |
+        ready=$(kubectl --context gr get nodes --no-headers 2>/dev/null \
+          | grep -c " Ready" || true)
+        echo "$ready/6 nodes Ready"
+        [ "$ready" -ge 6 ]
+      register: nodes_ready
+      until: nodes_ready.rc == 0
+      retries: 40
+      delay: 15
+      changed_when: false
+
+    ###########################################################################
+    # Uncordon all nodes
+    ###########################################################################
+    - name: "Uncordon all GR K8s nodes"
+      command: "kubectl --context gr uncordon {{ item }}"
+      loop:
+        - grk8s-ctrl01
+        - grk8s-ctrl02
+        - grk8s-ctrl03
+        - grk8s-node01
+        - grk8s-node02
+        - grk8s-node03
+      changed_when: true
+      failed_when: false
+
+    ###########################################################################
+    # Wait for democratic-csi
+    ###########################################################################
+    - name: "Wait for democratic-csi controller Running"
+      shell: |
+        kubectl --context gr -n democratic-csi get pods --no-headers 2>/dev/null \
+          | grep -i controller | grep -q Running
+      register: csi_ready
+      until: csi_ready.rc == 0
+      retries: 30
+      delay: 15
+      changed_when: false
+
+    ###########################################################################
+    # Wait for PVs
+    ###########################################################################
+    - name: "Wait for all PVs Bound (up to 10 min)"
+      shell: |
+        total=$(kubectl --context gr get pv --no-headers | wc -l)
+        bound=$(kubectl --context gr get pv --no-headers | grep -c Bound || true)
+        echo "$bound/$total PVs Bound"
+        [ "$bound" -eq "$total" ]
+      register: pvs_bound
+      until: pvs_bound.rc == 0
+      retries: 30
+      delay: 20
+      changed_when: false
+
+    ###########################################################################
+    # Wait for core workloads
+    ###########################################################################
+    - name: "Wait for CoreDNS Running"
+      shell: |
+        kubectl --context gr -n kube-system get pods -l k8s-app=kube-dns --no-headers \
+          | grep -c Running | grep -q "[2-9]"
+      register: coredns_ok
+      until: coredns_ok.rc == 0
+      retries: 20
+      delay: 15
+      changed_when: false
+
+    - name: "Wait for ingress-nginx Running"
+      shell: |
+        kubectl --context gr -n ingress-nginx get pods \
+          -l app.kubernetes.io/component=controller --no-headers \
+          | grep -q Running
+      register: ingress_ok
+      until: ingress_ok.rc == 0
+      retries: 20
+      delay: 15
+      changed_when: false
+
+    - name: "Check ArgoCD apps Synced"
+      shell: |
+        not_synced=$(kubectl --context gr -n argocd get applications \
+          -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.sync.status}{"\n"}{end}' 2>/dev/null \
+          | grep -v Synced || true)
+        if [ -n "$not_synced" ]; then
+          echo "Not synced: $not_synced"
+          exit 1
+        fi
+        echo "All ArgoCD apps Synced"
+      register: argocd_ok
+      until: argocd_ok.rc == 0
+      retries: 20
+      delay: 30
+      changed_when: false
+      failed_when: false
+
+    - name: "Check Prometheus pods Running (WAL recovery may take time)"
+      shell: |
+        prom=$(kubectl --context gr -n monitoring get pods \
+          -l app.kubernetes.io/name=prometheus --no-headers 2>/dev/null || true)
+        running=$(echo "$prom" | grep -c Running || true)
+        echo "Prometheus: $running replicas Running"
+        [ "$running" -ge 1 ]
+      register: prom_ok
+      until: prom_ok.rc == 0
+      retries: 20
+      delay: 15
+      changed_when: false
+      failed_when: false
+
+    - name: "Check ClusterMesh status"
+      shell: |
+        cilium clustermesh status --context gr 2>/dev/null || echo "ClusterMesh check skipped (cilium CLI may not be available)"
+      register: clustermesh_status
+      changed_when: false
+      failed_when: false
+
+    - name: Add timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'K8s restored + validated'}] }}"
+
+###############################################################################
+# Play 7: Post-maintenance cleanup
+###############################################################################
+- name: "GR post-maintenance"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    _operator: "{{ operator | default('AWX') }}"
+    _skip_email: "{{ skip_email | default(false) | bool }}"
+
+  tasks:
+    ###########################################################################
+    # Clear maintenance mode
+    ###########################################################################
+    - name: "Clear ChatOps maintenance mode"
+      shell: ssh claude-runner@nlclaude01 "rm -f /home/claude-runner/gateway.maintenance"
+      ignore_errors: true
+
+    - name: "Post completion notice to Matrix"
+      uri:
+        url: "https://matrix.example.net/_matrix/client/v3/rooms/!NKosBPujbWMevzHaaM:matrix.example.net/send/m.room.message"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ matrix_api_token }}"
+          Content-Type: application/json
+        body_format: json
+        body:
+          msgtype: "m.notice"
+          body: "GR maintenance complete. All services restored."
+        status_code: [200]
+        timeout: 30
+      ignore_errors: true
+
+    ###########################################################################
+    # Email report
+    ###########################################################################
+    - name: "Build report data"
+      set_fact:
+        report_data:
+          start_time: "{{ maint_start }}"
+          end_time: "{{ now(utc=true) }}"
+          node_updates:
+            - node: "gr-pve01"
+              kernel_before: "{{ pve01_kernel_before.stdout | default('unknown') }}"
+              kernel_after: "{{ pve01_kernel_after.stdout | default('unknown') }}"
+              packages_changed: "{{ 'yes' if (pve01_update.changed | default(false)) else 'no' }}"
+            - node: "gr-pve02"
+              kernel_before: "{{ pve02_kernel_before.stdout | default('unknown') }}"
+              kernel_after: "{{ pve02_kernel_after.stdout | default('unknown') }}"
+              packages_changed: "{{ 'yes' if (pve02_update.changed | default(false)) else 'no' }}"
+          health_checks:
+            - service: "iSCSI targets (pve02)"
+              status: "{{ 'ok' if (iscsi_check.rc | default(1)) == 0 else 'fail' }}"
+              note: "{{ iscsi_check.stdout_lines | first | default('') }}"
+            - service: "ZFS ssd-pool (pve02)"
+              status: "{{ 'ok' if (zfs_check.rc | default(1)) == 0 else 'fail' }}"
+              note: ""
+            - service: "K8s nodes"
+              status: "{{ 'ok' if (nodes_ready.rc | default(1)) == 0 else 'fail' }}"
+              note: "{{ nodes_ready.stdout_lines | first | default('') }}"
+            - service: "K8s PVs"
+              status: "{{ 'ok' if (pvs_bound.rc | default(1)) == 0 else 'fail' }}"
+              note: "{{ pvs_bound.stdout_lines | first | default('') }}"
+            - service: "ArgoCD"
+              status: "{{ 'ok' if (argocd_ok.rc | default(1)) == 0 else 'warn' }}"
+              note: "{{ argocd_ok.stdout_lines | first | default('') }}"
+          issues: "{{ maint_issues | default([]) }}"
+          timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'Maintenance complete'}] }}"
+
+    - name: "Send email report"
+      include_tasks: ../common/tasks/email_report.yaml
+      vars:
+        site: "gr"
+        operator: "{{ _operator }}"
+      when: not _skip_email
+
+    ###########################################################################
+    # Post-maintenance LibreNMS alert check
+    ###########################################################################
+    - name: "Check LibreNMS for active (unacknowledged) alerts"
+      shell: |
+        alerts=$(curl -sk -H "X-Auth-Token: {{ gr_librenms_token | default('REDACTED_c7cb035f') }}" \
+          "https://grnms01.example.net/api/v0/alerts?state=1" 2>/dev/null)
+        active=$(echo "$alerts" | python3 -c "import json,sys; a=json.load(sys.stdin).get('alerts',[]); print(len(a))" 2>/dev/null || echo "?")
+        echo "Active alerts: $active"
+        if [ "$active" != "0" ] && [ "$active" != "?" ]; then
+          echo "$alerts" | python3 -c "import json,sys;[print('  [%s] %s'%(a.get('severity','?'),a.get('hostname','?'))) for a in json.load(sys.stdin).get('alerts',[])]" 2>/dev/null
+        fi
+      register: librenms_active
+      changed_when: false
+      failed_when: false
+
+    - name: "Check LibreNMS for acknowledged alerts"
+      shell: |
+        alerts=$(curl -sk -H "X-Auth-Token: {{ gr_librenms_token | default('REDACTED_c7cb035f') }}" \
+          "https://grnms01.example.net/api/v0/alerts?state=2" 2>/dev/null)
+        acked=$(echo "$alerts" | python3 -c "import json,sys; a=json.load(sys.stdin).get('alerts',[]); print(len(a))" 2>/dev/null || echo "?")
+        echo "Acknowledged alerts: $acked"
+        if [ "$acked" != "0" ] && [ "$acked" != "?" ]; then
+          echo "$alerts" | python3 -c "import json,sys;[print('  [%s] %s'%(a.get('severity','?'),a.get('hostname','?'))) for a in json.load(sys.stdin).get('alerts',[])]" 2>/dev/null
+        fi
+      register: librenms_acked
+      changed_when: false
+      failed_when: false
+
+    - name: "LibreNMS post-maintenance alert summary"
+      debug:
+        msg: |
+          Post-maintenance LibreNMS alert check:
+            {{ librenms_active.stdout_lines | first | default('Unknown') }}
+            {{ librenms_acked.stdout_lines | first | default('Unknown') }}
+          {% if (librenms_active.stdout | default('0')) is search('[1-9]') %}
+          WARNING: Active alerts detected — investigate before closing maintenance window.
+          {% endif %}
+
+    ###########################################################################
+    # Final summary
+    ###########################################################################
+    - name: Add final timeline entry
+      set_fact:
+        maint_timeline: "{{ maint_timeline + [{'time': now(utc=true, fmt='%H:%M'), 'event': 'GR maintenance complete'}] }}"
+
+    - name: "GR maintenance summary"
+      debug:
+        msg: |
+          ═══════════════════════════════════════════
+          GR Full Site Maintenance Complete
+          ═══════════════════════════════════════════
+          Start: {{ maint_start }}
+          End:   {{ now(utc=true) }}
+
+          Node updates:
+            gr-pve01: {{ pve01_kernel_before.stdout | default('?') }} → {{ pve01_kernel_after.stdout | default('?') }}
+            gr-pve02: {{ pve02_kernel_before.stdout | default('?') }} → {{ pve02_kernel_after.stdout | default('?') }}
+
+          Health:
+            iSCSI: {{ 'OK' if (iscsi_check.rc | default(1)) == 0 else 'CHECK' }}
+            ZFS: {{ 'OK' if (zfs_check.rc | default(1)) == 0 else 'CHECK' }}
+            K8s: {{ nodes_ready.stdout_lines | first | default('unknown') }}
+            PVs: {{ pvs_bound.stdout_lines | first | default('unknown') }}
+            ArgoCD: {{ argocd_ok.stdout_lines | first | default('unknown') }}
+
+          Timeline:
+          {% for t in maint_timeline %}
+            {{ t.time }} {{ t.event }}
+          {% endfor %}
