@@ -46,14 +46,15 @@ resource "kubernetes_manifest" "galera_sel_alert_rules" {
               # No DB node Primary while at least one DB host answers SSH = every proxysql
               # consumer is down. The `and` keeps an SSH failure from nlclaude01 (no
               # evidence either way) out of this rule: that is GaleraStateUnknown.
-              # Untiered, like the other gateway critical alerts: Matrix (webhook-tg) + n8n.
-              # tier = "1"  # uncomment to page via ntfy (k8s/CLAUDE.md § Paging surface)
+              # tier 1 = ntfy push to the phone, one per episode (operator decision
+              # 2026-11-07): a total DB outage needs a human for the guarded bootstrap.
               alert = "GaleraNoPrimary"
               expr  = "max by (cluster) (galera_node_primary) == 0 and on (cluster) max by (cluster) (galera_node_host_reachable) == 1"
               for   = "5m"
               labels = {
                 severity = "critical"
                 category = "database"
+                tier     = "1"
               }
               annotations = {
                 summary     = "Galera {{ $labels.cluster }} has no Primary component (5+ min): every app on proxysql is down"
@@ -100,14 +101,15 @@ resource "kubernetes_manifest" "galera_sel_alert_rules" {
               # +2 h after each host clock sync. The exporter seeds existing records with
               # their event time on its first run, so deploying never fires; a record logged
               # while the host was hung fires once the host is back (the 2026-11-07 shape).
-              # Untiered, like the other gateway critical alerts: Matrix (webhook-tg) + n8n.
-              # tier = "1"  # uncomment to page via ntfy (k8s/CLAUDE.md § Paging surface)
+              # tier 2 = ntfy quiet topic alrt-quiet, visible but never rings (operator
+              # decision 2026-11-07): it usually fires after the host is already back.
               alert = "PVEBMCCriticalEvent"
               expr  = "(time() - pve_sel_last_critical_seen_timestamp_seconds < 900) and pve_sel_last_critical_seen_timestamp_seconds > 0"
               for   = "0m"
               labels = {
                 severity = "critical"
                 category = "hardware"
+                tier     = "2"
               }
               annotations = {
                 summary     = "{{ $labels.instance }} BMC logged a new critical {{ $labels.type }} SEL event"
