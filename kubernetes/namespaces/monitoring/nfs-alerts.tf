@@ -84,6 +84,63 @@ resource "kubernetes_manifest" "nfs_alert_rules" {
             },
           ]
         },
+        {
+          # Nightly file-level backup of /mnt/ocfs2 to nlpbs01, read from the
+          # datastore by claude-gateway scripts/write-fisha-backup-metrics.py.
+          # Test + doc copy: claude-gateway prometheus/alert-rules/fisha-backup.yml.
+          name     = "fisha-ocfs2-backup"
+          interval = "1m"
+          rules = [
+            {
+              # A run was missed or failed; 26 h leaves 2 h of slack on the 04:00 UTC job.
+              alert = "REDACTED_52d217ad"
+              expr  = "time() - max(fisha_ocfs2_backup_last_success_timestamp_seconds) > 26 * 3600"
+              for   = "10m"
+              labels = {
+                severity = "warning"
+                tier     = "2"
+                service  = "fisha-nfs"
+                scope    = "backup"
+              }
+              annotations = {
+                summary     = "No finished FISHA OCFS2 backup on nlpbs01 for over 26 hours"
+                description = "The nightly 04:00 UTC run of /opt/pve-backups/pbc-host-backup.sh on the node holding nfs-group produced no finished snapshot with ocfs2.pxar. Check /var/log/fisha-vm-backup/<node>/fisha-vm-backup-error.log on nlcl01file02."
+              }
+            },
+            {
+              # A run can finish with almost nothing if /mnt/ocfs2 was not mounted.
+              alert = "REDACTED_19b69bce"
+              expr  = "max(fisha_ocfs2_backup_last_size_bytes) < 20 * 1024 * 1024 * 1024"
+              for   = "10m"
+              labels = {
+                severity = "warning"
+                tier     = "2"
+                service  = "fisha-nfs"
+                scope    = "backup"
+              }
+              annotations = {
+                summary     = "Newest FISHA OCFS2 backup is under 20 GiB (normally about 74 GiB)"
+                description = "The run finished but captured far too little, which usually means /mnt/ocfs2 was not mounted when it ran. Treat the snapshot as unusable and check the node that took it."
+              }
+            },
+            {
+              # Dead-man: no data must not read as no problem.
+              alert = "REDACTED_7678c703"
+              expr  = "absent(fisha_ocfs2_backup_collector_last_run_timestamp_seconds) or (time() - max(fisha_ocfs2_backup_collector_last_run_timestamp_seconds) > 3600) or (max(fisha_ocfs2_backup_collector_up) == 0)"
+              for   = "30m"
+              labels = {
+                severity = "warning"
+                tier     = "2"
+                service  = "fisha-nfs"
+                scope    = "backup"
+              }
+              annotations = {
+                summary     = "FISHA OCFS2 backup monitoring is blind"
+                description = "scripts/write-fisha-backup-metrics.py on nlclaude01 is not running or cannot read the nlpbs01 datastore, so REDACTED_52d217ad cannot fire."
+              }
+            },
+          ]
+        },
       ]
     }
   }
