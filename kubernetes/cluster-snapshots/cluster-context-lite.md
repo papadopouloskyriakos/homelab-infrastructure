@@ -3,125 +3,149 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-11-06 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-11-08 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
-## Health: DEGRADED ⚠️
+## Health: CRITICAL ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 3 |
+| Unhealthy Pods | 13 |
 | Pending PVCs | 0 |
-| Total Restarts | 11148 |
+| Total Restarts | 11972 |
 
 ## Topology
 
 - **K8s:** v1.36.3 | **CNI:** Cilium 1.20.0
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 175
+- **Pods:** 184
 
 ### Nodes
-- **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8002648Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
+- **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8002640Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-ctrl02** (control-plane) 10.0.X.X | CPU:4 Mem:8092Mi | Taints:node-role.kubernetes.io/control-plane=:NoSchedule,node.kubernetes.io/unreachable=:NoSchedule,node.cilium.io/agent-not-ready=:NoSchedule,node.kubernetes.io/unreachable=:NoExecute
-- **nlk8s-ctrl03** (control-plane) 10.0.X.X | CPU:4 Mem:8003704Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
+- **nlk8s-ctrl03** (control-plane) 10.0.X.X | CPU:4 Mem:8003648Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
 - **nlk8s-node01** (worker) 10.0.X.X | CPU:8 Mem:10054396Ki | Taints:node.kubernetes.io/unschedulable=:NoSchedule,node.kubernetes.io/unreachable=:NoSchedule,node.cilium.io/agent-not-ready=:NoSchedule,node.kubernetes.io/unreachable=:NoExecute
-- **nlk8s-node02** (worker) 10.0.X.X | CPU:8 Mem:10054404Ki | Taints:none
-- **nlk8s-node03** (worker) 10.0.X.X | CPU:8 Mem:10054404Ki | Taints:none
-- **nlk8s-node04** (worker) 10.0.X.X | CPU:8 Mem:10053348Ki | Taints:none
+- **nlk8s-node02** (worker) 10.0.X.X | CPU:8 Mem:10054348Ki | Taints:none
+- **nlk8s-node03** (worker) 10.0.X.X | CPU:8 Mem:10054352Ki | Taints:none
+- **nlk8s-node04** (worker) 10.0.X.X | CPU:8 Mem:10053344Ki | Taints:none
 
 ## Anomalies
 
 ### Unhealthy Pods
 ```
-monitoring               meshsat-status-heartbeat-29890510-9rrjw                           0/1   Error              0                 5d19h
-velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                 43d
-velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   6599 (4m ago)     51d
+awx                      awx-pg-dump-29900415-9wlrp                                        0/1   Init:Error         0                 16h
+awx                      awx-pg-dump-29900415-b7xfm                                        0/1   Init:Error         0                 16h
+awx                      awx-pg-dump-29900415-fbb55                                        0/1   Init:Error         0                 16h
+backup-gateway           REDACTED_4e0a8ed8-29900561-6zs8p                              0/1   Error              0                 16h
+backup-gateway           REDACTED_4e0a8ed8-29900561-8p66d                              0/1   Error              0                 16h
+cnpg-system              cnpg-janitor-29900843-jqj7f                                       0/1   Error              0                 15h
+cnpg-system              cnpg-janitor-29900903-789p7                                       0/1   Error              0                 14h
+cnpg-system              cnpg-janitor-29901023-6xbbt                                       0/1   Error              0                 12h
+monitoring               meshsat-status-heartbeat-29901508-hgmqf                           0/1   Error              0                 4h32m
+monitoring               meshsat-status-heartbeat-29901509-lhl67                           0/1   Error              0                 4h31m
+monitoring               meshsat-status-heartbeat-29901600-gx5gw                           0/1   Error              0                 3h
+velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                 45d
+velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   6975 (71s ago)    53d
 ```
 
 ### High Restart Pods (>3)
-argocd/argocd-application-controller-0: 99 restarts
-awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 176 restarts
-awx/my-awx-task-756d768868-bslc2: 7 restarts
-awx/my-awx-web-f9c4bb98d-wcn4j: 5 restarts
-cert-manager/cert-manager-75944f484-k8x88: 46 restarts
-cert-manager/cert-manager-cainjector-74f994b988-shnfp: 48 restarts
-cilium-spire/spire-agent-2xj9z: 276 restarts
-cilium-spire/spire-agent-bf7g7: 279 restarts
-cilium-spire/spire-agent-hpld8: 276 restarts
+argocd/argocd-application-controller-0: 104 restarts
+awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 184 restarts
+awx/my-awx-task-756d768868-bslc2: 11 restarts
+awx/my-awx-web-f9c4bb98d-wcn4j: 10 restarts
+cert-manager/cert-manager-75944f484-k8x88: 49 restarts
+cert-manager/cert-manager-cainjector-74f994b988-shnfp: 57 restarts
+cilium-spire/spire-agent-2xj9z: 277 restarts
+cilium-spire/spire-agent-bf7g7: 281 restarts
+cilium-spire/spire-agent-hpld8: 278 restarts
 cilium-spire/spire-agent-hrngt: 20 restarts
-cilium-spire/spire-agent-sm9xs: 284 restarts
-cilium-spire/spire-agent-xk8cl: 280 restarts
+cilium-spire/spire-agent-sm9xs: 285 restarts
+cilium-spire/spire-agent-xk8cl: 281 restarts
 cilium-spire/spire-agent-zqpt4: 288 restarts
-cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-wzdfh: 123 restarts
-cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-zl8gc: 148 restarts
+cilium-spire/spire-server-0: 6 restarts
+cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-wzdfh: 134 restarts
+cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-zl8gc: 150 restarts
+kube-system/cilium-9t574: 4 restarts
 kube-system/cilium-c8kqc: 12 restarts
 kube-system/cilium-envoy-brdkr: 10 restarts
 kube-system/cilium-envoy-dzx97: 12 restarts
-kube-system/cilium-envoy-z9854: 4 restarts
+kube-system/cilium-envoy-nwfj5: 4 restarts
+kube-system/cilium-envoy-z9854: 6 restarts
 kube-system/cilium-g5h5t: 10 restarts
-kube-system/cilium-operator-84c4fb58c7-jlhkp: 195 restarts
-kube-system/cilium-qw7d6: 4 restarts
+kube-system/cilium-operator-84c4fb58c7-jlhkp: 206 restarts
+kube-system/cilium-qw7d6: 6 restarts
+kube-system/etcd-nlk8s-ctrl01: 5 restarts
 kube-system/etcd-nlk8s-ctrl02: 11 restarts
-kube-system/kube-apiserver-nlk8s-ctrl01: 31 restarts
+kube-system/etcd-nlk8s-ctrl03: 77 restarts
+kube-system/kube-apiserver-nlk8s-ctrl01: 45 restarts
 kube-system/kube-apiserver-nlk8s-ctrl02: 18 restarts
-kube-system/kube-apiserver-nlk8s-ctrl03: 16 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl01: 134 restarts
+kube-system/kube-apiserver-nlk8s-ctrl03: 119 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl01: 139 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl02: 20 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl03: 130 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl03: 132 restarts
 kube-system/kube-proxy-7jvns: 12 restarts
 kube-system/kube-proxy-jvln5: 6 restarts
-kube-system/kube-proxy-sg86x: 4 restarts
-kube-system/kube-scheduler-nlk8s-ctrl01: 122 restarts
+kube-system/kube-proxy-sg86x: 6 restarts
+kube-system/kube-proxy-xhgkv: 4 restarts
+kube-system/kube-scheduler-nlk8s-ctrl01: 126 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 12 restarts
-kube-system/kube-scheduler-nlk8s-ctrl03: 138 restarts
-kube-system/tetragon-5gk99: 9 restarts
+kube-system/kube-scheduler-nlk8s-ctrl03: 142 restarts
+kube-system/tetragon-5gk99: 11 restarts
 kube-system/tetragon-75hdg: 32 restarts
-kube-system/tetragon-878gv: 8 restarts
-kube-system/tetragon-jz2b6: 14 restarts
+kube-system/tetragon-878gv: 9 restarts
+kube-system/tetragon-jz2b6: 18 restarts
 kube-system/tetragon-mdsn9: 44 restarts
-kube-system/tetragon-tbcc7: 10 restarts
-kube-system/tetragon-vbs6v: 20 restarts
-kyverno/kyverno-admission-controller-584d7f7684-6k9gg: 160 restarts
-kyverno/kyverno-reports-controller-7bbf4b866b-rq8pt: 167 restarts
-logging/loki-0: 10 restarts
+kube-system/tetragon-tbcc7: 12 restarts
+kube-system/tetragon-vbs6v: 24 restarts
+kyverno/kyverno-admission-controller-584d7f7684-6k9gg: 170 restarts
+kyverno/kyverno-reports-controller-7bbf4b866b-rq8pt: 172 restarts
+logging/loki-0: 14 restarts
 logging/loki-canary-bbplf: 14 restarts
-logging/loki-canary-xbmzr: 5 restarts
-logging/promtail-5jr9j: 6 restarts
-logging/promtail-br4rf: 6 restarts
-logging/promtail-hp5sc: 10 restarts
+logging/loki-canary-n69w2: 4 restarts
+logging/loki-canary-xbmzr: 7 restarts
+logging/loki-canary-zhxrk: 4 restarts
+logging/promtail-5jr9j: 7 restarts
+logging/promtail-94tkz: 4 restarts
+logging/promtail-br4rf: 8 restarts
+logging/promtail-hp5sc: 12 restarts
+logging/promtail-lphvc: 4 restarts
 logging/promtail-m2gzm: 13 restarts
 logging/promtail-ng69s: 17 restarts
-monitoring/bgpalerter-b7bc9c8c-kdlv5: 8 restarts
-monitoring/goldpinger-fjpnh: 7 restarts
+monitoring/bgpalerter-b7bc9c8c-kdlv5: 11 restarts
+monitoring/goldpinger-fjpnh: 11 restarts
 monitoring/goldpinger-rb96x: 11 restarts
+monitoring/goldpinger-scljk: 5 restarts
 monitoring/goldpinger-t8x65: 12 restarts
-monitoring/monitoring-grafana-7d6c5795b8-6cvtn: 29 restarts
-monitoring/monitoring-grafana-7d6c5795b8-vbrmn: 24 restarts
-monitoring/monitoring-kube-state-metrics-75f9fff55b-prwns: 129 restarts
+monitoring/monitoring-grafana-7d6c5795b8-6cvtn: 34 restarts
+monitoring/monitoring-grafana-7d6c5795b8-vbrmn: 30 restarts
+monitoring/monitoring-kube-state-metrics-75f9fff55b-prwns: 140 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 187 restarts
-monitoring/monitoring-prometheus-node-exporter-6sc8j: 10 restarts
+monitoring/monitoring-prometheus-node-exporter-6sc8j: 11 restarts
 monitoring/monitoring-prometheus-node-exporter-88hp8: 13 restarts
-monitoring/monitoring-prometheus-node-exporter-8bq88: 6 restarts
-monitoring/monitoring-prometheus-node-exporter-vgp6b: 6 restarts
-monitoring/monitoring-prometheus-node-exporter-wmcb8: 47 restarts
-monitoring/prometheus-REDACTED_6dfbe9fc-1: 25 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-75b84759cfvtflq: 193 restarts
-synology-csi/synology-csi-node-4nxcz: 8 restarts
-synology-csi/synology-csi-node-kxrjb: 21 restarts
-synology-csi/synology-csi-node-l72f8: 9 restarts
+monitoring/monitoring-prometheus-node-exporter-8bq88: 8 restarts
+monitoring/monitoring-prometheus-node-exporter-vgp6b: 8 restarts
+monitoring/monitoring-prometheus-node-exporter-wmcb8: 48 restarts
+monitoring/prometheus-REDACTED_6dfbe9fc-0: 4 restarts
+monitoring/prometheus-REDACTED_6dfbe9fc-1: 29 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-75b84759cfvtflq: 199 restarts
+synology-csi/synology-csi-controller-0: 4 restarts
+synology-csi/synology-csi-node-4nxcz: 10 restarts
+synology-csi/synology-csi-node-kxrjb: 25 restarts
+synology-csi/synology-csi-node-l72f8: 11 restarts
 synology-csi/synology-csi-node-mrqzg: 24 restarts
-synology-csi/synology-csi-node-ptwb8: 10 restarts
-synology-csi/synology-csi-node-sfdmg: 14 restarts
+synology-csi/synology-csi-node-ptwb8: 12 restarts
+synology-csi/synology-csi-node-sfdmg: 18 restarts
 synology-csi/synology-csi-node-zch7n: 47 restarts
 velero/node-agent-54dn2: 10 restarts
-velero/velero-ui-687565868b-b9xr7: 6599 restarts
+velero/node-agent-sm5xl: 5 restarts
+velero/velero-ui-687565868b-b9xr7: 6975 restarts
 
 ### Recent Warnings (5)
 ```
-velero                   31m         Warning   PolicyViolation   deployment/velero-ui                                                    policy restrict-seccomp-strict/autogen-check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/containers/0/securityContext/
-velero                   31m         Warning   PolicyViolation   deployment/velero-ui                                                    policy disallow-privilege-escalation/autogen-privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule autogen-privilege-escalation failed at path /spec/template/spec/containers/0/securityContext/
-velero                   30m         Warning   PolicyViolation   deployment/velero                                                       policy restrict-seccomp-strict/autogen-check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/initContainers/0/securityContext/
-velero                   30m         Warning   PolicyViolation   deployment/velero                                                       policy disallow-privilege-escalation/autogen-privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule autogen-privilege-escalation failed at path /spec/template/spec/initContainers/0/securityContext/
-velero                   47m         Warning   Unhealthy         pod/velero-ui-687565868b-b9xr7                                          Readiness probe failed: Get "http://10.0.6.172:3000/": dial tcp 10.0.6.172:3000: connect: connection refused
+velero                   19s         Warning   PolicyViolation   pod/weekly-backup-20261108030017-zwrff                                  policy restrict-volume-types/restricted-volumes fail: Only the following types of volumes may be used: configMap, csi, downwardAPI, emptyDir, ephemeral, image, REDACTED_33feff97, projected, and secret.
+kube-system              31m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl03                                   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system              31m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system              31m         Warning   Unhealthy         pod/etcd-nlk8s-ctrl01                                             Readiness probe failed: HTTP probe failed with statuscode: 503
+velero                   11m         Warning   Unhealthy         pod/velero-ui-687565868b-b9xr7                                          Readiness probe failed: Get "http://10.0.6.103:3000/": dial tcp 10.0.6.103:3000: connect: connection refused
 ```
 
 ## Key Resources
