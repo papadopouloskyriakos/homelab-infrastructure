@@ -9,7 +9,7 @@ LLM INSTRUCTIONS:
 - Network Policies: Zero-trust security posture
 -->
 
-**Generated:** 2026-11-09 03:00:01 UTC  
+**Generated:** 2026-11-10 03:00:01 UTC  
 **Host:** nlk8s-ctrl01  
 **Script Version:** 3.1.0
 
@@ -20,9 +20,9 @@ LLM INSTRUCTIONS:
 | Indicator | Value | Status |
 |-----------|-------|--------|
 | Cluster State | CRITICAL | ⚠️ |
-| Unhealthy Pods | 9 | 🔴 |
+| Unhealthy Pods | 8 | 🔴 |
 | Pending PVCs | 0 | ✅ |
-| Total Restarts | 12418 | ⚠️ |
+| Total Restarts | 12775 | ⚠️ |
 
 ---
 
@@ -33,7 +33,7 @@ LLM INSTRUCTIONS:
 | Kubernetes Version | v1.36.3 |
 | CNI | Cilium 1.20.0 |
 | Nodes | 7 total (3 control-plane, 4 workers) |
-| Total Pods | 180 |
+| Total Pods | 178 |
 
 ### Node Details (with Taints & Labels)
 
@@ -100,15 +100,14 @@ LLM INSTRUCTIONS:
 
 ### Unhealthy Pods
 ```
-awx                      awx-pg-dump-29900415-9wlrp                                        0/1   Init:Error   0                  40h
-awx                      awx-pg-dump-29900415-b7xfm                                        0/1   Init:Error   0                  40h
-awx                      awx-pg-dump-29900415-fbb55                                        0/1   Init:Error   0                  40h
-backup-gateway           REDACTED_4e0a8ed8-29900561-6zs8p                              0/1   Error        0                  40h
-backup-gateway           REDACTED_4e0a8ed8-29900561-8p66d                              0/1   Error        0                  40h
-monitoring               meshsat-status-heartbeat-29901508-hgmqf                           0/1   Error        0                  28h
-monitoring               meshsat-status-heartbeat-29901509-lhl67                           0/1   Error        0                  28h
-monitoring               meshsat-status-heartbeat-29901600-gx5gw                           0/1   Error        0                  27h
-velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error        0                  46d
+awx                      awx-pg-dump-29900415-9wlrp                                        0/1   Init:Error         0                  2d16h
+awx                      awx-pg-dump-29900415-b7xfm                                        0/1   Init:Error         0                  2d16h
+awx                      awx-pg-dump-29900415-fbb55                                        0/1   Init:Error         0                  2d16h
+monitoring               meshsat-status-heartbeat-29901508-hgmqf                           0/1   Error              0                  2d4h
+monitoring               meshsat-status-heartbeat-29901509-lhl67                           0/1   Error              0                  2d4h
+monitoring               meshsat-status-heartbeat-29901600-gx5gw                           0/1   Error              0                  2d3h
+velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                  47d
+velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   7598 (3m58s ago)   55d
 ```
 
 #### Unhealthy Pod Details
@@ -116,16 +115,12 @@ velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f
 **awx/awx-pg-dump-29900415-9wlrp:**
 ```
 Events:
-  Type     Reason           Age    From          Message
-  ----     ------           ----   ----          -------
-  Warning  PolicyViolation  18m    kyverno-scan  policy require-run-as-nonroot/run-as-non-root fail: validation error: Running as root is not allowed. Either the field spec.securityContext.runAsNonRoot must be set to `true`, or the fields spec.containers[*].securityContext.runAsNonRoot, spec.initContainers[*].securityContext.runAsNonRoot, and spec.ephemeralContainers[*].securityContext.runAsNonRoot must be set to `true`. rule run-as-non-root[0] failed at path /spec/securityContext/runAsNonRoot/ rule run-as-non-root[1] failed at path /spec/initContainers/0/securityContext/
-  Warning  PolicyViolation  18m    kyverno-scan  policy restrict-seccomp-strict/check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule check-seccomp-strict[0] failed at path /spec/securityContext/seccompProfile/ rule check-seccomp-strict[1] failed at path /spec/initContainers/0/securityContext/
-  Warning  PolicyViolation  18m    kyverno-scan  policy REDACTED_50d055ab/require-drop-all fail: validation failure: Containers must drop `ALL` capabilities.
-  Warning  PolicyViolation  18m    kyverno-scan  policy disallow-privilege-escalation/privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule privilege-escalation failed at path /spec/initContainers/0/securityContext/
-  Warning  PolicyViolation  3m10s  kyverno-scan  policy require-run-as-nonroot/run-as-non-root fail: validation error: Running as root is not allowed. Either the field spec.securityContext.runAsNonRoot must be set to `true`, or the fields spec.containers[*].securityContext.runAsNonRoot, spec.initContainers[*].securityContext.runAsNonRoot, and spec.ephemeralContainers[*].securityContext.runAsNonRoot must be set to `true`. rule run-as-non-root[0] failed at path /spec/securityContext/runAsNonRoot/ rule run-as-non-root[1] failed at path /spec/initContainers/0/securityContext/
-  Warning  PolicyViolation  3m10s  kyverno-scan  policy disallow-privilege-escalation/privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule privilege-escalation failed at path /spec/initContainers/0/securityContext/
-  Warning  PolicyViolation  3m10s  kyverno-scan  policy REDACTED_50d055ab/require-drop-all fail: validation failure: Containers must drop `ALL` capabilities.
-  Warning  PolicyViolation  3m10s  kyverno-scan  policy restrict-seccomp-strict/check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule check-seccomp-strict[0] failed at path /spec/securityContext/seccompProfile/ rule check-seccomp-strict[1] failed at path /spec/initContainers/0/securityContext/
+  Type     Reason           Age   From          Message
+  ----     ------           ----  ----          -------
+  Warning  PolicyViolation  49m   kyverno-scan  policy disallow-privilege-escalation/privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule privilege-escalation failed at path /spec/initContainers/0/securityContext/
+  Warning  PolicyViolation  49m   kyverno-scan  policy require-run-as-nonroot/run-as-non-root fail: validation error: Running as root is not allowed. Either the field spec.securityContext.runAsNonRoot must be set to `true`, or the fields spec.containers[*].securityContext.runAsNonRoot, spec.initContainers[*].securityContext.runAsNonRoot, and spec.ephemeralContainers[*].securityContext.runAsNonRoot must be set to `true`. rule run-as-non-root[0] failed at path /spec/securityContext/runAsNonRoot/ rule run-as-non-root[1] failed at path /spec/initContainers/0/securityContext/
+  Warning  PolicyViolation  49m   kyverno-scan  policy REDACTED_50d055ab/require-drop-all fail: validation failure: Containers must drop `ALL` capabilities.
+  Warning  PolicyViolation  49m   kyverno-scan  policy restrict-seccomp-strict/check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule check-seccomp-strict[0] failed at path /spec/securityContext/seccompProfile/ rule check-seccomp-strict[1] failed at path /spec/initContainers/0/securityContext/
 ```
 
 **awx/awx-pg-dump-29900415-b7xfm:**
@@ -133,44 +128,36 @@ Events:
 Events:
   Type     Reason           Age   From          Message
   ----     ------           ----  ----          -------
-  Warning  PolicyViolation  18m   kyverno-scan  policy require-run-as-nonroot/run-as-non-root fail: validation error: Running as root is not allowed. Either the field spec.securityContext.runAsNonRoot must be set to `true`, or the fields spec.containers[*].securityContext.runAsNonRoot, spec.initContainers[*].securityContext.runAsNonRoot, and spec.ephemeralContainers[*].securityContext.runAsNonRoot must be set to `true`. rule run-as-non-root[0] failed at path /spec/securityContext/runAsNonRoot/ rule run-as-non-root[1] failed at path /spec/initContainers/0/securityContext/
-  Warning  PolicyViolation  18m   kyverno-scan  policy restrict-seccomp-strict/check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule check-seccomp-strict[0] failed at path /spec/securityContext/seccompProfile/ rule check-seccomp-strict[1] failed at path /spec/initContainers/0/securityContext/
-  Warning  PolicyViolation  18m   kyverno-scan  policy REDACTED_50d055ab/require-drop-all fail: validation failure: Containers must drop `ALL` capabilities.
-  Warning  PolicyViolation  18m   kyverno-scan  policy disallow-privilege-escalation/privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule privilege-escalation failed at path /spec/initContainers/0/securityContext/
-  Warning  PolicyViolation  3m7s  kyverno-scan  policy require-run-as-nonroot/run-as-non-root fail: validation error: Running as root is not allowed. Either the field spec.securityContext.runAsNonRoot must be set to `true`, or the fields spec.containers[*].securityContext.runAsNonRoot, spec.initContainers[*].securityContext.runAsNonRoot, and spec.ephemeralContainers[*].securityContext.runAsNonRoot must be set to `true`. rule run-as-non-root[0] failed at path /spec/securityContext/runAsNonRoot/ rule run-as-non-root[1] failed at path /spec/initContainers/0/securityContext/
-  Warning  PolicyViolation  3m7s  kyverno-scan  policy disallow-privilege-escalation/privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule privilege-escalation failed at path /spec/initContainers/0/securityContext/
-  Warning  PolicyViolation  3m7s  kyverno-scan  policy REDACTED_50d055ab/require-drop-all fail: validation failure: Containers must drop `ALL` capabilities.
-  Warning  PolicyViolation  3m7s  kyverno-scan  policy restrict-seccomp-strict/check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule check-seccomp-strict[0] failed at path /spec/securityContext/seccompProfile/ rule check-seccomp-strict[1] failed at path /spec/initContainers/0/securityContext/
+  Warning  PolicyViolation  49m   kyverno-scan  policy disallow-privilege-escalation/privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule privilege-escalation failed at path /spec/initContainers/0/securityContext/
+  Warning  PolicyViolation  49m   kyverno-scan  policy require-run-as-nonroot/run-as-non-root fail: validation error: Running as root is not allowed. Either the field spec.securityContext.runAsNonRoot must be set to `true`, or the fields spec.containers[*].securityContext.runAsNonRoot, spec.initContainers[*].securityContext.runAsNonRoot, and spec.ephemeralContainers[*].securityContext.runAsNonRoot must be set to `true`. rule run-as-non-root[0] failed at path /spec/securityContext/runAsNonRoot/ rule run-as-non-root[1] failed at path /spec/initContainers/0/securityContext/
+  Warning  PolicyViolation  49m   kyverno-scan  policy REDACTED_50d055ab/require-drop-all fail: validation failure: Containers must drop `ALL` capabilities.
+  Warning  PolicyViolation  49m   kyverno-scan  policy restrict-seccomp-strict/check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule check-seccomp-strict[0] failed at path /spec/securityContext/seccompProfile/ rule check-seccomp-strict[1] failed at path /spec/initContainers/0/securityContext/
 ```
 
 **awx/awx-pg-dump-29900415-fbb55:**
 ```
 Events:
-  Type     Reason           Age    From          Message
-  ----     ------           ----   ----          -------
-  Warning  PolicyViolation  18m    kyverno-scan  policy disallow-privilege-escalation/privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule privilege-escalation failed at path /spec/initContainers/0/securityContext/
-  Warning  PolicyViolation  18m    kyverno-scan  policy require-run-as-nonroot/run-as-non-root fail: validation error: Running as root is not allowed. Either the field spec.securityContext.runAsNonRoot must be set to `true`, or the fields spec.containers[*].securityContext.runAsNonRoot, spec.initContainers[*].securityContext.runAsNonRoot, and spec.ephemeralContainers[*].securityContext.runAsNonRoot must be set to `true`. rule run-as-non-root[0] failed at path /spec/securityContext/runAsNonRoot/ rule run-as-non-root[1] failed at path /spec/initContainers/0/securityContext/
-  Warning  PolicyViolation  18m    kyverno-scan  policy restrict-seccomp-strict/check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule check-seccomp-strict[0] failed at path /spec/securityContext/seccompProfile/ rule check-seccomp-strict[1] failed at path /spec/initContainers/0/securityContext/
-  Warning  PolicyViolation  18m    kyverno-scan  policy REDACTED_50d055ab/require-drop-all fail: validation failure: Containers must drop `ALL` capabilities.
-  Warning  PolicyViolation  2m48s  kyverno-scan  policy require-run-as-nonroot/run-as-non-root fail: validation error: Running as root is not allowed. Either the field spec.securityContext.runAsNonRoot must be set to `true`, or the fields spec.containers[*].securityContext.runAsNonRoot, spec.initContainers[*].securityContext.runAsNonRoot, and spec.ephemeralContainers[*].securityContext.runAsNonRoot must be set to `true`. rule run-as-non-root[0] failed at path /spec/securityContext/runAsNonRoot/ rule run-as-non-root[1] failed at path /spec/initContainers/0/securityContext/
-  Warning  PolicyViolation  2m48s  kyverno-scan  policy disallow-privilege-escalation/privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule privilege-escalation failed at path /spec/initContainers/0/securityContext/
-  Warning  PolicyViolation  2m48s  kyverno-scan  policy REDACTED_50d055ab/require-drop-all fail: validation failure: Containers must drop `ALL` capabilities.
-  Warning  PolicyViolation  2m48s  kyverno-scan  policy restrict-seccomp-strict/check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule check-seccomp-strict[0] failed at path /spec/securityContext/seccompProfile/ rule check-seccomp-strict[1] failed at path /spec/initContainers/0/securityContext/
+  Type     Reason           Age   From          Message
+  ----     ------           ----  ----          -------
+  Warning  PolicyViolation  49m   kyverno-scan  policy disallow-privilege-escalation/privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule privilege-escalation failed at path /spec/initContainers/0/securityContext/
+  Warning  PolicyViolation  49m   kyverno-scan  policy require-run-as-nonroot/run-as-non-root fail: validation error: Running as root is not allowed. Either the field spec.securityContext.runAsNonRoot must be set to `true`, or the fields spec.containers[*].securityContext.runAsNonRoot, spec.initContainers[*].securityContext.runAsNonRoot, and spec.ephemeralContainers[*].securityContext.runAsNonRoot must be set to `true`. rule run-as-non-root[0] failed at path /spec/securityContext/runAsNonRoot/ rule run-as-non-root[1] failed at path /spec/initContainers/0/securityContext/
+  Warning  PolicyViolation  49m   kyverno-scan  policy REDACTED_50d055ab/require-drop-all fail: validation failure: Containers must drop `ALL` capabilities.
+  Warning  PolicyViolation  49m   kyverno-scan  policy restrict-seccomp-strict/check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule check-seccomp-strict[0] failed at path /spec/securityContext/seccompProfile/ rule check-seccomp-strict[1] failed at path /spec/initContainers/0/securityContext/
 ```
 
-**backup-gateway/REDACTED_4e0a8ed8-29900561-6zs8p:**
+**monitoring/meshsat-status-heartbeat-29901508-hgmqf:**
 ```
-Events:          <none>
+Events:                      <none>
 ```
 
-**backup-gateway/REDACTED_4e0a8ed8-29900561-8p66d:**
+**monitoring/meshsat-status-heartbeat-29901509-lhl67:**
 ```
-Events:          <none>
+Events:                      <none>
 ```
 
 ### High Restart Pods (>3 restarts)
-- argocd/argocd-application-controller-0: 106 restarts
-- awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 200 restarts
+- argocd/argocd-application-controller-0: 107 restarts
+- awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 205 restarts
 - awx/my-awx-task-756d768868-bslc2: 11 restarts
 - awx/my-awx-web-f9c4bb98d-wcn4j: 10 restarts
 - cert-manager/cert-manager-75944f484-k8x88: 49 restarts
@@ -183,8 +170,8 @@ Events:          <none>
 - cilium-spire/spire-agent-xk8cl: 281 restarts
 - cilium-spire/spire-agent-zqpt4: 288 restarts
 - cilium-spire/spire-server-0: 6 restarts
-- cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-wzdfh: 144 restarts
-- cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-zl8gc: 159 restarts
+- cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-wzdfh: 147 restarts
+- cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-zl8gc: 162 restarts
 - kube-system/cilium-9t574: 4 restarts
 - kube-system/cilium-c8kqc: 12 restarts
 - kube-system/cilium-envoy-brdkr: 10 restarts
@@ -192,7 +179,7 @@ Events:          <none>
 - kube-system/cilium-envoy-nwfj5: 4 restarts
 - kube-system/cilium-envoy-z9854: 6 restarts
 - kube-system/cilium-g5h5t: 10 restarts
-- kube-system/cilium-operator-84c4fb58c7-jlhkp: 221 restarts
+- kube-system/cilium-operator-84c4fb58c7-jlhkp: 227 restarts
 - kube-system/cilium-qw7d6: 6 restarts
 - kube-system/etcd-nlk8s-ctrl01: 5 restarts
 - kube-system/etcd-nlk8s-ctrl02: 11 restarts
@@ -200,16 +187,16 @@ Events:          <none>
 - kube-system/kube-apiserver-nlk8s-ctrl01: 45 restarts
 - kube-system/kube-apiserver-nlk8s-ctrl02: 18 restarts
 - kube-system/kube-apiserver-nlk8s-ctrl03: 119 restarts
-- kube-system/kube-controller-manager-nlk8s-ctrl01: 147 restarts
+- kube-system/kube-controller-manager-nlk8s-ctrl01: 150 restarts
 - kube-system/kube-controller-manager-nlk8s-ctrl02: 20 restarts
-- kube-system/kube-controller-manager-nlk8s-ctrl03: 141 restarts
+- kube-system/kube-controller-manager-nlk8s-ctrl03: 143 restarts
 - kube-system/kube-proxy-7jvns: 12 restarts
 - kube-system/kube-proxy-jvln5: 6 restarts
 - kube-system/kube-proxy-sg86x: 6 restarts
 - kube-system/kube-proxy-xhgkv: 4 restarts
-- kube-system/kube-scheduler-nlk8s-ctrl01: 134 restarts
+- kube-system/kube-scheduler-nlk8s-ctrl01: 137 restarts
 - kube-system/kube-scheduler-nlk8s-ctrl02: 12 restarts
-- kube-system/kube-scheduler-nlk8s-ctrl03: 151 restarts
+- kube-system/kube-scheduler-nlk8s-ctrl03: 153 restarts
 - kube-system/tetragon-5gk99: 11 restarts
 - kube-system/tetragon-75hdg: 32 restarts
 - kube-system/tetragon-878gv: 9 restarts
@@ -217,8 +204,8 @@ Events:          <none>
 - kube-system/tetragon-mdsn9: 44 restarts
 - kube-system/tetragon-tbcc7: 12 restarts
 - kube-system/tetragon-vbs6v: 24 restarts
-- kyverno/kyverno-admission-controller-584d7f7684-6k9gg: 185 restarts
-- kyverno/kyverno-reports-controller-7bbf4b866b-rq8pt: 188 restarts
+- kyverno/kyverno-admission-controller-584d7f7684-6k9gg: 190 restarts
+- kyverno/kyverno-reports-controller-7bbf4b866b-rq8pt: 193 restarts
 - logging/loki-0: 14 restarts
 - logging/loki-canary-bbplf: 14 restarts
 - logging/loki-canary-n69w2: 4 restarts
@@ -238,7 +225,7 @@ Events:          <none>
 - monitoring/goldpinger-t8x65: 12 restarts
 - monitoring/monitoring-grafana-7d6c5795b8-6cvtn: 34 restarts
 - monitoring/monitoring-grafana-7d6c5795b8-vbrmn: 30 restarts
-- monitoring/monitoring-kube-state-metrics-75f9fff55b-prwns: 143 restarts
+- monitoring/monitoring-kube-state-metrics-75f9fff55b-prwns: 144 restarts
 - monitoring/monitoring-prometheus-node-exporter-6dl8r: 187 restarts
 - monitoring/monitoring-prometheus-node-exporter-6sc8j: 11 restarts
 - monitoring/monitoring-prometheus-node-exporter-88hp8: 13 restarts
@@ -247,7 +234,7 @@ Events:          <none>
 - monitoring/monitoring-prometheus-node-exporter-wmcb8: 48 restarts
 - monitoring/prometheus-REDACTED_6dfbe9fc-0: 4 restarts
 - monitoring/prometheus-REDACTED_6dfbe9fc-1: 29 restarts
-- nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-75b84759cfvtflq: 215 restarts
+- nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-75b84759cfvtflq: 220 restarts
 - synology-csi/synology-csi-controller-0: 4 restarts
 - synology-csi/synology-csi-node-4nxcz: 10 restarts
 - synology-csi/synology-csi-node-kxrjb: 25 restarts
@@ -258,7 +245,7 @@ Events:          <none>
 - synology-csi/synology-csi-node-zch7n: 47 restarts
 - velero/node-agent-54dn2: 10 restarts
 - velero/node-agent-sm5xl: 5 restarts
-- velero/velero-ui-687565868b-b9xr7: 7285 restarts
+- velero/velero-ui-687565868b-b9xr7: 7598 restarts
 
 ### Pending PVCs
 _None - all PVCs are Bound_
@@ -269,20 +256,20 @@ _None - all certificates valid for 14+ days_
 ### Recent Warning Events
 ```
 NAMESPACE                LAST SEEN   TYPE      REASON            OBJECT                                                                  MESSAGE
-default                  2m55s       Warning   PolicyViolation   clusterpolicy/restrict-seccomp-strict                                   Pod cilium-spire/spire-agent-2xj9z: [check-seccomp-strict] fail; validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule check-seccomp-strict[0] failed at path /spec/securityContext/seccompProfile/ rule check-seccomp-strict[1] failed at path /spec/initContainers/0/securityContext/
-kube-system              3m10s       Warning   PolicyViolation   pod/cilium-qw7d6                                                        policy restrict-seccomp-strict/check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule check-seccomp-strict[0] failed at path /spec/securityContext/seccompProfile/type/ rule check-seccomp-strict[1] failed at path /spec/initContainers/0/securityContext/seccompProfile/
-awx                      54m         Warning   PolicyViolation   pod/automation-job-44420-lh79t                                          policy disallow-privilege-escalation/privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule privilege-escalation failed at path /spec/containers/0/securityContext/
-awx                      54m         Warning   PolicyViolation   pod/automation-job-44420-lh79t                                          policy REDACTED_50d055ab/require-drop-all fail: validation failure: Containers must drop `ALL` capabilities.
-awx                      54m         Warning   PolicyViolation   pod/automation-job-44420-lh79t                                          policy REDACTED_50d055ab/adding-capabilities-strict pass: rule passed
-awx                      54m         Warning   PolicyViolation   pod/automation-job-44420-lh79t                                          policy require-run-as-nonroot/run-as-non-root fail: validation error: Running as root is not allowed. Either the field spec.securityContext.runAsNonRoot must be set to `true`, or the fields spec.containers[*].securityContext.runAsNonRoot, spec.initContainers[*].securityContext.runAsNonRoot, and spec.ephemeralContainers[*].securityContext.runAsNonRoot must be set to `true`. rule run-as-non-root[0] failed at path /spec/securityContext/runAsNonRoot/ rule run-as-non-root[1] failed at path /spec/containers/0/securityContext/
-awx                      54m         Warning   PolicyViolation   pod/automation-job-44420-lh79t                                          policy restrict-seccomp-strict/check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule check-seccomp-strict[0] failed at path /spec/securityContext/seccompProfile/ rule check-seccomp-strict[1] failed at path /spec/containers/0/securityContext/
-awx                      54m         Warning   PolicyViolation   pod/automation-job-44420-lh79t                                          policy REDACTED_50d055ab/require-drop-all fail: validation failure: Containers must drop `ALL` capabilities.
-awx                      54m         Warning   PolicyViolation   pod/automation-job-44420-lh79t                                          policy disallow-privilege-escalation/privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule privilege-escalation failed at path /spec/containers/0/securityContext/
-awx                      47m         Warning   PolicyViolation   pod/automation-job-44422-x72cv                                          policy REDACTED_50d055ab/require-drop-all fail: validation failure: Containers must drop `ALL` capabilities.
-awx                      47m         Warning   PolicyViolation   pod/automation-job-44422-x72cv                                          policy REDACTED_50d055ab/adding-capabilities-strict pass: rule passed
-awx                      47m         Warning   PolicyViolation   pod/automation-job-44422-x72cv                                          policy require-run-as-nonroot/run-as-non-root fail: validation error: Running as root is not allowed. Either the field spec.securityContext.runAsNonRoot must be set to `true`, or the fields spec.containers[*].securityContext.runAsNonRoot, spec.initContainers[*].securityContext.runAsNonRoot, and spec.ephemeralContainers[*].securityContext.runAsNonRoot must be set to `true`. rule run-as-non-root[0] failed at path /spec/securityContext/runAsNonRoot/ rule run-as-non-root[1] failed at path /spec/containers/0/securityContext/
-awx                      47m         Warning   PolicyViolation   pod/automation-job-44422-x72cv                                          policy restrict-seccomp-strict/check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule check-seccomp-strict[0] failed at path /spec/securityContext/seccompProfile/ rule check-seccomp-strict[1] failed at path /spec/containers/0/securityContext/
-awx                      47m         Warning   PolicyViolation   pod/automation-job-44422-x72cv                                          policy disallow-privilege-escalation/privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule privilege-escalation failed at path /spec/containers/0/securityContext/
+default                  48m         Warning   PolicyViolation   clusterpolicy/restrict-seccomp-strict                                   ReplicaSet kube-system/clustermesh-apiserver-6c8cd7bb6f: [autogen-check-seccomp-strict] fail; validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule autogen-check-seccomp-strict[0] failed at path /spec/template/spec/securityContext/seccompProfile/ rule autogen-check-seccomp-strict[1] failed at path /spec/template/spec/initContainers/0/securityContext/seccompProfile/
+kube-system              48m         Warning   PolicyViolation   replicaset/cilium-operator-79678f664b                                   policy disallow-host-path/autogen-host-path fail: validation error: HostPath volumes are forbidden. The field spec.volumes[*].hostPath must be unset. rule autogen-host-path failed at path /spec/template/spec/volumes/1/hostPath/
+awx                      60m         Warning   PolicyViolation   pod/automation-job-44516-w89rj                                          policy REDACTED_50d055ab/require-drop-all fail: validation failure: Containers must drop `ALL` capabilities.
+awx                      60m         Warning   PolicyViolation   pod/automation-job-44516-w89rj                                          policy restrict-seccomp-strict/check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule check-seccomp-strict[0] failed at path /spec/securityContext/seccompProfile/ rule check-seccomp-strict[1] failed at path /spec/containers/0/securityContext/
+awx                      54m         Warning   PolicyViolation   pod/automation-job-44517-tqqxg                                          policy REDACTED_50d055ab/require-drop-all fail: validation failure: Containers must drop `ALL` capabilities.
+awx                      54m         Warning   PolicyViolation   pod/automation-job-44517-tqqxg                                          policy REDACTED_50d055ab/adding-capabilities-strict pass: rule passed
+awx                      54m         Warning   PolicyViolation   pod/automation-job-44517-tqqxg                                          policy require-run-as-nonroot/run-as-non-root fail: validation error: Running as root is not allowed. Either the field spec.securityContext.runAsNonRoot must be set to `true`, or the fields spec.containers[*].securityContext.runAsNonRoot, spec.initContainers[*].securityContext.runAsNonRoot, and spec.ephemeralContainers[*].securityContext.runAsNonRoot must be set to `true`. rule run-as-non-root[0] failed at path /spec/securityContext/runAsNonRoot/ rule run-as-non-root[1] failed at path /spec/containers/0/securityContext/
+awx                      54m         Warning   PolicyViolation   pod/automation-job-44517-tqqxg                                          policy disallow-privilege-escalation/privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule privilege-escalation failed at path /spec/containers/0/securityContext/
+awx                      54m         Warning   PolicyViolation   pod/automation-job-44517-tqqxg                                          policy restrict-seccomp-strict/check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule check-seccomp-strict[0] failed at path /spec/securityContext/seccompProfile/ rule check-seccomp-strict[1] failed at path /spec/containers/0/securityContext/
+awx                      53m         Warning   PolicyViolation   pod/automation-job-44517-tqqxg                                          policy require-run-as-nonroot/run-as-non-root fail: validation error: Running as root is not allowed. Either the field spec.securityContext.runAsNonRoot must be set to `true`, or the fields spec.containers[*].securityContext.runAsNonRoot, spec.initContainers[*].securityContext.runAsNonRoot, and spec.ephemeralContainers[*].securityContext.runAsNonRoot must be set to `true`. rule run-as-non-root[0] failed at path /spec/securityContext/runAsNonRoot/ rule run-as-non-root[1] failed at path /spec/containers/0/securityContext/
+awx                      53m         Warning   PolicyViolation   pod/automation-job-44517-tqqxg                                          policy REDACTED_50d055ab/require-drop-all fail: validation failure: Containers must drop `ALL` capabilities.
+awx                      53m         Warning   PolicyViolation   pod/automation-job-44517-tqqxg                                          policy restrict-seccomp-strict/check-seccomp-strict fail: validation error: Use of custom Seccomp profiles is disallowed. The fields spec.securityContext.seccompProfile.type, spec.containers[*].securityContext.seccompProfile.type, spec.initContainers[*].securityContext.seccompProfile.type, and spec.ephemeralContainers[*].securityContext.seccompProfile.type must be set to `RuntimeDefault` or `Localhost`. rule check-seccomp-strict[0] failed at path /spec/securityContext/seccompProfile/ rule check-seccomp-strict[1] failed at path /spec/containers/0/securityContext/
+awx                      53m         Warning   PolicyViolation   pod/automation-job-44517-tqqxg                                          policy disallow-privilege-escalation/privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule privilege-escalation failed at path /spec/containers/0/securityContext/
+awx                      47m         Warning   PolicyViolation   pod/automation-job-44519-62xjq                                          policy disallow-privilege-escalation/privilege-escalation fail: validation error: Privilege escalation is disallowed. The fields spec.containers[*].securityContext.allowPrivilegeEscalation, spec.initContainers[*].securityContext.allowPrivilegeEscalation, and spec.ephemeralContainers[*].securityContext.allowPrivilegeEscalation must be set to `false`. rule privilege-escalation failed at path /spec/containers/0/securityContext/
 ```
 
 ---
@@ -472,11 +459,11 @@ awx                      47m         Warning   PolicyViolation   pod/automation-
 ### Node Utilization
 ```
 NAME                 CPU(cores)   CPU(%)      MEMORY(bytes)   MEMORY(%)   
-nlk8s-ctrl01   1139m        28%         4774Mi          61%         
-nlk8s-ctrl03   1153m        28%         4451Mi          56%         
-nlk8s-node02    4102m        51%         8351Mi          85%         
-nlk8s-node03    4005m        50%         7264Mi          73%         
-nlk8s-node04    406m         5%          4395Mi          44%         
+nlk8s-ctrl01   1274m        31%         4457Mi          57%         
+nlk8s-ctrl03   1960m        49%         4357Mi          55%         
+nlk8s-node02    4219m        52%         8419Mi          85%         
+nlk8s-node03    4227m        52%         7589Mi          77%         
+nlk8s-node04    408m         5%          4387Mi          44%         
 nlk8s-ctrl02   <unknown>    <unknown>   <unknown>       <unknown>   
 nlk8s-node01    <unknown>    <unknown>   <unknown>       <unknown>   
 ```
@@ -484,32 +471,32 @@ nlk8s-node01    <unknown>    <unknown>   <unknown>       <unknown>
 ### Top 10 Pods by CPU
 ```
 NAMESPACE                NAME                                                              CPU(cores)   MEMORY(bytes)   
-monitoring               prometheus-REDACTED_6dfbe9fc-0                2005m        3767Mi          
-monitoring               prometheus-REDACTED_6dfbe9fc-1                2004m        3541Mi          
-kube-system              kube-apiserver-nlk8s-ctrl03                                 547m         2115Mi          
-backup-gateway           backup-gateway-55f78944f6-sgmvd                                   504m         210Mi           
-kube-system              cilium-jfgsw                                                      315m         354Mi           
-kube-system              cilium-7rvww                                                      299m         331Mi           
-kube-system              etcd-nlk8s-ctrl03                                           279m         164Mi           
-kube-system              tetragon-5gk99                                                    257m         101Mi           
-logging                  promtail-5jr9j                                                    199m         66Mi            
-kube-system              cilium-nhh8q                                                      182m         275Mi           
+monitoring               prometheus-REDACTED_6dfbe9fc-0                2003m        3736Mi          
+monitoring               prometheus-REDACTED_6dfbe9fc-1                1868m        3603Mi          
+kube-system              kube-apiserver-nlk8s-ctrl03                                 1058m        2034Mi          
+argocd                   argocd-application-controller-0                                   785m         723Mi           
+backup-gateway           backup-gateway-55f78944f6-chbwm                                   521m         536Mi           
+kube-system              cilium-7rvww                                                      433m         334Mi           
+kube-system              cilium-jfgsw                                                      315m         362Mi           
+kube-system              etcd-nlk8s-ctrl03                                           286m         133Mi           
+kube-system              tetragon-5gk99                                                    218m         104Mi           
+kube-system              cilium-nhh8q                                                      201m         275Mi           
 Metrics server not available
 ```
 
 ### Top 10 Pods by Memory
 ```
 NAMESPACE                NAME                                                              CPU(cores)   MEMORY(bytes)   
-monitoring               prometheus-REDACTED_6dfbe9fc-0                2005m        3767Mi          
-monitoring               prometheus-REDACTED_6dfbe9fc-1                2004m        3541Mi          
-kube-system              kube-apiserver-nlk8s-ctrl01                                 102m         2301Mi          
-kube-system              kube-apiserver-nlk8s-ctrl03                                 547m         2115Mi          
-awx                      my-awx-task-756d768868-bslc2                                      71m          1392Mi          
-awx                      my-awx-web-f9c4bb98d-wcn4j                                        20m          1362Mi          
-monitoring               monitoring-grafana-7d6c5795b8-vbrmn                               12m          714Mi           
-monitoring               monitoring-grafana-7d6c5795b8-6cvtn                               31m          701Mi           
-logging                  loki-0                                                            45m          678Mi           
-backup-gateway           backup-gateway-55f78944f6-chbwm                                   67m          500Mi           
+monitoring               prometheus-REDACTED_6dfbe9fc-0                2003m        3736Mi          
+monitoring               prometheus-REDACTED_6dfbe9fc-1                1868m        3603Mi          
+kube-system              kube-apiserver-nlk8s-ctrl03                                 1058m        2034Mi          
+kube-system              kube-apiserver-nlk8s-ctrl01                                 120m         1998Mi          
+awx                      my-awx-task-756d768868-bslc2                                      101m         1417Mi          
+awx                      my-awx-web-f9c4bb98d-wcn4j                                        22m          1374Mi          
+argocd                   argocd-application-controller-0                                   785m         723Mi           
+monitoring               monitoring-grafana-7d6c5795b8-vbrmn                               8m           716Mi           
+logging                  loki-0                                                            53m          702Mi           
+monitoring               monitoring-grafana-7d6c5795b8-6cvtn                               51m          693Mi           
 Metrics server not available
 ```
 
@@ -520,8 +507,8 @@ monitoring: CPU=2200m Mem=10992Mi
 awx: CPU=1855m Mem=3552Mi
 ingress-nginx: CPU=1000m Mem=1024Mi
 logging: CPU=850m Mem=2944Mi
-backup-gateway: CPU=800m Mem=2176Mi
 argocd: CPU=750m Mem=1664Mi
+backup-gateway: CPU=700m Mem=1920Mi
 velero: CPU=550m Mem=832Mi
 REDACTED_d97cef76: CPU=400m Mem=800Mi
 cnpg-system: CPU=130m Mem=400Mi
@@ -534,22 +521,22 @@ cnpg-system: CPU=130m Mem=400Mi
 ### PodDisruptionBudgets
 ```
 NAMESPACE         NAME                                              MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
-argocd            argocd-application-controller                     1               N/A               0                     346d
-argocd            argocd-applicationset-controller                  1               N/A               0                     346d
-argocd            argocd-redis                                      1               N/A               0                     346d
-argocd            argocd-repo-server                                1               N/A               1                     346d
-argocd            argocd-server                                     1               N/A               1                     346d
-awx               awx-postgres-pdb                                  1               N/A               0                     346d
-awx               awx-task-pdb                                      1               N/A               0                     346d
-awx               awx-web-pdb                                       1               N/A               0                     346d
-backup-gateway    backup-gateway                                    1               N/A               1                     46d
-ingress-nginx     ingress-nginx-controller                          1               N/A               1                     346d
-kube-system       coredns-pdb                                       1               N/A               1                     346d
-kube-system       metrics-server-pdb                                1               N/A               0                     54d
-monitoring        monitoring-grafana                                1               N/A               1                     211d
-monitoring        monitoring-kube-prometheus-operator               1               N/A               0                     211d
-monitoring        monitoring-kube-state-metrics                     1               N/A               0                     211d
-nfs-provisioner   nfs-provisioner-REDACTED_5fef70be   N/A             1                 1                     346d
+argocd            argocd-application-controller                     1               N/A               0                     347d
+argocd            argocd-applicationset-controller                  1               N/A               0                     347d
+argocd            argocd-redis                                      1               N/A               0                     347d
+argocd            argocd-repo-server                                1               N/A               1                     347d
+argocd            argocd-server                                     1               N/A               1                     347d
+awx               awx-postgres-pdb                                  1               N/A               0                     347d
+awx               awx-task-pdb                                      1               N/A               0                     347d
+awx               awx-web-pdb                                       1               N/A               0                     347d
+backup-gateway    backup-gateway                                    1               N/A               1                     47d
+ingress-nginx     ingress-nginx-controller                          1               N/A               1                     347d
+kube-system       coredns-pdb                                       1               N/A               1                     347d
+kube-system       metrics-server-pdb                                1               N/A               0                     55d
+monitoring        monitoring-grafana                                1               N/A               1                     212d
+monitoring        monitoring-kube-prometheus-operator               1               N/A               0                     212d
+monitoring        monitoring-kube-state-metrics                     1               N/A               0                     212d
+nfs-provisioner   nfs-provisioner-REDACTED_5fef70be   N/A             1                 1                     347d
 ```
 
 ### CiliumNetworkPolicies
@@ -573,31 +560,31 @@ nfs-provisioner   nfs-provisioner-REDACTED_5fef70be   N/A             1         
 ### LoadBalancer Services
 ```
 NAMESPACE       NAME                       TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)                      AGE
-ingress-nginx   ingress-nginx-controller   LoadBalancer   10.103.32.106    10.0.X.X   80:31689/TCP,443:30327/TCP   368d
-kube-system     clustermesh-apiserver      LoadBalancer   10.102.123.248   10.0.X.X   2379:30462/TCP               337d
-kube-system     hubble-relay-lb            LoadBalancer   10.110.32.130    10.0.X.X   80:30629/TCP                 345d
-logging         promtail-syslog            LoadBalancer   10.105.64.19     10.0.X.X   514:30623/TCP                343d
-pihole          pihole-dns-lb              LoadBalancer   10.99.196.72     10.0.X.X   53:31803/UDP                 345d
-pihole          pihole-dns-tcp-lb          LoadBalancer   10.106.199.199   10.0.X.X   53:30438/TCP                 345d
+ingress-nginx   ingress-nginx-controller   LoadBalancer   10.103.32.106    10.0.X.X   80:31689/TCP,443:30327/TCP   369d
+kube-system     clustermesh-apiserver      LoadBalancer   10.102.123.248   10.0.X.X   2379:30462/TCP               338d
+kube-system     hubble-relay-lb            LoadBalancer   10.110.32.130    10.0.X.X   80:30629/TCP                 346d
+logging         promtail-syslog            LoadBalancer   10.105.64.19     10.0.X.X   514:30623/TCP                344d
+pihole          pihole-dns-lb              LoadBalancer   10.99.196.72     10.0.X.X   53:31803/UDP                 346d
+pihole          pihole-dns-tcp-lb          LoadBalancer   10.106.199.199   10.0.X.X   53:30438/TCP                 346d
 ```
 
 ### Ingresses
 ```
 NAMESPACE              NAME                   CLASS   HOSTS                                                   ADDRESS         PORTS     AGE
-argocd                 argocd-server          nginx   argocd.example.net                              10.0.X.X   80, 443   348d
-awx                    awx                    nginx   awx.example.net                                 10.0.X.X   80        347d
-bentopdf               bentopdf               nginx   bentopdf.example.net                            10.0.X.X   80        344d
-echo-server            echo-server            nginx   echo.example.net                                10.0.X.X   80        238d
-gatus                  gatus                  nginx   nl-gatus.example.net                            10.0.X.X   80, 443   327d
-kube-system            hubble-ui              nginx   nl-hubble.example.net                           10.0.X.X   80        332d
-REDACTED_d97cef76   REDACTED_d97cef76   nginx   nl-k8s.example.net                              10.0.X.X   80        331d
-monitoring             goldpinger             nginx   goldpinger.example.net                          10.0.X.X   80        336d
-monitoring             grafana                nginx   grafana.example.net                             10.0.X.X   80        347d
-monitoring             prometheus             nginx   nl-prometheus.example.net                       10.0.X.X   80        331d
-monitoring             thanos-query           nginx   nl-thanos.example.net                           10.0.X.X   80        332d
-pihole                 pihole-ingress         nginx   pihole.example.net                              10.0.X.X   80        349d
-velero                 velero-ui              nginx   velero.example.net                              10.0.X.X   80        348d
-well-known             well-known             nginx   status.example.net,kyriakos.papadopoulos.tech   10.0.X.X   80, 443   326d
+argocd                 argocd-server          nginx   argocd.example.net                              10.0.X.X   80, 443   349d
+awx                    awx                    nginx   awx.example.net                                 10.0.X.X   80        348d
+bentopdf               bentopdf               nginx   bentopdf.example.net                            10.0.X.X   80        345d
+echo-server            echo-server            nginx   echo.example.net                                10.0.X.X   80        239d
+gatus                  gatus                  nginx   nl-gatus.example.net                            10.0.X.X   80, 443   328d
+kube-system            hubble-ui              nginx   nl-hubble.example.net                           10.0.X.X   80        333d
+REDACTED_d97cef76   REDACTED_d97cef76   nginx   nl-k8s.example.net                              10.0.X.X   80        332d
+monitoring             goldpinger             nginx   goldpinger.example.net                          10.0.X.X   80        337d
+monitoring             grafana                nginx   grafana.example.net                             10.0.X.X   80        348d
+monitoring             prometheus             nginx   nl-prometheus.example.net                       10.0.X.X   80        332d
+monitoring             thanos-query           nginx   nl-thanos.example.net                           10.0.X.X   80        333d
+pihole                 pihole-ingress         nginx   pihole.example.net                              10.0.X.X   80        350d
+velero                 velero-ui              nginx   velero.example.net                              10.0.X.X   80        349d
+well-known             well-known             nginx   status.example.net,kyriakos.papadopoulos.tech   10.0.X.X   80, 443   327d
 ```
 
 ---
@@ -613,16 +600,16 @@ well-known             well-known             nginx   status.example.net,kyriako
 ### StorageClasses
 ```
 NAME                                      PROVISIONER                                                     RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
-nfs-client                                cluster.local/nfs-provisioner-REDACTED_5fef70be   Delete          Immediate           true                   349d
-nfs-sc                                    kubernetes.io/no-provisioner                                    Retain          Immediate           true                   369d
-synology-csi-iscsi-delete                 csi.san.synology.com                                            Delete          Immediate           true                   346d
-synology-csi-iscsi-retain                 csi.san.synology.com                                            Retain          Immediate           true                   346d
-synology-csi-nfs-delete                   csi.san.synology.com                                            Delete          Immediate           true                   346d
-synology-csi-nfs-retain                   csi.san.synology.com                                            Retain          Immediate           true                   346d
-REDACTED_4f3da73d   csi.san.synology.com                                            Delete          Immediate           true                   346d
-REDACTED_b280aec5   csi.san.synology.com                                            Retain          Immediate           true                   346d
-synology-csi-smb-delete                   csi.san.synology.com                                            Delete          Immediate           true                   346d
-synology-csi-smb-retain                   csi.san.synology.com                                            Retain          Immediate           true                   346d
+nfs-client                                cluster.local/nfs-provisioner-REDACTED_5fef70be   Delete          Immediate           true                   350d
+nfs-sc                                    kubernetes.io/no-provisioner                                    Retain          Immediate           true                   370d
+synology-csi-iscsi-delete                 csi.san.synology.com                                            Delete          Immediate           true                   347d
+synology-csi-iscsi-retain                 csi.san.synology.com                                            Retain          Immediate           true                   347d
+synology-csi-nfs-delete                   csi.san.synology.com                                            Delete          Immediate           true                   347d
+synology-csi-nfs-retain                   csi.san.synology.com                                            Retain          Immediate           true                   347d
+REDACTED_4f3da73d   csi.san.synology.com                                            Delete          Immediate           true                   347d
+REDACTED_b280aec5   csi.san.synology.com                                            Retain          Immediate           true                   347d
+synology-csi-smb-delete                   csi.san.synology.com                                            Delete          Immediate           true                   347d
+synology-csi-smb-retain                   csi.san.synology.com                                            Retain          Immediate           true                   347d
 ```
 
 ---
@@ -646,8 +633,8 @@ synology-csi-smb-retain                   csi.san.synology.com                  
 ### Schedules
 ```
 NAME            STATUS    SCHEDULE    LASTBACKUP   AGE    PAUSED
-daily-backup    Enabled   0 2 * * *   61m          348d   false
-weekly-backup   Enabled   0 3 * * 0   24h          348d   false
+daily-backup    Enabled   0 2 * * *   61m          349d   false
+weekly-backup   Enabled   0 3 * * 0   2d           349d   false
 ```
 
 ### Recent Backups (last 5)
@@ -687,117 +674,117 @@ tetragon            	kube-system           	7       	2025-12-20 22:35:40.0302825
 ### All Namespaces
 ```
 NAME                     STATUS   AGE
-argocd                   Active   348d
-awx                      Active   369d
-backup-gateway           Active   46d
-bentopdf                 Active   344d
-cert-manager             Active   343d
-cilium-secrets           Active   345d
-cilium-spire             Active   345d
-cnpg-system              Active   77d
-default                  Active   370d
-echo-server              Active   238d
-external-secrets         Active   344d
-gatus                    Active   327d
-REDACTED_01b50c5d   Active   349d
-ingress-nginx            Active   368d
-kube-node-lease          Active   370d
-kube-public              Active   370d
-kube-system              Active   370d
-REDACTED_d97cef76     Active   331d
-kyverno                  Active   49d
-logging                  Active   343d
-monitoring               Active   369d
-nfs-provisioner          Active   368d
-opentofu-ns              Active   368d
-pihole                   Active   349d
-production               Active   349d
-reloader                 Active   55d
-synology-csi             Active   346d
-velero                   Active   348d
-well-known               Active   326d
+argocd                   Active   349d
+awx                      Active   370d
+backup-gateway           Active   47d
+bentopdf                 Active   345d
+cert-manager             Active   344d
+cilium-secrets           Active   346d
+cilium-spire             Active   346d
+cnpg-system              Active   78d
+default                  Active   371d
+echo-server              Active   239d
+external-secrets         Active   345d
+gatus                    Active   328d
+REDACTED_01b50c5d   Active   350d
+ingress-nginx            Active   369d
+kube-node-lease          Active   371d
+kube-public              Active   371d
+kube-system              Active   371d
+REDACTED_d97cef76     Active   332d
+kyverno                  Active   50d
+logging                  Active   344d
+monitoring               Active   370d
+nfs-provisioner          Active   369d
+opentofu-ns              Active   369d
+pihole                   Active   350d
+production               Active   350d
+reloader                 Active   56d
+synology-csi             Active   347d
+velero                   Active   349d
+well-known               Active   327d
 ```
 
 ### All Deployments
 ```
 NAMESPACE                NAME                                              READY   UP-TO-DATE   AVAILABLE   AGE
-argocd                   argocd-applicationset-controller                  1/1     1            1           348d
-argocd                   argocd-notifications-controller                   1/1     1            1           239d
-argocd                   argocd-redis                                      1/1     1            1           348d
-argocd                   argocd-repo-server                                2/2     2            2           348d
-argocd                   argocd-server                                     2/2     2            2           348d
-awx                      awx-operator-controller-manager                   1/1     1            1           369d
-awx                      my-awx-task                                       1/1     1            1           369d
-awx                      my-awx-web                                        1/1     1            1           369d
-backup-gateway           backup-gateway                                    2/2     2            2           46d
-bentopdf                 bentopdf                                          1/1     1            1           344d
-cert-manager             cert-manager                                      1/1     1            1           343d
-cert-manager             cert-manager-cainjector                           1/1     1            1           343d
-cert-manager             cert-manager-webhook                              1/1     1            1           343d
-cnpg-system              cnpg-cloudnative-pg                               2/2     2            2           77d
-echo-server              echo-server                                       1/1     1            1           238d
-external-secrets         external-secrets                                  1/1     1            1           344d
-external-secrets         external-secrets-cert-controller                  1/1     1            1           344d
-external-secrets         external-secrets-webhook                          1/1     1            1           344d
-gatus                    gatus                                             1/1     1            1           327d
-REDACTED_01b50c5d   REDACTED_ab04b573-v2                         2/2     2            2           349d
-ingress-nginx            ingress-nginx-controller                          2/2     2            2           368d
-kube-system              cilium-operator                                   1/1     1            1           345d
-kube-system              clustermesh-apiserver                             1/1     1            1           337d
-kube-system              coredns                                           2/2     2            2           370d
-kube-system              hubble-relay                                      1/1     1            1           345d
-kube-system              hubble-ui                                         1/1     1            1           345d
-kube-system              metrics-server                                    1/1     1            1           54d
-kube-system              tetragon-operator                                 1/1     1            1           324d
-REDACTED_d97cef76     REDACTED_d97cef76-api                          1/1     1            1           331d
-REDACTED_d97cef76     REDACTED_d97cef76-auth                         1/1     1            1           331d
-REDACTED_d97cef76     REDACTED_d97cef76-kong                         1/1     1            1           331d
-REDACTED_d97cef76     REDACTED_d97cef76-metrics-scraper              1/1     1            1           331d
-REDACTED_d97cef76     REDACTED_d97cef76-web                          1/1     1            1           331d
-kyverno                  kyverno-admission-controller                      1/1     1            1           49d
-kyverno                  kyverno-reports-controller                        1/1     1            1           49d
-monitoring               bgpalerter                                        1/1     1            1           329d
-monitoring               monitoring-grafana                                2/2     2            2           211d
-monitoring               monitoring-kube-prometheus-operator               1/1     1            1           211d
-monitoring               monitoring-kube-state-metrics                     1/1     1            1           211d
-monitoring               snmp-exporter                                     1/1     1            1           331d
-monitoring               thanos-query                                      2/2     2            2           332d
-nfs-provisioner          nfs-provisioner-REDACTED_5fef70be   1/1     1            1           368d
-pihole                   pihole                                            1/1     1            1           344d
-reloader                 reloader-reloader                                 1/1     1            1           55d
-velero                   velero                                            1/1     1            1           348d
-velero                   velero-ui                                         0/1     1            0           348d
-well-known               well-known                                        1/1     1            1           326d
+argocd                   argocd-applicationset-controller                  1/1     1            1           349d
+argocd                   argocd-notifications-controller                   1/1     1            1           240d
+argocd                   argocd-redis                                      1/1     1            1           349d
+argocd                   argocd-repo-server                                2/2     2            2           349d
+argocd                   argocd-server                                     2/2     2            2           349d
+awx                      awx-operator-controller-manager                   1/1     1            1           370d
+awx                      my-awx-task                                       1/1     1            1           370d
+awx                      my-awx-web                                        1/1     1            1           370d
+backup-gateway           backup-gateway                                    2/2     2            2           47d
+bentopdf                 bentopdf                                          1/1     1            1           345d
+cert-manager             cert-manager                                      1/1     1            1           344d
+cert-manager             cert-manager-cainjector                           1/1     1            1           344d
+cert-manager             cert-manager-webhook                              1/1     1            1           344d
+cnpg-system              cnpg-cloudnative-pg                               2/2     2            2           78d
+echo-server              echo-server                                       1/1     1            1           239d
+external-secrets         external-secrets                                  1/1     1            1           345d
+external-secrets         external-secrets-cert-controller                  1/1     1            1           345d
+external-secrets         external-secrets-webhook                          1/1     1            1           345d
+gatus                    gatus                                             1/1     1            1           328d
+REDACTED_01b50c5d   REDACTED_ab04b573-v2                         2/2     2            2           350d
+ingress-nginx            ingress-nginx-controller                          2/2     2            2           369d
+kube-system              cilium-operator                                   1/1     1            1           346d
+kube-system              clustermesh-apiserver                             1/1     1            1           338d
+kube-system              coredns                                           2/2     2            2           371d
+kube-system              hubble-relay                                      1/1     1            1           346d
+kube-system              hubble-ui                                         1/1     1            1           346d
+kube-system              metrics-server                                    1/1     1            1           55d
+kube-system              tetragon-operator                                 1/1     1            1           325d
+REDACTED_d97cef76     REDACTED_d97cef76-api                          1/1     1            1           332d
+REDACTED_d97cef76     REDACTED_d97cef76-auth                         1/1     1            1           332d
+REDACTED_d97cef76     REDACTED_d97cef76-kong                         1/1     1            1           332d
+REDACTED_d97cef76     REDACTED_d97cef76-metrics-scraper              1/1     1            1           332d
+REDACTED_d97cef76     REDACTED_d97cef76-web                          1/1     1            1           332d
+kyverno                  kyverno-admission-controller                      1/1     1            1           50d
+kyverno                  kyverno-reports-controller                        1/1     1            1           50d
+monitoring               bgpalerter                                        1/1     1            1           330d
+monitoring               monitoring-grafana                                2/2     2            2           212d
+monitoring               monitoring-kube-prometheus-operator               1/1     1            1           212d
+monitoring               monitoring-kube-state-metrics                     1/1     1            1           212d
+monitoring               snmp-exporter                                     1/1     1            1           332d
+monitoring               thanos-query                                      2/2     2            2           333d
+nfs-provisioner          nfs-provisioner-REDACTED_5fef70be   1/1     1            1           369d
+pihole                   pihole                                            1/1     1            1           345d
+reloader                 reloader-reloader                                 1/1     1            1           56d
+velero                   velero                                            1/1     1            1           349d
+velero                   velero-ui                                         0/1     1            0           349d
+well-known               well-known                                        1/1     1            1           327d
 ```
 
 ### All StatefulSets
 ```
 NAMESPACE      NAME                                                   READY   AGE
-argocd         argocd-application-controller                          1/1     348d
-awx            my-awx-postgres-15                                     1/1     369d
-cilium-spire   spire-server                                           1/1     345d
-logging        loki                                                   1/1     324d
-monitoring     alertmanager-monitoring-kube-prometheus-alertmanager   2/2     211d
-monitoring     prometheus-REDACTED_6dfbe9fc       2/2     211d
-monitoring     thanos-compactor                                       1/1     54d
-monitoring     thanos-store                                           2/2     332d
-synology-csi   synology-csi-controller                                1/1     346d
+argocd         argocd-application-controller                          1/1     349d
+awx            my-awx-postgres-15                                     1/1     370d
+cilium-spire   spire-server                                           1/1     346d
+logging        loki                                                   1/1     325d
+monitoring     alertmanager-monitoring-kube-prometheus-alertmanager   2/2     212d
+monitoring     prometheus-REDACTED_6dfbe9fc       2/2     212d
+monitoring     thanos-compactor                                       1/1     55d
+monitoring     thanos-store                                           2/2     333d
+synology-csi   synology-csi-controller                                1/1     347d
 ```
 
 ### All DaemonSets
 ```
 NAMESPACE      NAME                                  DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
-cilium-spire   spire-agent                           5         5         5       5            5           <none>                   345d
-kube-system    cilium                                7         7         5       7            5           kubernetes.io/os=linux   345d
-kube-system    cilium-envoy                          7         7         5       7            5           kubernetes.io/os=linux   345d
-kube-system    kube-proxy                            7         7         5       7            5           kubernetes.io/os=linux   84d
-kube-system    tetragon                              5         5         5       5            5           <none>                   324d
-logging        loki-canary                           3         3         3       3            3           <none>                   332d
-logging        promtail                              5         5         5       5            5           <none>                   343d
-monitoring     goldpinger                            5         5         5       5            5           <none>                   336d
-monitoring     monitoring-prometheus-node-exporter   5         5         5       5            5           kubernetes.io/os=linux   211d
-synology-csi   synology-csi-node                     7         7         5       7            5           <none>                   346d
-velero         node-agent                            3         3         3       3            3           <none>                   103d
+cilium-spire   spire-agent                           5         5         5       5            5           <none>                   346d
+kube-system    cilium                                7         7         5       7            5           kubernetes.io/os=linux   346d
+kube-system    cilium-envoy                          7         7         5       7            5           kubernetes.io/os=linux   346d
+kube-system    kube-proxy                            7         7         5       7            5           kubernetes.io/os=linux   85d
+kube-system    tetragon                              5         5         5       5            5           <none>                   325d
+logging        loki-canary                           3         3         3       3            3           <none>                   333d
+logging        promtail                              5         5         5       5            5           <none>                   344d
+monitoring     goldpinger                            5         5         5       5            5           <none>                   337d
+monitoring     monitoring-prometheus-node-exporter   5         5         5       5            5           kubernetes.io/os=linux   212d
+synology-csi   synology-csi-node                     7         7         5       7            5           <none>                   347d
+velero         node-agent                            3         3         3       3            3           <none>                   104d
 ```
 
 ---
