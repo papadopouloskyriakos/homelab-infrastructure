@@ -535,6 +535,82 @@ resource "kubernetes_manifest" "estate_alert_rules" {
             },
           ]
         },
+        {
+          # Mail and calendar sync of both Twenty CRMs: the relationship board
+          # (twenty.example.net, nltwenty01) and the MeshSat Support desk
+          # (twenty.meshsat.net, notrf01). Twenty marks a channel
+          # FAILED_INSUFFICIENT_PERMISSIONS on ONE bad IMAP/CalDAV answer and never
+          # retries it (its relaunch crons only retry FAILED_UNKNOWN). Unalerted twice:
+          # the owner's board mail 16-26 Sep 2026 and his board calendar 30 Aug-10 Nov
+          # 2026 (MESHSAT-1863). A Redis recreation also drops every BullMQ cron and
+          # all sync stops silently (12 Oct 2026, IFRNLLEI01PRD-2933). Producer:
+          # ~/scripts/twenty-sync-metrics.py on nlclaude01 (cron hourly, read-only
+          # SELECTs + Redis ZCARD); it fails closed per CRM, so a dead producer shows
+          # as REDACTED_dbedbb09, never as zeros. tier 2 = the quiet ntfy topic.
+          name = "twenty-sync"
+          rules = [
+            {
+              # 2 h: a FAILED_UNKNOWN that Twenty relaunches by itself (every 30 min)
+              # clears before this fires; FAILED_INSUFFICIENT_PERMISSIONS never does.
+              alert = "REDACTED_a4f56c7b"
+              expr  = "twenty_channel_failed == 1"
+              for   = "2h"
+              labels = {
+                severity = "critical"
+                tier     = "2"
+                service  = "twenty"
+              }
+              annotations = {
+                summary     = "Twenty {{ $labels.crm }}: {{ $labels.kind }} sync of {{ $labels.handle }} is dead ({{ $labels.status }})"
+                description = "The {{ $labels.kind }} channel of {{ $labels.handle }} on the Twenty {{ $labels.crm }} is {{ $labels.status }} / {{ $labels.stage }} and Twenty will not retry it, so new mail or events stop arriving. Check the source first (Proton bridge for IMAP, Nextcloud for CalDAV), then re-arm: board = SQL on core.messageChannel / core.calendarChannel (syncStatus ACTIVE, stage *_LIST_FETCH_PENDING), recipe in docker/nltwenty01/twenty/CLAUDE.md; desk = same tables in CNPG meshsat-twenty-main. If it fails again within minutes, reconnect the account in Settings > Accounts. A calendar re-sync re-imports pre-2026 events: re-run migration/purge-pre-2026.sql (owner ruling 29 Aug 2026)."
+              }
+            },
+            {
+              # syncedAt moves on every fetch, also when nothing is new (mail ~every
+              # 5 min, calendar ~every 5 min), so 6 h without it = the channel is not
+              # being polled at all (crons gone, worker wedged, source unreachable).
+              alert = "REDACTED_b60d6e60"
+              expr  = "(time() - twenty_channel_last_synced_timestamp_seconds) > 21600 and on (crm, kind, handle) twenty_channel_sync_enabled == 1"
+              for   = "30m"
+              labels = {
+                severity = "critical"
+                tier     = "2"
+                service  = "twenty"
+              }
+              annotations = {
+                summary     = "Twenty {{ $labels.crm }}: {{ $labels.kind }} of {{ $labels.handle }} last synced {{ $value | humanizeDuration }} ago"
+                description = "Sync is enabled but the channel has not been fetched for over 6 h. Check the worker logs (board: docker logs twenty-worker on nltwenty01; desk: kubectl --context notrf01 -n meshsat-twenty logs deploy/twenty-worker), the cron registration (REDACTED_b6976124) and the source (Proton bridge / Nextcloud)."
+              }
+            },
+            {
+              alert = "REDACTED_b6976124"
+              expr  = "twenty_cron_repeat_jobs == 0"
+              for   = "30m"
+              labels = {
+                severity = "critical"
+                tier     = "2"
+                service  = "twenty"
+              }
+              annotations = {
+                summary     = "Twenty {{ $labels.crm }}: no BullMQ cron jobs registered, all mail and calendar sync is stopped"
+                description = "bull:cron-queue:repeat is empty, usually after Redis was recreated. Board: cd /srv/twenty && docker compose exec -T server yarn command:prod cron:register:all (no restart needed). Desk: the same command in deploy/twenty-server on notrf01."
+              }
+            },
+            {
+              alert = "REDACTED_dbedbb09"
+              expr  = "time() - twenty_sync_metrics_last_run_timestamp_seconds > 10800 or absent(twenty_sync_metrics_last_run_timestamp_seconds{crm=\"board\"}) or absent(twenty_sync_metrics_last_run_timestamp_seconds{crm=\"desk\"})"
+              for   = "15m"
+              labels = {
+                severity = "warning"
+                service  = "twenty"
+              }
+              annotations = {
+                summary     = "Twenty sync metrics are not being refreshed ({{ $labels.crm }})"
+                description = "twenty-sync-metrics.py on nlclaude01 has not completed for this CRM in 3 h (log: ~/logs/twenty-sync-metrics.log): ssh root@nltwenty01 or kubectl --context notrf01 failing. While this fires the twenty-sync alerts are blind for that CRM."
+              }
+            },
+          ]
+        },
       ]
     }
   }
