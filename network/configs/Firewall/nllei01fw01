@@ -751,6 +751,9 @@ object network MARIA_GEORGIADOU_INALAN_IP
  description Maria Georgiadou home (Inalan AS200736); mewmewmewmew.mooo.com lapsed after router swap; 2026-10-07
 object network nlpaops01
  host 10.0.X.X
+object network georgez[nloas01]
+ host 10.0.X.X
+ description georgez on nloas01 (moved from oas03, pve01 off) IFRNLLEI01PRD-3001
 object-group network NET_RFC1918
  description RFC1918: dmz_vpn01 traffic to it via outside_budget stays untranslated (IFRNLLEI01PRD-2924)
  network-object 10.0.0.0 255.0.0.0
@@ -923,6 +926,7 @@ object-group service otlp tcp
  port-object eq https
 object-group network georgez[nloasXX]
  network-object object georgez[nloas03]
+ network-object object georgez[nloas01]
 object-group network eu-nlgr-freeipa01
  network-object object grfreeipa01
  network-object object nlfreeipa01
@@ -2127,5 +2131,5 @@ event manager applet dailybackup
  event timer absolute time 0:58:00
  action 1 cli command "backup /noconfirm location tftp://10.0.X.X"
  output none
-Cryptochecksum:16e2a4dd00f4c024da2eb6f69403f209
+Cryptochecksum:c7c7b4f1a6d6d0805847e6ebd850b0a8
 : end
