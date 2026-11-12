@@ -771,6 +771,29 @@ resource "REDACTED_a9df2e77_v1" "gatus_config" {
             alerts = []
           },
           {
+            # The public Bridge demo (MESHSAT-1845): a demo, so no alerts.
+            name     = "MeshSat Bridge demo"
+            group    = "📱 Applications"
+            url      = "https://bridge.meshsat.net/healthz"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = []
+          },
+          {
+            name     = "MeshSat demo phone page"
+            group    = "📱 Applications"
+            url      = "https://app.safertogether.eu/"
+            interval = "60s"
+            conditions = [
+              "[STATUS] == 200",
+              "[RESPONSE_TIME] < 3000"
+            ]
+            alerts = []
+          },
+          {
             name     = "Mulecube"
             group    = "📱 Applications"
             url      = "https://mulecube.com"
