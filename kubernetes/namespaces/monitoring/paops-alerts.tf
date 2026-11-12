@@ -33,7 +33,7 @@ resource "kubernetes_manifest" "paops_alert_rules" {
               }
               annotations = {
                 summary     = "Proxenos: the Twilio line is not registered"
-                description = "The business SIP line is down. Check 'pjsip show registrations' in proxenos-asterisk, its network path and the saved line credentials. Runbook: products/proxenos docs/RUNBOOK.md."
+                description = "The business SIP line is down. Check 'pjsip show registrations' in proxenos-asterisk, its network path and the saved line credentials. Run ops/voice-line.sh status on the assistant host."
               }
             },
             {
