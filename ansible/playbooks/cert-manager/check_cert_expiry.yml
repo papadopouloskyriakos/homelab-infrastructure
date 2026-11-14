@@ -1,0 +1,81 @@
+---
+# =============================================================================
+# PVE pveproxy cert expiry audit
+# =============================================================================
+# Reads /etc/pve/local/pveproxy-ssl.pem on each PVE node, fails the host if
+# the cert expires within `expiry_threshold_days` days (default 21), and fails
+# the overall job if ANY host was under threshold OR unreachable.
+#
+# Runs independently of sync_cert_to_proxmox.yml so the expiry alarm is
+# decoupled from sync-playbook behavior. No ignore_unreachable: a silent
+# failure on the sync side must not mask an expiring cert here.
+# =============================================================================
+
+- name: Audit pveproxy cert expiry on PVE nodes
+  hosts: proxmox
+  gather_facts: false
+  vars:
+    cert_path: /etc/pve/local/pveproxy-ssl.pem
+    expiry_threshold_days: 21
+  tasks:
+    - name: Read pveproxy cert not_after
+      ansible.builtin.command:
+        cmd: "openssl x509 -enddate -noout -in {{ cert_path }}"
+      register: cert_enddate
+      changed_when: false
+
+    - name: Record not_after
+      ansible.builtin.set_fact:
+        cert_not_after: "{{ cert_enddate.stdout | regex_replace('^notAfter=', '') }}"
+
+    - name: Probe cert expiry threshold (openssl checkend)
+      ansible.builtin.command:
+        cmd: "openssl x509 -checkend {{ (expiry_threshold_days | int) * 86400 }} -noout -in {{ cert_path }}"
+      register: cert_threshold
+      changed_when: false
+      failed_when: false
+
+    - name: Fail host if cert expires within threshold
+      ansible.builtin.fail:
+        msg: "pveproxy cert on {{ inventory_hostname }} expires within {{ expiry_threshold_days }} days (not_after={{ cert_not_after }})"
+      when: cert_threshold.rc != 0
+
+- name: Summarise audit and fail job if any host bad
+  hosts: localhost
+  gather_facts: false
+  vars:
+    expiry_threshold_days: 21
+  tasks:
+    - name: Build per-host audit rows
+      ansible.builtin.set_fact:
+        audit_rows: "{{ audit_rows | default([]) + [current_row] }}"
+      loop: "{{ groups['proxmox'] }}"
+      loop_control:
+        loop_var: h
+        label: "{{ h }}"
+      vars:
+        current_row:
+          host: "{{ h }}"
+          not_after: "{{ hostvars[h].cert_not_after | default('n/a') }}"
+          status: >-
+            {%- if hostvars[h].cert_not_after is not defined -%}UNREACHABLE
+            {%- elif hostvars[h].cert_threshold.rc | default(1) != 0 -%}EXPIRING
+            {%- else -%}OK
+            {%- endif -%}
+
+    - name: Print audit summary
+      ansible.builtin.debug:
+        msg: |
+          === PVE pveproxy cert expiry audit (threshold: {{ expiry_threshold_days }} days) ===
+          {% for r in audit_rows %}
+          {{ '%-22s' | format(r.host) }} {{ '%-12s' | format(r.status) }} {{ r.not_after }}
+          {% endfor %}
+
+    - name: Fail job if any host under threshold or unreachable
+      ansible.builtin.fail:
+        msg: >-
+          Cert audit FAIL — {{
+            audit_rows | rejectattr('status','eq','OK') | list | length
+          }} host(s) bad:
+          {{ audit_rows | rejectattr('status','eq','OK') | map(attribute='host') | list | join(', ') }}
+      when: audit_rows | rejectattr('status','eq','OK') | list | length > 0

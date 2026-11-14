@@ -1,0 +1,210 @@
+---
+# Sync cert-manager wildcard certificate to the SMTP relay chain (gpg01 + dkim01, NL + GR)
+# Flow: K8s cert-manager secret -> SMTP hosts via SSH (root, ED25519 one_key)
+# Idempotent: skips if smtpd cert expiry matches K8s cert expiry
+#
+# Hosts group required: smtp_chain
+#   nlsmtp-gpg01, nlsmtp-dkim01, grsmtp-gpg01, grsmtp-dkim01
+#
+# Credentials from AWX/OpenBao custom credentials:
+#   K8s API: K8S_HOST, K8S_TOKEN, K8S_CA_CERT
+#   SSH:    SSH ED25519 (one_key) for all 4 hosts
+#
+# Cert paths (matches what gpg01 already uses; standardised across all 4 hosts):
+#   /etc/ssl/certs/example.net_cert.pem        (server cert)
+#   /etc/ssl/certs/example.net_fullchain.pem   (full chain)
+#   /etc/ssl/private/example.net_privkey.pem   (private key)
+#
+# Bootstrap: dkim01 hosts currently use the Debian snake-oil cert. The playbook
+# detects this via postconf and updates smtpd_tls_cert_file / smtpd_tls_key_file
+# to point at the wildcard (idempotent — only changes if not already correct).
+# smtpd_tls_security_level is intentionally left untouched (existing value: none
+# on dkim01 since they are internal-only). When that posture is changed in a
+# separate task, the cert is already in place.
+
+- name: Fetch certificate from Kubernetes
+  hosts: localhost
+  gather_facts: false
+  vars:
+    k8s_secret_name: REDACTED_0d82b4df-tls
+    k8s_secret_namespace: cert-manager
+    temp_dir: REDACTED_88f47687
+
+  tasks:
+    - name: Create temp directory
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: directory
+        mode: '0700'
+
+    - name: Set credentials from environment
+      ansible.builtin.set_fact:
+        k8s_host: "{{ lookup('env', 'K8S_HOST') }}"
+        k8s_token: "{{ lookup('env', 'K8S_TOKEN') }}"
+        k8s_ca_cert: "{{ lookup('env', 'K8S_CA_CERT') }}"
+      no_log: true
+
+    - name: Write CA cert to temp file
+      ansible.builtin.copy:
+        content: "{{ k8s_ca_cert }}"
+        dest: "{{ temp_dir }}/ca.crt"
+        mode: '0600'
+
+    - name: Get TLS secret from K8s API
+      ansible.builtin.uri:
+        url: "{{ k8s_host }}/api/v1/namespaces/{{ k8s_secret_namespace }}/secrets/{{ k8s_secret_name }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ k8s_token }}"
+        ca_path: "{{ temp_dir }}/ca.crt"
+        validate_certs: true
+        return_content: true
+      register: k8s_secret
+      no_log: true
+
+    - name: Decode and save fullchain cert
+      ansible.builtin.copy:
+        content: "{{ k8s_secret.json.data['tls.crt'] | b64decode }}"
+        dest: "{{ temp_dir }}/fullchain.pem"
+        mode: '0600'
+      no_log: true
+
+    - name: Decode and save private key
+      ansible.builtin.copy:
+        content: "{{ k8s_secret.json.data['tls.key'] | b64decode }}"
+        dest: "{{ temp_dir }}/privkey.pem"
+        mode: '0600'
+      no_log: true
+
+    - name: Get K8s certificate expiry
+      ansible.builtin.command:
+        cmd: openssl x509 -enddate -noout -in "{{ temp_dir }}/fullchain.pem"
+      register: k8s_cert_expiry_raw
+      changed_when: false
+
+    - name: Parse K8s certificate expiry to ISO format
+      ansible.builtin.command:
+        cmd: date -d "{{ k8s_cert_expiry_raw.stdout | regex_replace('notAfter=', '') }}" -u +%Y-%m-%dT%H:%M:%S
+      register: k8s_cert_expiry
+      changed_when: false
+
+    - name: Display K8s certificate expiry
+      ansible.builtin.debug:
+        msg: "K8s certificate expires: {{ k8s_cert_expiry.stdout }}"
+
+
+- name: Deploy certificate to SMTP relay chain
+  hosts: smtp_chain
+  gather_facts: false
+  vars:
+    temp_dir: REDACTED_88f47687
+    smtp_cert_path: /etc/ssl/certs/example.net_cert.pem
+    smtp_fullchain_path: /etc/ssl/certs/example.net_fullchain.pem
+    smtp_key_path: /etc/ssl/private/example.net_privkey.pem
+    k8s_cert_expiry: "{{ hostvars['localhost']['k8s_cert_expiry']['stdout'] }}"
+
+  tasks:
+    - name: Check current smtpd cert expiry
+      ansible.builtin.shell:
+        cmd: |
+          if [ -f {{ smtp_cert_path }} ]; then
+            DATE=$(openssl x509 -enddate -noout -in {{ smtp_cert_path }} | sed 's/notAfter=//')
+            date -d "$DATE" -u +%Y-%m-%dT%H:%M:%S
+          else
+            echo "NONE"
+          fi
+      register: node_cert_expiry
+      changed_when: false
+
+    - name: Display current node cert expiry
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} current cert expires: {{ node_cert_expiry.stdout }}"
+
+    - name: Set sync flag (cert content)
+      ansible.builtin.set_fact:
+        sync_needed: "{{ node_cert_expiry.stdout == 'NONE' or k8s_cert_expiry != node_cert_expiry.stdout }}"
+
+    - name: Display sync decision
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}: {{
+            'Sync needed - deploying new certificate'
+            if sync_needed else
+            'Sync NOT needed - certificate already current (' + k8s_cert_expiry + ')'
+          }}
+
+    - name: Deploy server cert (cert.pem)
+      ansible.builtin.copy:
+        src: "{{ temp_dir }}/fullchain.pem"
+        dest: "{{ smtp_cert_path }}"
+        owner: root
+        group: root
+        mode: '0644'
+      when: sync_needed
+
+    - name: Deploy fullchain (fullchain.pem)
+      ansible.builtin.copy:
+        src: "{{ temp_dir }}/fullchain.pem"
+        dest: "{{ smtp_fullchain_path }}"
+        owner: root
+        group: root
+        mode: '0644'
+      when: sync_needed
+
+    - name: Deploy private key
+      ansible.builtin.copy:
+        src: "{{ temp_dir }}/privkey.pem"
+        dest: "{{ smtp_key_path }}"
+        owner: root
+        group: root
+        mode: '0600'
+      no_log: true
+      when: sync_needed
+
+    # ---- Bootstrap: ensure postfix smtpd points at the wildcard cert (one-time idempotent) ----
+    - name: Inspect current postfix smtpd cert paths
+      ansible.builtin.shell:
+        cmd: |
+          echo "REDACTED_8943214a$(postconf -h smtpd_tls_cert_file)"
+          echo "smtpd_tls_key_file=$(postconf -h smtpd_tls_key_file)"
+      register: current_smtpd_paths
+      changed_when: false
+
+    - name: Update postfix smtpd to use wildcard cert
+      ansible.builtin.command:
+        cmd: postconf -e "smtpd_tls_cert_file = {{ smtp_cert_path }}"
+      when: ('REDACTED_8943214a' + smtp_cert_path) not in current_smtpd_paths.stdout
+      register: cert_path_updated
+
+    - name: Update postfix smtpd to use wildcard key
+      ansible.builtin.command:
+        cmd: postconf -e "smtpd_tls_key_file = {{ smtp_key_path }}"
+      when: ('smtpd_tls_key_file=' + smtp_key_path) not in current_smtpd_paths.stdout
+      register: key_path_updated
+
+    # ---- Reload postfix if anything changed (cert or main.cf paths) ----
+    - name: Reload postfix to apply new certificate
+      ansible.builtin.systemd:
+        name: postfix
+        state: reloaded
+      when: sync_needed or (cert_path_updated.changed | default(false)) or (key_path_updated.changed | default(false))
+
+    - name: Final status
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}:
+          cert_synced={{ sync_needed }}
+          main_cf_updated={{ (cert_path_updated.changed | default(false)) or (key_path_updated.changed | default(false)) }}
+
+
+- name: Cleanup temp directory
+  hosts: localhost
+  gather_facts: false
+  vars:
+    temp_dir: REDACTED_88f47687
+
+  tasks:
+    - name: Remove temp directory
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: absent
