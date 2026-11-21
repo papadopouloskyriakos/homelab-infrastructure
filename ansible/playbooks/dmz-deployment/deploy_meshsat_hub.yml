@@ -1,0 +1,58 @@
+---
+# deploy_meshsat_hub.yml
+# AWX Playbook for safe MeshSat Hub deployment to DMZ hosts.
+#
+# Unlike the generic deploy_dmz_service.yml, this playbook:
+#   - Only restarts the Hub container (--no-deps: never touches MariaDB/garbd/nats/redis)
+#   - Uses --force-recreate to ensure Docker Compose v5 picks up current env/config
+#   - Matches the safety pattern used by the GitLab CI deploy stage
+#
+# AWX Job Template: "Deploy MeshSat Hub" (ID 57)
+#   Inventory: Edge Infrastructure
+#   Extra vars: none required (compose_dir defaults to /srv/meshsat-hub)
+#
+# NEVER use deploy_dmz_service.yml for MeshSat Hub — it runs
+# `docker compose down` + `docker compose up -d` which destroys the Galera cluster.
+
+- name: Deploy MeshSat Hub (safe — Hub container only)
+  hosts: "{{ target_hosts | default('dmz_docker') }}"
+  become: true
+  gather_facts: false
+  vars:
+    compose_dir: /srv/meshsat-hub
+    service_name: meshsat-hub
+    hub_image: "ghcr.io/cubeos-app/meshsat-hub:latest"
+
+  tasks:
+    - name: Pull latest Hub image only
+      ansible.builtin.command:
+        cmd: "docker pull {{ hub_image }}"
+        chdir: "{{ compose_dir }}"
+      register: pull_result
+      changed_when: "'Pull complete' in pull_result.stdout or 'Downloaded' in pull_result.stdout"
+
+    - name: Restart Hub container only (never touch MariaDB)
+      ansible.builtin.command:
+        cmd: docker compose up -d --no-deps --force-recreate hub
+        chdir: "{{ compose_dir }}"
+      register: up_result
+      changed_when: "'Started' in up_result.stderr or 'Recreated' in up_result.stderr"
+
+    - name: Wait for Hub healthcheck to pass
+      ansible.builtin.command:
+        cmd: "docker inspect --format '{{ '{{' }}.State.Health.Status{{ '}}' }}' {{ service_name }}"
+      register: health_state
+      until: health_state.stdout == 'healthy'
+      retries: 30
+      delay: 2
+      changed_when: false
+
+    - name: Verify /healthz endpoint
+      ansible.builtin.command:
+        cmd: "docker exec {{ service_name }} wget -q -O- http://localhost:6070/healthz"
+      register: healthz
+      changed_when: false
+
+    - name: Done
+      ansible.builtin.debug:
+        msg: "{{ service_name }} deployed on {{ inventory_hostname }} (healthz: {{ healthz.stdout | default('ok') }})"

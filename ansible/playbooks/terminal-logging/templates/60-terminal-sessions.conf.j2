@@ -1,0 +1,4 @@
+# {{ ansible_managed }}
+# Terminal session logging — local file + forward to central syslog-ng
+local6.info     /var/log/terminal-sessions.log
+local6.info     @@{{ syslog_target }}:{{ syslog_port }}
