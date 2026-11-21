@@ -3,7 +3,7 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-11-20 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-11-21 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: CRITICAL ⚠️
 
@@ -11,13 +11,13 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 |-------|-------|
 | Unhealthy Pods | 6 |
 | Pending PVCs | 0 |
-| Total Restarts | 16352 |
+| Total Restarts | 16687 |
 
 ## Topology
 
 - **K8s:** v1.36.3 | **CNI:** Cilium 1.20.0
 - **Nodes:** 7 (3 control-plane, 4 workers)
-- **Pods:** 176
+- **Pods:** 177
 
 ### Nodes
 - **nlk8s-ctrl01** (control-plane) 10.0.X.X | CPU:4 Mem:8002640Ki | Taints:node-role.kubernetes.io/control-plane=:NoSchedule
@@ -32,19 +32,19 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-backup-gateway           REDACTED_4e0a8ed8-29918201-k9mb2                              0/1   Error              0                   14h
-monitoring               meshsat-status-heartbeat-29914881-2wmbx                           0/1   Error              0                   2d21h
-monitoring               meshsat-status-heartbeat-29915276-6phr5                           0/1   Error              0                   2d15h
-monitoring               meshsat-status-heartbeat-29917086-dgx6k                           0/1   Error              0                   32h
-velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                   57d
-velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   10855 (2m33s ago)   65d
+backup-gateway           REDACTED_4e0a8ed8-29918201-k9mb2                              0/1   Error              0                 38h
+monitoring               meshsat-status-heartbeat-29914881-2wmbx                           0/1   Error              0                 3d21h
+monitoring               meshsat-status-heartbeat-29915276-6phr5                           0/1   Error              0                 3d15h
+monitoring               meshsat-status-heartbeat-29917086-dgx6k                           0/1   Error              0                 2d8h
+velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                 58d
+velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   11183 (95s ago)   66d
 ```
 
 ### High Restart Pods (>3)
-argocd/argocd-application-controller-0: 135 restarts
+argocd/argocd-application-controller-0: 137 restarts
 argocd/argocd-repo-server-7dfc645f84-hqhdh: 6 restarts
 argocd/argocd-server-64dd47d8bf-ntq7c: 8 restarts
-awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 240 restarts
+awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 241 restarts
 awx/my-awx-task-756d768868-bslc2: 11 restarts
 awx/my-awx-web-f9c4bb98d-wcn4j: 10 restarts
 cert-manager/cert-manager-75944f484-k8x88: 54 restarts
@@ -106,7 +106,7 @@ logging/promtail-hp5sc: 12 restarts
 logging/promtail-lphvc: 4 restarts
 logging/promtail-m2gzm: 13 restarts
 logging/promtail-ng69s: 17 restarts
-monitoring/bgpalerter-b7bc9c8c-kdlv5: 15 restarts
+monitoring/bgpalerter-b7bc9c8c-kdlv5: 19 restarts
 monitoring/goldpinger-fjpnh: 11 restarts
 monitoring/goldpinger-gb4mq: 4 restarts
 monitoring/goldpinger-rb96x: 11 restarts
@@ -135,15 +135,15 @@ synology-csi/synology-csi-node-sfdmg: 18 restarts
 synology-csi/synology-csi-node-zch7n: 47 restarts
 velero/node-agent-54dn2: 10 restarts
 velero/node-agent-sm5xl: 5 restarts
-velero/velero-ui-687565868b-b9xr7: 10855 restarts
+velero/velero-ui-687565868b-b9xr7: 11183 restarts
 
 ### Recent Warnings (5)
 ```
-kube-system              61s         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl01                                   Liveness probe failed: HTTP probe failed with statuscode: 500
-monitoring               60s         Warning   Unhealthy         pod/monitoring-kube-state-metrics-75f9fff55b-prwns                      Liveness probe failed: HTTP probe failed with statuscode: 503
-kube-system              59s         Warning   Unhealthy         pod/etcd-nlk8s-ctrl03                                             Readiness probe failed: HTTP probe failed with statuscode: 503
-awx                      58s         Warning   Unhealthy         pod/awx-operator-controller-manager-6ffdf98f6-8jv8s                     Liveness probe failed: Get "http://10.0.0.249:6789/healthz": dial tcp 10.0.0.249:6789: connect: connection refused
-kube-system              18s         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl03                                   Readiness probe failed: HTTP probe failed with statuscode: 500
+argocd                   31m         Warning   Unhealthy         pod/argocd-repo-server-7dfc645f84-hqhdh                                 Liveness probe failed: Get "http://10.0.6.194:8084/healthz?full=true": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+velero                   28m         Warning   Unhealthy         pod/velero-ui-687565868b-b9xr7                                          Liveness probe failed: Get "http://10.0.6.103:3000/": dial tcp 10.0.6.103:3000: connect: connection refused
+monitoring               26m         Warning   Unhealthy         pod/monitoring-kube-state-metrics-75f9fff55b-prwns                      Liveness probe failed: HTTP probe failed with statuscode: 503
+kube-system              26m         Warning   Unhealthy         pod/kube-apiserver-nlk8s-ctrl03                                   Readiness probe failed: HTTP probe failed with statuscode: 500
+velero                   9m2s        Warning   Unhealthy         pod/velero-ui-687565868b-b9xr7                                          Readiness probe failed: Get "http://10.0.6.103:3000/": dial tcp 10.0.6.103:3000: connect: connection refused
 ```
 
 ## Key Resources
