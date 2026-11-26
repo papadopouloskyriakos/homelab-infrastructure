@@ -3,15 +3,15 @@
 LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md for deep troubleshooting.
 -->
 
-**Generated:** 2026-11-25 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
+**Generated:** 2026-11-26 03:00:01 UTC | **Host:** nlk8s-ctrl01 | **v3.1.0**
 
 ## Health: DEGRADED ⚠️
 
 | Check | Value |
 |-------|-------|
-| Unhealthy Pods | 4 |
+| Unhealthy Pods | 5 |
 | Pending PVCs | 0 |
-| Total Restarts | 18340 |
+| Total Restarts | 18700 |
 
 ## Topology
 
@@ -32,17 +32,18 @@ LLM: Compact cluster snapshot for quick analysis. Use cluster-context-full.md fo
 
 ### Unhealthy Pods
 ```
-monitoring               meshsat-status-heartbeat-29921760-6jwts                           0/1   Error       0                   3d3h
-monitoring               meshsat-status-heartbeat-29924830-zrd5w                           0/1   Error       0                   23h
-monitoring               meshsat-status-heartbeat-29924883-q4rc9                           0/1   Error       0                   22h
-velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error       0                   62d
+monitoring               meshsat-status-heartbeat-29926290-rz5mc                           0/1   Error              0                   23h
+monitoring               meshsat-status-heartbeat-29926680-mpggk                           0/1   Error              0                   17h
+monitoring               meshsat-status-heartbeat-29927701-tjlsj                           0/1   Error              0                   28s
+velero                   monitoring-default-kopia-maintain-job-1790197917279-s5f69         0/1   Error              0                   63d
+velero                   velero-ui-687565868b-b9xr7                                        0/1   CrashLoopBackOff   12871 (3m23s ago)   71d
 ```
 
 ### High Restart Pods (>3)
 argocd/argocd-application-controller-0: 151 restarts
-argocd/argocd-repo-server-7dfc645f84-hqhdh: 11 restarts
-argocd/argocd-server-64dd47d8bf-ntq7c: 9 restarts
-awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 268 restarts
+argocd/argocd-repo-server-7dfc645f84-hqhdh: 12 restarts
+argocd/argocd-server-64dd47d8bf-ntq7c: 10 restarts
+awx/awx-operator-controller-manager-6ffdf98f6-8jv8s: 272 restarts
 awx/my-awx-task-756d768868-bslc2: 11 restarts
 awx/my-awx-web-f9c4bb98d-wcn4j: 10 restarts
 cert-manager/cert-manager-75944f484-k8x88: 58 restarts
@@ -55,8 +56,8 @@ cilium-spire/spire-agent-sm9xs: 285 restarts
 cilium-spire/spire-agent-xk8cl: 281 restarts
 cilium-spire/spire-agent-zqpt4: 288 restarts
 cilium-spire/spire-server-0: 6 restarts
-cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-wzdfh: 184 restarts
-cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-zl8gc: 200 restarts
+cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-wzdfh: 185 restarts
+cnpg-system/cnpg-cloudnative-pg-6d8bdc546d-zl8gc: 201 restarts
 kube-system/cilium-9t574: 4 restarts
 kube-system/cilium-c8kqc: 12 restarts
 kube-system/cilium-envoy-brdkr: 10 restarts
@@ -64,7 +65,7 @@ kube-system/cilium-envoy-dzx97: 12 restarts
 kube-system/cilium-envoy-nwfj5: 4 restarts
 kube-system/cilium-envoy-z9854: 6 restarts
 kube-system/cilium-g5h5t: 10 restarts
-kube-system/cilium-operator-84c4fb58c7-jlhkp: 281 restarts
+kube-system/cilium-operator-84c4fb58c7-jlhkp: 282 restarts
 kube-system/cilium-qw7d6: 6 restarts
 kube-system/etcd-nlk8s-ctrl01: 5 restarts
 kube-system/etcd-nlk8s-ctrl02: 11 restarts
@@ -74,14 +75,14 @@ kube-system/kube-apiserver-nlk8s-ctrl02: 18 restarts
 kube-system/kube-apiserver-nlk8s-ctrl03: 122 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl01: 185 restarts
 kube-system/kube-controller-manager-nlk8s-ctrl02: 20 restarts
-kube-system/kube-controller-manager-nlk8s-ctrl03: 175 restarts
+kube-system/kube-controller-manager-nlk8s-ctrl03: 176 restarts
 kube-system/kube-proxy-7jvns: 12 restarts
 kube-system/kube-proxy-jvln5: 6 restarts
 kube-system/kube-proxy-sg86x: 6 restarts
 kube-system/kube-proxy-xhgkv: 4 restarts
 kube-system/kube-scheduler-nlk8s-ctrl01: 173 restarts
 kube-system/kube-scheduler-nlk8s-ctrl02: 12 restarts
-kube-system/kube-scheduler-nlk8s-ctrl03: 186 restarts
+kube-system/kube-scheduler-nlk8s-ctrl03: 187 restarts
 kube-system/metrics-server-7f76dc54d5-gvlpm: 4 restarts
 kube-system/tetragon-5gk99: 11 restarts
 kube-system/tetragon-75hdg: 32 restarts
@@ -90,8 +91,8 @@ kube-system/tetragon-jz2b6: 18 restarts
 kube-system/tetragon-mdsn9: 44 restarts
 kube-system/tetragon-tbcc7: 12 restarts
 kube-system/tetragon-vbs6v: 24 restarts
-kyverno/kyverno-admission-controller-584d7f7684-6k9gg: 239 restarts
-kyverno/kyverno-reports-controller-7bbf4b866b-rq8pt: 248 restarts
+kyverno/kyverno-admission-controller-584d7f7684-6k9gg: 241 restarts
+kyverno/kyverno-reports-controller-7bbf4b866b-rq8pt: 249 restarts
 logging/loki-0: 16 restarts
 logging/loki-canary-bbplf: 14 restarts
 logging/loki-canary-n69w2: 4 restarts
@@ -115,14 +116,14 @@ monitoring/monitoring-grafana-7d6c5795b8-vbrmn: 32 restarts
 monitoring/monitoring-kube-prometheus-operator-67d8d4c647-dhmmb: 7 restarts
 monitoring/monitoring-kube-state-metrics-75f9fff55b-prwns: 176 restarts
 monitoring/monitoring-prometheus-node-exporter-6dl8r: 187 restarts
-monitoring/monitoring-prometheus-node-exporter-6sc8j: 13 restarts
+monitoring/monitoring-prometheus-node-exporter-6sc8j: 14 restarts
 monitoring/monitoring-prometheus-node-exporter-88hp8: 13 restarts
 monitoring/monitoring-prometheus-node-exporter-8bq88: 8 restarts
 monitoring/monitoring-prometheus-node-exporter-vgp6b: 8 restarts
 monitoring/monitoring-prometheus-node-exporter-wmcb8: 48 restarts
 monitoring/prometheus-REDACTED_6dfbe9fc-0: 5 restarts
-monitoring/prometheus-REDACTED_6dfbe9fc-1: 59 restarts
-nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-75b84759cfvtflq: 276 restarts
+monitoring/prometheus-REDACTED_6dfbe9fc-1: 66 restarts
+nfs-provisioner/nfs-provisioner-REDACTED_5fef70be-75b84759cfvtflq: 279 restarts
 synology-csi/synology-csi-controller-0: 4 restarts
 synology-csi/synology-csi-node-4nxcz: 10 restarts
 synology-csi/synology-csi-node-kxrjb: 25 restarts
@@ -133,15 +134,15 @@ synology-csi/synology-csi-node-sfdmg: 18 restarts
 synology-csi/synology-csi-node-zch7n: 47 restarts
 velero/node-agent-54dn2: 10 restarts
 velero/node-agent-sm5xl: 5 restarts
-velero/velero-ui-687565868b-b9xr7: 12530 restarts
+velero/velero-ui-687565868b-b9xr7: 12871 restarts
 
 ### Recent Warnings (5)
 ```
-velero                   13m         Warning   Unhealthy         pod/velero-ui-687565868b-b9xr7                                          Liveness probe failed: Get "http://10.0.6.103:3000/": dial tcp 10.0.6.103:3000: connect: connection refused
-monitoring               12m         Warning   FailedDelete      cronjob/meshsat-status-heartbeat                                        Deleted job: jobs.batch "meshsat-status-heartbeat-29926247" not found
-velero                   7m56s       Warning   Unhealthy         pod/velero-ui-687565868b-b9xr7                                          Readiness probe failed: Get "http://10.0.6.103:3000/": dial tcp 10.0.6.103:3000: connect: connection refused
-velero                   2m37s       Warning   BackOff           pod/velero-ui-687565868b-b9xr7                                          Back-off restarting failed container velero-ui in pod velero-ui-687565868b-b9xr7_velero(32280caf-839d-4113-832e-fdaf11b09a1a)
-argocd                   51s         Warning   Unhealthy         pod/argocd-repo-server-7dfc645f84-hqhdh                                 Liveness probe failed: Get "http://10.0.6.194:8084/healthz?full=true": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+argocd                   81s         Warning   Unhealthy              pod/argocd-repo-server-7dfc645f84-hqhdh                                 Liveness probe failed: Get "http://10.0.6.194:8084/healthz?full=true": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+kube-system              22s         Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl01                                   Liveness probe failed: HTTP probe failed with statuscode: 500
+kube-system              21s         Warning   Unhealthy              pod/etcd-nlk8s-ctrl03                                             Readiness probe failed: HTTP probe failed with statuscode: 503
+kube-system              20s         Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl03                                   Readiness probe failed: HTTP probe failed with statuscode: 500
+kube-system              19s         Warning   Unhealthy              pod/kube-apiserver-nlk8s-ctrl01                                   Readiness probe failed: HTTP probe failed with statuscode: 500
 ```
 
 ## Key Resources
