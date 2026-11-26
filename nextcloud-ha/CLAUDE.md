@@ -88,6 +88,17 @@ had `balloon: 2048` against `memory: 4096`, so nlpve04's auto-ballooning held th
 never shrinks). ⚠ nc02's copy here still says 1500: when nl-pve01 returns, check nc02's live
 value and set it to the same 20 (nc02 has 4 GB and no balloon floor).
 
+**HAProxy connection cap (2026-11-26, IFRNLLEI01PRD-3014):** the four `nextcloud_servers` server
+lines on nlhaproxy02 carry `maxconn 16`, so a CalDAV burst queues at HAProxy
+(`timeout queue 30s`) instead of saturating Apache (30) and FPM (20) on the only live server.
+Tested with 200 parallel PROPFINDs: all answered, `srv_conn` max 16, no 503. `haproxy.cfg`
+(`/srv/haproxy/config/` on the host) is NOT in this repo, only the compose file is: edit in place
+(single-file bind mount, keep the inode), validate with `docker exec -i haproxy haproxy -c -f
+/dev/stdin`, reload with `docker kill -s HUP haproxy`. nlhaproxy01 needs the same edit when
+it returns. ⚠ Count Nextcloud errors at NPM (proxy host 61 access log, `- 502, 502 502 -`), not
+only at HAProxy: NPM showed 100-140 such 502s a day in November (mostly the Evolution calendar
+sync at :00/:30) while HAProxy logged no 5xx. Whether the cap removes them: see the ticket.
+
 **php2shell interim mitigation (21 October 2026, CVE-2026-109618/-109619, IFRNLLEI01PRD-2949):** `www.conf` on nc01
 carries `php_admin_value[session.upload_progress.enabled] = 0` (backup `www.conf.bak-20261021-php2shell`); Nextcloud
 does not use session upload progress (chunked WebDAV uploads), so keep it. It lives in the pool file, not php.ini, because
