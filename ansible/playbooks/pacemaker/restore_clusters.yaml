@@ -1,0 +1,269 @@
+---
+# Pacemaker Clusters Restore — IoT + FISHA startup with health gates
+#
+# Restarts both NL Pacemaker clusters after maintenance.
+# Must be called AFTER Synology syno01 is back and VMM guests
+# (filearb01, iotarb01) are running.
+#
+# Optional extra_vars:
+#   skip_iot: true to skip IoT cluster (default: false)
+#   skip_fisha: true to skip FISHA cluster (default: false)
+#
+# FISHA restore (step 30):
+#   1. Verify filearb01 is reachable (syno01 VMM guest)
+#   2. Start Pacemaker on file01 + file02
+#   3. Wait for 3 nodes Online
+#   4. Verify DRBD promoted to dual-Primary
+#   5. Verify OCFS2 mounted
+#   6. Verify NFS VIP responding
+#
+# IoT restore (step 39):
+#   1. Verify iotarb01 is reachable
+#   2. Start Pacemaker on iot01 + iot02
+#   3. Wait for 3 nodes Online + g_iot_stack Started
+#   4. Verify 5 Docker containers running
+#   5. Verify VIP + Home Assistant responding
+#   6. Verify SBD slot states
+#
+# Runs from localhost (delegates via SSH).
+
+- name: Set defaults for included tasks
+  set_fact:
+    _skip_iot: "{{ skip_iot | default(false) | bool }}"
+    _skip_fisha: "{{ skip_fisha | default(false) | bool }}"
+  when: _skip_iot is not defined
+
+###########################################################################
+# FISHA Cluster Restore (before IoT — IoT NFS depends on FISHA VIP)
+###########################################################################
+- name: "[FISHA] Begin restore"
+  debug:
+    msg: "Restoring FISHA cluster (nlcl01file01, nlcl01file02, nlcl01filearb01)"
+  when: not _skip_fisha
+
+# Verify filearb01 is alive
+- name: "[FISHA] Wait for filearb01 (syno01 VMM) to be reachable"
+  shell: timeout 5 bash -c '</dev/tcp/10.0.X.X/22' 2>/dev/null && echo OK
+  register: fisha_arb_check
+  until: fisha_arb_check.rc == 0
+  retries: 20
+  delay: 15
+  changed_when: false
+  when: not _skip_fisha
+
+# Start Pacemaker
+- name: "[FISHA] Start Pacemaker on file01"
+  shell: ssh nlcl01file01 "pcs cluster start" 2>&1
+  register: fisha_file01_start
+  when: not _skip_fisha
+
+- name: "[FISHA] Start Pacemaker on file02"
+  shell: ssh nlcl01file02 "pcs cluster start" 2>&1
+  register: fisha_file02_start
+  when: not _skip_fisha
+
+# Wait for cluster to form
+- name: "[FISHA] Wait for 3 nodes Online (up to 3 min)"
+  shell: |
+    crm_out=$(ssh nlcl01file01 "crm status" 2>/dev/null)
+    online_count=0
+    for node in nlcl01file01 nlcl01file02 nlcl01filearb01; do
+      if echo "$crm_out" | grep -E "Online:" | grep -q "\b${node}\b"; then
+        online_count=$((online_count + 1))
+      fi
+    done
+    echo "$online_count/3 nodes Online"
+    [ "$online_count" -eq 3 ]
+  register: fisha_3nodes
+  until: fisha_3nodes.rc == 0
+  retries: 12
+  delay: 15
+  changed_when: false
+  when: not _skip_fisha
+
+# Wait for DRBD dual-Primary
+- name: "[FISHA] Wait for DRBD promoted on both primaries (up to 5 min)"
+  shell: |
+    crm_out=$(ssh nlcl01file01 "crm status" 2>/dev/null)
+    drbd_section=$(echo "$crm_out" | grep -A5 "ms_drbd_r0" || true)
+    f01_promoted=$(echo "$drbd_section" | grep -iE "Promoted|Masters" | grep -c "nlcl01file01" || true)
+    f02_promoted=$(echo "$drbd_section" | grep -iE "Promoted|Masters" | grep -c "nlcl01file02" || true)
+    echo "nlcl01file01 promoted: $f01_promoted, nlcl01file02 promoted: $f02_promoted"
+    [ "$f01_promoted" -ge 1 ] && [ "$f02_promoted" -ge 1 ]
+  register: drbd_promoted
+  until: drbd_promoted.rc == 0
+  retries: 20
+  delay: 15
+  changed_when: false
+  when: not _skip_fisha
+
+# Wait for OCFS2
+- name: "[FISHA] Wait for OCFS2 mounted on both primaries (up to 3 min)"
+  shell: |
+    f01=$(ssh nlcl01file01 "mountpoint -q /mnt/ocfs2 && echo 'mounted' || echo 'not_mounted'" 2>/dev/null)
+    f02=$(ssh nlcl01file02 "mountpoint -q /mnt/ocfs2 && echo 'mounted' || echo 'not_mounted'" 2>/dev/null)
+    echo "nlcl01file01: $f01, nlcl01file02: $f02"
+    [ "$f01" = "mounted" ] && [ "$f02" = "mounted" ]
+  register: ocfs2_mounted
+  until: ocfs2_mounted.rc == 0
+  retries: 12
+  delay: 15
+  changed_when: false
+  when: not _skip_fisha
+
+# Verify NFS VIP
+- name: "[FISHA] Wait for NFS VIP 10.0.X.X (port 2049)"
+  shell: ssh nl-pve01 "timeout 5 bash -c '</dev/tcp/10.0.X.X/2049' 2>/dev/null && echo OK"
+  register: fisha_nfs_check
+  until: fisha_nfs_check.rc == 0
+  retries: 8
+  delay: 15
+  changed_when: false
+  when: not _skip_fisha
+
+- name: "[FISHA] Verify NFS export accessible"
+  shell: ssh nl-pve01 "showmount -e 10.0.X.X 2>/dev/null | grep -q '/mnt/ocfs2'"
+  register: fisha_nfs_export
+  retries: 3
+  delay: 15
+  until: fisha_nfs_export.rc == 0
+  changed_when: false
+  when: not _skip_fisha
+
+- name: "[FISHA] Restore complete"
+  debug:
+    msg: "FISHA cluster restored: 3 nodes Online, DRBD dual-Primary, OCFS2 mounted, NFS VIP active"
+  when: not _skip_fisha
+
+###########################################################################
+# IoT/HAHA Cluster Restore (after FISHA — IoT NFS mount depends on FISHA)
+###########################################################################
+- name: "[IOT] Begin restore"
+  debug:
+    msg: "Restoring IoT/HAHA cluster (nlcl01iot01, nlcl01iot02, nlcl01iotarb01)"
+  when: not _skip_iot
+
+# Verify iotarb01 is alive
+- name: "[IOT] Wait for iotarb01 (syno01 VMM) to be reachable"
+  shell: timeout 5 bash -c '</dev/tcp/10.0.X.X/22' 2>/dev/null && echo OK
+  register: iot_arb_check
+  until: iot_arb_check.rc == 0
+  retries: 20
+  delay: 15
+  changed_when: false
+  when: not _skip_iot
+
+# Start Pacemaker
+- name: "[IOT] Start Pacemaker on iot01"
+  shell: ssh -i ~/.ssh/one_key root@nlcl01iot01 "pcs cluster start" 2>&1
+  register: iot_iot01_start
+  when: not _skip_iot
+
+- name: "[IOT] Start Pacemaker on iot02"
+  shell: ssh -i ~/.ssh/one_key root@nlcl01iot02 "pcs cluster start" 2>&1
+  register: iot_iot02_start
+  when: not _skip_iot
+
+# Wait for cluster + g_iot_stack
+- name: "[IOT] Wait for 3 nodes Online + g_iot_stack Started (up to 5 min)"
+  shell: |
+    crm_out=$(ssh -i ~/.ssh/one_key root@nlcl01iot02 "crm status" 2>/dev/null)
+
+    # Check nodes
+    online_count=0
+    for node in nlcl01iot01 nlcl01iot02 nlcl01iotarb01; do
+      if echo "$crm_out" | grep -E "Online:" | grep -q "\b${node}\b"; then
+        online_count=$((online_count + 1))
+      fi
+    done
+
+    # Check g_iot_stack
+    stack_running=$(echo "$crm_out" | grep -c "p_vip_iot.*Started" || true)
+
+    echo "$online_count/3 nodes Online, g_iot_stack running: $stack_running"
+    [ "$online_count" -eq 3 ] && [ "$stack_running" -eq 1 ]
+  register: iot_cluster_up
+  until: iot_cluster_up.rc == 0
+  retries: 20
+  delay: 15
+  changed_when: false
+  when: not _skip_iot
+
+# Verify Docker containers
+- name: "[IOT] Identify active IoT node"
+  shell: |
+    ssh -i ~/.ssh/one_key root@nlcl01iot02 \
+      "crm status" 2>/dev/null | grep -oP 'p_vip_iot.*Started\s+\K\S+'
+  register: iot_active_node
+  changed_when: false
+  when: not _skip_iot
+
+- name: "[IOT] Wait for 5 Docker containers on active node (up to 3 min)"
+  shell: |
+    active="{{ iot_active_node.stdout }}"
+    # Determine SSH params based on node
+    if [ "$active" = "nlcl01iot01" ]; then
+      ssh_cmd="ssh -i ~/.ssh/one_key root@nlcl01iot01"
+    else
+      ssh_cmd="ssh -i ~/.ssh/one_key root@nlcl01iot02"
+    fi
+
+    running=$($ssh_cmd "docker ps --format '{{ '{{' }}.Names{{ '}}' }}'" 2>/dev/null)
+    count=$(echo "$running" | grep -c . || true)
+    echo "Running containers on $active: $count"
+    echo "$running"
+    [ "$count" -ge 5 ]
+  register: iot_docker_running
+  until: iot_docker_running.rc == 0
+  retries: 12
+  delay: 15
+  changed_when: false
+  when: not _skip_iot
+
+# Verify VIP + HA
+- name: "[IOT] Wait for VIP 10.0.X.X (HA port 8123)"
+  shell: timeout 5 bash -c '</dev/tcp/10.0.X.X/8123' 2>/dev/null && echo OK
+  register: iot_vip_check
+  until: iot_vip_check.rc == 0
+  retries: 12
+  delay: 15
+  changed_when: false
+  when: not _skip_iot
+
+# Verify SBD
+- name: "[IOT] Verify SBD slot states"
+  shell: |
+    sbd_out=$(ssh -i ~/.ssh/one_key root@nlcl01iot02 \
+      "sbd -d /dev/sdb list" 2>/dev/null)
+    echo "$sbd_out"
+    if echo "$sbd_out" | grep -qE "\b(reset|off)\b"; then
+      echo "SBD UNHEALTHY"
+      exit 1
+    fi
+    echo "All SBD slots clear"
+  register: iot_sbd_check
+  changed_when: false
+  failed_when: false
+  when: not _skip_iot
+
+- name: "[IOT] WARN if SBD unhealthy"
+  debug:
+    msg: "WARNING: SBD slots not all clear — manual investigation recommended"
+  when: not _skip_iot and iot_sbd_check.rc != 0
+
+- name: "[IOT] Restore complete"
+  debug:
+    msg: >-
+      IoT/HAHA cluster restored: 3 nodes Online, g_iot_stack on {{ iot_active_node.stdout | default('unknown') }},
+      5 Docker containers running, VIP responding, SBD {{ 'OK' if iot_sbd_check.rc == 0 else 'CHECK' }}
+  when: not _skip_iot
+
+###########################################################################
+# Summary
+###########################################################################
+- name: "Pacemaker restore summary"
+  debug:
+    msg: |
+      Pacemaker cluster restore complete:
+        FISHA: {{ 'HEALTHY — NFS VIP 10.0.X.X active' if not _skip_fisha else 'SKIPPED' }}
+        IoT: {{ 'HEALTHY — HA VIP 10.0.X.X active' if not _skip_iot else 'SKIPPED' }}

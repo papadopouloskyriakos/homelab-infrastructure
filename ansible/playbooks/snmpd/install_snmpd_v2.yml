@@ -1,0 +1,79 @@
+---
+- name: Install and configure SNMPD on Debian/Ubuntu (conditionally)
+  hosts: all
+  become: yes
+  vars:
+    snmp_community: "uBnr@W9dKOu#7ifTdVbA" # Your community string
+    snmp_trap_hosts: # List of trap destinations
+      - "10.0.X.X"
+      - "10.0.X.X" # Add your extra host here; add more lines for others
+  tasks:
+    - name: Gather package facts to check if snmpd is installed
+      package_facts:
+        manager: auto
+
+    - name: Install snmpd package only if not already installed
+      apt:
+        name: snmpd
+        state: present
+        update_cache: yes
+      when: "'snmpd' not in ansible_facts.packages"
+      notify: Restart snmpd
+
+    - name: Check if /etc/snmp/snmpd.conf exists
+      stat:
+        path: /etc/snmp/snmpd.conf
+      register: conf_file_stat
+
+    - name: Check if snmpd.conf contains trap host IPs (if file exists)
+      command: grep "{{ item }}" /etc/snmp/snmpd.conf
+      loop: "{{ snmp_trap_hosts }}"
+      register: trap_check
+      ignore_errors: yes
+      changed_when: false
+      when: conf_file_stat.stat.exists
+
+    - name: Set facts for individual IP presence
+      set_fact:
+        has_46: "{{ trap_check.results[0].rc == 0 if trap_check.results is defined else false }}"
+        has_57: "{{ trap_check.results[1].rc == 0 if trap_check.results is defined else false }}"
+
+    - name: Append missing trap line if only 10.0.X.X is present
+      lineinfile:
+        path: /etc/snmp/snmpd.conf
+        line: "trap2sink 10.0.X.X {{ snmp_community }}"
+        state: present
+        insertafter: EOF  # Appends to the end
+        backup: yes
+      when:
+        - conf_file_stat.stat.exists
+        - has_46 | bool
+        - not has_57 | bool
+      notify: Restart snmpd
+
+    - name: Determine if full template deployment is needed
+      set_fact:
+        template_needed: true
+      when:
+        - not conf_file_stat.stat.exists or not (has_46 | bool and has_57 | bool)
+        - not (has_46 | bool and not has_57 | bool)  # Skip if we just appended
+
+    - name: Deploy minimal snmpd.conf template only if needed
+      template:
+        src: snmpd.conf.j2 # Path to your template file
+        dest: /etc/snmp/snmpd.conf
+        backup: yes
+      when: template_needed | default(false)
+      notify: Restart snmpd
+
+    - name: Ensure snmpd is enabled and started
+      service:
+        name: snmpd
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Restart snmpd
+      service:
+        name: snmpd
+        state: restarted

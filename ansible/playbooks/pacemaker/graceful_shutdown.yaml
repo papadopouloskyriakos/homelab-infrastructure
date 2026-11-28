@@ -1,0 +1,234 @@
+---
+# Pacemaker Clusters Graceful Shutdown — IoT + FISHA
+#
+# Performs a safe, ordered shutdown of both NL Pacemaker clusters
+# BEFORE Synology syno01 reboots (which kills arbitrators).
+#
+# Required extra_vars:
+#   matrix_api_token: Matrix bot token for status updates
+#
+# Optional extra_vars:
+#   skip_iot: true to skip IoT cluster (default: false)
+#   skip_fisha: true to skip FISHA cluster (default: false)
+#
+# CRITICAL SAFETY CONSTRAINTS:
+#   - IoT: no-quorum-policy=suicide — MUST stop Pacemaker on BOTH iot nodes
+#     BEFORE syno01 reboots (iotarb01 is VMM guest on syno01)
+#   - FISHA: filearb01 is VMM guest on syno01 — lose quorum if it dies while
+#     file01 or file02 is also down
+#   - Both clusters depend on syno01 for quorum arbitration
+#
+# Procedure (from maintenance plan steps 11-12):
+#   IoT:
+#     1. Disable g_iot_stack (stops all 9 resources gracefully)
+#     2. Wait for Docker containers to stop
+#     3. Stop Pacemaker on iot01, then iot02
+#   FISHA:
+#     1. Standby NFS resources (release VIP)
+#     2. Unmount OCFS2 on both primaries
+#     3. Set DRBD secondary on both primaries
+#     4. Stop Pacemaker on file01, then file02
+#
+# Runs from localhost (delegates via SSH).
+
+- name: "Pacemaker clusters graceful shutdown"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    _skip_iot: "{{ skip_iot | default(false) | bool }}"
+    _skip_fisha: "{{ skip_fisha | default(false) | bool }}"
+
+  tasks:
+    ###########################################################################
+    # IoT/HAHA Cluster Shutdown
+    ###########################################################################
+    - name: "[IOT] Begin graceful shutdown"
+      debug:
+        msg: "Shutting down IoT/HAHA cluster (nlcl01iot01, nlcl01iot02, nlcl01iotarb01)"
+      when: not _skip_iot
+
+    # Step 11a: Disable g_iot_stack (graceful resource stop)
+    - name: "[IOT] Disable g_iot_stack"
+      shell: |
+        ssh -i ~/.ssh/one_key root@nlcl01iot02 \
+          "crm resource disable g_iot_stack" 2>&1
+      register: iot_disable
+      when: not _skip_iot
+
+    - name: "[IOT] Wait for all Docker containers to stop (up to 3 min)"
+      shell: |
+        count=$(ssh -i ~/.ssh/one_key root@nlcl01iot02 \
+          "docker ps -q 2>/dev/null | wc -l" 2>/dev/null || echo "99")
+        echo "Running containers: $count"
+        [ "$count" -eq 0 ]
+      register: iot_docker_stopped
+      until: iot_docker_stopped.rc == 0
+      retries: 12
+      delay: 15
+      changed_when: false
+      when: not _skip_iot
+
+    # Step 11b: Stop Pacemaker on both nodes
+    - name: "[IOT] Stop Pacemaker on iot01 (standby node)"
+      shell: ssh -i ~/.ssh/one_key root@nlcl01iot01 "pcs cluster stop" 2>&1
+      register: iot01_stop
+      when: not _skip_iot
+
+    - name: "[IOT] Stop Pacemaker on iot02 (was active)"
+      shell: ssh -i ~/.ssh/one_key root@nlcl01iot02 "pcs cluster stop" 2>&1
+      register: iot02_stop
+      when: not _skip_iot
+
+    - name: "[IOT] Verify Pacemaker stopped on both nodes"
+      shell: |
+        iot01=$(ssh -i ~/.ssh/one_key root@nlcl01iot01 \
+          "systemctl is-active pacemaker" 2>/dev/null || echo "inactive")
+        iot02=$(ssh -i ~/.ssh/one_key root@nlcl01iot02 \
+          "systemctl is-active pacemaker" 2>/dev/null || echo "inactive")
+        echo "nlcl01iot01: $iot01, nlcl01iot02: $iot02"
+        [ "$iot01" = "inactive" ] && [ "$iot02" = "inactive" ]
+      register: iot_pacemaker_stopped
+      changed_when: false
+      when: not _skip_iot
+
+    - name: "[IOT] Graceful shutdown complete"
+      debug:
+        msg: >-
+          IoT/HAHA cluster stopped. g_iot_stack disabled, Docker containers stopped,
+          Pacemaker stopped on nlcl01iot01 + nlcl01iot02. nlcl01iotarb01 (nl-nas01 VMM) still running.
+      when: not _skip_iot
+
+    ###########################################################################
+    # FISHA Cluster Shutdown
+    ###########################################################################
+    - name: "[FISHA] Begin graceful shutdown"
+      debug:
+        msg: "Shutting down FISHA cluster (nlcl01file01, nlcl01file02, nlcl01filearb01)"
+      when: not _skip_fisha
+
+    # Step 12a: Identify active NFS node
+    - name: "[FISHA] Identify active NFS node"
+      shell: |
+        ssh nlcl01file01 "crm status 2>/dev/null" | \
+          grep -oP 'nfs-ip.*Started\s+\K\S+'
+      register: fisha_active_node
+      changed_when: false
+      when: not _skip_fisha
+
+    - name: "[FISHA] Active NFS node"
+      debug:
+        msg: "Active NFS node: {{ fisha_active_node.stdout | default('unknown') }}"
+      when: not _skip_fisha
+
+    # Step 12b: Standby NFS resources
+    - name: "[FISHA] Put nfs-group in standby (release VIP)"
+      shell: |
+        ssh nlcl01file01 "crm resource stop nfs-group" 2>&1
+      register: fisha_nfs_stop
+      when: not _skip_fisha
+
+    - name: "[FISHA] Wait for VIP to release (up to 2 min)"
+      shell: |
+        vip_gone=$(ssh nlcl01file01 \
+          "ip addr show 2>/dev/null | grep -c '10.0.X.X' || true" 2>/dev/null)
+        peer_vip=$(ssh nlcl01file02 \
+          "ip addr show 2>/dev/null | grep -c '10.0.X.X' || true" 2>/dev/null)
+        total=$((vip_gone + peer_vip))
+        echo "VIP present on nodes: $total"
+        [ "$total" -eq 0 ]
+      register: vip_released
+      until: vip_released.rc == 0
+      retries: 8
+      delay: 15
+      changed_when: false
+      when: not _skip_fisha
+
+    # Step 12c: Unmount OCFS2 on both primaries
+    - name: "[FISHA] Stop OCFS2 resources"
+      shell: ssh nlcl01file01 "crm resource stop ocfs2-clone" 2>&1
+      register: ocfs2_stop
+      when: not _skip_fisha
+
+    - name: "[FISHA] Wait for OCFS2 to unmount on both primaries (up to 2 min)"
+      shell: |
+        f01=$(ssh nlcl01file01 "mountpoint -q /mnt/ocfs2 2>/dev/null && echo 'mounted' || echo 'unmounted'" 2>/dev/null)
+        f02=$(ssh nlcl01file02 "mountpoint -q /mnt/ocfs2 2>/dev/null && echo 'mounted' || echo 'unmounted'" 2>/dev/null)
+        echo "nlcl01file01: $f01, nlcl01file02: $f02"
+        [ "$f01" = "unmounted" ] && [ "$f02" = "unmounted" ]
+      register: ocfs2_unmounted
+      until: ocfs2_unmounted.rc == 0
+      retries: 8
+      delay: 15
+      changed_when: false
+      when: not _skip_fisha
+
+    # Step 12d: Set DRBD secondary on both primaries
+    - name: "[FISHA] Stop DRBD resource (sets secondary)"
+      shell: ssh nlcl01file01 "crm resource stop ms_drbd_r0" 2>&1
+      register: drbd_stop
+      when: not _skip_fisha
+
+    - name: "[FISHA] Wait for DRBD secondary on both nodes (up to 2 min)"
+      shell: |
+        f01_role=$(ssh nlcl01file01 "drbdadm role r0 2>/dev/null || echo 'down'" 2>/dev/null)
+        f02_role=$(ssh nlcl01file02 "drbdadm role r0 2>/dev/null || echo 'down'" 2>/dev/null)
+        echo "nlcl01file01: $f01_role, nlcl01file02: $f02_role"
+        # Accept Secondary or down (resource stopped)
+        echo "$f01_role" | grep -qiE "secondary|down" && echo "$f02_role" | grep -qiE "secondary|down"
+      register: drbd_secondary
+      until: drbd_secondary.rc == 0
+      retries: 8
+      delay: 15
+      changed_when: false
+      when: not _skip_fisha
+
+    # Step 12e: Stop Pacemaker on both primaries
+    - name: "[FISHA] Stop Pacemaker on file01"
+      shell: ssh nlcl01file01 "pcs cluster stop" 2>&1
+      register: file01_stop
+      when: not _skip_fisha
+
+    - name: "[FISHA] Stop Pacemaker on file02"
+      shell: ssh nlcl01file02 "pcs cluster stop" 2>&1
+      register: file02_stop
+      when: not _skip_fisha
+
+    - name: "[FISHA] Verify Pacemaker stopped on both primaries"
+      shell: |
+        f01=$(ssh nlcl01file01 "systemctl is-active pacemaker" 2>/dev/null || echo "inactive")
+        f02=$(ssh nlcl01file02 "systemctl is-active pacemaker" 2>/dev/null || echo "inactive")
+        echo "nlcl01file01: $f01, nlcl01file02: $f02"
+        [ "$f01" = "inactive" ] && [ "$f02" = "inactive" ]
+      register: fisha_pacemaker_stopped
+      changed_when: false
+      when: not _skip_fisha
+
+    - name: "[FISHA] Record DRBD state for safe restart"
+      shell: |
+        ssh nlcl01file01 "cat /var/lib/drbd/r0.lkbd 2>/dev/null || echo 'no lockfile'" 2>/dev/null
+      register: fisha_drbd_state
+      changed_when: false
+      failed_when: false
+      when: not _skip_fisha
+
+    - name: "[FISHA] Graceful shutdown complete"
+      debug:
+        msg: >-
+          FISHA cluster stopped. NFS VIP released, OCFS2 unmounted,
+          DRBD set to secondary, Pacemaker stopped on nlcl01file01 + nlcl01file02.
+          nlcl01filearb01 (nl-nas01 VMM) still running.
+      when: not _skip_fisha
+
+    ###########################################################################
+    # Summary
+    ###########################################################################
+    - name: "Pacemaker shutdown summary"
+      debug:
+        msg: |
+          Pacemaker graceful shutdown complete:
+            IoT: {{ 'STOPPED' if not _skip_iot else 'SKIPPED' }}
+            FISHA: {{ 'STOPPED' if not _skip_fisha else 'SKIPPED' }}
+          Safe to proceed with Synology reboot.

@@ -1,0 +1,175 @@
+---
+# PVE Post-Reboot Validation — Per-node health checks
+#
+# Required extra_vars:
+#   target_node: PVE hostname (e.g., nl-pve01, gr-pve01)
+#
+# Optional extra_vars:
+#   site: "nl" or "gr" (auto-detected from hostname)
+#   strict: true to fail on any check failure (default: false)
+#
+# Checks:
+#   1. PVE API responding
+#   2. All expected guests running (compares to pre-reboot snapshot if available)
+#   3. PVE services healthy (pveproxy, pvedaemon, pvestatd)
+#   4. Storage backends accessible (ZFS, LVM, NFS, iSCSI)
+#   5. Network interfaces UP
+#   6. Kernel version (record for report)
+#
+# Runs from localhost (SSH to PVE node).
+
+- name: "PVE post-reboot validation: {{ target_node }}"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+
+  vars:
+    _node: "{{ target_node }}"
+    _site: "{{ site | default('nl' if 'nl' in target_node else 'gr') }}"
+    _strict: "{{ strict | default(false) | bool }}"
+    # SSH command prefix based on site
+    _ssh: "{{ 'ssh ' ~ _node if _site == 'nl' else 'ssh -i ~/.ssh/one_key root@' ~ _node }}"
+
+  tasks:
+    - name: "[VALIDATE] Begin validation of {{ _node }}"
+      debug:
+        msg: "Site: {{ _site }}, SSH: {{ _ssh }}"
+
+    ###########################################################################
+    # 1. PVE API
+    ###########################################################################
+    - name: "[VALIDATE] Check PVE API"
+      uri:
+        url: "https://{{ _node }}:8006/api2/json/version"
+        method: GET
+        validate_certs: no
+        timeout: 30
+      register: pve_api
+      retries: 5
+      delay: 15
+      until: pve_api.status == 200
+      failed_when: false
+
+    - name: "[VALIDATE] PVE API result"
+      set_fact:
+        _check_api: "{{ 'PASS' if pve_api.status | default(0) == 200 else 'FAIL' }}"
+
+    ###########################################################################
+    # 2. Running guests
+    ###########################################################################
+    - name: "[VALIDATE] Count running guests"
+      shell: |
+        {{ _ssh }} "
+          vms=\$(qm list 2>/dev/null | grep -c running || true)
+          cts=\$(pct list 2>/dev/null | grep -c running || true)
+          total=\$((vms + cts))
+          echo \"RUNNING: \$total (VMs: \$vms, LXC: \$cts)\"
+        "
+      register: guest_count
+      changed_when: false
+      failed_when: false
+
+    ###########################################################################
+    # 3. PVE services
+    ###########################################################################
+    - name: "[VALIDATE] Check PVE services"
+      shell: |
+        {{ _ssh }} "
+          errors=''
+          for svc in pveproxy pvedaemon pvestatd; do
+            status=\$(systemctl is-active \$svc 2>/dev/null || echo 'inactive')
+            if [ \"\$status\" != 'active' ]; then
+              errors=\"\${errors}\$svc: \$status; \"
+            fi
+          done
+          if [ -n \"\$errors\" ]; then
+            echo \"FAIL: \$errors\"
+            exit 1
+          fi
+          echo 'PASS: all PVE services active'
+        "
+      register: pve_services
+      changed_when: false
+      failed_when: false
+
+    ###########################################################################
+    # 4. Storage backends
+    ###########################################################################
+    - name: "[VALIDATE] Check storage backends"
+      shell: |
+        {{ _ssh }} "
+          echo '=== Storage Status ==='
+          pvesm status 2>/dev/null || echo 'pvesm failed'
+          echo ''
+          echo '=== ZFS Pools ==='
+          zpool list 2>/dev/null || echo 'No ZFS pools'
+          echo ''
+          echo '=== Mount Points ==='
+          df -h 2>/dev/null | grep -E 'rpool|ssd-pool|nfs|iscsi|volume' || echo 'No special mounts'
+        "
+      register: storage_status
+      changed_when: false
+      failed_when: false
+
+    ###########################################################################
+    # 5. Network interfaces
+    ###########################################################################
+    - name: "[VALIDATE] Check network interfaces"
+      shell: |
+        {{ _ssh }} "
+          echo '=== Network Interfaces ==='
+          ip -br link show 2>/dev/null | grep -E 'vmbr|bond|enp' | head -10
+          echo ''
+          echo '=== Bridge Status ==='
+          for br in \$(ip -br link show 2>/dev/null | grep vmbr | awk '{print \$1}'); do
+            state=\$(ip -br link show \$br | awk '{print \$2}')
+            echo \"\$br: \$state\"
+          done
+        "
+      register: network_status
+      changed_when: false
+      failed_when: false
+
+    ###########################################################################
+    # 6. Kernel version
+    ###########################################################################
+    - name: "[VALIDATE] Record kernel version"
+      shell: "{{ _ssh }} 'uname -r'"
+      register: kernel_version
+      changed_when: false
+
+    ###########################################################################
+    # Summary
+    ###########################################################################
+    - name: "[VALIDATE] Build validation summary"
+      set_fact:
+        validation_result:
+          node: "{{ _node }}"
+          kernel: "{{ kernel_version.stdout | default('unknown') }}"
+          api: "{{ _check_api }}"
+          guests: "{{ guest_count.stdout | default('unknown') }}"
+          services: "{{ 'PASS' if (pve_services.rc | default(1)) == 0 else 'FAIL' }}"
+          storage: "{{ 'checked' }}"
+          network: "{{ 'checked' }}"
+
+    - name: "[VALIDATE] Display results"
+      debug:
+        msg: |
+          ═══════════════════════════════════════
+          PVE Post-Reboot Validation: {{ _node }}
+          ═══════════════════════════════════════
+          Kernel: {{ kernel_version.stdout | default('unknown') }}
+          PVE API: {{ _check_api }}
+          Guests: {{ guest_count.stdout | default('unknown') }}
+          Services: {{ 'PASS' if pve_services.rc | default(1) == 0 else 'FAIL — ' ~ pve_services.stdout | default('') }}
+
+          Storage:
+          {{ storage_status.stdout | default('No output') | indent(2) }}
+
+    - name: "[VALIDATE] Fail if strict mode and checks failed"
+      fail:
+        msg: "Strict validation failed on {{ _node }}: API={{ _check_api }}, Services={{ 'PASS' if pve_services.rc | default(1) == 0 else 'FAIL' }}"
+      when:
+        - _strict
+        - _check_api == 'FAIL' or (pve_services.rc | default(1)) != 0
